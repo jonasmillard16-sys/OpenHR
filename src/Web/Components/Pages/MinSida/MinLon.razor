@@ -1,0 +1,80 @@
+@page "/minsida/lon"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+
+<PageTitle>OpenHR - Min lön</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">💰 Min lön</MudText>
+
+<MudPaper Class="pa-6 mb-6" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3">Mars 2026</MudText>
+    <MudGrid Spacing="3">
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">Bruttolön</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">32 400 kr</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">Skatt</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">-8 650 kr</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">Tillägg</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-success);">+3 900 kr</MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">Nettolön</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">27 650 kr</MudText>
+        </MudItem>
+    </MudGrid>
+
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4"
+               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+               Size="Size.Large" Style="min-height: 48px;">
+        Ladda ner lönespecifikation (PDF)
+    </MudButton>
+</MudPaper>
+
+<MudText Typo="Typo.h6" Class="mb-3">Tidigare månader</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr><th>Period</th><th>Brutto</th><th>Netto</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var period in _historik)
+        {
+            <tr>
+                <td>@period.Period</td>
+                <td>@period.Brutto</td>
+                <td><strong>@period.Netto</strong></td>
+                <td>
+                    <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf"
+                                   Size="Size.Small" Color="Color.Primary"
+                                   aria-label="Ladda ner PDF" />
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<LonPeriod> _historik = [];
+
+    protected override void OnInitialized()
+    {
+        _historik =
+        [
+            new("Februari 2026", "28 500 kr", "21 420 kr"),
+            new("Januari 2026", "28 500 kr", "21 420 kr"),
+            new("December 2025", "31 200 kr", "23 850 kr"),
+            new("November 2025", "28 500 kr", "21 420 kr"),
+            new("Oktober 2025", "29 100 kr", "21 870 kr"),
+        ];
+    }
+
+    private record LonPeriod(string Period, string Brutto, string Netto);
+}

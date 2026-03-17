@@ -1,0 +1,68 @@
+@page "/minsida/schema"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+
+<PageTitle>OpenHR - Mitt schema</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">📅 Mitt schema</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Dina kommande pass den här veckan
+</MudText>
+
+<MudSimpleTable Hover="true" Dense="false" Elevation="2" Style="font-size: 1.125rem;">
+    <thead>
+        <tr>
+            <th>Dag</th>
+            <th>Pass</th>
+            <th>Tid</th>
+            <th>Rast</th>
+            <th>Timmar</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pass in _veckoschema)
+        {
+            <tr style="@(pass.ArLedig ? "color: var(--mud-palette-success);" : "")">
+                <td><strong>@pass.Dag</strong></td>
+                <td>
+                    @if (pass.ArLedig)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Ledig</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="@pass.ChipColor">@pass.PassTyp</MudChip>
+                    }
+                </td>
+                <td>@pass.Tid</td>
+                <td>@pass.Rast</td>
+                <td>@pass.Timmar</td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<SchemaRad> _veckoschema = [];
+
+    protected override void OnInitialized()
+    {
+        _veckoschema =
+        [
+            new("Måndag 17/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
+            new("Tisdag 18/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
+            new("Onsdag 19/3", "Kväll", "15:00 - 22:00", "30 min", "6,5", Color.Warning, false),
+            new("Torsdag 20/3", "Natt", "21:00 - 07:00", "45 min", "9,25", Color.Error, false),
+            new("Fredag 21/3", "", "", "", "", Color.Default, true),
+            new("Lördag 22/3", "", "", "", "", Color.Default, true),
+            new("Söndag 23/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
+        ];
+    }
+
+    private record SchemaRad(string Dag, string PassTyp, string Tid, string Rast, string Timmar, Color ChipColor, bool ArLedig);
+}

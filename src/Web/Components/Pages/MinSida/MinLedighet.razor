@@ -1,0 +1,54 @@
+@page "/minsida/ledighet"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+
+<PageTitle>OpenHR - Min ledighet</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">🌴 Min ledighet</MudText>
+
+<MudGrid Spacing="4" Class="mb-6">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_tillgangliga</MudText>
+            <MudText Typo="Typo.body1">Tillgängliga</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h3" Style="font-weight: 700;">@_intjanade</MudText>
+            <MudText Typo="Typo.body1">Intjänade</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h3" Style="font-weight: 700;">@_uttagna</MudText>
+            <MudText Typo="Typo.body1">Uttagna</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h3" Style="font-weight: 700;">@_sparade</MudText>
+            <MudText Typo="Typo.body1">Sparade</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary"
+           Size="Size.Large" FullWidth="true"
+           Style="min-height: 64px; font-size: 1.25rem;"
+           StartIcon="@Icons.Material.Filled.Add"
+           Href="/ledighet/ny">
+    Jag vill ha ledigt
+</MudButton>
+
+@code {
+    private int _tillgangliga = 18;
+    private int _intjanade = 25;
+    private int _uttagna = 7;
+    private int _sparade = 5;
+}
