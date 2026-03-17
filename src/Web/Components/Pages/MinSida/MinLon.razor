@@ -2,7 +2,10 @@
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.EmployeeLayout
 @using RegionHR.Web.Services
+@using RegionHR.Infrastructure.Export
 @inject SelfServiceApiClient SelfService
+@inject PdfPayslipGenerator PdfGenerator
+@inject IJSRuntime JS
 
 <PageTitle>OpenHR - Min lön</PageTitle>
 
@@ -36,7 +39,8 @@
 
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4"
                StartIcon="@Icons.Material.Filled.PictureAsPdf"
-               Size="Size.Large" Style="min-height: 48px;">
+               Size="Size.Large" Style="min-height: 48px;"
+               OnClick="@(() => LaddaNerPdf(_senastePeriod, _senasteBrutto, _senasteSkatt, _senasteNetto, _senasteTillagg))">
         Ladda ner lönespecifikation (PDF)
     </MudButton>
 </MudPaper>
@@ -56,7 +60,8 @@
                 <td>
                     <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf"
                                    Size="Size.Small" Color="Color.Primary"
-                                   aria-label="Ladda ner PDF" />
+                                   aria-label="Ladda ner PDF"
+                                   OnClick="@(() => LaddaNerPdf(period.Period, period.BruttoDecimal, period.SkattDecimal, period.NettoDecimal, 0m))" />
                 </td>
             </tr>
         }
@@ -90,7 +95,10 @@
                 _historik = data.Skip(1).Select(r => new LonPeriod(
                     r.Period,
                     FormatKr(r.Brutto),
-                    FormatKr(r.Netto)
+                    FormatKr(r.Netto),
+                    r.Brutto,
+                    r.Skatt,
+                    r.Netto
                 )).ToList();
                 return;
             }
@@ -102,16 +110,56 @@
 
         _historik =
         [
-            new("Februari 2026", "28 500 kr", "21 420 kr"),
-            new("Januari 2026", "28 500 kr", "21 420 kr"),
-            new("December 2025", "31 200 kr", "23 850 kr"),
-            new("November 2025", "28 500 kr", "21 420 kr"),
-            new("Oktober 2025", "29 100 kr", "21 870 kr"),
+            new("Februari 2026", "28 500 kr", "21 420 kr", 28_500m, 7_080m, 21_420m),
+            new("Januari 2026", "28 500 kr", "21 420 kr", 28_500m, 7_080m, 21_420m),
+            new("December 2025", "31 200 kr", "23 850 kr", 31_200m, 7_350m, 23_850m),
+            new("November 2025", "28 500 kr", "21 420 kr", 28_500m, 7_080m, 21_420m),
+            new("Oktober 2025", "29 100 kr", "21 870 kr", 29_100m, 7_230m, 21_870m),
         ];
+    }
+
+    private async Task LaddaNerPdf(string period, decimal brutto, decimal skatt, decimal netto, decimal tillagg)
+    {
+        var payslipData = new PayslipData
+        {
+            AnstallNamn = "Anställd",
+            Personnummer = "XXXXXX-XXXX",
+            Period = period,
+            Enhet = "Min enhet",
+            Brutto = brutto,
+            Skatt = skatt,
+            Netto = netto,
+            OBTillagg = tillagg,
+            Rader = new List<PayslipLine>
+            {
+                new() { Loneart = "1010", Benamning = "Grundlön", Antal = 1, Sats = brutto, Belopp = brutto },
+            }
+        };
+
+        // Try to enrich with real employee data
+        try
+        {
+            var profil = await SelfService.GetProfileAsync(EmployeeId.From(Guid.Empty));
+            if (profil is not null)
+            {
+                payslipData.AnstallNamn = $"{profil.Fornamn} {profil.Efternamn}";
+                payslipData.Personnummer = profil.PersonnummerMaskerat;
+                payslipData.Enhet = profil.Enhet;
+            }
+        }
+        catch
+        {
+            // Use defaults
+        }
+
+        var pdfBytes = PdfGenerator.Generate(payslipData);
+        var base64 = Convert.ToBase64String(pdfBytes);
+        var safeFilename = period.Replace(" ", "-").ToLowerInvariant();
+        await JS.InvokeVoidAsync("downloadFile", $"lonespec-{safeFilename}.pdf", base64, "application/pdf");
     }
 
     private static string FormatKr(decimal belopp) =>
         $"{belopp:N0} kr".Replace(",", " ");
 
-    private record LonPeriod(string Period, string Brutto, string Netto);
+    private record LonPeriod(string Period, string Brutto, string Netto, decimal BruttoDecimal, decimal SkattDecimal, decimal NettoDecimal);
 }

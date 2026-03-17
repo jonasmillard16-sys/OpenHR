@@ -1,17 +1,27 @@
 @page "/anstallda"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Export
 @inject RegionHR.Web.Services.AnstallningService Service
 @inject NavigationManager Nav
+@inject ExportService Export
+@inject IJSRuntime JS
 
 <PageTitle>OpenHR - Anställda</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Anställda</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-               StartIcon="@Icons.Material.Filled.Add" Href="/anstallda/ny" Style="min-height: 48px;">
-        Ny anställd
-    </MudButton>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Download" OnClick="ExporteraExcel"
+                   Style="min-height: 48px;">
+            Exportera Excel
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Add" Href="/anstallda/ny" Style="min-height: 48px;">
+            Ny anställd
+        </MudButton>
+    </div>
 </div>
 
 <MudTextField @bind-Value="_sokterm" Label="Sök namn..." Variant="Variant.Outlined"
@@ -85,5 +95,31 @@ else
             _anstallda = [];
         }
         _loading = false;
+    }
+
+    private async Task ExporteraExcel()
+    {
+        var headers = new[] { "Förnamn", "Efternamn", "Personnummer", "Befattning", "Anställningsform", "Sysselsättningsgrad (%)" };
+
+        var excelBytes = Export.ToExcel(
+            _anstallda,
+            "Anställda",
+            headers,
+            a => new object[]
+            {
+                a.Fornamn,
+                a.Efternamn,
+                a.PersonnummerMaskerat,
+                a.Befattning,
+                a.Anstallningsform,
+                a.Sysselsattningsgrad
+            });
+
+        var base64 = Convert.ToBase64String(excelBytes);
+        var timestamp = DateTime.Now.ToString("yyyy-MM-dd");
+        await JS.InvokeVoidAsync("downloadFile",
+            $"anstallda-{timestamp}.xlsx",
+            base64,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }
