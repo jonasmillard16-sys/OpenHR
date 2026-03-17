@@ -9,12 +9,47 @@
 <MudSimpleTable Hover="true" Elevation="2" Dense="true">
     <thead><tr><th>Anställd</th><th>Mån 17</th><th>Tis 18</th><th>Ons 19</th><th>Tor 20</th><th>Fre 21</th></tr></thead>
     <tbody>
-        <tr><td>Anna Svensson</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td style="background: #d4e6f1;">&#127796;</td></tr>
-        <tr><td>Karl Berg</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td></tr>
-        <tr><td>Lisa Holm</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td></tr>
-        <tr><td>Erik Johansson</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td></tr>
-        <tr><td>Per Gustafsson</td><td style="background: #fdebd0;">&#128118;</td><td style="background: #fdebd0;">&#128118;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td></tr>
+        @foreach (var rad in _data)
+        {
+            <tr>
+                <td>@rad.Namn</td>
+                @foreach (var dag in rad.Dagar)
+                {
+                    <td style="@(dag.Bakgrund != null ? $"background: {dag.Bakgrund};" : "")">@dag.Symbol</td>
+                }
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
 
-<MudText Typo="Typo.body2" Class="mt-3">&#9989; Arbetar | &#127796; Semester | &#129298; Sjuk | &#128118; VAB</MudText>
+<MudStack Row="true" Spacing="4" Class="mt-3">
+    <MudText Typo="Typo.body2">@OK Arbetar</MudText>
+    <MudText Typo="Typo.body2">@Palm Semester</MudText>
+    <MudText Typo="Typo.body2">@Sjuk Sjuk</MudText>
+    <MudText Typo="Typo.body2">@Barn VAB</MudText>
+</MudStack>
+
+@code {
+    private const string OK = "\u2705";
+    private const string Palm = "\U0001F334";
+    private const string Sjuk = "\U0001F912";
+    private const string Barn = "\U0001F476";
+
+    private List<KalenderRad> _data = [];
+
+    protected override void OnInitialized()
+    {
+        _data =
+        [
+            new("Anna Svensson", [D(OK), D(OK), D(OK), D(OK), D(Palm, "#d4e6f1")]),
+            new("Karl Berg", [D(Sjuk, "#f5b7b1"), D(Sjuk, "#f5b7b1"), D(Sjuk, "#f5b7b1"), D(Sjuk, "#f5b7b1"), D(Sjuk, "#f5b7b1")]),
+            new("Lisa Holm", [D(OK), D(OK), D(OK), D(OK), D(OK)]),
+            new("Erik Johansson", [D(Palm, "#d4e6f1"), D(Palm, "#d4e6f1"), D(Palm, "#d4e6f1"), D(Palm, "#d4e6f1"), D(Palm, "#d4e6f1")]),
+            new("Per Gustafsson", [D(Barn, "#fdebd0"), D(Barn, "#fdebd0"), D(OK), D(OK), D(OK)]),
+        ];
+    }
+
+    private static DagCell D(string symbol, string? bg = null) => new(symbol, bg);
+    private record DagCell(string Symbol, string? Bakgrund);
+    private record KalenderRad(string Namn, List<DagCell> Dagar);
+}
