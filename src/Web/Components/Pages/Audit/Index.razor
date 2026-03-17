@@ -1,0 +1,25 @@
+@page "/audit"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Granskningslogg</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Granskningslogg</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);"><MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">1 284</MudText><MudText Typo="Typo.body2">Händelser idag</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">843</MudText><MudText Typo="Typo.body2">Skapa</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">398</MudText><MudText Typo="Typo.body2">Ändra</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">43</MudText><MudText Typo="Typo.body2">Ta bort</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Senaste händelser</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Tidpunkt</th><th>Användare</th><th>Entitet</th><th>Åtgärd</th><th>Sammanfattning</th></tr></thead>
+    <tbody>
+        <tr><td>2026-03-17 08:42</td><td>sara.andersson</td><td>Anställning #4521</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Ändra</MudChip></td><td>Sysselsättningsgrad: 80% &rarr; 100%</td></tr>
+        <tr><td>2026-03-17 08:35</td><td>johan.nilsson</td><td>Löneart SKR-001</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Skapa</MudChip></td><td>Ny löneart "OB-tillägg kväll" skapad</td></tr>
+        <tr><td>2026-03-17 08:21</td><td>admin</td><td>Användare #312</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Ta bort</MudChip></td><td>Konto avaktiverat: magnus.pettersson</td></tr>
+        <tr><td>2026-03-17 07:58</td><td>karin.berg</td><td>Schema Avd. 4B</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Ändra</MudChip></td><td>Pass 2026-03-20: Dag &rarr; Kväll</td></tr>
+        <tr><td>2026-03-17 07:45</td><td>system</td><td>Lönekörning #892</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Skapa</MudChip></td><td>Lönekörning mars startad, 2 340 anställda</td></tr>
+    </tbody>
+</MudSimpleTable>

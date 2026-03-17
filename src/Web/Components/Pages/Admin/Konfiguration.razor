@@ -1,0 +1,39 @@
+@page "/admin/konfiguration"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Konfiguration</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Systemkonfiguration</MudText>
+
+<MudText Typo="Typo.h6" Class="mb-3">Tenantinställningar</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Inställning</th><th>Värde</th><th>Beskrivning</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Organisationsnamn</strong></td><td>Region Västra Götaland</td><td>Visas i sidhuvud och rapporter</td></tr>
+        <tr><td><strong>Organisationsnummer</strong></td><td>232100-0131</td><td>Används i AGI-rapportering</td></tr>
+        <tr><td><strong>Kollektivavtal</strong></td><td>AB + HOK</td><td>Primära avtal för löneberäkning</td></tr>
+        <tr><td><strong>Löneperiod</strong></td><td>Månad (25:e)</td><td>Utbetalningsdatum</td></tr>
+        <tr><td><strong>Standardspråk</strong></td><td>Svenska (sv-SE)</td><td>Systemspråk och format</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Arbetsflödesdefinitioner</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Arbetsflöde</th><th>Steg</th><th>Aktiv</th><th>Senast ändrad</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Ledighetsansökan</strong></td><td>Ansökan &rarr; Chef &rarr; Godkänd</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-01-15</td></tr>
+        <tr><td><strong>Lönekörning</strong></td><td>Förbered &rarr; Granska &rarr; Godkänn &rarr; Utbetala</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-02-01</td></tr>
+        <tr><td><strong>Nyanställning</strong></td><td>Rekrytering &rarr; HR &rarr; IT &rarr; Klar</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2025-12-10</td></tr>
+        <tr><td><strong>Offboarding</strong></td><td>Uppsägning &rarr; Chef &rarr; HR &rarr; IT &rarr; Avslutat</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-01-20</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Anpassade fält</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Fältnamn</th><th>Entitet</th><th>Typ</th><th>Obligatorisk</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Legitimationsnummer</strong></td><td>Anställd</td><td>Text</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td></tr>
+        <tr><td><strong>Parkeringstillstånd</strong></td><td>Anställd</td><td>Boolean</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Nej</MudChip></td></tr>
+        <tr><td><strong>Kostnadsställe</strong></td><td>Enhet</td><td>Text</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>

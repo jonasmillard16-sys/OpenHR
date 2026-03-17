@@ -1,0 +1,35 @@
+@page "/gdpr"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - GDPR</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">GDPR-efterlevnad</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">2</MudText><MudText Typo="Typo.body2">Utgångna deadlines</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">5</MudText><MudText Typo="Typo.body2">Väntande DSR</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">12</MudText><MudText Typo="Typo.body2">Anonymiseringskö</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">94%</MudText><MudText Typo="Typo.body2">Retention efterlevnad</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Registrerades begäran (DSR)</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Typ</th><th>Anställd</th><th>Inkom</th><th>Deadline</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>Registerutdrag</td><td><strong>Anna Svensson</strong></td><td>2026-02-28</td><td>2026-03-28</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip></td></tr>
+        <tr><td>Radering</td><td><strong>Erik Johansson</strong></td><td>2026-03-01</td><td>2026-03-29</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip></td></tr>
+        <tr><td>Registerutdrag</td><td><strong>Karin Bergström</strong></td><td>2026-03-10</td><td>2026-04-07</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td></tr>
+        <tr><td>Dataportabilitet</td><td><strong>Lars Holm</strong></td><td>2026-03-12</td><td>2026-04-09</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td></tr>
+        <tr><td>Registerutdrag</td><td><strong>Maria Lindgren</strong></td><td>2026-03-15</td><td>2026-04-12</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Ny</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Anonymiseringskö</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Anställd</th><th>Avslutat datum</th><th>Retentionsperiod utgår</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>F.d. anställd #1042</td><td>2024-03-15</td><td>2026-03-15</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Redo för anonymisering</MudChip></td></tr>
+        <tr><td>F.d. anställd #1038</td><td>2024-02-28</td><td>2026-02-28</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip></td></tr>
+        <tr><td>F.d. anställd #1055</td><td>2024-04-01</td><td>2026-04-01</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Schemalagd</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
