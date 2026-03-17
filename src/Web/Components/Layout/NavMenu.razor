@@ -3,21 +3,24 @@
 <MudNavMenu Bordered="true" Class="py-2">
     <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Start</MudNavLink>
 
-    <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People" @bind-Expanded="_personalOpen">
+    <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People"
+                 Expanded="@_personalOpen" ExpandedChanged="@(v => _personalOpen = v)">
         <MudNavLink Href="/anstallda">Anställda</MudNavLink>
         <MudNavLink Href="/organisation">Organisation</MudNavLink>
         <MudNavLink Href="/positioner">Positioner</MudNavLink>
         <MudNavLink Href="/kompetens">Kompetensregister</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments" @bind-Expanded="_lonOpen">
+    <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments"
+                 Expanded="@_lonOpen" ExpandedChanged="@(v => _lonOpen = v)">
         <MudNavLink Href="/lon/korningar">Lönekörningar</MudNavLink>
         <MudNavLink Href="/lon/lonearter">Lönearter</MudNavLink>
         <MudNavLink Href="/loneoversyn">Löneöversyn</MudNavLink>
         <MudNavLink Href="/lon/statistik">Statistik</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth" @bind-Expanded="_schemaOpen">
+    <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth"
+                 Expanded="@_schemaOpen" ExpandedChanged="@(v => _schemaOpen = v)">
         <MudNavLink Href="/schema">Schemaöversikt</MudNavLink>
         <MudNavLink Href="/schema/bemanning">Bemanning</MudNavLink>
         <MudNavLink Href="/stampling">Instämpling</MudNavLink>
@@ -37,7 +40,6 @@
     <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">Inställningar</MudNavLink>
     <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">GDPR</MudNavLink>
     <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">Granskningslogg</MudNavLink>
-
     <MudNavLink Href="/notiser" Icon="@Icons.Material.Filled.Notifications">Notiser</MudNavLink>
 
     <MudDivider Class="my-2" />

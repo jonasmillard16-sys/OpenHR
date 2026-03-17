@@ -1,54 +1,102 @@
+@rendermode InteractiveServer
 @namespace RegionHR.Web.Components.Layout.Shared
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 
 <MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
-    <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700;">OpenHR</MudText>
-    <MudAutocomplete T="string" Label="" Placeholder="Sök anställd eller sida..."
-                     SearchFunc="Search" Variant="Variant.Outlined" Dense="true"
-                     Style="max-width: 300px; margin-left: 1rem;"
-                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                     ValueChanged="OnSearchSelected" />
+    <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700; cursor: pointer;" @onclick="@(() => Nav?.NavigateTo("/"))">OpenHR</MudText>
+
+    @* Search field with visible styling *@
+    <div style="margin-left: 1rem; max-width: 320px; flex: 1;">
+        <MudAutocomplete T="string" Placeholder="Sök anställd eller sida..."
+                         SearchFunc="Search" Variant="Variant.Filled" Dense="true"
+                         Style="background: rgba(255,255,255,0.15); border-radius: 8px;"
+                         Class="white-text-field"
+                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                         AdornmentColor="Color.Inherit"
+                         ValueChanged="OnSearchSelected" />
+    </div>
+
     <MudSpacer />
-    <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                   Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="Växla mörkt/ljust läge" />
-    <MudIconButton Icon="@Icons.Material.Filled.Language"
-                   Color="Color.Inherit"
-                   aria-label="Byt språk" />
-    <MudBadge Content="@UnreadCount" Overlap="true" Color="Color.Error"
-              Visible="@(UnreadCount > 0)">
-        <MudIconButton Icon="@Icons.Material.Filled.Notifications"
-                       Color="Color.Inherit"
-                       aria-label="@($"{UnreadCount} olästa notiser")"
-                       OnClick="@(() => Nav?.NavigateTo("/notiser"))" />
-    </MudBadge>
+
+    @* Dark mode toggle *@
+    <MudTooltip Text="@(_darkMode ? "Ljust läge" : "Mörkt läge")">
+        <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="Växla mörkt/ljust läge" />
+    </MudTooltip>
+
+    @* Language selector *@
+    <MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Inherit"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+             aria-label="Byt språk">
+        <MudMenuItem OnClick="@(() => SetLanguage("sv"))">
+            Svenska @(_currentLang == "sv" ? "✓" : "")
+        </MudMenuItem>
+        <MudMenuItem OnClick="@(() => SetLanguage("en"))">
+            English @(_currentLang == "en" ? "✓" : "")
+        </MudMenuItem>
+    </MudMenu>
+
+    @* Notifications *@
+    <MudTooltip Text="@($"{UnreadCount} olästa notiser")">
+        <MudBadge Content="@UnreadCount" Overlap="true" Color="Color.Error"
+                  Visible="@(UnreadCount > 0)">
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                           Color="Color.Inherit"
+                           OnClick="@(() => Nav?.NavigateTo("/notiser"))"
+                           aria-label="Notiser" />
+        </MudBadge>
+    </MudTooltip>
+
+    @* User menu *@
     <MudMenu Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
              aria-label="Användarmeny">
         <MudMenuItem>@UserName</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Filled.Settings">Inställningar</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.AccountCircle"
+                     OnClick="@(() => Nav?.NavigateTo("/minsida"))">Min sida</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Settings"
+                     OnClick="@(() => Nav?.NavigateTo("/notiser/installningar"))">Inställningar</MudMenuItem>
+        <MudDivider />
         <MudMenuItem Icon="@Icons.Material.Filled.Logout">Logga ut</MudMenuItem>
     </MudMenu>
 </MudAppBar>
+
+<style>
+    .white-text-field input,
+    .white-text-field .mud-input-adornment { color: white !important; }
+    .white-text-field input::placeholder { color: rgba(255,255,255,0.7) !important; }
+    .white-text-field .mud-input-outlined-border { border-color: rgba(255,255,255,0.3) !important; }
+</style>
 
 @code {
     [Parameter] public string UserName { get; set; } = "Användare";
     [Parameter] public int UnreadCount { get; set; }
 
     private bool _darkMode;
-    private void ToggleDarkMode() { _darkMode = !_darkMode; }
+    private string _currentLang = "sv";
 
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
+
+    private void ToggleDarkMode()
+    {
+        _darkMode = !_darkMode;
+        // TODO: Persist preference and toggle MudTheme dark palette
+    }
+
+    private void SetLanguage(string lang)
+    {
+        _currentLang = lang;
+        // TODO: Set culture cookie and reload
+    }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             if (Db is not null)
-            {
                 UnreadCount = await Db.Notifications.CountAsync(n => !n.IsRead);
-            }
         }
         catch { }
     }
@@ -80,22 +128,24 @@
         var term = value.ToLower();
         var results = new List<string>();
 
-        // Navigation suggestions
         var navMatches = _navSuggestions
             .Where(kv => kv.Key.Contains(term))
             .Select(kv => $"\u27a1 {char.ToUpper(kv.Key[0])}{kv.Key[1..]} ({kv.Value})")
             .Take(5);
         results.AddRange(navMatches);
 
-        // Employee search
         if (Db is not null)
         {
-            var employees = await Db.Employees
-                .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
-                .Take(10)
-                .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")
-                .ToListAsync(ct);
-            results.AddRange(employees);
+            try
+            {
+                var employees = await Db.Employees
+                    .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
+                    .Take(10)
+                    .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")
+                    .ToListAsync(ct);
+                results.AddRange(employees);
+            }
+            catch { }
         }
 
         return results;
@@ -103,10 +153,8 @@
 
     private void OnSearchSelected(string value)
     {
-        if (string.IsNullOrEmpty(value))
-            return;
+        if (string.IsNullOrEmpty(value)) return;
 
-        // Navigation suggestion selected (starts with arrow)
         if (value.StartsWith("\u27a1") && value.Contains('(') && value.Contains(')'))
         {
             var route = value.Split('(').Last().TrimEnd(')');
@@ -114,7 +162,6 @@
             return;
         }
 
-        // Employee selected
         if (value.Contains('(') && value.Contains(')'))
         {
             var guidStr = value.Split('(').Last().TrimEnd(')');
