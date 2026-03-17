@@ -1,0 +1,21 @@
+@page "/schema/passbyte"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Passbyte</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Passbyten</MudText>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">2</MudText><MudText Typo="Typo.body2">Erbjudna</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">12</MudText><MudText Typo="Typo.body2">Genomförda (mars)</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Begärande</th><th>Deras pass</th><th>Byter med</th><th>Deras pass</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+        <tr><td><strong>Anna Svensson</strong></td><td>Natt 20/3</td><td>Sara Karlsson</td><td>Dag 20/3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success">Godkänn</MudButton> <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error">Nej</MudButton></td></tr>
+        <tr><td><strong>Karl Berg</strong></td><td>Kväll 22/3</td><td>Lisa Holm</td><td>Dag 22/3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success">Godkänn</MudButton> <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error">Nej</MudButton></td></tr>
+        <tr><td><strong>Maria Lindgren</strong></td><td>Dag 25/3</td><td>Helena Bergström</td><td>Kväll 25/3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td></td></tr>
+    </tbody>
+</MudSimpleTable>

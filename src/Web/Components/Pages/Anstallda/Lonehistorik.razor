@@ -1,0 +1,22 @@
+@page "/anstallda/{Id:guid}/lonehistorik"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Lönehistorik</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="@($"/anstallda/{Id}")" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönehistorik</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Datum</th><th>Tidigare lön</th><th>Ny lön</th><th>Förändring</th><th>Anledning</th><th>Godkänd av</th></tr></thead>
+    <tbody>
+        <tr><td>2026-01-01</td><td>28 500 kr</td><td>30 000 kr</td><td style="color: green;">+1 500 kr (+5,3%)</td><td>Löneöversyn 2026</td><td>Anna HR</td></tr>
+        <tr><td>2025-01-01</td><td>27 000 kr</td><td>28 500 kr</td><td style="color: green;">+1 500 kr (+5,6%)</td><td>Löneöversyn 2025</td><td>Anna HR</td></tr>
+        <tr><td>2023-06-01</td><td>25 500 kr</td><td>27 000 kr</td><td style="color: green;">+1 500 kr (+5,9%)</td><td>Befordran till Ssk</td><td>Erik Chef</td></tr>
+        <tr><td>2015-08-01</td><td>—</td><td>25 500 kr</td><td>—</td><td>Nyanställning</td><td>—</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+}
