@@ -1,0 +1,68 @@
+@page "/tidrapporter/{Id:guid}"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+
+<PageTitle>OpenHR - Tidrapport</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/tidrapporter" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Tidrapport — Mars 2026</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Anna Svensson — Avdelning 32</MudText>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">160,0</MudText><MudText Typo="Typo.body2">Planerade timmar</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">168,5</MudText><MudText Typo="Typo.body2">Faktiska timmar</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">8,5</MudText><MudText Typo="Typo.body2">Övertid</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<!-- Week-by-week breakdown -->
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+    <thead><tr><th>Vecka</th><th>Planerat</th><th>Faktiskt</th><th>Övertid</th><th>Avvikelse</th></tr></thead>
+    <tbody>
+        <tr><td>V10</td><td>40,0</td><td>42,5</td><td>2,5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+2,5h</MudChip></td></tr>
+        <tr><td>V11</td><td>40,0</td><td>44,0</td><td>4,0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+4,0h</MudChip></td></tr>
+        <tr><td>V12</td><td>40,0</td><td>42,0</td><td>2,0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+2,0h</MudChip></td></tr>
+        <tr><td>V13</td><td>40,0</td><td>40,0</td><td>0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+@if (_showButtons)
+{
+    <div class="d-flex gap-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" Style="min-height: 56px;" OnClick="Godkann" StartIcon="@Icons.Material.Filled.Check">
+            Godkänn tidrapport
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large" Style="min-height: 56px;" OnClick="Avvisa" StartIcon="@Icons.Material.Filled.Close">
+            Avvisa — be om korrigering
+        </MudButton>
+    </div>
+}
+@if (_godkand)
+{
+    <MudAlert Severity="Severity.Success" Class="mt-4">Tidrapporten har godkänts.</MudAlert>
+}
+@if (_avslagen)
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">Tidrapporten har avslagits. Den anställde har underrättats om att korrigering behövs.</MudAlert>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private bool _showButtons = true;
+    private bool _godkand;
+    private bool _avslagen;
+
+    private void Godkann()
+    {
+        _showButtons = false;
+        _godkand = true;
+        // Future: call Timesheet.Godkann(currentUserId) via service
+    }
+
+    private void Avvisa()
+    {
+        _showButtons = false;
+        _avslagen = true;
+        // Future: call Timesheet.Avvisa(currentUserId, kommentar) via service
+    }
+}

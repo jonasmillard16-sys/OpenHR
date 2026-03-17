@@ -3,6 +3,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Competence.Domain
+@using RegionHR.Web.Components.Shared
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
@@ -12,12 +13,63 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny kompetens</MudButton>
 </div>
 
+@* --- Expiry alert banner --- *@
 @if (_expiringCount > 0)
 {
     <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Warning">
-        <strong>@_expiringCount certifieringar</strong> löper ut inom 90 dagar och kräver förnyelse.
+        <strong>@_expiringCount certifieringar</strong> utgår inom 90 dagar och kräver förnyelse.
     </MudAlert>
 }
+
+@* --- OhrSuggestionCard per expiring certification --- *@
+@foreach (var cert in _expiringCerts)
+{
+    <OhrSuggestionCard
+        Title="@($"{cert.Namn} — utgår {cert.GiltigTill?.ToString("yyyy-MM-dd")}")"
+        Explanation="@($"Anställd {cert.AnstallId.ToString()[..8]}... måste förnya denna certifiering innan den löper ut.")"
+        Level="OhrSuggestionCard.SuggestionLevel.Warning"
+        Actions="@(new Dictionary<string, string>
+        {
+            { "boka", "Boka utbildning" },
+            { "paminn", "Påminn anställd" }
+        })"
+        OnActionClicked="@HandleExpiryAction" />
+}
+
+@* --- Obligatoriska utbildningar per enhet --- *@
+<MudText Typo="Typo.h5" Class="mt-6 mb-3" Style="font-weight: 700;">Obligatoriska utbildningar</MudText>
+<MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+    Genomförandegrad per enhet för lagstadgade och verksamhetskritiska utbildningar.
+</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Utbildning</th>
+            <th>Enhet</th>
+            <th>Genomförd</th>
+            <th>Andel</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in _mandatoryRows)
+        {
+            <tr>
+                <td>@row.Utbildning</td>
+                <td>@row.Enhet</td>
+                <td>@row.Genomforda / @row.Totalt</td>
+                <td>
+                    <MudProgressLinear Color="@ProgressColor(row.Andel)" Value="@row.Andel" Class="my-1" Style="min-width: 100px;" />
+                </td>
+                <td><MudChip T="string" Size="Size.Small" Color="@ProgressColor(row.Andel)">@($"{row.Andel:0}%")</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@* --- Full certification table --- *@
+<MudText Typo="Typo.h5" Class="mt-6 mb-3" Style="font-weight: 700;">Alla certifieringar</MudText>
 
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
@@ -47,7 +99,9 @@
 
 @code {
     private List<Certification> _certs = [];
+    private List<Certification> _expiringCerts = [];
     private int _expiringCount;
+    private List<MandatoryRow> _mandatoryRows = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,16 +114,53 @@
 
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             var ninetyDaysFromNow = today.AddDays(90);
-            _expiringCount = _certs.Count(c =>
-                c.GiltigTill.HasValue &&
-                c.GiltigTill.Value >= today &&
-                c.GiltigTill.Value <= ninetyDaysFromNow);
+
+            _expiringCerts = _certs
+                .Where(c => c.GiltigTill.HasValue &&
+                            c.GiltigTill.Value >= today &&
+                            c.GiltigTill.Value <= ninetyDaysFromNow)
+                .OrderBy(c => c.GiltigTill)
+                .ToList();
+
+            _expiringCount = _expiringCerts.Count;
         }
         catch
         {
             _expiringCount = 3; // demo fallback
+            _expiringCerts = [];
         }
+
+        // Mandatory training completion data (demo data until backend aggregation exists)
+        _mandatoryRows = GenerateMandatoryRows();
     }
+
+    private void HandleExpiryAction(string actionKey)
+    {
+        // Future: route to booking system or send reminder notification
+    }
+
+    private static List<MandatoryRow> GenerateMandatoryRows() =>
+    [
+        new("HLR", "Akutmottagningen", 45, 48),
+        new("HLR", "Kirurgen", 38, 42),
+        new("HLR", "Medicin", 30, 35),
+        new("Brandskydd", "Akutmottagningen", 47, 48),
+        new("Brandskydd", "Kirurgen", 40, 42),
+        new("Brandskydd", "Medicin", 28, 35),
+        new("Hygien", "Akutmottagningen", 44, 48),
+        new("Hygien", "Kirurgen", 39, 42),
+        new("Hygien", "Medicin", 33, 35),
+        new("Första hjälpen", "Akutmottagningen", 42, 48),
+        new("Första hjälpen", "Kirurgen", 36, 42),
+        new("Första hjälpen", "Medicin", 31, 35),
+    ];
+
+    private static Color ProgressColor(double pct) => pct switch
+    {
+        >= 95 => Color.Success,
+        >= 80 => Color.Warning,
+        _ => Color.Error
+    };
 
     private Color CertFarg(Certification c)
     {
@@ -108,4 +199,9 @@
         CertificationType.Certifikat => "Certifikat",
         _ => t.ToString()
     };
+
+    private record MandatoryRow(string Utbildning, string Enhet, int Genomforda, int Totalt)
+    {
+        public double Andel => Totalt > 0 ? (double)Genomforda / Totalt * 100 : 0;
+    }
 }

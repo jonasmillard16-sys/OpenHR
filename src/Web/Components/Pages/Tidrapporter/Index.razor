@@ -3,14 +3,79 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 
 <PageTitle>OpenHR - Tidrapporter</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Tidrapporter</MudText>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Tidrapporter</MudText>
+</div>
+
+@if (_pendingCount > 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.AccessTime">
+        <strong>@_pendingCount tidrapporter</strong> väntar på granskning.
+    </MudAlert>
+}
 
 <MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Period</th><th>Planerade h</th><th>Faktiska h</th><th>Övertid</th><th>Status</th><th></th></tr></thead>
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Period</th>
+            <th>Planerade h</th>
+            <th>Faktiska h</th>
+            <th>Övertid</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
     <tbody>
-        <tr><td><strong>Anna Svensson</strong></td><td>Mars 2026</td><td>160,0</td><td>168,5</td><td>8,5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Inskickad</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Granska</MudButton></td></tr>
-        <tr><td><strong>Lisa Holm</strong></td><td>Mars 2026</td><td>120,0</td><td>118,0</td><td>0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Inskickad</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Granska</MudButton></td></tr>
-        <tr><td><strong>Karl Berg</strong></td><td>Mars 2026</td><td>160,0</td><td>—</td><td>—</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Sjuk</MudChip></td><td></td></tr>
-        <tr><td><strong>Erik Johansson</strong></td><td>Februari 2026</td><td>160,0</td><td>162,0</td><td>2,0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td></td></tr>
+        @foreach (var ts in _timesheets)
+        {
+            <tr>
+                <td><strong>@ts.Namn</strong></td>
+                <td>@ts.Period</td>
+                <td>@ts.Planerade</td>
+                <td>@ts.Faktiska</td>
+                <td>@ts.Overtid</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(ts.Status)">@ts.Status</MudChip></td>
+                <td>
+                    @if (ts.Status == "Inskickad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   Href="@($"/tidrapporter/{ts.Id}")" StartIcon="@Icons.Material.Filled.RateReview">
+                            Granska
+                        </MudButton>
+                    }
+                </td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private int _pendingCount;
+    private List<TimesheetRow> _timesheets = [];
+
+    protected override void OnInitialized()
+    {
+        // Demo data — replace with Db.Timesheets query once wired
+        _timesheets =
+        [
+            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000001"), "Anna Svensson", "Mars 2026", "160,0", "168,5", "8,5", "Inskickad"),
+            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000002"), "Lisa Holm", "Mars 2026", "120,0", "118,0", "0", "Inskickad"),
+            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000003"), "Karl Berg", "Mars 2026", "160,0", "—", "—", "Sjuk"),
+            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000004"), "Erik Johansson", "Februari 2026", "160,0", "162,0", "2,0", "Godkänd"),
+        ];
+
+        _pendingCount = _timesheets.Count(t => t.Status == "Inskickad");
+    }
+
+    private static Color StatusFarg(string status) => status switch
+    {
+        "Inskickad" => Color.Warning,
+        "Godkänd" => Color.Success,
+        "Avslagen" => Color.Error,
+        "Sjuk" => Color.Error,
+        _ => Color.Default
+    };
+
+    private record TimesheetRow(Guid Id, string Namn, string Period, string Planerade, string Faktiska, string Overtid, string Status);
+}
