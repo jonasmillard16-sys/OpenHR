@@ -1,7 +1,14 @@
 @namespace RegionHR.Web.Components.Layout.Shared
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
 
 <MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
     <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700;">OpenHR</MudText>
+    <MudAutocomplete T="string" Label="" Placeholder="Sök anställd..."
+                     SearchFunc="Search" Variant="Variant.Outlined" Dense="true"
+                     Style="max-width: 300px; margin-left: 1rem;"
+                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                     ValueChanged="OnSearchSelected" />
     <MudSpacer />
     <MudIconButton Icon="@Icons.Material.Filled.Language"
                    Color="Color.Inherit"
@@ -24,4 +31,31 @@
 @code {
     [Parameter] public string UserName { get; set; } = "Användare";
     [Parameter] public int UnreadCount { get; set; }
+
+    [Inject] private RegionHRDbContext? Db { get; set; }
+    [Inject] private NavigationManager? Nav { get; set; }
+
+    private async Task<IEnumerable<string>> Search(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2 || Db is null)
+            return Array.Empty<string>();
+
+        var term = value.ToLower();
+        var results = await Db.Employees
+            .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
+            .Take(10)
+            .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")
+            .ToListAsync(ct);
+        return results;
+    }
+
+    private void OnSearchSelected(string value)
+    {
+        if (value != null && value.Contains('(') && value.Contains(')'))
+        {
+            var guidStr = value.Split('(').Last().TrimEnd(')');
+            if (Guid.TryParse(guidStr, out var id))
+                Nav?.NavigateTo($"/anstallda/{id}");
+        }
+    }
 }
