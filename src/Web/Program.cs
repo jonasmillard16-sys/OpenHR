@@ -30,6 +30,7 @@ builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
 builder.Services.AddScoped<SelfServiceApiClient>();
+builder.Services.AddScoped<UserRoleService>();
 
 var app = builder.Build();
 

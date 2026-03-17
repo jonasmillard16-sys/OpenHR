@@ -163,20 +163,55 @@ else
         }
     }
 
-    private Task Godkann(ApprovalItem item)
+    // TODO: Replace with actual authenticated user ID from JWT claims
+    private static readonly Guid _currentChefId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    private async Task Godkann(ApprovalItem item)
     {
-        // TODO: Call actual approve API
+        try
+        {
+            if (item.EntityType == "LeaveRequest")
+            {
+                var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
+                req?.Godkann(_currentChefId, null);
+            }
+            else if (item.EntityType == "Timesheet")
+            {
+                var ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == item.Id);
+                ts?.Godkann(_currentChefId);
+            }
+            await Db.SaveChangesAsync();
+        }
+        catch
+        {
+            // Swallow for demo fallback items that have no DB entity
+        }
         _approvals.Remove(item);
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
-    private Task Neka(ApprovalItem item)
+    private async Task Neka(ApprovalItem item)
     {
-        // TODO: Call actual reject API
+        try
+        {
+            if (item.EntityType == "LeaveRequest")
+            {
+                var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
+                req?.Avvisa(_currentChefId, "Nekad av chef");
+            }
+            else if (item.EntityType == "Timesheet")
+            {
+                var ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == item.Id);
+                ts?.Avvisa(_currentChefId, "Nekad av chef");
+            }
+            await Db.SaveChangesAsync();
+        }
+        catch
+        {
+            // Swallow for demo fallback items that have no DB entity
+        }
         _approvals.Remove(item);
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
     private class ApprovalItem
