@@ -29,6 +29,7 @@ builder.Services.AddInfrastructure(connectionString);
 // Application services
 builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
+builder.Services.AddScoped<SelfServiceApiClient>();
 
 var app = builder.Build();
 

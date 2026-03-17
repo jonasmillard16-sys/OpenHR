@@ -1,0 +1,88 @@
+@page "/minsida"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+@using RegionHR.Web.Components.Shared
+@using RegionHR.Web.Services
+@inject SelfServiceApiClient SelfService
+
+<PageTitle>OpenHR - Min sida</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-6" Style="font-weight: 700;">
+    Hej @_data.Fornamn!
+</MudText>
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="📅"
+                    Title="Mitt schema"
+                    Description="Se när du jobbar"
+                    BadgeValue="@(_data.NastaPass != "-" ? $"{_data.NastaPass} {_data.NastaPassTid}" : null)"
+                    Href="/minsida/schema" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="🌴"
+                    Title="Jag vill ha ledigt"
+                    Description="Ansök om semester"
+                    BadgeValue="@($"{_data.SemesterdagarKvar} dagar kvar")"
+                    Href="/minsida/ledighet" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="💰"
+                    Title="Min lön"
+                    Description="Se vad du fått i lön"
+                    Href="/minsida/lon" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="😷"
+                    Title="Jag är sjuk"
+                    Description="Meddela att du inte kan jobba"
+                    Href="/minsida/sjukanmalan" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="📋"
+                    Title="Mina pågående saker"
+                    Description="Se status på dina ärenden"
+                    BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} öppna" : null)"
+                    Href="/minsida/arenden" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="👤"
+                    Title="Om mig"
+                    Description="Min adress, telefon och uppgifter"
+                    Href="/minsida/profil" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    private DashboardData _data = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // TODO: Get actual employee ID from auth context
+            // For now, try to load first employee or use demo data
+            _data = await SelfService.GetDashboardAsync(
+                EmployeeId.From(Guid.Empty));
+        }
+        catch
+        {
+            // Demo data fallback
+            _data = new DashboardData
+            {
+                Fornamn = "Anna",
+                Efternamn = "Svensson",
+                SemesterdagarKvar = 18,
+                OppnaArenden = 2,
+                OlastaNotiser = 3,
+                NastaPass = "Mån 17/3",
+                NastaPassTid = "07:00-16:00"
+            };
+        }
+    }
+}
