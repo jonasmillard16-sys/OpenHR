@@ -5,7 +5,6 @@
 <MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
     <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700; cursor: pointer;" @onclick="@(() => Nav?.NavigateTo("/"))">OpenHR</MudText>
 
-    @* Search field with visible styling *@
     <div style="margin-left: 1rem; max-width: 320px; flex: 1;">
         <MudAutocomplete T="string" Placeholder="Sök anställd eller sida..."
                          SearchFunc="Search" Variant="Variant.Filled" Dense="true"
@@ -19,8 +18,8 @@
     <MudSpacer />
 
     @* Dark mode toggle *@
-    <MudTooltip Text="@(_darkMode ? "Ljust läge" : "Mörkt läge")">
-        <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+    <MudTooltip Text="@(IsDarkMode ? "Ljust läge" : "Mörkt läge")">
+        <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                        Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="Växla mörkt/ljust läge" />
     </MudTooltip>
 
@@ -29,10 +28,10 @@
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
              aria-label="Byt språk">
         <MudMenuItem OnClick="@(() => SetLanguage("sv"))">
-            Svenska @(_currentLang == "sv" ? "✓" : "")
+            Svenska @(_currentLang == "sv" ? "\u2713" : "")
         </MudMenuItem>
         <MudMenuItem OnClick="@(() => SetLanguage("en"))">
-            English @(_currentLang == "en" ? "✓" : "")
+            English @(_currentLang == "en" ? "\u2713" : "")
         </MudMenuItem>
     </MudMenu>
 
@@ -71,23 +70,29 @@
 @code {
     [Parameter] public string UserName { get; set; } = "Användare";
     [Parameter] public int UnreadCount { get; set; }
+    [Parameter] public bool IsDarkMode { get; set; }
+    [Parameter] public EventCallback<bool> IsDarkModeChanged { get; set; }
 
-    private bool _darkMode;
     private string _currentLang = "sv";
 
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
+    [Inject] private IJSRuntime? JS { get; set; }
 
-    private void ToggleDarkMode()
+    private async Task ToggleDarkMode()
     {
-        _darkMode = !_darkMode;
-        // TODO: Persist preference and toggle MudTheme dark palette
+        await IsDarkModeChanged.InvokeAsync(!IsDarkMode);
     }
 
-    private void SetLanguage(string lang)
+    private async Task SetLanguage(string lang)
     {
         _currentLang = lang;
-        // TODO: Set culture cookie and reload
+        // Set culture cookie and reload page
+        if (JS is not null)
+        {
+            await JS.InvokeVoidAsync("eval",
+                $"document.cookie = '.AspNetCore.Culture=c={lang}|uic={lang};path=/;max-age=31536000'; location.reload();");
+        }
     }
 
     protected override async Task OnInitializedAsync()

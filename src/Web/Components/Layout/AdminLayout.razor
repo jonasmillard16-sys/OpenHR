@@ -1,13 +1,15 @@
 @inherits LayoutComponentBase
 @namespace RegionHR.Web.Components.Layout
 
-<MudThemeProvider Theme="_openHrTheme" />
+<MudThemeProvider Theme="_openHrTheme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <TopBar UserName="Sara Andersson" UnreadCount="5" />
+    <TopBar UserName="Sara Andersson" UnreadCount="5"
+            IsDarkMode="_isDarkMode"
+            IsDarkModeChanged="OnDarkModeToggled" />
     <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive"
                Elevation="1" ClipMode="DrawerClipMode.Always"
                Breakpoint="Breakpoint.Lg">
@@ -23,6 +25,13 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    private void OnDarkModeToggled(bool value)
+    {
+        _isDarkMode = value;
+        StateHasChanged();
+    }
 
     private readonly MudTheme _openHrTheme = new()
     {
@@ -42,6 +51,23 @@
             DrawerBackground = "#f8f9fa",
             TextPrimary = "#1c2833",
             TextSecondary = "#5d6d7e",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#2e86c1",
+            PrimaryDarken = "#1a5276",
+            PrimaryLighten = "#d4e6f1",
+            Secondary = "#5dade2",
+            Success = "#27ae60",
+            Warning = "#f39c12",
+            Error = "#e74c3c",
+            Info = "#3498db",
+            Background = "#1c2833",
+            Surface = "#212f3d",
+            AppbarBackground = "#1c2833",
+            DrawerBackground = "#212f3d",
+            TextPrimary = "#eaecee",
+            TextSecondary = "#aab7b8",
         },
         Typography = new Typography
         {
