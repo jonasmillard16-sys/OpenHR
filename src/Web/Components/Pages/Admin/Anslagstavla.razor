@@ -1,0 +1,111 @@
+@page "/admin/anslagstavla"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Anslagstavla</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Anslagstavla</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Nytt anslag</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_aktiva</MudText>
+            <MudText Typo="Typo.body2">Aktiva anslag</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_dennaManad</MudText>
+            <MudText Typo="Typo.body2">Publicerade denna månad</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_schemalagda</MudText>
+            <MudText Typo="Typo.body2">Schemalagda</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_lasgrad %</MudText>
+            <MudText Typo="Typo.body2">Genomsnittlig läsgrad</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudStack Spacing="3">
+    @foreach (var anslag in _anslag)
+    {
+        <MudPaper Class="pa-4" Elevation="2" Style="@($"border-left: 4px solid {(anslag.Prioritet == "Hög" ? "var(--mud-palette-error)" : anslag.Prioritet == "Normal" ? "var(--mud-palette-primary)" : "var(--mud-palette-info)")}")">
+            <div class="d-flex justify-space-between align-center mb-2">
+                <div class="d-flex align-center gap-2">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">@anslag.Titel</MudText>
+                    @if (anslag.Prioritet == "Hög")
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Viktigt</MudChip>
+                    }
+                </div>
+                <MudText Typo="Typo.caption">@anslag.Datum</MudText>
+            </div>
+            <MudText Typo="Typo.body2" Class="mb-2">@anslag.Innehall</MudText>
+            <div class="d-flex justify-space-between align-center">
+                <div class="d-flex align-center gap-3">
+                    <MudText Typo="Typo.caption"><strong>Målgrupp:</strong> @anslag.Malgrupp</MudText>
+                    <MudText Typo="Typo.caption"><strong>Publicerad av:</strong> @anslag.Forfattare</MudText>
+                </div>
+                <MudText Typo="Typo.caption">Läst av @anslag.LasAv av @anslag.Mottagare (@anslag.LasgradProcent %)</MudText>
+            </div>
+        </MudPaper>
+    }
+</MudStack>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Skapa nytt anslag</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta kommunikationsavdelningen för att publicera anslag.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _aktiva = 8;
+    private int _dennaManad = 3;
+    private int _schemalagda = 2;
+    private int _lasgrad = 72;
+
+    private List<AnslagRad> _anslag = [];
+
+    protected override void OnInitialized()
+    {
+        _anslag =
+        [
+            new("Ny parkeringspolicy från 1 april", "Hög", "2026-03-15",
+                "Från och med 1 april gäller nya parkeringsregler på sjukhusområdet. Personal parkerar på P3 och P4. Besöksparkering på P1 och P2.",
+                "Alla enheter", "HR-avdelningen", 856, 1254, 68),
+            new("Influensavaccination – sista chansen", "Hög", "2026-03-12",
+                "Sista tillfället att vaccinera sig mot säsongsinfluensa är 21 mars kl. 08–16 i personalrummet, plan 2.",
+                "Vårdpersonal", "Smittskyddsenheten", 512, 680, 75),
+            new("Nya lunchmenyer i personalmatsalen", "Låg", "2026-03-10",
+                "Från vecka 12 erbjuder personalmatsalen nytt menykoncept med fokus på klimatsmart mat. Se intranätet för veckomenyer.",
+                "Alla enheter", "Serviceavdelningen", 423, 1254, 34),
+            new("Löneöversyn 2026 – tidplan", "Normal", "2026-03-08",
+                "Löneöversynen för 2026 påbörjas 1 april. Chefer kallats till informationsmöte 25 mars. Nya löner beräknas gälla fr.o.m. 1 juni.",
+                "Alla enheter", "HR-avdelningen", 1102, 1254, 88),
+            new("IT-driftstopp lördag 22 mars", "Hög", "2026-03-05",
+                "Planerat underhåll av servermiljö lördag 22 mars kl. 02–06. Journalsystem och OpenHR kan vara otillgängliga.",
+                "Alla enheter", "IT-avdelningen", 987, 1254, 79),
+            new("Sommarschemat – anmäl önskemål", "Normal", "2026-03-01",
+                "Anmäl önskemål om sommarsemester senast 31 mars via OpenHR > Ledighet. Schemat fastställs 15 april.",
+                "Alla enheter", "HR-avdelningen", 934, 1254, 74),
+        ];
+    }
+
+    private record AnslagRad(string Titel, string Prioritet, string Datum, string Innehall, string Malgrupp, string Forfattare, int LasAv, int Mottagare, int LasgradProcent);
+}

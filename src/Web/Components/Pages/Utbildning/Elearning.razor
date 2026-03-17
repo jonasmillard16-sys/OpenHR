@@ -1,0 +1,148 @@
+@page "/utbildning/elearning"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - E-learning</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">E-learning</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Lägg till kurs</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_antalKurser</MudText>
+            <MudText Typo="Typo.body2">Tillgängliga kurser</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_genomforda</MudText>
+            <MudText Typo="Typo.body2">Genomförda (2026)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_pagaende</MudText>
+            <MudText Typo="Typo.body2">Pågående</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_genomsnittBetyg</MudText>
+            <MudText Typo="Typo.body2">Genomsnittligt kursbetyg</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    E-learning-kurser synkroniseras med externa LMS-plattformar.
+    Genomförda kurser registreras automatiskt i medarbetarens kompetensregister.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Kurskatalog</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Kurs</th>
+            <th>Kategori</th>
+            <th>Plattform</th>
+            <th>Längd</th>
+            <th>Obligatorisk</th>
+            <th>Genomförandegrad</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var kurs in _kurser)
+        {
+            <tr>
+                <td><strong>@kurs.Namn</strong></td>
+                <td>@kurs.Kategori</td>
+                <td>@kurs.Plattform</td>
+                <td>@kurs.Langd</td>
+                <td>
+                    @if (kurs.Obligatorisk)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Obligatorisk</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Frivillig</MudChip>
+                    }
+                </td>
+                <td>
+                    <MudProgressLinear Value="@kurs.GenomforandeProcent" Color="@(kurs.GenomforandeProcent >= 80 ? Color.Success : Color.Warning)" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@kurs.GenomforandeProcent %</MudText>
+                </td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Href="@kurs.Lank" Target="_blank">Öppna</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Integrerade plattformar</MudText>
+<MudGrid Spacing="3">
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Ping Pong (LMS)</MudText>
+            <MudText Typo="Typo.body2">Regionens primära LMS för obligatoriska utbildningar</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">Ansluten</MudChip>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">LinkedIn Learning</MudText>
+            <MudText Typo="Typo.body2">Kompletterande kurser inom ledarskap och IT</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">Ansluten</MudChip>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Socialstyrelsen</MudText>
+            <MudText Typo="Typo.body2">Obligatoriska vårdutbildningar och legitimationsförnyelse</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="mt-2">Delvis ansluten</MudChip>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Lägg till e-learningkurs</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta utbildningsansvarig för att lägga till kurser.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _antalKurser = 24;
+    private int _genomforda = 847;
+    private int _pagaende = 132;
+    private string _genomsnittBetyg = "4.2 / 5";
+
+    private List<ElearningKurs> _kurser = [];
+
+    protected override void OnInitialized()
+    {
+        _kurser =
+        [
+            new("HLR – grundutbildning", "Patientsäkerhet", "Ping Pong", "2 timmar", true, 94, "#"),
+            new("Brandskydd – årlig repetition", "Säkerhet", "Ping Pong", "1 timme", true, 88, "#"),
+            new("GDPR för vårdpersonal", "Juridik", "Ping Pong", "1.5 timmar", true, 82, "#"),
+            new("Hygienrutiner i vården", "Patientsäkerhet", "Ping Pong", "1 timme", true, 91, "#"),
+            new("Ledarskap i förändring", "Ledarskap", "LinkedIn Learning", "4 timmar", false, 45, "#"),
+            new("Coachande ledarskap", "Ledarskap", "LinkedIn Learning", "3 timmar", false, 38, "#"),
+            new("Excel för löneadministratörer", "IT", "LinkedIn Learning", "2 timmar", false, 52, "#"),
+            new("Arbetsmiljö – SAM", "Arbetsmiljö", "Ping Pong", "2 timmar", true, 76, "#"),
+            new("Läkemedelshantering", "Patientsäkerhet", "Socialstyrelsen", "3 timmar", true, 85, "#"),
+            new("Informationssäkerhet", "IT", "Ping Pong", "1 timme", true, 79, "#"),
+        ];
+    }
+
+    private record ElearningKurs(string Namn, string Kategori, string Plattform, string Langd, bool Obligatorisk, int GenomforandeProcent, string Lank);
+}

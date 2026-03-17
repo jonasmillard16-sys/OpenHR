@@ -1,0 +1,6 @@
+@media print {
+    .mud-appbar, .mud-drawer, .rhr-skip-link, .mud-button { display: none !important; }
+    .mud-main-content { padding: 0 !important; }
+    body { font-size: 12pt; color: black; }
+    .mud-paper { box-shadow: none !important; border: 1px solid #ccc; }
+}

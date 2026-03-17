@@ -1,0 +1,138 @@
+@page "/medarbetarsamtal/360"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - 360-graders feedback</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">360-graders feedback</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny feedbackrunda</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_aktivaRundor</MudText>
+            <MudText Typo="Typo.body2">Aktiva rundor</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutade</MudText>
+            <MudText Typo="Typo.body2">Avslutade (2026)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText>
+            <MudText Typo="Typo.body2">Väntar på svar</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_svarsfrekvens %</MudText>
+            <MudText Typo="Typo.body2">Genomsnittlig svarsfrekvens</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    360-graders feedback samlar in bedömningar från kollegor, underställda, chef och övriga intressenter.
+    Alla svar är anonyma och presenteras aggregerat i slutrapporten.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Pågående feedbackrundor</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Medarbetare</th>
+            <th>Befattning</th>
+            <th>Period</th>
+            <th>Bedömare</th>
+            <th>Svar inkomna</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _rundor)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Befattning</td>
+                <td>@rad.Period</td>
+                <td>@rad.AntalBedomare</td>
+                <td>
+                    <MudProgressLinear Value="@rad.SvarProcent" Color="@(rad.SvarProcent >= 80 ? Color.Success : Color.Warning)" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@rad.SvarInkomna / @rad.AntalBedomare (@rad.SvarProcent %)</MudText>
+                </td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Detaljer</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Bedömningskategorier</MudText>
+<MudGrid Spacing="3">
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Ledarskap</MudText>
+            <MudText Typo="Typo.body2">Kommunikation, beslutsfattande, coachning, delegering</MudText>
+            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
+            <MudText Typo="Typo.caption">Genomsnitt: 4.1 / 5</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Samarbete</MudText>
+            <MudText Typo="Typo.body2">Teamwork, konflikthantering, kunskapsdelning</MudText>
+            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
+            <MudText Typo="Typo.caption">Genomsnitt: 4.3 / 5</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Fackkompetens</MudText>
+            <MudText Typo="Typo.body2">Yrkeskunskap, problemlösning, kvalitet</MudText>
+            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
+            <MudText Typo="Typo.caption">Genomsnitt: 3.9 / 5</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Starta ny 360-feedbackrunda</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att starta en 360-feedbackrunda.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _aktivaRundor = 4;
+    private int _avslutade = 12;
+    private int _vantar = 18;
+    private int _svarsfrekvens = 78;
+
+    private List<FeedbackRunda> _rundor = [];
+
+    protected override void OnInitialized()
+    {
+        _rundor =
+        [
+            new("Anna Svensson", "Verksamhetschef", "2026-03-01 – 2026-03-31", 8, 6, 75, "Pågår", Color.Warning),
+            new("Karl Berg", "Avdelningschef", "2026-03-01 – 2026-03-31", 10, 9, 90, "Pågår", Color.Warning),
+            new("Erik Johansson", "Sektionschef", "2026-02-15 – 2026-03-15", 6, 6, 100, "Avslutad", Color.Success),
+            new("Lisa Holm", "HR-chef", "2026-03-10 – 2026-04-10", 12, 4, 33, "Pågår", Color.Warning),
+            new("Per Gustafsson", "IT-chef", "2026-03-01 – 2026-03-31", 7, 7, 100, "Avslutad", Color.Success),
+            new("Sara Karlsson", "Enhetschef", "2026-03-15 – 2026-04-15", 9, 2, 22, "Ny", Color.Info),
+        ];
+    }
+
+    private record FeedbackRunda(string Namn, string Befattning, string Period, int AntalBedomare, int SvarInkomna, int SvarProcent, string StatusText, Color StatusFarg);
+}

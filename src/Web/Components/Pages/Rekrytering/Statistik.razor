@@ -1,0 +1,151 @@
+@page "/rekrytering/statistik"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Rekryteringsstatistik</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rekryteringsstatistik</MudText>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_antalRekryteringar</MudText>
+            <MudText Typo="Typo.body2">Rekryteringar (2026)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_tillsatta</MudText>
+            <MudText Typo="Typo.body2">Tillsatta</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_genomsnittDagar dagar</MudText>
+            <MudText Typo="Typo.body2">Snitt tid till anställning</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_kostnadPerAnstallning kr</MudText>
+            <MudText Typo="Typo.body2">Snitt kostnad per anställning</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Tid till anställning per yrkeskategori</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Yrkeskategori</th>
+            <th>Antal rekryteringar</th>
+            <th>Snitt tid (dagar)</th>
+            <th>Snitt ansökningar</th>
+            <th>Snitt kostnad</th>
+            <th>Trend</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _perKategori)
+        {
+            <tr>
+                <td><strong>@rad.Kategori</strong></td>
+                <td>@rad.Antal</td>
+                <td>@rad.SnittDagar</td>
+                <td>@rad.SnittAnsokningar</td>
+                <td>@rad.SnittKostnad</td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@(rad.Trend.StartsWith("+") ? Color.Error : Color.Success)">@rad.Trend</MudChip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Källeffektivitet – var hittar vi kandidater?</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Källa</th>
+            <th>Ansökningar</th>
+            <th>Intervjuade</th>
+            <th>Anställda</th>
+            <th>Konverteringsgrad</th>
+            <th>Kostnad/anställning</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _kallor)
+        {
+            <tr>
+                <td><strong>@rad.Kalla</strong></td>
+                <td>@rad.Ansokningar</td>
+                <td>@rad.Intervjuade</td>
+                <td>@rad.Anstallda</td>
+                <td>
+                    <MudProgressLinear Value="@rad.KonvProcent" Color="@(rad.KonvProcent >= 10 ? Color.Success : Color.Warning)" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@rad.KonvProcent %</MudText>
+                </td>
+                <td>@rad.KostnadPerAnst</td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Rekryteringsvolym per månad (2026)</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Månad</th>
+            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Maj</th><th>Jun</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Påbörjade</strong></td>
+            <td>8</td><td>12</td><td>10</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr>
+            <td><strong>Tillsatta</strong></td>
+            <td>5</td><td>7</td><td>9</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr>
+            <td><strong>Avbrutna</strong></td>
+            <td>1</td><td>0</td><td>1</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private int _antalRekryteringar = 30;
+    private int _tillsatta = 21;
+    private int _genomsnittDagar = 42;
+    private string _kostnadPerAnstallning = "18 500";
+
+    private List<KategoriRad> _perKategori = [];
+    private List<KallaRad> _kallor = [];
+
+    protected override void OnInitialized()
+    {
+        _perKategori =
+        [
+            new("Sjuksköterskor", 12, 38, 24, "15 200 kr", "+3 dagar"),
+            new("Läkare", 5, 62, 8, "42 000 kr", "−5 dagar"),
+            new("Undersköterskor", 6, 28, 45, "8 500 kr", "+1 dag"),
+            new("Administration", 4, 35, 52, "12 300 kr", "−2 dagar"),
+            new("IT", 3, 55, 18, "28 000 kr", "+8 dagar"),
+        ];
+
+        _kallor =
+        [
+            new("Platsbanken", 312, 45, 12, 4, "6 800 kr"),
+            new("LinkedIn", 87, 22, 5, 6, "22 000 kr"),
+            new("Regionens hemsida", 198, 38, 8, 4, "9 200 kr"),
+            new("Intern annonsering", 45, 18, 6, 13, "3 500 kr"),
+            new("Rekryteringsföretag", 24, 12, 4, 17, "48 000 kr"),
+            new("Spontanansökan", 68, 8, 2, 3, "4 200 kr"),
+        ];
+    }
+
+    private record KategoriRad(string Kategori, int Antal, int SnittDagar, int SnittAnsokningar, string SnittKostnad, string Trend);
+    private record KallaRad(string Kalla, int Ansokningar, int Intervjuade, int Anstallda, int KonvProcent, string KostnadPerAnst);
+}

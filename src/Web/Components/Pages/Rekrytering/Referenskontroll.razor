@@ -1,0 +1,126 @@
+@page "/rekrytering/referenskontroll"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Referenskontroller</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Referenskontroller</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny referenskontroll</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_pagaende</MudText>
+            <MudText Typo="Typo.body2">Pågående kontroller</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_godkanda</MudText>
+            <MudText Typo="Typo.body2">Godkända (2026)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantarSvar</MudText>
+            <MudText Typo="Typo.body2">Väntar på svar</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_avvikelser</MudText>
+            <MudText Typo="Typo.body2">Med avvikelser</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Referenskontroll genomförs för alla slutkandidater enligt rekryteringspolicy.
+    Minst två referenser kontaktas – varav en ska vara närmaste chef.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Pågående referenskontroller</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Kandidat</th>
+            <th>Tjänst</th>
+            <th>Rekryterare</th>
+            <th>Referenser</th>
+            <th>Genomförda</th>
+            <th>Bedömning</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _kontroller)
+        {
+            <tr>
+                <td><strong>@rad.Kandidat</strong></td>
+                <td>@rad.Tjanst</td>
+                <td>@rad.Rekryterare</td>
+                <td>@rad.AntalReferenser</td>
+                <td>@rad.Genomforda / @rad.AntalReferenser</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Bedömningsformulär – standardfrågor</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Fråga</th>
+            <th>Kategori</th>
+            <th>Skala</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>Hur bedömer du kandidatens yrkeskompetens?</td><td>Kompetens</td><td>1–5</td></tr>
+        <tr><td>Hur fungerade kandidaten i teamet?</td><td>Samarbete</td><td>1–5</td></tr>
+        <tr><td>Hur hanterade kandidaten press och stress?</td><td>Stresshantering</td><td>1–5</td></tr>
+        <tr><td>Var kandidaten pålitlig och punktlig?</td><td>Pålitlighet</td><td>1–5</td></tr>
+        <tr><td>Skulle du anställa kandidaten igen?</td><td>Helhetsbedömning</td><td>Ja/Nej/Kanske</td></tr>
+        <tr><td>Finns det något vi bör känna till?</td><td>Övrigt</td><td>Fritext</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Ny referenskontroll</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta rekryteringsansvarig för att starta referenskontroll.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _pagaende = 6;
+    private int _godkanda = 23;
+    private int _vantarSvar = 4;
+    private int _avvikelser = 1;
+
+    private List<ReferensRad> _kontroller = [];
+
+    protected override void OnInitialized()
+    {
+        _kontroller =
+        [
+            new("Maria Andersson", "Sjuksköterska, Akuten", "Lisa Holm", 3, 3, "Godkänd", Color.Success),
+            new("Johan Pettersson", "Läkare, Medicin", "Karl Berg", 2, 1, "Pågår", Color.Warning),
+            new("Sofia Lindgren", "HR-specialist", "Anna Svensson", 2, 2, "Godkänd", Color.Success),
+            new("Erik Forsberg", "IT-tekniker", "Per Gustafsson", 2, 0, "Ej påbörjad", Color.Info),
+            new("Karin Ström", "Undersköterska, Kirurgi", "Sara Karlsson", 3, 2, "Pågår", Color.Warning),
+            new("Anders Nyström", "Ekonom", "Maria Lindström", 2, 2, "Avvikelse", Color.Error),
+        ];
+    }
+
+    private record ReferensRad(string Kandidat, string Tjanst, string Rekryterare, int AntalReferenser, int Genomforda, string StatusText, Color StatusFarg);
+}

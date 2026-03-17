@@ -1,0 +1,153 @@
+@page "/dokument/policyer"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Policyer</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Policydistribution</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Send" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Distribuera policy</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPolicyer</MudText>
+            <MudText Typo="Typo.body2">Aktiva policyer</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bekraftade %</MudText>
+            <MudText Typo="Typo.body2">Genomsnittlig bekräftelsegrad</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantarBekraftelse</MudText>
+            <MudText Typo="Typo.body2">Väntar bekräftelse</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_senastUppdaterad</MudText>
+            <MudText Typo="Typo.body2">Senast uppdaterad policy</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Warning" Class="mb-4">
+    <strong>@_vantarBekraftelse medarbetare</strong> har ännu inte bekräftat en eller flera policyer.
+    Påminnelser skickas automatiskt var 14:e dag.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Policyer och bekräftelsestatus</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Policy</th>
+            <th>Version</th>
+            <th>Distribuerad</th>
+            <th>Målgrupp</th>
+            <th>Bekräftade</th>
+            <th>Bekräftelsegrad</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _policyer)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Version</td>
+                <td>@rad.Distribuerad</td>
+                <td>@rad.Malgrupp</td>
+                <td>@rad.Bekraftade / @rad.Mottagare</td>
+                <td>
+                    <MudProgressLinear Value="@rad.BekraftProcent" Color="@(rad.BekraftProcent >= 90 ? Color.Success : rad.BekraftProcent >= 70 ? Color.Warning : Color.Error)" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@rad.BekraftProcent %</MudText>
+                </td>
+                <td>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton>
+                    @if (rad.BekraftProcent < 100)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">Påminn</MudButton>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Senaste bekräftelser</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Medarbetare</th>
+            <th>Policy</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var b in _bekraftelser)
+        {
+            <tr>
+                <td>@b.Datum</td>
+                <td><strong>@b.Namn</strong></td>
+                <td>@b.Policy</td>
+                <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Bekräftad</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Distribuera policy</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att distribuera policyer.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _totalPolicyer = 12;
+    private int _bekraftade = 84;
+    private int _vantarBekraftelse = 198;
+    private string _senastUppdaterad = "2026-03-01";
+
+    private List<PolicyRad> _policyer = [];
+    private List<BekraftelseRad> _bekraftelser = [];
+
+    protected override void OnInitialized()
+    {
+        _policyer =
+        [
+            new("IT-säkerhetspolicy", "3.1", "2026-02-15", "Alla anställda", 1156, 1254, 92),
+            new("Arbetsmiljöpolicy", "2.0", "2026-01-10", "Alla anställda", 1198, 1254, 96),
+            new("GDPR-policy – hantering av personuppgifter", "1.4", "2026-03-01", "Alla anställda", 987, 1254, 79),
+            new("Policy mot kränkande särbehandling", "2.1", "2025-11-01", "Alla anställda", 1210, 1254, 97),
+            new("Resepolicy", "1.2", "2025-09-15", "Alla anställda", 1087, 1254, 87),
+            new("Drogpolicy", "1.0", "2025-06-01", "Alla anställda", 1232, 1254, 98),
+            new("Policy för sociala medier", "1.1", "2026-01-20", "Alla anställda", 924, 1254, 74),
+            new("Läkemedelspolicy", "2.3", "2025-10-01", "Vårdpersonal", 648, 680, 95),
+        ];
+
+        _bekraftelser =
+        [
+            new("2026-03-17", "Anna Svensson", "GDPR-policy – hantering av personuppgifter"),
+            new("2026-03-17", "Karl Berg", "GDPR-policy – hantering av personuppgifter"),
+            new("2026-03-16", "Erik Johansson", "IT-säkerhetspolicy"),
+            new("2026-03-16", "Lisa Holm", "GDPR-policy – hantering av personuppgifter"),
+            new("2026-03-15", "Per Gustafsson", "Policy för sociala medier"),
+            new("2026-03-15", "Sara Karlsson", "GDPR-policy – hantering av personuppgifter"),
+        ];
+    }
+
+    private record PolicyRad(string Namn, string Version, string Distribuerad, string Malgrupp, int Bekraftade, int Mottagare, int BekraftProcent);
+    private record BekraftelseRad(string Datum, string Namn, string Policy);
+}

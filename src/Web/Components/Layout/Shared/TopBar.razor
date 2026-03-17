@@ -10,6 +10,8 @@
                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                      ValueChanged="OnSearchSelected" />
     <MudSpacer />
+    <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                   Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="Växla mörkt/ljust läge" />
     <MudIconButton Icon="@Icons.Material.Filled.Language"
                    Color="Color.Inherit"
                    aria-label="Byt språk" />
@@ -32,6 +34,9 @@
 @code {
     [Parameter] public string UserName { get; set; } = "Användare";
     [Parameter] public int UnreadCount { get; set; }
+
+    private bool _darkMode;
+    private void ToggleDarkMode() { _darkMode = !_darkMode; }
 
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }

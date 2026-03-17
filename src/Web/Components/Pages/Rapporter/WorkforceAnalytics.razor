@@ -1,0 +1,150 @@
+@page "/rapporter/analytics"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Workforce Analytics</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Workforce Analytics</MudText>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalAnstallda</MudText>
+            <MudText Typo="Typo.body2">Totalt anställda</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_pensionsavgang5ar</MudText>
+            <MudText Typo="Typo.body2">Pensionsavgång (5 år)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_personalomsattning %</MudText>
+            <MudText Typo="Typo.body2">Personalomsättning (12 mån)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_genomsnittAnstTid år</MudText>
+            <MudText Typo="Typo.body2">Genomsnittlig anställningstid</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Pensionsavgångsprognos per år</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>År</th>
+            <th>Beräknade pensionsavgångar</th>
+            <th>Andel av total</th>
+            <th>Mest drabbade enheter</th>
+            <th>Risk</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _pensionsprognos)
+        {
+            <tr>
+                <td><strong>@rad.Ar</strong></td>
+                <td>@rad.Antal</td>
+                <td>
+                    <MudProgressLinear Value="@rad.Procent" Color="@rad.RiskFarg" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@rad.Procent %</MudText>
+                </td>
+                <td>@rad.Enheter</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.RiskFarg">@rad.RiskText</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Personalomsättning per enhet (senaste 12 mån)</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Enhet</th>
+            <th>Antal anställda</th>
+            <th>Avgångar</th>
+            <th>Nyanställningar</th>
+            <th>Nettoutveckling</th>
+            <th>Omsättning</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _omsattning)
+        {
+            <tr>
+                <td><strong>@rad.Enhet</strong></td>
+                <td>@rad.Anstallda</td>
+                <td>@rad.Avgangar</td>
+                <td>@rad.Nyanstallningar</td>
+                <td style="color: @(rad.Netto >= 0 ? "green" : "red");">@(rad.Netto >= 0 ? "+" : "")@rad.Netto</td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@(rad.OmsattningProcent > 15 ? Color.Error : rad.OmsattningProcent > 10 ? Color.Warning : Color.Success)">@rad.OmsattningProcent %</MudChip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Antal anställda per månad (trend)</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Månad</th>
+            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Maj</th><th>Jun</th>
+            <th>Jul</th><th>Aug</th><th>Sep</th><th>Okt</th><th>Nov</th><th>Dec</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>2025</strong></td>
+            <td>1 230</td><td>1 228</td><td>1 235</td><td>1 240</td><td>1 242</td><td>1 245</td>
+            <td>1 238</td><td>1 250</td><td>1 255</td><td>1 252</td><td>1 248</td><td>1 245</td>
+        </tr>
+        <tr>
+            <td><strong>2026</strong></td>
+            <td>1 247</td><td>1 250</td><td>1 254</td><td>—</td><td>—</td><td>—</td>
+            <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private int _totalAnstallda = 1254;
+    private int _pensionsavgang5ar = 187;
+    private double _personalomsattning = 8.4;
+    private double _genomsnittAnstTid = 11.2;
+
+    private List<PensionsRad> _pensionsprognos = [];
+    private List<OmsattningRad> _omsattning = [];
+
+    protected override void OnInitialized()
+    {
+        _pensionsprognos =
+        [
+            new("2026", 28, 2, "Medicinkliniken, Labb", "Låg", Color.Success),
+            new("2027", 42, 3, "Kirurgi, Röntgen", "Medel", Color.Warning),
+            new("2028", 51, 4, "Medicinkliniken, Akuten", "Hög", Color.Error),
+            new("2029", 38, 3, "IT, HR, Ekonomi", "Medel", Color.Warning),
+            new("2030", 28, 2, "Primärvård, Psykiatri", "Låg", Color.Success),
+        ];
+
+        _omsattning =
+        [
+            new("Akutmottagningen", 145, 18, 22, 4, 12),
+            new("Medicinkliniken", 210, 12, 15, 3, 6),
+            new("Kirurgkliniken", 180, 25, 20, -5, 14),
+            new("Primärvård Centrum", 95, 8, 10, 2, 8),
+            new("Psykiatri", 120, 22, 18, -4, 18),
+            new("IT-avdelningen", 45, 3, 5, 2, 7),
+            new("HR-avdelningen", 28, 2, 3, 1, 7),
+            new("Röntgen", 65, 5, 4, -1, 8),
+        ];
+    }
+
+    private record PensionsRad(string Ar, int Antal, int Procent, string Enheter, string RiskText, Color RiskFarg);
+    private record OmsattningRad(string Enhet, int Anstallda, int Avgangar, int Nyanstallningar, int Netto, int OmsattningProcent);
+}
