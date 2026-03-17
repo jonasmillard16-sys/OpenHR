@@ -2,43 +2,47 @@
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Payroll.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Lönekörning</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekörning Mars 2026</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekörning @_rubrik</MudText>
 
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="2">
             <MudText Typo="Typo.caption">Total brutto</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">158 432 100 kr</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_brutto</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="2">
             <MudText Typo="Typo.caption">Total skatt</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">-47 529 630 kr</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">@_skatt</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="2">
             <MudText Typo="Typo.caption">Total netto</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">110 902 470 kr</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@_netto</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="2">
             <MudText Typo="Typo.caption">Anställda</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">5 023</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_antalAnstallda</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
 
-@* Anomaly alerts — system is the expert *@
-<MudText Typo="Typo.h6" Class="mb-3">4 löner behöver din kontroll</MudText>
+@* Anomaly alerts *@
+<MudText Typo="Typo.h6" Class="mb-3">@_anomalier.Count löner behöver din kontroll</MudText>
 @foreach (var a in _anomalier)
 {
     <OhrSuggestionCard Title="@($"{a.Namn} — {a.Belopp}")"
@@ -47,7 +51,7 @@
                        Actions="@(new Dictionary<string, string> { ["ok"] = "OK, stämmer", ["andra"] = "Ändra" })" />
 }
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">5 019 löner ser bra ut</MudText>
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">@_okLoner löner ser bra ut</MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
            Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4">
@@ -61,15 +65,114 @@
 @code {
     [Parameter] public Guid Id { get; set; }
 
+    private string _rubrik = "";
+    private string _brutto = "";
+    private string _skatt = "";
+    private string _netto = "";
+    private string _antalAnstallda = "";
+    private int _okLoner;
     private List<Anomali> _anomalier = [];
-    protected override void OnInitialized()
+
+    protected override async Task OnInitializedAsync()
     {
-        _anomalier = [
+        try
+        {
+            var run = await Db.PayrollRuns
+                .Include(r => r.Resultat)
+                .FirstOrDefaultAsync(r => r.Id == PayrollRunId.From(Id));
+
+            if (run is not null)
+            {
+                _rubrik = FormatPeriod(run.Year, run.Month);
+                _brutto = FormatMoney(run.TotalBrutto);
+                _skatt = $"-{FormatMoney(run.TotalSkatt)}";
+                _netto = FormatMoney(run.TotalNetto);
+                _antalAnstallda = $"{run.AntalAnstallda:N0}";
+
+                // Build anomalies from results with significant deviation
+                if (run.Resultat.Count > 0)
+                {
+                    var avgBrutto = run.TotalBrutto.Amount / Math.Max(run.AntalAnstallda, 1);
+                    var threshold = avgBrutto * 0.10m; // 10% deviation
+
+                    // Resolve employee names for anomalous results
+                    var anomalousResults = run.Resultat
+                        .Where(r => Math.Abs(r.Brutto.Amount - avgBrutto) > threshold)
+                        .Take(10)
+                        .ToList();
+
+                    if (anomalousResults.Count > 0)
+                    {
+                        var anstallIds = anomalousResults.Select(r => r.AnstallId.Value).Distinct().ToList();
+                        var employees = await Db.Employees
+                            .Where(e => anstallIds.Contains(e.Id.Value))
+                            .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
+
+                        foreach (var r in anomalousResults)
+                        {
+                            var namn = employees.GetValueOrDefault(r.AnstallId.Value, "Okänd");
+                            var diff = r.Brutto.Amount - avgBrutto;
+                            var pct = avgBrutto > 0 ? Math.Abs(diff / avgBrutto * 100) : 0;
+                            var direction = diff > 0 ? "+" : "";
+
+                            _anomalier.Add(new Anomali(
+                                namn,
+                                $"{r.Brutto.Amount:N0} kr (snitt {avgBrutto:N0} kr, {direction}{pct:F0}%)",
+                                SummarizeDeviations(r, avgBrutto)
+                            ));
+                        }
+                    }
+
+                    _okLoner = run.AntalAnstallda - _anomalier.Count;
+                }
+                else
+                {
+                    _okLoner = run.AntalAnstallda;
+                }
+                return;
+            }
+        }
+        catch
+        {
+            // Fall through to demo data
+        }
+
+        // Demo data fallback
+        _rubrik = "Mars 2026";
+        _brutto = "158 432 100 kr";
+        _skatt = "-47 529 630 kr";
+        _netto = "110 902 470 kr";
+        _antalAnstallda = "5 023";
+        _okLoner = 5019;
+        _anomalier =
+        [
             new("Anna Svensson", "32 400 kr (normalt 28 500 kr, +14%)", "3 nattpass extra + OB storhelg påsk = +3 900 kr"),
             new("Karl Berg", "0 kr (normalt 28 500 kr)", "Hel sjukfrånvaro sedan 1 mars — sjuklön beräknad separat"),
             new("Lisa Holm", "24 200 kr (normalt 21 375 kr, +13%)", "Övertid 18h x 180% = +2 825 kr"),
             new("Per Gustafsson", "15 100 kr (normalt 28 500 kr, -47%)", "Tjänstledighet 50% sedan 15 mars"),
         ];
     }
+
+    private static string FormatMoney(Money m) => $"{m.Amount:N0} kr";
+
+    private static string FormatPeriod(int year, int month)
+    {
+        var monthNames = new[] { "", "Januari", "Februari", "Mars", "April", "Maj", "Juni",
+            "Juli", "Augusti", "September", "Oktober", "November", "December" };
+        return $"{monthNames[month]} {year}";
+    }
+
+    private static string SummarizeDeviations(PayrollResult r, decimal avg)
+    {
+        var parts = new List<string>();
+        if (r.OBTillagg.Amount > 0) parts.Add($"OB-tillägg {r.OBTillagg.Amount:N0} kr");
+        if (r.Overtidstillagg.Amount > 0) parts.Add($"Övertid {r.Overtidstillagg.Amount:N0} kr");
+        if (r.Sjuklon.Amount > 0) parts.Add($"Sjuklön {r.Sjuklon.Amount:N0} kr");
+        if (r.Karensavdrag.Amount > 0) parts.Add($"Karensavdrag -{r.Karensavdrag.Amount:N0} kr");
+        if (r.JourTillagg.Amount > 0) parts.Add($"Jour {r.JourTillagg.Amount:N0} kr");
+        if (r.ForaldraloneUtfyllnad.Amount > 0) parts.Add($"Föräldralön {r.ForaldraloneUtfyllnad.Amount:N0} kr");
+        return parts.Count > 0 ? string.Join(", ", parts) : "Avvikande bruttolön";
+    }
+
     private record Anomali(string Namn, string Belopp, string Forklaring);
 }

@@ -1,6 +1,10 @@
 @page "/lon/korningar"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Payroll.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Lönekörningar</PageTitle>
 
@@ -32,13 +36,69 @@
 
 @code {
     private List<KorningRad> _korningar = [];
-    protected override void OnInitialized()
+
+    protected override async Task OnInitializedAsync()
     {
-        _korningar = [
+        try
+        {
+            var runs = await Db.PayrollRuns
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => r.Month)
+                .Take(20)
+                .ToListAsync();
+
+            if (runs.Count > 0)
+            {
+                _korningar = runs.Select(r => new KorningRad(
+                    r.Id.Value,
+                    r.Period,
+                    MapStatus(r.Status),
+                    r.AntalAnstallda,
+                    FormatMoney(r.TotalBrutto),
+                    FormatMoney(r.TotalNetto),
+                    MapStatusColor(r.Status)
+                )).ToList();
+                return;
+            }
+        }
+        catch
+        {
+            // Fall through to demo data
+        }
+
+        // Demo data fallback
+        _korningar =
+        [
             new(Guid.NewGuid(), "2026-03", "Beräknad", 5023, "158 432 100 kr", "110 902 470 kr", Color.Info),
             new(Guid.NewGuid(), "2026-02", "Utbetald", 5019, "152 118 400 kr", "106 482 880 kr", Color.Success),
             new(Guid.NewGuid(), "2026-01", "Utbetald", 5015, "151 890 200 kr", "106 323 140 kr", Color.Success),
         ];
     }
+
+    private static string FormatMoney(Money m) => $"{m.Amount:N0} kr";
+
+    private static string MapStatus(PayrollRunStatus status) => status switch
+    {
+        PayrollRunStatus.Skapad => "Skapad",
+        PayrollRunStatus.Paborjad => "Pågående",
+        PayrollRunStatus.Beraknad => "Beräknad",
+        PayrollRunStatus.Granskad => "Granskad",
+        PayrollRunStatus.Godkand => "Godkänd",
+        PayrollRunStatus.Utbetald => "Utbetald",
+        PayrollRunStatus.Felaktig => "Felaktig",
+        _ => status.ToString()
+    };
+
+    private static Color MapStatusColor(PayrollRunStatus status) => status switch
+    {
+        PayrollRunStatus.Utbetald => Color.Success,
+        PayrollRunStatus.Godkand => Color.Success,
+        PayrollRunStatus.Beraknad => Color.Info,
+        PayrollRunStatus.Granskad => Color.Info,
+        PayrollRunStatus.Paborjad => Color.Warning,
+        PayrollRunStatus.Felaktig => Color.Error,
+        _ => Color.Default
+    };
+
     private record KorningRad(Guid Id, string Period, string Status, int Antal, string Brutto, string Netto, Color StatusFarg);
 }
