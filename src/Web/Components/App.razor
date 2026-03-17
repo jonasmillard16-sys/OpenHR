@@ -11,55 +11,13 @@
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="css/accessibility.css" />
     <link rel="stylesheet" href="css/print.css" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>
     <a class="rhr-skip-link" href="#main-content">Hoppa till huvudinnehåll</a>
-    <MudThemeProvider Theme="_openHrTheme" />
-    <MudPopoverProvider />
-    <MudDialogProvider />
-    <MudSnackbarProvider />
     <Routes />
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="js/download.js"></script>
 </body>
 </html>
-
-@code {
-    private readonly MudTheme _openHrTheme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#1a5276",
-            PrimaryDarken = "#154360",
-            PrimaryLighten = "#d4e6f1",
-            Secondary = "#2e86c1",
-            Success = "#1e8449",
-            Warning = "#b7950b",
-            Error = "#c0392b",
-            Info = "#2471a3",
-            Background = "#ffffff",
-            Surface = "#ffffff",
-            AppbarBackground = "#1a5276",
-            DrawerBackground = "#f8f9fa",
-            TextPrimary = "#1c2833",
-            TextSecondary = "#5d6d7e",
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = new[] { "Inter", "Segoe UI", "system-ui", "sans-serif" },
-                FontSize = "1.125rem",
-            },
-            H1 = new H1Typography { FontSize = "2rem", FontWeight = "700" },
-            H2 = new H2Typography { FontSize = "1.5rem", FontWeight = "600" },
-            Button = new ButtonTypography { FontSize = "1rem", FontWeight = "600" },
-        },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "8px",
-        }
-    };
-}
