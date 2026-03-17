@@ -1,0 +1,252 @@
+@page "/rapporter/lonekartering"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@using System.Text
+
+<PageTitle>OpenHR - Lönekartering</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Lönekartering</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Lönekartläggning enligt 3 kap. Diskrimineringslagen — analys av löneskillnader mellan kön, ålder och befattning.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Download" Style="min-height: 48px;"
+               OnClick="GenereraRapport">
+        Generera rapport
+    </MudButton>
+</div>
+
+@if (_csvGenerated)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _csvGenerated = false)">
+        Lönekartläggningsrapport genererad och nedladdad (CSV).
+    </MudAlert>
+}
+
+@* --- KPI Summary Cards --- *@
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_snittLonKvinnor.ToString("N0") kr</MudText>
+            <MudText Typo="Typo.body2">Snittlön kvinnor</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_snittLonMan.ToString("N0") kr</MudText>
+            <MudText Typo="Typo.body2">Snittlön män</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="@(_payGapProcent > 5 ? Color.Error : _payGapProcent > 2 ? Color.Warning : Color.Success)" Style="font-weight: 700;">@_payGapProcent.ToString("0.0") %</MudText>
+            <MudText Typo="Typo.body2">Total lönegap</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="@(_befattningarMedGap > 0 ? Color.Error : Color.Success)" Style="font-weight: 700;">@_befattningarMedGap</MudText>
+            <MudText Typo="Typo.body2">Befattningar med gap &gt;5 %</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* --- Alert for roles with >5% gap --- *@
+@foreach (var rad in _befattningsData.Where(r => Math.Abs(r.GapProcent) > 5))
+{
+    <OhrSuggestionCard
+        Title="@($"Lönegap {Math.Abs(rad.GapProcent):0.0} % — {rad.Befattning}")"
+        Explanation="@($"{(rad.GapProcent > 0 ? "Män" : "Kvinnor")} tjänar i snitt {Math.Abs(rad.GapKr):N0} kr mer per månad. Kräver åtgärdsplan enligt Diskrimineringslagen.")"
+        Level="OhrSuggestionCard.SuggestionLevel.Warning"
+        Actions="@(new Dictionary<string, string>
+        {
+            { "plan", "Skapa åtgärdsplan" },
+            { "detalj", "Visa detaljanalys" }
+        })"
+        OnActionClicked="@HandleGapAction" />
+}
+
+@* --- Per role comparison --- *@
+<MudText Typo="Typo.h6" Class="mt-4 mb-3">Lönekartläggning per befattning</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Befattning</th>
+            <th>Antal K</th>
+            <th>Antal M</th>
+            <th>Snittlön K</th>
+            <th>Snittlön M</th>
+            <th>Gap (kr)</th>
+            <th>Gap (%)</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _befattningsData)
+        {
+            <tr>
+                <td><strong>@rad.Befattning</strong></td>
+                <td>@rad.AntalKvinnor</td>
+                <td>@rad.AntalMan</td>
+                <td>@rad.SnittLonKvinnor.ToString("N0") kr</td>
+                <td>@rad.SnittLonMan.ToString("N0") kr</td>
+                <td style="color: @(Math.Abs(rad.GapProcent) > 5 ? "var(--mud-palette-error)" : "inherit");">@(rad.GapKr > 0 ? "+" : "")@rad.GapKr.ToString("N0") kr</td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@GapColor(rad.GapProcent)">@(rad.GapProcent > 0 ? "+" : "")@rad.GapProcent.ToString("0.0") %</MudChip>
+                </td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@GapColor(rad.GapProcent)">@GapStatus(rad.GapProcent)</MudChip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@* --- By Age Group --- *@
+<MudText Typo="Typo.h6" Class="mb-3">Löneskillnader per åldersgrupp</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Åldersgrupp</th>
+            <th>Snittlön K</th>
+            <th>Snittlön M</th>
+            <th>Gap (%)</th>
+            <th>Antal</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _aldersData)
+        {
+            <tr>
+                <td><strong>@rad.Grupp</strong></td>
+                <td>@rad.SnittKvinnor.ToString("N0") kr</td>
+                <td>@rad.SnittMan.ToString("N0") kr</td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@GapColor(rad.GapProcent)">@(rad.GapProcent > 0 ? "+" : "")@rad.GapProcent.ToString("0.0") %</MudChip>
+                </td>
+                <td>@rad.Antal</td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@* --- Historik --- *@
+<MudText Typo="Typo.h6" Class="mb-3">Historisk utveckling — total lönegap</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>År</th>
+            <th>Lönegap (%)</th>
+            <th>Trend</th>
+            <th>Kommentar</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _historik)
+        {
+            <tr>
+                <td><strong>@rad.Ar</strong></td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@GapColor(rad.Gap)">@rad.Gap.ToString("0.0") %</MudChip>
+                </td>
+                <td>@rad.Trend</td>
+                <td>@rad.Kommentar</td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private bool _csvGenerated;
+    private double _snittLonKvinnor;
+    private double _snittLonMan;
+    private double _payGapProcent;
+    private int _befattningarMedGap;
+
+    private List<BefattningsRad> _befattningsData = [];
+    private List<AldersRad> _aldersData = [];
+    private List<HistorikRad> _historik = [];
+
+    protected override void OnInitialized()
+    {
+        _befattningsData =
+        [
+            new("Sjuksköterska", 185, 32, 34_800, 35_200),
+            new("Undersköterska", 142, 28, 29_500, 29_200),
+            new("Läkare", 48, 62, 68_500, 72_800),
+            new("Specialistsjuksköterska", 72, 14, 39_200, 39_800),
+            new("Barnmorska", 38, 2, 37_600, 37_900),
+            new("Psykolog", 18, 12, 43_500, 44_100),
+            new("Fysioterapeut", 24, 11, 33_200, 33_600),
+            new("Arbetsterapeut", 19, 6, 32_800, 33_100),
+            new("Biomedicinsk analytiker", 28, 8, 34_100, 34_500),
+            new("Medicinsk sekreterare", 45, 3, 28_900, 29_100),
+            new("Administratör", 32, 14, 30_200, 30_800),
+            new("IT-specialist", 8, 34, 41_500, 43_900),
+            new("HR-specialist", 16, 5, 37_200, 37_800),
+            new("Ekonom", 12, 9, 39_800, 40_500),
+            new("Enhetschef", 28, 22, 48_500, 51_200),
+        ];
+
+        // Calculate aggregate KPIs
+        var totalKvinnor = _befattningsData.Sum(r => r.AntalKvinnor);
+        var totalMan = _befattningsData.Sum(r => r.AntalMan);
+        _snittLonKvinnor = _befattningsData.Sum(r => r.SnittLonKvinnor * r.AntalKvinnor) / totalKvinnor;
+        _snittLonMan = _befattningsData.Sum(r => r.SnittLonMan * r.AntalMan) / totalMan;
+        _payGapProcent = (_snittLonMan - _snittLonKvinnor) / _snittLonMan * 100;
+        _befattningarMedGap = _befattningsData.Count(r => Math.Abs(r.GapProcent) > 5);
+
+        _aldersData =
+        [
+            new("20–29 år", 28_900, 29_100, 0.7, 148),
+            new("30–39 år", 34_200, 35_100, 2.6, 312),
+            new("40–49 år", 38_500, 40_200, 4.2, 386),
+            new("50–59 år", 40_100, 42_800, 6.3, 289),
+            new("60+ år", 41_500, 43_200, 3.9, 119),
+        ];
+
+        _historik =
+        [
+            new("2020", 5.8, "↓", "Första kartläggningen efter systembytet"),
+            new("2023", 4.6, "↓ 1.2%", "Riktade lönesatsningar på sjuksköterskor"),
+            new("2026", _payGapProcent, $"↓ {(4.6 - _payGapProcent):0.1}%", "Aktuell analys — pågående åtgärder"),
+        ];
+    }
+
+    private void HandleGapAction(string actionKey)
+    {
+        // Future: navigate to action plan or detail analysis
+    }
+
+    private void GenereraRapport()
+    {
+        // In production: generate and trigger download via JS interop
+        _csvGenerated = true;
+    }
+
+    private static Color GapColor(double gap) => Math.Abs(gap) switch
+    {
+        > 5 => Color.Error,
+        > 2 => Color.Warning,
+        _ => Color.Success
+    };
+
+    private static string GapStatus(double gap) => Math.Abs(gap) switch
+    {
+        > 5 => "Åtgärd krävs",
+        > 2 => "Bevaka",
+        _ => "OK"
+    };
+
+    private record BefattningsRad(string Befattning, int AntalKvinnor, int AntalMan, double SnittLonKvinnor, double SnittLonMan)
+    {
+        public double GapKr => SnittLonMan - SnittLonKvinnor;
+        public double GapProcent => SnittLonMan > 0 ? (SnittLonMan - SnittLonKvinnor) / SnittLonMan * 100 : 0;
+    }
+
+    private record AldersRad(string Grupp, double SnittKvinnor, double SnittMan, double GapProcent, int Antal);
+    private record HistorikRad(string Ar, double Gap, string Trend, string Kommentar);
+}

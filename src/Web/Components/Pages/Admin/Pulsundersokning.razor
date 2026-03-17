@@ -1,0 +1,318 @@
+@page "/admin/pulsundersokning"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+
+<PageTitle>OpenHR - Pulsundersökningar</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Pulsundersökningar</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Anonyma medarbetarundersökningar för att mäta arbetsmiljö och välmående.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => StartaSkapande())">
+        Skapa ny undersökning
+    </MudButton>
+</div>
+
+@* --- Create new survey (conversation flow) --- *@
+@if (_skaparNy)
+{
+    <MudPaper Class="pa-6 mb-6" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <OhrConversationFlow Steps="@_steg" CurrentStep="_currentStep" OnBack="TillbakaSteg">
+            @if (_currentStep == 0)
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">Vad ska undersökningen heta?</MudText>
+                <MudTextField @bind-Value="_nyNamn" Label="Namn på undersökningen" Variant="Variant.Outlined" Class="mb-3" />
+                <MudSelect T="string" @bind-Value="_nyMalgrupp" Label="Målgrupp" Variant="Variant.Outlined" Class="mb-3"
+                           AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@("Alla enheter")">Alla enheter</MudSelectItem>
+                    <MudSelectItem Value="@("Akutmottagningen")">Akutmottagningen</MudSelectItem>
+                    <MudSelectItem Value="@("Medicinkliniken")">Medicinkliniken</MudSelectItem>
+                    <MudSelectItem Value="@("Kirurgkliniken")">Kirurgkliniken</MudSelectItem>
+                    <MudSelectItem Value="@("Psykiatri")">Psykiatri</MudSelectItem>
+                    <MudSelectItem Value="@("Primärvård Centrum")">Primärvård Centrum</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                           Style="min-height: 48px;" OnClick="NastaSteg"
+                           Disabled="@(string.IsNullOrWhiteSpace(_nyNamn))">Nästa</MudButton>
+            }
+            else if (_currentStep == 1)
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">Lägg till frågor (Likert 1–5)</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                    Skala: 1 = Instämmer inte alls, 5 = Instämmer helt. Lägg till 3–5 frågor.
+                </MudText>
+                @for (var i = 0; i < _nyaFragor.Count; i++)
+                {
+                    var idx = i;
+                    <div class="d-flex align-center gap-2 mb-2">
+                        <MudText Typo="Typo.body1" Style="min-width: 24px;">@(idx + 1).</MudText>
+                        <MudTextField @bind-Value="_nyaFragor[idx]" Variant="Variant.Outlined"
+                                      Placeholder="Skriv fråga..." Style="flex: 1;" />
+                        @if (_nyaFragor.Count > 3)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                           OnClick="@(() => TaBortFraga(idx))" />
+                        }
+                    </div>
+                }
+                @if (_nyaFragor.Count < 5)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="LaggTillFraga" Class="mb-3">Lägg till fråga</MudButton>
+                }
+                <div class="mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               Style="min-height: 48px;" OnClick="NastaSteg"
+                               Disabled="@(_nyaFragor.Any(f => string.IsNullOrWhiteSpace(f)))">Nästa</MudButton>
+                </div>
+            }
+            else if (_currentStep == 2)
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">Granska och skicka</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2"><strong>Namn:</strong> @_nyNamn</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2"><strong>Målgrupp:</strong> @_nyMalgrupp</MudText>
+                <MudText Typo="Typo.body1" Class="mb-3"><strong>Frågor:</strong></MudText>
+                <ol class="mb-4" style="padding-left: 1.5rem;">
+                    @foreach (var f in _nyaFragor)
+                    {
+                        <li><MudText Typo="Typo.body2">@f</MudText></li>
+                    }
+                </ol>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               Style="min-height: 48px;" OnClick="SkickaUndersokning">Skicka undersökning</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Large"
+                               OnClick="@(() => _skaparNy = false)">Avbryt</MudButton>
+                </div>
+            }
+        </OhrConversationFlow>
+    </MudPaper>
+}
+
+@if (_skapad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">
+        Undersökningen "@_nyNamn" har skickats till @_nyMalgrupp.
+    </MudAlert>
+}
+
+@* --- Active survey --- *@
+<MudText Typo="Typo.h6" Class="mb-3">Aktiva undersökningar</MudText>
+@foreach (var u in _undersokningar.Where(u => u.Status == "Aktiv"))
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-2">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">@u.Namn</MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary">Aktiv</MudChip>
+        </div>
+        <MudText Typo="Typo.body2" Class="mb-1"><strong>Period:</strong> @u.Period</MudText>
+        <MudText Typo="Typo.body2" Class="mb-1"><strong>Målgrupp:</strong> @u.Malgrupp</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3"><strong>Svarsfrekvens:</strong> @u.Svar av @u.Mottagare (@u.SvarsProcent %)</MudText>
+        <MudProgressLinear Value="@u.SvarsProcent" Color="Color.Primary" Class="mb-2" />
+    </MudPaper>
+}
+
+@* --- Completed survey results --- *@
+<MudText Typo="Typo.h6" Class="mt-4 mb-3">Avslutade undersökningar</MudText>
+@foreach (var u in _undersokningar.Where(u => u.Status == "Avslutad"))
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <div class="d-flex justify-space-between align-center mb-2">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">@u.Namn</MudText>
+            <div class="d-flex align-center gap-2">
+                <MudChip T="string" Size="Size.Small" Color="Color.Success">Avslutad</MudChip>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                           OnClick="@(() => ToggleDetaljer(u.Namn))">
+                    @(_expanderad == u.Namn ? "Dölj resultat" : "Visa resultat")
+                </MudButton>
+            </div>
+        </div>
+        <MudText Typo="Typo.body2" Class="mb-1"><strong>Period:</strong> @u.Period</MudText>
+        <MudText Typo="Typo.body2" Class="mb-1"><strong>Målgrupp:</strong> @u.Malgrupp</MudText>
+        <MudText Typo="Typo.body2"><strong>Svarsfrekvens:</strong> @u.Svar av @u.Mottagare (@u.SvarsProcent %)</MudText>
+
+        @if (_expanderad == u.Namn)
+        {
+            <MudDivider Class="my-3" />
+
+            @* --- Results per question --- *@
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Resultat per fråga</MudText>
+            <MudSimpleTable Hover="true" Elevation="1" Class="mb-4">
+                <thead>
+                    <tr>
+                        <th>Fråga</th>
+                        <th>Snitt (1–5)</th>
+                        <th>Förändring</th>
+                        <th>Bedömning</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in u.Resultat)
+                    {
+                        <tr>
+                            <td>@f.Fraga</td>
+                            <td>
+                                <div class="d-flex align-center gap-2">
+                                    <MudProgressLinear Value="@(f.Snitt / 5 * 100)" Color="@ScoreColor(f.Snitt)" Style="min-width: 80px;" />
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">@f.Snitt.ToString("0.0")</MudText>
+                                </div>
+                            </td>
+                            <td style="color: @(f.Forandring >= 0 ? "green" : "red");">@(f.Forandring >= 0 ? "+" : "")@f.Forandring.ToString("0.1")</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@ScoreColor(f.Snitt)">@ScoreText(f.Snitt)</MudChip></td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            @* --- Per-unit breakdown --- *@
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Resultat per enhet</MudText>
+            <MudSimpleTable Hover="true" Elevation="1" Class="mb-4">
+                <thead>
+                    <tr>
+                        <th>Enhet</th>
+                        <th>Snitt</th>
+                        <th>Svarsfrekvens</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in u.EnhetsResultat)
+                    {
+                        <tr>
+                            <td><strong>@e.Enhet</strong></td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@ScoreColor(e.Snitt)">@e.Snitt.ToString("0.0")</MudChip>
+                            </td>
+                            <td>@e.SvarsProcent %</td>
+                            <td style="color: @(e.Trend >= 0 ? "green" : "red");">@(e.Trend >= 0 ? "+" : "")@e.Trend.ToString("0.1")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            @* --- Historical trend --- *@
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Trend över tid</MudText>
+            <MudSimpleTable Hover="true" Elevation="1">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Totalt snitt</th>
+                        <th>Svarsfrekvens</th>
+                        <th>Förändring</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in _trendData)
+                    {
+                        <tr>
+                            <td><strong>@t.Period</strong></td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@ScoreColor(t.Snitt)">@t.Snitt.ToString("0.0")</MudChip>
+                            </td>
+                            <td>@t.SvarsProcent %</td>
+                            <td style="color: @(t.Forandring >= 0 ? "green" : "red");">@(t.Forandring >= 0 ? "+" : "")@t.Forandring.ToString("0.1")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    // --- Create flow state ---
+    private bool _skaparNy;
+    private bool _skapad;
+    private int _currentStep;
+    private List<string> _steg = ["Grunduppgifter", "Frågor", "Granska & skicka"];
+    private string _nyNamn = "";
+    private string _nyMalgrupp = "Alla enheter";
+    private List<string> _nyaFragor = ["", "", ""];
+
+    private string? _expanderad;
+
+    private void StartaSkapande()
+    {
+        _skaparNy = true;
+        _skapad = false;
+        _currentStep = 0;
+        _nyNamn = "";
+        _nyMalgrupp = "Alla enheter";
+        _nyaFragor = ["", "", ""];
+    }
+
+    private void NastaSteg() => _currentStep = Math.Min(_currentStep + 1, _steg.Count - 1);
+    private void TillbakaSteg() => _currentStep = Math.Max(_currentStep - 1, 0);
+    private void LaggTillFraga() { if (_nyaFragor.Count < 5) _nyaFragor.Add(""); }
+    private void TaBortFraga(int idx) { if (_nyaFragor.Count > 3) _nyaFragor.RemoveAt(idx); }
+
+    private void SkickaUndersokning()
+    {
+        _skaparNy = false;
+        _skapad = true;
+    }
+
+    private void ToggleDetaljer(string namn) => _expanderad = _expanderad == namn ? null : namn;
+
+    // --- Demo data ---
+    private List<UndersokningRad> _undersokningar = [];
+    private List<TrendRad> _trendData = [];
+
+    protected override void OnInitialized()
+    {
+        _undersokningar =
+        [
+            new("Puls mars 2026", "Aktiv", "2026-03-10 – 2026-03-24", "Alla enheter", 487, 1254, 39, [],
+            []),
+            new("Puls december 2025", "Avslutad", "2025-12-01 – 2025-12-15", "Alla enheter", 986, 1254, 79,
+            [
+                new("Jag trivs på min arbetsplats", 3.9, +0.2),
+                new("Min arbetsbelastning är hanterbar", 3.2, -0.1),
+                new("Jag får det stöd jag behöver från min chef", 3.7, +0.3),
+                new("Jag har möjlighet att utvecklas i mitt arbete", 3.4, +0.1),
+                new("Jag skulle rekommendera min arbetsplats till en vän", 3.6, +0.2),
+            ],
+            [
+                new("Akutmottagningen", 3.3, 82, -0.2),
+                new("Medicinkliniken", 3.8, 85, +0.3),
+                new("Kirurgkliniken", 3.5, 74, +0.1),
+                new("Psykiatri", 3.1, 68, -0.3),
+                new("Primärvård Centrum", 4.1, 88, +0.2),
+                new("IT-avdelningen", 4.0, 91, +0.4),
+                new("HR-avdelningen", 4.2, 96, +0.1),
+            ]),
+        ];
+
+        _trendData =
+        [
+            new("Mar 2025", 3.4, 71, 0),
+            new("Jun 2025", 3.5, 75, +0.1),
+            new("Sep 2025", 3.6, 73, +0.1),
+            new("Dec 2025", 3.6, 79, 0.0),
+        ];
+    }
+
+    private static Color ScoreColor(double score) => score switch
+    {
+        >= 4.0 => Color.Success,
+        >= 3.0 => Color.Warning,
+        _ => Color.Error
+    };
+
+    private static string ScoreText(double score) => score switch
+    {
+        >= 4.0 => "Bra",
+        >= 3.0 => "Acceptabelt",
+        _ => "Lågt"
+    };
+
+    private record FragaResultat(string Fraga, double Snitt, double Forandring);
+    private record EnhetsResultat(string Enhet, double Snitt, int SvarsProcent, double Trend);
+    private record UndersokningRad(string Namn, string Status, string Period, string Malgrupp, int Svar, int Mottagare, int SvarsProcent, List<FragaResultat> Resultat, List<EnhetsResultat> EnhetsResultat);
+    private record TrendRad(string Period, double Snitt, int SvarsProcent, double Forandring);
+}
