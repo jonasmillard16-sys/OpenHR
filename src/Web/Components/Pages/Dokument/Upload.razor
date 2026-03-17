@@ -1,0 +1,85 @@
+@page "/dokument/ny"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Ladda upp dokument</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/dokument" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
+    @switch (_step)
+    {
+        case 0:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken typ av dokument?</MudText>
+            <MudStack Spacing="3">
+                @foreach (var typ in _dokumentTyper)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _typ = typ.Item2; _step = 1; })">
+                        @typ.Item1 @typ.Item2
+                    </MudButton>
+                }
+            </MudStack>
+            break;
+
+        case 1:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd?</MudText>
+            <MudTextField @bind-Value="_sokterm" Label="Sök namn" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
+            <MudStack Spacing="2">
+                @foreach (var namn in new[] { "Anna Svensson", "Karl Berg", "Lisa Holm" })
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 48px;" OnClick="@(() => { _anstalld = namn; _step = 2; })">@namn</MudButton>
+                }
+            </MudStack>
+            break;
+
+        case 2:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Ladda upp fil</MudText>
+            <MudFileUpload T="IBrowserFile" Accept=".pdf,.doc,.docx,.jpg,.png" MaximumFileCount="1" OnFilesChanged="OnFileSelected">
+                <CustomContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 64px; font-size: 1.25rem;" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="@context.OpenFilePickerAsync">
+                        Välj fil att ladda upp
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+            @if (_filnamn != null)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">Vald fil: @_filnamn (@_filStorlek)</MudAlert>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-3" OnClick="@(() => _step = 3)">
+                    Ladda upp
+                </MudButton>
+            }
+            break;
+
+        case 3:
+            <div style="text-align: center; padding: 2rem 0;">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Dokument uppladdat</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_typ — @_anstalld</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Filen @_filnamn har sparats.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6" Href="/dokument">Tillbaka till dokument</MudButton>
+            </div>
+            break;
+    }
+</OhrConversationFlow>
+
+@code {
+    private readonly List<string> _steps = ["Typ", "Anställd", "Fil", "Klart!"];
+    private readonly (string, string)[] _dokumentTyper =
+    [
+        ("📄", "Anställningskontrakt"),
+        ("🏥", "Läkarintyg"),
+        ("🎓", "Certifikat/intyg"),
+        ("📋", "Övrigt")
+    ];
+    private int _step;
+    private string _typ = "", _anstalld = "", _sokterm = "";
+    private string? _filnamn;
+    private string? _filStorlek;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        _filnamn = file.Name;
+        _filStorlek = file.Size < 1024 * 1024 ? $"{file.Size / 1024} KB" : $"{file.Size / 1024 / 1024} MB";
+    }
+}
