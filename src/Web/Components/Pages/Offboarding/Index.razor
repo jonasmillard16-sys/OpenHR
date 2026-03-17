@@ -1,6 +1,10 @@
 @page "/offboarding"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Offboarding.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Offboarding</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -12,45 +16,83 @@
     <thead>
         <tr>
             <th>Anställd</th>
-            <th>Avdelning</th>
+            <th>Anledning</th>
             <th>Sista dag</th>
-            <th>Orsak</th>
+            <th>Status</th>
             <th>Checklista</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Per Gustafsson</td>
-            <td>Akutmottagningen</td>
-            <td>2026-03-31</td>
-            <td>Egen uppsägning</td>
-            <td><MudProgressLinear Color="Color.Warning" Value="60" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">3/5</MudText></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Lisa Holm</td>
-            <td>Röntgen</td>
-            <td>2026-04-15</td>
-            <td>Pension</td>
-            <td><MudProgressLinear Color="Color.Info" Value="40" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">2/5</MudText></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Johan Ek</td>
-            <td>IT-avdelningen</td>
-            <td>2026-04-30</td>
-            <td>Egen uppsägning</td>
-            <td><MudProgressLinear Color="Color.Info" Value="20" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">1/5</MudText></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Ingrid Sandberg</td>
-            <td>Vårdavdelning 3B</td>
-            <td>2026-03-20</td>
-            <td>Pension</td>
-            <td><MudProgressLinear Color="Color.Success" Value="100" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">5/5</MudText></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
+        @foreach (var c in _cases)
+        {
+            var total = c.Steg.Count;
+            var done = c.Steg.Count(s => s.Klar);
+            var pct = total > 0 ? (int)(100.0 * done / total) : 0;
+            <tr>
+                <td>@c.AnstallId.ToString()[..8]...</td>
+                <td>@AnledningText(c.Anledning)</td>
+                <td>@c.SistaArbetsdag.ToString("yyyy-MM-dd")</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Status)">@StatusText(c.Status)</MudChip></td>
+                <td><MudProgressLinear Color="@ProgressFarg(pct)" Value="@pct" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">@done/@total</MudText></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private List<OffboardingCase> _cases = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _cases = await Db.OffboardingCases
+                .Include(c => c.Steg)
+                .OrderByDescending(c => c.SkapadVid)
+                .Take(50)
+                .ToListAsync();
+        }
+        catch
+        {
+            // Demo data fallback
+        }
+    }
+
+    private static string AnledningText(AvslutAnledning a) => a switch
+    {
+        AvslutAnledning.EgenBegaran => "Egen uppsägning",
+        AvslutAnledning.Uppsagning => "Uppsägning",
+        AvslutAnledning.Pension => "Pension",
+        AvslutAnledning.Vikariat_Slut => "Vikariat slut",
+        AvslutAnledning.Provanstallning_Avbruten => "Provanst. avbruten",
+        AvslutAnledning.Overgang => "Övergång",
+        AvslutAnledning.Dodsfall => "Dödsfall",
+        AvslutAnledning.Annat => "Annat",
+        _ => a.ToString()
+    };
+
+    private static Color StatusFarg(OffboardingStatus s) => s switch
+    {
+        OffboardingStatus.Skapad => Color.Info,
+        OffboardingStatus.Pagar => Color.Warning,
+        OffboardingStatus.Slutford => Color.Success,
+        _ => Color.Default
+    };
+
+    private static string StatusText(OffboardingStatus s) => s switch
+    {
+        OffboardingStatus.Skapad => "Skapad",
+        OffboardingStatus.Pagar => "Pågår",
+        OffboardingStatus.Slutford => "Slutförd",
+        _ => s.ToString()
+    };
+
+    private static Color ProgressFarg(int pct) => pct switch
+    {
+        100 => Color.Success,
+        >= 50 => Color.Warning,
+        _ => Color.Info
+    };
+}

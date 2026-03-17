@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
+@using RegionHR.LAS.Domain
+@using RegionHR.Recruitment.Domain
+@using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
@@ -96,6 +99,27 @@
         try
         {
             _headcount = await Db.Employees.CountAsync();
+        }
+        catch { /* demo fallback */ }
+
+        try
+        {
+            _lasAlarm = await Db.LASAccumulations
+                .CountAsync(l => l.Status == LASStatus.NaraGrans || l.Status == LASStatus.KritiskNara);
+        }
+        catch { /* demo fallback */ }
+
+        try
+        {
+            _vakanser = await Db.Vacancies
+                .CountAsync(v => v.Status == VacancyStatus.Publicerad);
+        }
+        catch { /* demo fallback */ }
+
+        try
+        {
+            _godkannanden = await Db.LeaveRequests
+                .CountAsync(l => l.Status == LeaveRequestStatus.Inskickad);
         }
         catch { /* demo fallback */ }
 

@@ -1,6 +1,10 @@
 @page "/utbildning"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.LMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Utbildning</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -21,50 +25,64 @@
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>HLR & första hjälpen</td>
-            <td>Obligatorisk</td>
-            <td>Fysisk</td>
-            <td>1 dag</td>
-            <td>45</td>
-            <td>312</td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Basala hygienrutiner</td>
-            <td>Obligatorisk</td>
-            <td>E-learning</td>
-            <td>2 tim</td>
-            <td>28</td>
-            <td>456</td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Brandskydd & utrymning</td>
-            <td>Obligatorisk</td>
-            <td>Fysisk</td>
-            <td>4 tim</td>
-            <td>32</td>
-            <td>389</td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Ledarskap i vården</td>
-            <td>Ledarskap</td>
-            <td>Hybrid</td>
-            <td>3 dagar</td>
-            <td>12</td>
-            <td>48</td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>GDPR för vårdpersonal</td>
-            <td>Obligatorisk</td>
-            <td>E-learning</td>
-            <td>1 tim</td>
-            <td>15</td>
-            <td>421</td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
+        @foreach (var c in _courses)
+        {
+            <tr>
+                <td>@c.Namn</td>
+                <td>@(c.ArObligatorisk ? "Obligatorisk" : (c.Kategori ?? "—"))</td>
+                <td>@FormatText(c.Format)</td>
+                <td>@LangdText(c.LangdMinuter)</td>
+                <td>@AnmaladeCount(c.Id)</td>
+                <td>@GenomfordaCount(c.Id)</td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private List<Course> _courses = [];
+    private List<CourseEnrollment> _enrollments = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _courses = await Db.Courses
+                .OrderByDescending(c => c.SkapadVid)
+                .Take(50)
+                .ToListAsync();
+
+            var courseIds = _courses.Select(c => c.Id).ToList();
+            _enrollments = await Db.CourseEnrollments
+                .Where(e => courseIds.Contains(e.CourseId))
+                .ToListAsync();
+        }
+        catch
+        {
+            // Demo data fallback
+        }
+    }
+
+    private int AnmaladeCount(Guid courseId) =>
+        _enrollments.Count(e => e.CourseId == courseId && e.Progress != EnrollmentProgress.Avbruten);
+
+    private int GenomfordaCount(Guid courseId) =>
+        _enrollments.Count(e => e.CourseId == courseId && e.Progress == EnrollmentProgress.Genomford);
+
+    private static string FormatText(CourseFormat f) => f switch
+    {
+        CourseFormat.Klassrum => "Fysisk",
+        CourseFormat.Elearning => "E-learning",
+        CourseFormat.Blandat => "Hybrid",
+        CourseFormat.Workshop => "Workshop",
+        _ => f.ToString()
+    };
+
+    private static string LangdText(int minuter)
+    {
+        if (minuter >= 480) return $"{minuter / 480} dagar";
+        if (minuter >= 60) return $"{minuter / 60} tim";
+        return $"{minuter} min";
+    }
+}

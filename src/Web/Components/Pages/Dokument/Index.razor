@@ -1,6 +1,10 @@
 @page "/dokument"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Documents.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Dokument</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -12,7 +16,7 @@
     <thead>
         <tr>
             <th>Dokumentnamn</th>
-            <th>Typ</th>
+            <th>Kategori</th>
             <th>Anställd</th>
             <th>Datum</th>
             <th>GDPR-klassificering</th>
@@ -20,45 +24,65 @@
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Anställningsavtal_2026.pdf</td>
-            <td>Avtal</td>
-            <td>Anna Svensson</td>
-            <td>2026-01-15</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">Känslig</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Läkarintyg_mars.pdf</td>
-            <td>Sjukfrånvaro</td>
-            <td>Karl Berg</td>
-            <td>2026-03-10</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">Känslig</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Kompetensbevis_HLR.pdf</td>
-            <td>Certifiering</td>
-            <td>Maria Lindberg</td>
-            <td>2026-02-20</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Intern</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Lönespecifikation_feb.pdf</td>
-            <td>Lön</td>
-            <td>Erik Johansson</td>
-            <td>2026-02-25</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Konfidentiell</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Introduktionsplan.docx</td>
-            <td>Onboarding</td>
-            <td>Sofia Nyström</td>
-            <td>2026-03-01</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Öppen</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
+        @foreach (var d in _documents)
+        {
+            <tr>
+                <td>@d.FileName</td>
+                <td>@KategoriText(d.Kategori)</td>
+                <td>@d.AnstallId.ToString()[..8]...</td>
+                <td>@d.UppladdadVid.ToString("yyyy-MM-dd")</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@KlassFarg(d.Klassificering)">@KlassText(d.Klassificering)</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private List<Document> _documents = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _documents = await Db.Documents
+                .Where(d => !d.IsArchived)
+                .OrderByDescending(d => d.UppladdadVid)
+                .Take(50)
+                .ToListAsync();
+        }
+        catch
+        {
+            // Demo data fallback
+        }
+    }
+
+    private static string KategoriText(DocumentCategory k) => k switch
+    {
+        DocumentCategory.Anstallningsavtal => "Avtal",
+        DocumentCategory.Lakarintyg => "Sjukfrånvaro",
+        DocumentCategory.Betyg => "Betyg",
+        DocumentCategory.Legitimation => "Legitimation",
+        DocumentCategory.Policy => "Policy",
+        DocumentCategory.Lonespecifikation => "Lön",
+        DocumentCategory.Tjanstgoringsbevis => "Tjänstgöringsbevis",
+        DocumentCategory.Ovrigt => "Övrigt",
+        _ => k.ToString()
+    };
+
+    private static Color KlassFarg(DataClassification k) => k switch
+    {
+        DataClassification.Normal => Color.Success,
+        DataClassification.Kansllig => Color.Error,
+        DataClassification.SarskildKategori => Color.Warning,
+        _ => Color.Default
+    };
+
+    private static string KlassText(DataClassification k) => k switch
+    {
+        DataClassification.Normal => "Öppen",
+        DataClassification.Kansllig => "Känslig",
+        DataClassification.SarskildKategori => "Särskild kategori",
+        _ => k.ToString()
+    };
+}

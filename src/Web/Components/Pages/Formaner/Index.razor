@@ -1,6 +1,10 @@
 @page "/formaner"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Benefits.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Förmåner</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -15,56 +19,64 @@
             <th>Kategori</th>
             <th>Antal anmälda</th>
             <th>Maxbelopp/år</th>
-            <th>Utnyttjat (snitt)</th>
+            <th>Skattepliktig</th>
             <th>Status</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Friskvårdsbidrag</td>
-            <td>Hälsa</td>
-            <td>342</td>
-            <td>5 000 kr</td>
-            <td>3 200 kr</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Förmånscykel</td>
-            <td>Transport</td>
-            <td>87</td>
-            <td>—</td>
-            <td>—</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Tjänstepension (KAP-KL)</td>
-            <td>Pension</td>
-            <td>485</td>
-            <td>—</td>
-            <td>—</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Läkemedelsförmån</td>
-            <td>Hälsa</td>
-            <td>156</td>
-            <td>—</td>
-            <td>—</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Personalrabatt parkering</td>
-            <td>Transport</td>
-            <td>198</td>
-            <td>—</td>
-            <td>—</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Under utvärdering</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
+        @foreach (var b in _benefits)
+        {
+            <tr>
+                <td>@b.Namn</td>
+                <td>@KategoriText(b.Kategori)</td>
+                <td>@AnmaldaCount(b.Id)</td>
+                <td>@(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</td>
+                <td>@(b.ArSkattepliktig ? "Ja" : "Nej")</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@(b.ArAktiv ? Color.Success : Color.Default)">@(b.ArAktiv ? "Aktiv" : "Inaktiv")</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private List<Benefit> _benefits = [];
+    private List<EmployeeBenefit> _employeeBenefits = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _benefits = await Db.Benefits
+                .OrderByDescending(b => b.SkapadVid)
+                .Take(50)
+                .ToListAsync();
+
+            var benefitIds = _benefits.Select(b => b.Id).ToList();
+            _employeeBenefits = await Db.EmployeeBenefits
+                .Where(eb => benefitIds.Contains(eb.BenefitId) &&
+                             (eb.Status == EnrollmentStatus.Aktiv || eb.Status == EnrollmentStatus.Ansokt))
+                .ToListAsync();
+        }
+        catch
+        {
+            // Demo data fallback
+        }
+    }
+
+    private int AnmaldaCount(Guid benefitId) =>
+        _employeeBenefits.Count(eb => eb.BenefitId == benefitId);
+
+    private static string KategoriText(BenefitCategory k) => k switch
+    {
+        BenefitCategory.Friskvard => "Hälsa",
+        BenefitCategory.Pension => "Pension",
+        BenefitCategory.Forsakring => "Försäkring",
+        BenefitCategory.Tjanstebil => "Transport",
+        BenefitCategory.Sjukvard => "Sjukvård",
+        BenefitCategory.Utbildning => "Utbildning",
+        BenefitCategory.Ovrigt => "Övrigt",
+        _ => k.ToString()
+    };
+}

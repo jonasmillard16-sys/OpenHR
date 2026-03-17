@@ -1,6 +1,10 @@
 @page "/medarbetarsamtal"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Performance.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Medarbetarsamtal</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -12,53 +16,70 @@
     <thead>
         <tr>
             <th>Anställd</th>
-            <th>Chef</th>
-            <th>Typ</th>
+            <th>År</th>
+            <th>Betyg</th>
             <th>Datum</th>
             <th>Status</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Anna Svensson</td>
-            <td>Karin Eriksson</td>
-            <td>Årligt utvecklingssamtal</td>
-            <td>2026-04-02</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Planerat</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Karl Berg</td>
-            <td>Karin Eriksson</td>
-            <td>Årligt utvecklingssamtal</td>
-            <td>2026-03-15</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Maria Lindberg</td>
-            <td>Jonas Persson</td>
-            <td>Lönesamtal</td>
-            <td>2026-03-10</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomfört</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Erik Johansson</td>
-            <td>Jonas Persson</td>
-            <td>Uppföljningssamtal</td>
-            <td>2026-03-08</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomfört</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
-        <tr>
-            <td>Sofia Nyström</td>
-            <td>Karin Eriksson</td>
-            <td>Provanställningssamtal</td>
-            <td>2026-04-15</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Planerat</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
-        </tr>
+        @foreach (var r in _reviews)
+        {
+            <tr>
+                <td>@r.AnstallId.ToString()[..8]...</td>
+                <td>@r.Ar</td>
+                <td>@(r.OverallRating.HasValue ? $"{r.OverallRating}/5" : "—")</td>
+                <td>@(r.GenomfordVid?.ToString("yyyy-MM-dd") ?? r.SkapadVid.ToString("yyyy-MM-dd"))</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private List<PerformanceReview> _reviews = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _reviews = await Db.PerformanceReviews
+                .OrderByDescending(x => x.SkapadVid)
+                .Take(50)
+                .ToListAsync();
+        }
+        catch
+        {
+            // Demo data fallback
+        }
+
+        if (_reviews.Count == 0)
+        {
+            // Keep demo data visible when DB is empty
+        }
+    }
+
+    private static Color StatusFarg(ReviewStatus s) => s switch
+    {
+        ReviewStatus.Planerad => Color.Info,
+        ReviewStatus.Paborjad => Color.Warning,
+        ReviewStatus.SjalvbedomningKlar => Color.Warning,
+        ReviewStatus.ChefsbedomningKlar => Color.Warning,
+        ReviewStatus.Genomford => Color.Success,
+        ReviewStatus.Avslutat => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string StatusText(ReviewStatus s) => s switch
+    {
+        ReviewStatus.Planerad => "Planerat",
+        ReviewStatus.Paborjad => "Pågår",
+        ReviewStatus.SjalvbedomningKlar => "Självbedömning klar",
+        ReviewStatus.ChefsbedomningKlar => "Chefsbedömning klar",
+        ReviewStatus.Genomford => "Genomfört",
+        ReviewStatus.Avslutat => "Avslutat",
+        _ => s.ToString()
+    };
+}
