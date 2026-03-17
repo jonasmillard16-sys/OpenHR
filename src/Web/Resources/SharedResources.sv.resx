@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="AppName"><value>OpenHR</value></data>
+  <data name="MySchedule"><value>Mitt schema</value></data>
+  <data name="MyScheduleDesc"><value>Se när du jobbar</value></data>
+  <data name="MyLeave"><value>Jag vill ha ledigt</value></data>
+  <data name="MyLeaveDesc"><value>Ansök om semester</value></data>
+  <data name="MySalary"><value>Min lön</value></data>
+  <data name="MySalaryDesc"><value>Se vad du fått i lön</value></data>
+  <data name="ImSick"><value>Jag är sjuk</value></data>
+  <data name="ImSickDesc"><value>Meddela att du inte kan jobba</value></data>
+  <data name="MyThings"><value>Mina pågående saker</value></data>
+  <data name="MyThingsDesc"><value>Se status på dina ärenden</value></data>
+  <data name="AboutMe"><value>Om mig</value></data>
+  <data name="AboutMeDesc"><value>Min adress, telefon och uppgifter</value></data>
+  <data name="Back"><value>Tillbaka</value></data>
+  <data name="Done"><value>Klart!</value></data>
+  <data name="Approve"><value>Godkänn</value></data>
+  <data name="Reject"><value>Nej</value></data>
+  <data name="DaysLeft"><value>dagar kvar</value></data>
+  <data name="ThingsWaiting"><value>Saker som väntar på dig</value></data>
+  <data name="LogOut"><value>Logga ut</value></data>
+  <data name="Settings"><value>Inställningar</value></data>
+  <data name="ChangeLanguage"><value>Byt språk</value></data>
+</root>
