@@ -1,0 +1,78 @@
+@page "/anstallda/ny"
+@rendermode InteractiveServer
+@inject RegionHR.Web.Services.AnstallningService Service
+@inject NavigationManager Nav
+
+<PageTitle>Ny anställd - RegionHR</PageTitle>
+
+<h1>Ny anställd</h1>
+
+<RhrCard>
+    <Header>Personuppgifter</Header>
+    <ChildContent>
+        @if (_felmeddelande is not null)
+        {
+            <RhrAlert Variant="danger" Title="Fel">@_felmeddelande</RhrAlert>
+        }
+
+        <div class="rhr-grid rhr-grid--2" style="gap: 1rem;">
+            <RhrInput Label="Personnummer" Placeholder="ÅÅÅÅMMDD-NNNN" @bind-Value="_personnummer" Required="true"
+                      HasError="@(_personnummerFel)" ErrorMessage="Ogiltigt personnummer" />
+            <div></div>
+            <RhrInput Label="Förnamn" @bind-Value="_fornamn" Required="true" />
+            <RhrInput Label="Efternamn" @bind-Value="_efternamn" Required="true" />
+            <RhrInput Label="E-post" Type="email" @bind-Value="_epost" Placeholder="fornamn.efternamn@region.se" />
+            <RhrInput Label="Telefon" Type="tel" @bind-Value="_telefon" />
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+            <RhrButton OnClick="Spara" Disabled="@_sparar">@(_sparar ? "Sparar..." : "Skapa anställd")</RhrButton>
+            <RhrButton Variant="secondary" OnClick="Avbryt">Avbryt</RhrButton>
+        </div>
+    </ChildContent>
+</RhrCard>
+
+@code {
+    private string? _personnummer;
+    private string? _fornamn;
+    private string? _efternamn;
+    private string? _epost;
+    private string? _telefon;
+    private string? _felmeddelande;
+    private bool _personnummerFel;
+    private bool _sparar;
+
+    private async Task Spara()
+    {
+        _felmeddelande = null;
+        _personnummerFel = false;
+
+        if (string.IsNullOrWhiteSpace(_personnummer) || string.IsNullOrWhiteSpace(_fornamn) || string.IsNullOrWhiteSpace(_efternamn))
+        {
+            _felmeddelande = "Personnummer, förnamn och efternamn är obligatoriska.";
+            return;
+        }
+
+        _sparar = true;
+        try
+        {
+            var id = await Service.SkapaAsync(_personnummer, _fornamn, _efternamn, _epost);
+            Nav.NavigateTo($"/anstallda/{id}");
+        }
+        catch (ArgumentException ex)
+        {
+            _personnummerFel = true;
+            _felmeddelande = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _felmeddelande = $"Kunde inte skapa anställd: {ex.Message}";
+        }
+        finally
+        {
+            _sparar = false;
+        }
+    }
+
+    private void Avbryt() => Nav.NavigateTo("/anstallda");
+}
