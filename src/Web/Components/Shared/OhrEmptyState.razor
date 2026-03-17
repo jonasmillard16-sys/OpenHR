@@ -1,0 +1,26 @@
+@namespace RegionHR.Web.Components.Shared
+
+<div style="text-align: center; padding: 3rem 1rem;">
+    <MudIcon Icon="@Icon" Size="Size.Large" Style="font-size: 4rem; color: var(--mud-palette-text-secondary); opacity: 0.5;" />
+    <MudText Typo="Typo.h6" Class="mt-3" Style="color: var(--mud-palette-text-secondary);">@Title</MudText>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <MudText Typo="Typo.body1" Class="mt-1" Style="color: var(--mud-palette-text-disabled);">@Description</MudText>
+    }
+    @if (!string.IsNullOrEmpty(ActionText))
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                   Style="min-height: 48px;" Href="@ActionHref" OnClick="OnAction">
+            @ActionText
+        </MudButton>
+    }
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Inbox;
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? ActionText { get; set; }
+    [Parameter] public string? ActionHref { get; set; }
+    [Parameter] public EventCallback OnAction { get; set; }
+}

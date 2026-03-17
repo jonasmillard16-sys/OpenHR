@@ -22,6 +22,11 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.AddSupportedUICultures(supportedCultures);
 });
 
+// Swedish culture for datepickers
+var svCulture = new System.Globalization.CultureInfo("sv-SE");
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = svCulture;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = svCulture;
+
 // Infrastructure (EF Core, repositories, module contracts)
 var connectionString = builder.Configuration.GetConnectionString("RegionHR")
     ?? "Host=localhost;Port=54322;Database=postgres;Username=postgres;Password=postgres";

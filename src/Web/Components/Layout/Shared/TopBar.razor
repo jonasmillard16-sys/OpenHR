@@ -4,7 +4,7 @@
 
 <MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
     <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700;">OpenHR</MudText>
-    <MudAutocomplete T="string" Label="" Placeholder="Sök anställd..."
+    <MudAutocomplete T="string" Label="" Placeholder="Sök anställd eller sida..."
                      SearchFunc="Search" Variant="Variant.Outlined" Dense="true"
                      Style="max-width: 300px; margin-left: 1rem;"
                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
@@ -53,23 +53,69 @@
         catch { }
     }
 
+    private static readonly Dictionary<string, string> _navSuggestions = new()
+    {
+        ["schema"] = "/schema",
+        ["bemanning"] = "/schema/bemanning",
+        ["lönekörning"] = "/lon/korningar",
+        ["lönespec"] = "/minsida/lon",
+        ["semester"] = "/ledighet",
+        ["sjukanmälan"] = "/minsida/sjukanmalan",
+        ["las"] = "/las",
+        ["gdpr"] = "/gdpr",
+        ["rekrytering"] = "/rekrytering/vakanser",
+        ["rapporter"] = "/rapporter",
+        ["inställningar"] = "/admin/konfiguration",
+        ["medarbetarsamtal"] = "/medarbetarsamtal",
+        ["dokument"] = "/dokument",
+        ["kompetens"] = "/kompetens",
+        ["notiser"] = "/notiser",
+    };
+
     private async Task<IEnumerable<string>> Search(string value, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 2 || Db is null)
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
             return Array.Empty<string>();
 
         var term = value.ToLower();
-        var results = await Db.Employees
-            .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
-            .Take(10)
-            .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")
-            .ToListAsync(ct);
+        var results = new List<string>();
+
+        // Navigation suggestions
+        var navMatches = _navSuggestions
+            .Where(kv => kv.Key.Contains(term))
+            .Select(kv => $"\u27a1 {char.ToUpper(kv.Key[0])}{kv.Key[1..]} ({kv.Value})")
+            .Take(5);
+        results.AddRange(navMatches);
+
+        // Employee search
+        if (Db is not null)
+        {
+            var employees = await Db.Employees
+                .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
+                .Take(10)
+                .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")
+                .ToListAsync(ct);
+            results.AddRange(employees);
+        }
+
         return results;
     }
 
     private void OnSearchSelected(string value)
     {
-        if (value != null && value.Contains('(') && value.Contains(')'))
+        if (string.IsNullOrEmpty(value))
+            return;
+
+        // Navigation suggestion selected (starts with arrow)
+        if (value.StartsWith("\u27a1") && value.Contains('(') && value.Contains(')'))
+        {
+            var route = value.Split('(').Last().TrimEnd(')');
+            Nav?.NavigateTo(route);
+            return;
+        }
+
+        // Employee selected
+        if (value.Contains('(') && value.Contains(')'))
         {
             var guidStr = value.Split('(').Last().TrimEnd(')');
             if (Guid.TryParse(guidStr, out var id))

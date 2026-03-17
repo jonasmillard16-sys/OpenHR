@@ -7,6 +7,7 @@
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
+@inject NavigationManager Nav
 
 <PageTitle>OpenHR — Dashboard</PageTitle>
 
@@ -14,37 +15,37 @@
 
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
             <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
             <MudText Typo="Typo.body2">Anställda</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/halsosam"))">
             <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjukfranvaro%</MudText>
             <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/las"))">
             <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
             <MudText Typo="Typo.body2">LAS-alarm</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/rekrytering/vakanser"))">
             <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakanser</MudText>
             <MudText Typo="Typo.body2">Öppna vakanser</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/arenden"))">
             <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
             <MudText Typo="Typo.body2">Väntar godkännande</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/schema/bemanning"))">
             <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
             <MudText Typo="Typo.body2">Bemanning idag</MudText>
         </MudPaper>
