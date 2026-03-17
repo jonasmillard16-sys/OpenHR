@@ -1,0 +1,144 @@
+@page "/arenden/mbl"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - MBL-förhandlingar</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">MBL-förhandlingar</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Nytt MBL-ärende</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_begarda</MudText>
+            <MudText Typo="Typo.body2">Begärda</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_pagaende</MudText>
+            <MudText Typo="Typo.body2">Pågående</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutade</MudText>
+            <MudText Typo="Typo.body2">Avslutade (YTD)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_oenighet</MudText>
+            <MudText Typo="Typo.body2">Oenighet/Central</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    MBL (Medbestämmandelagen) kräver förhandling med fackliga organisationer vid viktigare förändringar.
+    MBL 11 § gäller viktigare förändring av verksamheten. MBL 19 § gäller anlitande av entreprenörer.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">MBL-ärenden</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Ärende-ID</th>
+            <th>Beslutstyp</th>
+            <th>Paragraf</th>
+            <th>Facklig organisation</th>
+            <th>Begärd datum</th>
+            <th>Förhandlingsdatum</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.ArendeId</strong></td>
+                <td>@rad.Beslutstyp</td>
+                <td>@rad.Paragraf</td>
+                <td>@rad.Fack</td>
+                <td>@rad.BegardDatum</td>
+                <td>@rad.ForhandlingsDatum</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">MBL-paragrafer</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Paragraf</th>
+            <th>Beskrivning</th>
+            <th>Typiska beslut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>MBL 11 §</strong></td>
+            <td>Primär förhandlingsskyldighet vid viktigare förändring</td>
+            <td>Omorganisation, nedläggning, nya arbetsmetoder</td>
+        </tr>
+        <tr>
+            <td><strong>MBL 12 §</strong></td>
+            <td>Särskild förhandling vid uppsägning pga arbetsbrist</td>
+            <td>Varsel, turordningsförhandling</td>
+        </tr>
+        <tr>
+            <td><strong>MBL 19 §</strong></td>
+            <td>Förhandling vid anlitande av extern entreprenör</td>
+            <td>Upphandling, outsourcing, bemanningsföretag</td>
+        </tr>
+        <tr>
+            <td><strong>MBL 38 §</strong></td>
+            <td>Fackligt tolkningsföreträde vid arbetsskyldighet</td>
+            <td>Tvist om arbetsuppgifter</td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Nytt MBL-ärende</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att initiera MBL-förhandling.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _begarda = 2;
+    private int _pagaende = 3;
+    private int _avslutade = 8;
+    private int _oenighet = 1;
+
+    private List<MBLRad> _rader = [];
+
+    protected override void OnInitialized()
+    {
+        _rader =
+        [
+            new("MBL-2026-014", "Omorganisation – Kardiologi", "MBL 11 §", "Kommunal, Vårdförbundet", "2026-03-15", "—", "Begärd", Color.Warning),
+            new("MBL-2026-013", "Ny schemamodell – Akuten", "MBL 11 §", "Kommunal", "2026-03-10", "2026-03-24", "Begärd", Color.Warning),
+            new("MBL-2026-012", "Upphandling städtjänst", "MBL 19 §", "Kommunal", "2026-03-01", "2026-03-14", "Pågående", Color.Info),
+            new("MBL-2026-011", "IT-system byte (OpenHR)", "MBL 11 §", "Kommunal, Vision, Vårdförbundet", "2026-02-15", "2026-03-05", "Pågående", Color.Info),
+            new("MBL-2026-010", "Bemanningsavtal – Sjuksköterskor", "MBL 19 §", "Vårdförbundet", "2026-02-10", "2026-03-01", "Pågående", Color.Info),
+            new("MBL-2026-009", "Flytt av Ortopedi till ny byggnad", "MBL 11 §", "Kommunal, Vårdförbundet", "2026-01-20", "2026-02-10", "Avslutad", Color.Success),
+            new("MBL-2026-008", "Nedläggning Filial Kungsbacka", "MBL 11 §", "Kommunal, Vision", "2026-01-10", "2026-02-05", "Oenighet – Central", Color.Error),
+            new("MBL-2026-007", "Löneöversyn 2026 – principer", "MBL 11 §", "Samtliga", "2026-01-05", "2026-01-25", "Avslutad", Color.Success),
+        ];
+    }
+
+    private record MBLRad(string ArendeId, string Beslutstyp, string Paragraf, string Fack, string BegardDatum, string ForhandlingsDatum, string StatusText, Color StatusFarg);
+}

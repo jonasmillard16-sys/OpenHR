@@ -1,0 +1,141 @@
+@page "/ledighet/foraldraledighet"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Föräldraledighet</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Föräldraledighet</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny planering</MudButton>
+</div>
+
+<MudText Typo="Typo.h6" Class="mb-3">480-dagarsöversikt</MudText>
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">480</MudText>
+            <MudText Typo="Typo.body2">Totalt dagar per barn</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">390</MudText>
+            <MudText Typo="Typo.body2">Sjukpenningnivå</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">90</MudText>
+            <MudText Typo="Typo.body2">Lägstanivå (180 kr/dag)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">240</MudText>
+            <MudText Typo="Typo.body2">Dagar per förälder</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Varje förälder har 240 dagar varav 90 dagar är reserverade och kan inte överlåtas.
+    195 dagar på sjukpenningnivå + 45 dagar på lägstanivå per förälder.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Aktiva föräldraledigheter</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Barn</th>
+            <th>Period</th>
+            <th>Omfattning</th>
+            <th>Använda dagar</th>
+            <th>Kvar</th>
+            <th>FK-status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.BarnInfo</td>
+                <td>@rad.Period</td>
+                <td>@rad.Omfattning</td>
+                <td>@rad.AnvandaDagar</td>
+                <td>@rad.KvarDagar</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.FKStatusFarg">@rad.FKStatus</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Detaljer</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Fördelning sjukpenningnivå vs lägstanivå</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Nivå</th>
+            <th>Dagar per förälder</th>
+            <th>Totalt per barn</th>
+            <th>Ersättning</th>
+            <th>Överlåtbart</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Sjukpenningnivå</strong></td>
+            <td>195</td>
+            <td>390</td>
+            <td>Ca 80% av SGI (max 1 116 kr/dag)</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">105 dagar</MudChip></td>
+        </tr>
+        <tr>
+            <td><strong>Lägstanivå</strong></td>
+            <td>45</td>
+            <td>90</td>
+            <td>180 kr/dag</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">45 dagar</MudChip></td>
+        </tr>
+        <tr>
+            <td><strong>Reserverade (ej överlåtbara)</strong></td>
+            <td>90</td>
+            <td>180</td>
+            <td>Sjukpenningnivå</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">0 dagar</MudChip></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Ny föräldraledighetplanering</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera ny föräldraledighet.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+
+    private List<ForaldraledighetRad> _rader = [];
+
+    protected override void OnInitialized()
+    {
+        _rader =
+        [
+            new("Maria Lindström", "Elsa, f. 2025-09-12", "2025-10-01 – 2026-06-30", "100%", "168", "72", "Godkänd", Color.Success),
+            new("Jonas Eriksson", "Elsa, f. 2025-09-12", "2026-07-01 – 2026-12-31", "100%", "0", "240", "Planerad", Color.Info),
+            new("Sara Karlsson", "Alma, f. 2025-11-20", "2026-01-15 – 2026-09-15", "75%", "46", "194", "Godkänd", Color.Success),
+            new("Erik Johansson", "Leo, f. 2024-06-01", "2026-03-01 – 2026-04-30", "50%", "12", "198", "Rapporterad", Color.Warning),
+            new("Anna Svensson", "Nils, f. 2025-12-05", "2026-02-01 – 2026-08-31", "100%", "33", "207", "Godkänd", Color.Success),
+        ];
+    }
+
+    private record ForaldraledighetRad(string Namn, string BarnInfo, string Period, string Omfattning, string AnvandaDagar, string KvarDagar, string FKStatus, Color FKStatusFarg);
+}

@@ -1,0 +1,150 @@
+@page "/formaner/friskvard"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Friskvårdsbidrag</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Friskvårdsbidrag</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Registrera kvitto</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">5 000 kr</MudText>
+            <MudText Typo="Typo.body2">Max per anställd/år</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_antalUtnyttjat</MudText>
+            <MudText Typo="Typo.body2">Har utnyttjat (helt/delvis)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText>
+            <MudText Typo="Typo.body2">Väntar godkännande</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_totalUtbetalt kr</MudText>
+            <MudText Typo="Typo.body2">Totalt utbetalt (YTD)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Friskvårdsbidraget är skattefritt upp till 5 000 kr per anställd och kalenderår.
+    Giltiga aktiviteter: gym, simhall, yoga, massage, styrketräning m.m. enligt Skatteverkets riktlinjer.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Friskvårdsbidrag per anställd</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Enhet</th>
+            <th>Tilldelat</th>
+            <th>Använt</th>
+            <th>Kvar</th>
+            <th>Utnyttjandegrad</th>
+            <th>Senaste kvitto</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Enhet</td>
+                <td>@rad.Tilldelat kr</td>
+                <td>@rad.Anvant kr</td>
+                <td>@rad.Kvar kr</td>
+                <td>
+                    <MudProgressLinear Value="@rad.Procent" Color="@rad.ProcentFarg" Class="my-1" Style="min-width: 80px;" />
+                    <MudText Typo="Typo.caption">@rad.Procent %</MudText>
+                </td>
+                <td>@rad.SenasteKvitto</td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Senaste kvitton</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Anställd</th>
+            <th>Aktivitet</th>
+            <th>Belopp</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var k in _kvitton)
+        {
+            <tr>
+                <td>@k.Datum</td>
+                <td><strong>@k.Namn</strong></td>
+                <td>@k.Aktivitet</td>
+                <td>@k.Belopp kr</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@k.StatusFarg">@k.StatusText</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Registrera friskvårdskvitto</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera kvitto.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _antalUtnyttjat = 87;
+    private int _vantar = 4;
+    private string _totalUtbetalt = "218 400";
+
+    private List<FriskvardRad> _rader = [];
+    private List<KvittoRad> _kvitton = [];
+
+    protected override void OnInitialized()
+    {
+        _rader =
+        [
+            new("Anna Svensson", "Kardiologi", "5 000", "5 000", "0", 100, Color.Success, "2026-02-15"),
+            new("Karl Berg", "Ortopedi", "5 000", "3 200", "1 800", 64, Color.Info, "2026-03-10"),
+            new("Erik Johansson", "Akutmottagningen", "5 000", "2 500", "2 500", 50, Color.Info, "2026-01-20"),
+            new("Lisa Holm", "HR-avdelningen", "5 000", "4 800", "200", 96, Color.Success, "2026-03-14"),
+            new("Per Gustafsson", "IT-drift", "5 000", "1 500", "3 500", 30, Color.Warning, "2026-02-28"),
+            new("Sara Karlsson", "Vårdcentral Centrum", "5 000", "0", "5 000", 0, Color.Default, "—"),
+            new("Maria Lindström", "Kirurgi", "5 000", "3 800", "1 200", 76, Color.Info, "2026-03-05"),
+            new("Jonas Eriksson", "Barnmottagningen", "5 000", "5 000", "0", 100, Color.Success, "2026-03-01"),
+        ];
+
+        _kvitton =
+        [
+            new("2026-03-14", "Lisa Holm", "Gymkort (SATS)", "1 200", "Godkänd", Color.Success),
+            new("2026-03-10", "Karl Berg", "Simkort (Lundbybadet)", "800", "Godkänd", Color.Success),
+            new("2026-03-05", "Maria Lindström", "Yogaklass", "1 400", "Väntar", Color.Warning),
+            new("2026-03-01", "Jonas Eriksson", "Gymkort (Friskis)", "2 500", "Godkänd", Color.Success),
+            new("2026-02-28", "Per Gustafsson", "Massagebehandling", "750", "Godkänd", Color.Success),
+            new("2026-02-15", "Anna Svensson", "Personlig träning", "2 000", "Godkänd", Color.Success),
+        ];
+    }
+
+    private record FriskvardRad(string Namn, string Enhet, string Tilldelat, string Anvant, string Kvar, int Procent, Color ProcentFarg, string SenasteKvitto);
+    private record KvittoRad(string Datum, string Namn, string Aktivitet, string Belopp, string StatusText, Color StatusFarg);
+}

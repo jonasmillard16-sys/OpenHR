@@ -1,0 +1,153 @@
+@page "/ledighet/vab"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - VAB</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">VAB – Vård av barn</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Rapportera VAB</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_aktivaVab</MudText>
+            <MudText Typo="Typo.body2">Aktiva VAB idag</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_rapporterade</MudText>
+            <MudText Typo="Typo.body2">Rapporterade till FK</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_ejRapporterade</MudText>
+            <MudText Typo="Typo.body2">Ej rapporterade till FK</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="3">
+        <MudPaper Class="pa-3 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_totalaDagar</MudText>
+            <MudText Typo="Typo.body2">Dagar totalt (YTD)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    VAB-dagar ska rapporteras till Försäkringskassan inom 7 dagar. Barn under 12 år ger rätt till tillfällig föräldrapenning.
+    Max 120 dagar per barn och år.
+</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Rapporterade VAB-dagar</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Barn</th>
+            <th>Datum</th>
+            <th>Antal dagar</th>
+            <th>Orsak</th>
+            <th>FK-rapporterad</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Barn</td>
+                <td>@rad.Datum</td>
+                <td>@rad.AntalDagar</td>
+                <td>@rad.Orsak</td>
+                <td>
+                    @if (rad.FKRapporterad)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Nej</MudChip>
+                    }
+                </td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">VAB per anställd (YTD)</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Antal VAB-tillfällen</th>
+            <th>Totalt dagar</th>
+            <th>Senaste VAB</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in _sammanstallning)
+        {
+            <tr>
+                <td><strong>@s.Namn</strong></td>
+                <td>@s.AntalTillfallen</td>
+                <td>@s.TotaltDagar</td>
+                <td>@s.SenasteVab</td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Rapportera VAB-dag</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera VAB.</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _visaNyDialog;
+    private int _aktivaVab = 3;
+    private int _rapporterade = 28;
+    private int _ejRapporterade = 2;
+    private int _totalaDagar = 47;
+
+    private List<VabRad> _rader = [];
+    private List<VabSammanstallning> _sammanstallning = [];
+
+    protected override void OnInitialized()
+    {
+        _rader =
+        [
+            new("Per Gustafsson", "Ella, 4 år", "2026-03-17", "1", "Feber", false, "Aktiv", Color.Warning),
+            new("Anna Svensson", "Nils, 3 mån", "2026-03-17", "1", "Magsjuka", false, "Aktiv", Color.Warning),
+            new("Lisa Holm", "Oscar, 7 år", "2026-03-17", "1", "Förkylning", true, "Aktiv", Color.Warning),
+            new("Karl Berg", "Maja, 5 år", "2026-03-14 – 2026-03-15", "2", "Vattkoppor", true, "Avslutad", Color.Success),
+            new("Erik Johansson", "Leo, 2 år", "2026-03-10 – 2026-03-12", "3", "Öroninflammation", true, "Avslutad", Color.Success),
+            new("Sara Karlsson", "Alma, 4 mån", "2026-03-06", "1", "Hög feber", true, "Avslutad", Color.Success),
+            new("Maria Lindström", "Elsa, 6 mån", "2026-03-03 – 2026-03-04", "2", "Magsjuka", true, "Avslutad", Color.Success),
+        ];
+
+        _sammanstallning =
+        [
+            new("Erik Johansson", "4", "8", "2026-03-12"),
+            new("Karl Berg", "3", "6", "2026-03-15"),
+            new("Per Gustafsson", "3", "5", "2026-03-17"),
+            new("Anna Svensson", "2", "4", "2026-03-17"),
+            new("Lisa Holm", "2", "3", "2026-03-17"),
+            new("Sara Karlsson", "1", "1", "2026-03-06"),
+            new("Maria Lindström", "1", "2", "2026-03-04"),
+        ];
+    }
+
+    private record VabRad(string Namn, string Barn, string Datum, string AntalDagar, string Orsak, bool FKRapporterad, string StatusText, Color StatusFarg);
+    private record VabSammanstallning(string Namn, string AntalTillfallen, string TotaltDagar, string SenasteVab);
+}
