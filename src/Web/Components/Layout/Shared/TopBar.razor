@@ -17,7 +17,8 @@
               Visible="@(UnreadCount > 0)">
         <MudIconButton Icon="@Icons.Material.Filled.Notifications"
                        Color="Color.Inherit"
-                       aria-label="@($"{UnreadCount} olästa notiser")" />
+                       aria-label="@($"{UnreadCount} olästa notiser")"
+                       OnClick="@(() => Nav?.NavigateTo("/notiser"))" />
     </MudBadge>
     <MudMenu Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
@@ -34,6 +35,18 @@
 
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Db is not null)
+            {
+                UnreadCount = await Db.Notifications.CountAsync(n => !n.IsRead);
+            }
+        }
+        catch { }
+    }
 
     private async Task<IEnumerable<string>> Search(string value, CancellationToken ct)
     {

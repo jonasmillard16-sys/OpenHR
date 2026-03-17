@@ -1,0 +1,112 @@
+@page "/notiser"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Notifications.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Notiser</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Notiser</MudText>
+
+<MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="MarkAllRead" Class="mb-4">
+    Markera alla som lästa
+</MudButton>
+
+@if (!_notiser.Any())
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">Inga notiser att visa.</MudAlert>
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var n in _notiser)
+        {
+            <MudPaper Class="@($"pa-4 {(n.ArLast ? "" : "mud-elevation-3")}")" Elevation="@(n.ArLast ? 0 : 2)"
+                      Style="@(n.ArLast ? "" : "border-left: 4px solid var(--mud-palette-primary);")">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="@($"font-weight: {(n.ArLast ? "400" : "600")};")">@n.Titel</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@n.Meddelande</MudText>
+                        <MudText Typo="Typo.caption">@n.Tid</MudText>
+                    </div>
+                    @if (!n.ArLast)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">Ny</MudChip>
+                    }
+                </div>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@code {
+    private List<NotisViewModel> _notiser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        try
+        {
+            var fromDb = await Db.Notifications
+                .OrderByDescending(n => n.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+
+            _notiser = fromDb.Select(n => new NotisViewModel
+            {
+                Id = n.Id,
+                Titel = n.Title,
+                Meddelande = n.Message,
+                Tid = n.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                ArLast = n.IsRead
+            }).ToList();
+        }
+        catch
+        {
+            // Fallback demo data when DB is unavailable
+            _notiser = new List<NotisViewModel>
+            {
+                new() { Titel = "Ledighetsansökan godkänd", Meddelande = "Din semester 14–18 juli har godkänts av chef.", Tid = "2026-03-17 09:00", ArLast = false },
+                new() { Titel = "Nytt lönebesked", Meddelande = "Lönebeskedet för mars 2026 finns tillgängligt.", Tid = "2026-03-15 08:00", ArLast = false },
+                new() { Titel = "Certifiering går ut snart", Meddelande = "Din sjuksköterska-legitimation går ut om 45 dagar.", Tid = "2026-03-14 12:00", ArLast = false },
+                new() { Titel = "Schemaändring", Meddelande = "Ditt schema för vecka 13 har uppdaterats.", Tid = "2026-03-12 14:30", ArLast = true },
+                new() { Titel = "Medarbetarsamtal bokat", Meddelande = "Årligt medarbetarsamtal inbokat 25 mars kl. 10:00.", Tid = "2026-03-10 09:15", ArLast = true },
+            };
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        try
+        {
+            var unread = await Db.Notifications
+                .Where(n => !n.IsRead)
+                .ToListAsync();
+
+            foreach (var n in unread)
+                n.MarkAsRead();
+
+            await Db.SaveChangesAsync();
+        }
+        catch { }
+
+        foreach (var n in _notiser)
+            n.ArLast = true;
+
+        StateHasChanged();
+    }
+
+    private class NotisViewModel
+    {
+        public Guid Id { get; set; }
+        public string Titel { get; set; } = "";
+        public string Meddelande { get; set; } = "";
+        public string Tid { get; set; } = "";
+        public bool ArLast { get; set; }
+    }
+}

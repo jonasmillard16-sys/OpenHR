@@ -1,6 +1,7 @@
 using MudBlazor.Services;
 using Microsoft.AspNetCore.Localization;
 using RegionHR.Infrastructure;
+using RegionHR.Web.Hubs;
 using RegionHR.Web.Services;
 using RegionHR.Web.Components;
 
@@ -26,6 +27,9 @@ var connectionString = builder.Configuration.GetConnectionString("RegionHR")
     ?? "Host=localhost;Port=54322;Database=postgres;Username=postgres;Password=postgres";
 builder.Services.AddInfrastructure(connectionString);
 
+// SignalR
+builder.Services.AddSignalR();
+
 // Application services
 builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
@@ -45,5 +49,7 @@ app.UseRequestLocalization();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
