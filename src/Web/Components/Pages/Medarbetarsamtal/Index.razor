@@ -1,0 +1,64 @@
+@page "/medarbetarsamtal"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Medarbetarsamtal</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Medarbetarsamtal</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Nytt samtal</MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Chef</th>
+            <th>Typ</th>
+            <th>Datum</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Anna Svensson</td>
+            <td>Karin Eriksson</td>
+            <td>Årligt utvecklingssamtal</td>
+            <td>2026-04-02</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Planerat</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Karl Berg</td>
+            <td>Karin Eriksson</td>
+            <td>Årligt utvecklingssamtal</td>
+            <td>2026-03-15</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Maria Lindberg</td>
+            <td>Jonas Persson</td>
+            <td>Lönesamtal</td>
+            <td>2026-03-10</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomfört</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Erik Johansson</td>
+            <td>Jonas Persson</td>
+            <td>Uppföljningssamtal</td>
+            <td>2026-03-08</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomfört</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Sofia Nyström</td>
+            <td>Karin Eriksson</td>
+            <td>Provanställningssamtal</td>
+            <td>2026-04-15</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Planerat</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>

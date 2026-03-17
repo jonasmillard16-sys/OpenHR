@@ -1,0 +1,56 @@
+@page "/offboarding"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Offboarding</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Offboarding</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Nytt ärende</MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Avdelning</th>
+            <th>Sista dag</th>
+            <th>Orsak</th>
+            <th>Checklista</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Per Gustafsson</td>
+            <td>Akutmottagningen</td>
+            <td>2026-03-31</td>
+            <td>Egen uppsägning</td>
+            <td><MudProgressLinear Color="Color.Warning" Value="60" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">3/5</MudText></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Lisa Holm</td>
+            <td>Röntgen</td>
+            <td>2026-04-15</td>
+            <td>Pension</td>
+            <td><MudProgressLinear Color="Color.Info" Value="40" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">2/5</MudText></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Johan Ek</td>
+            <td>IT-avdelningen</td>
+            <td>2026-04-30</td>
+            <td>Egen uppsägning</td>
+            <td><MudProgressLinear Color="Color.Info" Value="20" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">1/5</MudText></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+        <tr>
+            <td>Ingrid Sandberg</td>
+            <td>Vårdavdelning 3B</td>
+            <td>2026-03-20</td>
+            <td>Pension</td>
+            <td><MudProgressLinear Color="Color.Success" Value="100" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">5/5</MudText></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>

@@ -1,0 +1,64 @@
+@page "/dokument"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Dokument</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Dokumenthantering</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Upload" Style="min-height: 48px;">Ladda upp dokument</MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Dokumentnamn</th>
+            <th>Typ</th>
+            <th>Anställd</th>
+            <th>Datum</th>
+            <th>GDPR-klassificering</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Anställningsavtal_2026.pdf</td>
+            <td>Avtal</td>
+            <td>Anna Svensson</td>
+            <td>2026-01-15</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">Känslig</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Läkarintyg_mars.pdf</td>
+            <td>Sjukfrånvaro</td>
+            <td>Karl Berg</td>
+            <td>2026-03-10</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">Känslig</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Kompetensbevis_HLR.pdf</td>
+            <td>Certifiering</td>
+            <td>Maria Lindberg</td>
+            <td>2026-02-20</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Intern</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Lönespecifikation_feb.pdf</td>
+            <td>Lön</td>
+            <td>Erik Johansson</td>
+            <td>2026-02-25</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Konfidentiell</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Introduktionsplan.docx</td>
+            <td>Onboarding</td>
+            <td>Sofia Nyström</td>
+            <td>2026-03-01</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Öppen</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>

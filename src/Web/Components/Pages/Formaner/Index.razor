@@ -1,0 +1,70 @@
+@page "/formaner"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Förmåner</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmåner</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny förmån</MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Förmån</th>
+            <th>Kategori</th>
+            <th>Antal anmälda</th>
+            <th>Maxbelopp/år</th>
+            <th>Utnyttjat (snitt)</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Friskvårdsbidrag</td>
+            <td>Hälsa</td>
+            <td>342</td>
+            <td>5 000 kr</td>
+            <td>3 200 kr</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Förmånscykel</td>
+            <td>Transport</td>
+            <td>87</td>
+            <td>—</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Tjänstepension (KAP-KL)</td>
+            <td>Pension</td>
+            <td>485</td>
+            <td>—</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Läkemedelsförmån</td>
+            <td>Hälsa</td>
+            <td>156</td>
+            <td>—</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Personalrabatt parkering</td>
+            <td>Transport</td>
+            <td>198</td>
+            <td>—</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Info">Under utvärdering</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>

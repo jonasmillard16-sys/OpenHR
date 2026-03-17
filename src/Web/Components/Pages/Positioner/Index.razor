@@ -1,0 +1,64 @@
+@page "/positioner"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Positioner</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Positioner</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny position</MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Befattning</th>
+            <th>Avdelning</th>
+            <th>Anställd</th>
+            <th>Sysselsättning</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Sjuksköterska</td>
+            <td>Akutmottagningen</td>
+            <td>Anna Svensson</td>
+            <td>100%</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillsatt</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Överläkare</td>
+            <td>Medicinkliniken</td>
+            <td>Erik Johansson</td>
+            <td>100%</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillsatt</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Undersköterska</td>
+            <td>Vårdavdelning 3B</td>
+            <td>—</td>
+            <td>75%</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Vakant</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Röntgensjuksköterska</td>
+            <td>Röntgen</td>
+            <td>—</td>
+            <td>100%</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Vakant</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>IT-tekniker</td>
+            <td>IT-avdelningen</td>
+            <td>—</td>
+            <td>100%</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Default">Frusen</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>

@@ -1,0 +1,68 @@
+@page "/kompetens"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Kompetensregister</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Kompetensregister</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny kompetens</MudButton>
+</div>
+
+<MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Warning">
+    <strong>3 certifieringar</strong> löper ut inom 90 dagar och kräver förnyelse.
+</MudAlert>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Certifiering</th>
+            <th>Utfärdad</th>
+            <th>Giltig t.o.m.</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Anna Svensson</td>
+            <td>Sjuksköterskeleg. (SSK)</td>
+            <td>2020-06-15</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Giltig</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Karl Berg</td>
+            <td>HLR-kompetens</td>
+            <td>2025-04-10</td>
+            <td>2026-04-10</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Löper ut snart</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Maria Lindberg</td>
+            <td>Brandskyddsutbildning</td>
+            <td>2024-05-20</td>
+            <td>2026-05-20</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Löper ut snart</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Erik Johansson</td>
+            <td>Läkarlegitimation</td>
+            <td>2018-09-01</td>
+            <td>—</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Giltig</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+        <tr>
+            <td>Sofia Nyström</td>
+            <td>Basala hygienrutiner</td>
+            <td>2025-01-15</td>
+            <td>2026-04-15</td>
+            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Löper ut snart</MudChip></td>
+            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
