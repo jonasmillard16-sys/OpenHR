@@ -1,0 +1,90 @@
+@page "/offboarding/ny"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Offboarding</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/offboarding" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
+    @switch (_step)
+    {
+        case 0:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd slutar?</MudText>
+            <MudTextField @bind-Value="_sokterm" Label="Sök namn" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
+            <MudStack Spacing="2">
+                @foreach (var namn in new[] { "Karl Berg", "Per Gustafsson", "Helena Bergström" })
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _valdAnstalld = namn; _step = 1; })">@namn</MudButton>
+                }
+            </MudStack>
+            break;
+
+        case 1:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Slutlön och semesterersättning</MudText>
+            <MudText Typo="Typo.body1" Class="mb-2">Systemet har beräknat följande för @_valdAnstalld:</MudText>
+            <MudPaper Class="pa-4 mb-4" Elevation="1">
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr><td>Sista arbetsdag</td><td><strong>2026-04-30</strong></td></tr>
+                        <tr><td>Kvarvarande semester</td><td><strong>12 dagar</strong></td></tr>
+                        <tr><td>Semesterersättning (12%)</td><td><strong>18 240 kr</strong></td></tr>
+                        <tr><td>Slutlön (april)</td><td><strong>28 500 kr</strong></td></tr>
+                        <tr><td><strong>Total slutlig utbetalning</strong></td><td><strong>46 740 kr</strong></td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Beloppen beräknas automatiskt baserat på anställningsdata och semestersaldo.</MudAlert>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 2)">Nästa</MudButton>
+            break;
+
+        case 2:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Tillgångar att återlämna</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">Bocka av när @_valdAnstalld har lämnat tillbaka:</MudText>
+            <MudStack Spacing="2">
+                <MudCheckBox @bind-Value="_dator" Label="Dator/laptop" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
+                <MudCheckBox @bind-Value="_passerkort" Label="Passerkort/nyckelkort" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
+                <MudCheckBox @bind-Value="_telefon" Label="Tjänstemobil" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
+                <MudCheckBox @bind-Value="_nycklar" Label="Nycklar" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
+                <MudCheckBox @bind-Value="_klader" Label="Arbetskläder" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 3)">Nästa</MudButton>
+            break;
+
+        case 3:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Åtkomst att stänga</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">Systemet stänger automatiskt:</MudText>
+            <MudStack Spacing="2">
+                <MudCheckBox T="bool" Value="true" Label="E-postkonto" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
+                <MudCheckBox T="bool" Value="true" Label="VPN-åtkomst" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
+                <MudCheckBox T="bool" Value="true" Label="Inloggning i OpenHR" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
+                <MudCheckBox T="bool" Value="true" Label="Teams/kommunikation" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
+            </MudStack>
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mt-4 mb-4">Åtkomst stängs automatiskt efter sista arbetsdag.</MudAlert>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 4)">Slutför offboarding</MudButton>
+            break;
+
+        case 4:
+            <div style="text-align: center; padding: 2rem 0;">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Offboarding klar</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@_valdAnstalld</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Slutlön beräknad. Tillgångar checkade. Åtkomst schemalagd att stängas.</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Class="mb-3" StartIcon="@Icons.Material.Filled.PictureAsPdf">
+                    Generera tjänstgöringsintyg (PDF)
+                </MudButton>
+                <br />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/offboarding" Class="mt-2">
+                    Tillbaka till offboarding
+                </MudButton>
+            </div>
+            break;
+    }
+</OhrConversationFlow>
+
+@code {
+    private readonly List<string> _steps = ["Anställd", "Slutlön", "Tillgångar", "Åtkomst", "Klart!"];
+    private int _step;
+    private string _valdAnstalld = "", _sokterm = "";
+    private bool _dator, _passerkort, _telefon, _nycklar, _klader;
+}

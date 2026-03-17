@@ -1,0 +1,76 @@
+@page "/medarbetarsamtal/ny"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Nytt medarbetarsamtal</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/medarbetarsamtal" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
+    @switch (_step)
+    {
+        case 0:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd gäller samtalet?</MudText>
+            <MudStack Spacing="2">
+                @foreach (var namn in new[] { "Anna Svensson", "Karl Berg", "Lisa Holm", "Maria Lindgren" })
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _valdAnstalld = namn; _step = 1; })">@namn</MudButton>
+                }
+            </MudStack>
+            break;
+
+        case 1:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Självbedömning — @_valdAnstalld</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Hur bedömer den anställde sig själv? (1 = behöver utvecklas, 5 = utmärkt)</MudText>
+            @foreach (var omrade in _omraden)
+            {
+                <MudPaper Class="pa-3 mb-2" Elevation="1">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@omrade</MudText>
+                    <MudRating @bind-SelectedValue="_sjalvbedomningar[omrade]" MaxValue="5" Color="Color.Primary" Size="Size.Large" />
+                </MudPaper>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 2)">Nästa — Chefsbedömning</MudButton>
+            break;
+
+        case 2:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Chefsbedömning — @_valdAnstalld</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Hur bedömer du som chef den anställdes prestation?</MudText>
+            @foreach (var omrade in _omraden)
+            {
+                <MudPaper Class="pa-3 mb-2" Elevation="1">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@omrade</MudText>
+                    <MudRating @bind-SelectedValue="_chefsbedomningar[omrade]" MaxValue="5" Color="Color.Warning" Size="Size.Large" />
+                </MudPaper>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 3)">Nästa — Målsättning</MudButton>
+            break;
+
+        case 3:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Målsättning för nästa period</MudText>
+            <MudTextField @bind-Value="_mal1" Label="Mål 1" Variant="Variant.Outlined" Class="mb-3" Placeholder="T.ex. Genomföra HLR-utbildning" />
+            <MudTextField @bind-Value="_mal2" Label="Mål 2" Variant="Variant.Outlined" Class="mb-3" Placeholder="T.ex. Handleda ny medarbetare" />
+            <MudTextField @bind-Value="_mal3" Label="Mål 3 (valfritt)" Variant="Variant.Outlined" Class="mb-3" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 4)">Slutför medarbetarsamtal</MudButton>
+            break;
+
+        case 4:
+            <div style="text-align: center; padding: 2rem 0;">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Medarbetarsamtal klart</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@_valdAnstalld — 2026</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Samtalet har sparats. Både chef och medarbetare kan se det under "Medarbetarsamtal".</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/medarbetarsamtal">Tillbaka</MudButton>
+            </div>
+            break;
+    }
+</OhrConversationFlow>
+
+@code {
+    private readonly List<string> _steps = ["Anställd", "Självbedömning", "Chefsbedömning", "Målsättning", "Klart!"];
+    private int _step;
+    private string _valdAnstalld = "";
+    private string _mal1 = "", _mal2 = "", _mal3 = "";
+    private readonly string[] _omraden = ["Yrkeskompetens", "Samarbete", "Kommunikation", "Ansvarstagande", "Utveckling"];
+    private readonly Dictionary<string, int> _sjalvbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
+    private readonly Dictionary<string, int> _chefsbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
+}
