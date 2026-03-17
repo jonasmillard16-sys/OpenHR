@@ -5,8 +5,28 @@
 <PageTitle>OpenHR - Resor och utlägg</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Resor och utlägg</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Nytt resekrav</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Nytt resekrav</MudButton>
 </div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa nytt resekrav</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudTextField @bind-Value="_newDatum" Label="Datum" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newDestination" Label="Destination" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newBelopp" Label="Belopp (kr)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="SkapaResekrav">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_skapad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Resekrav skapat!</MudAlert>
+}
 
 @if (_meddelande is not null)
 {
@@ -35,6 +55,21 @@
 </MudSimpleTable>
 
 @code {
+    private bool _showForm;
+    private bool _skapad;
+    private string _newDatum = "";
+    private string _newDestination = "";
+    private string _newBelopp = "";
+
+    private void SkapaResekrav()
+    {
+        _showForm = false;
+        _skapad = true;
+        _newDatum = "";
+        _newDestination = "";
+        _newBelopp = "";
+    }
+
     private string? _meddelande;
 
     private List<ReseRad> _rader = [];

@@ -66,8 +66,25 @@
                 <td>@rad.AnvandaDagar</td>
                 <td>@rad.KvarDagar</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@rad.FKStatusFarg">@rad.FKStatus</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Detaljer</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Detaljer</MudButton></td>
             </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="8">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Föräldraledighet</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Barn:</strong> @rad.BarnInfo</MudText>
+                            <MudText Typo="Typo.body2"><strong>Period:</strong> @rad.Period</MudText>
+                            <MudText Typo="Typo.body2"><strong>Omfattning:</strong> @rad.Omfattning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Använda dagar:</strong> @rad.AnvandaDagar</MudText>
+                            <MudText Typo="Typo.body2"><strong>Kvar:</strong> @rad.KvarDagar</MudText>
+                            <MudText Typo="Typo.body2"><strong>FK-status:</strong> @rad.FKStatus</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -122,6 +139,9 @@
 
 @code {
     private bool _visaNyDialog;
+    private ForaldraledighetRad? _valdRad;
+
+    private void ValjRad(ForaldraledighetRad rad) => _valdRad = _valdRad == rad ? null : rad;
 
     private List<ForaldraledighetRad> _rader = [];
 

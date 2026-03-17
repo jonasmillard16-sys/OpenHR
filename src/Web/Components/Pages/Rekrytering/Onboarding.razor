@@ -5,8 +5,27 @@
 <PageTitle>OpenHR - Onboarding</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Onboarding</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.PersonAdd" Style="min-height: 48px;">Ny onboarding</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.PersonAdd" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny onboarding</MudButton>
 </div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny onboarding</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudTextField @bind-Value="_newAnstelld" Label="Anställd" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newStartdatum" Label="Startdatum" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="SkapaOnboarding">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_skapad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Onboarding skapad!</MudAlert>
+}
 
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);"><MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_arenden.Count</MudText><MudText Typo="Typo.body2">Aktiva</MudText></MudPaper></MudItem>
@@ -44,6 +63,19 @@
 }
 
 @code {
+    private bool _showForm;
+    private bool _skapad;
+    private string _newAnstelld = "";
+    private string _newStartdatum = "";
+
+    private void SkapaOnboarding()
+    {
+        _showForm = false;
+        _skapad = true;
+        _newAnstelld = "";
+        _newStartdatum = "";
+    }
+
     private List<OnboardingArende> _arenden =
     [
         new("Sara Johansson", "Sjuksköterska", "Kirurgi avd 3", "2026-04-01",

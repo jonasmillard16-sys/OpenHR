@@ -5,8 +5,29 @@
 <PageTitle>OpenHR - Löneöversyn</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Löneöversyn</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny runda</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny runda</MudButton>
 </div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny löneöversynsrunda</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudTextField @bind-Value="_newAr" Label="År" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newAvtal" Label="Avtalsområde" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newBudget" Label="Budget (kr)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="SkapaRunda">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_skapad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Löneöversynsrunda skapad!</MudAlert>
+}
+
 <MudSimpleTable Hover="true" Elevation="2">
     <thead><tr><th>Runda</th><th>År</th><th>Avtalsområde</th><th>Budget</th><th>Status</th><th></th></tr></thead>
     <tbody>
@@ -40,6 +61,21 @@
 </MudSimpleTable>
 
 @code {
+    private bool _showForm;
+    private bool _skapad;
+    private string _newAr = "";
+    private string _newAvtal = "";
+    private string _newBudget = "";
+
+    private void SkapaRunda()
+    {
+        _showForm = false;
+        _skapad = true;
+        _newAr = "";
+        _newAvtal = "";
+        _newBudget = "";
+    }
+
     private LoneoversynRad? _valdRad;
 
     private void Valj(LoneoversynRad rad) => _valdRad = _valdRad == rad ? null : rad;

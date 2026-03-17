@@ -70,9 +70,13 @@
                 <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Offboarding klar</MudText>
                 <MudText Typo="Typo.h6" Class="mb-2">@_valdAnstalld</MudText>
                 <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Slutlön beräknad. Tillgångar checkade. Åtkomst schemalagd att stängas.</MudText>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Class="mb-3" StartIcon="@Icons.Material.Filled.PictureAsPdf">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Class="mb-3" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="@(() => _intygGenererat = true)">
                     Generera tjänstgöringsintyg (PDF)
                 </MudButton>
+                @if (_intygGenererat)
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-3">Tjänstgöringsintyg genererat och redo att ladda ner.</MudAlert>
+                }
                 <br />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/offboarding" Class="mt-2">
                     Tillbaka till offboarding
@@ -87,4 +91,5 @@
     private int _step;
     private string _valdAnstalld = "", _sokterm = "";
     private bool _dator, _passerkort, _telefon, _nycklar, _klader;
+    private bool _intygGenererat;
 }

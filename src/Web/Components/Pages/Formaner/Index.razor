@@ -9,8 +9,28 @@
 <PageTitle>OpenHR - Förmåner</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmåner</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny förmån</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny förmån</MudButton>
 </div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny förmån</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudTextField @bind-Value="_newNamn" Label="Namn" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_newBeskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="3" Class="mb-3" />
+        <MudTextField @bind-Value="_newBudget" Label="Maxbelopp/år (kr)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="SkapaForman">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_skapad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Förmån skapad!</MudAlert>
+}
 
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
@@ -57,6 +77,21 @@
 </MudSimpleTable>
 
 @code {
+    private bool _showForm;
+    private bool _skapad;
+    private string _newNamn = "";
+    private string _newBeskrivning = "";
+    private string _newBudget = "";
+
+    private void SkapaForman()
+    {
+        _showForm = false;
+        _skapad = true;
+        _newNamn = "";
+        _newBeskrivning = "";
+        _newBudget = "";
+    }
+
     private List<Benefit> _benefits = [];
     private Benefit? _valdForman;
     private List<EmployeeBenefit> _employeeBenefits = [];

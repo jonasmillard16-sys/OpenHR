@@ -29,6 +29,11 @@
     </MudItem>
 </MudGrid>
 
+@if (_meddelande is not null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _meddelande = null)">@_meddelande</MudAlert>
+}
+
 <MudAlert Severity="Severity.Warning" Class="mb-4">
     Delegeringar bör ha en tidsbegränsad period. Chefer ansvarar för att delegeringen avser rätt behörighetsnivå.
     Alla godkännanden gjorda av delegat loggas med referens till delegeringsbeslutet.
@@ -60,11 +65,11 @@
                 <td>
                     @if (rad.StatusText == "Aktiv")
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error">Avsluta</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => AvslutaDelegering(rad))">Avsluta</MudButton>
                     }
                     else
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Detaljer</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => VisaDetaljer(rad))">Detaljer</MudButton>
                     }
                 </td>
             </tr>
@@ -124,9 +129,26 @@
 
 @code {
     private bool _visaNyDialog;
+    private string? _meddelande;
+    private DelegeringRad? _valdRad;
     private int _aktiva = 3;
     private int _kommande = 2;
     private int _utgangna = 5;
+
+    private void AvslutaDelegering(DelegeringRad rad)
+    {
+        var idx = _rader.IndexOf(rad);
+        if (idx >= 0)
+        {
+            _rader[idx] = rad with { StatusText = "Avslutad", StatusFarg = Color.Default };
+        }
+        _meddelande = $"Delegering från {rad.Fran} till {rad.Till} avslutad.";
+    }
+
+    private void VisaDetaljer(DelegeringRad rad)
+    {
+        _valdRad = _valdRad == rad ? null : rad;
+    }
 
     private List<DelegeringRad> _rader = [];
 

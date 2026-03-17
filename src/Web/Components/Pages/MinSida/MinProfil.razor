@@ -73,9 +73,26 @@
             </MudSimpleTable>
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
                        StartIcon="@Icons.Material.Filled.Add" Size="Size.Large"
-                       Style="min-height: 48px;">
+                       Style="min-height: 48px;" OnClick="@(() => _visaNodkontaktForm = true)">
                 Lägg till nödkontakt
             </MudButton>
+            @if (_visaNodkontaktForm)
+            {
+                <MudPaper Class="pa-4 mt-3" Elevation="1" Style="border-left: 4px solid var(--mud-palette-primary);">
+                    <div class="d-flex justify-space-between align-center mb-3">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Ny nödkontakt</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNodkontaktForm = false)" />
+                    </div>
+                    <MudTextField @bind-Value="_nodkontaktNamn" Label="Namn" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudTextField @bind-Value="_nodkontaktRelation" Label="Relation" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudTextField @bind-Value="_nodkontaktTelefon" Label="Telefon" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LaggTillNodkontakt">Spara</MudButton>
+                </MudPaper>
+            }
+            @if (_nodkontaktSparad)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3" ShowCloseIcon="true" CloseIconClicked="@(() => _nodkontaktSparad = false)">Nödkontakt tillagd!</MudAlert>
+            }
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -118,6 +135,21 @@
         {
             // Keep demo data as fallback
         }
+    }
+
+    private bool _visaNodkontaktForm;
+    private bool _nodkontaktSparad;
+    private string _nodkontaktNamn = "";
+    private string _nodkontaktRelation = "";
+    private string _nodkontaktTelefon = "";
+
+    private void LaggTillNodkontakt()
+    {
+        _visaNodkontaktForm = false;
+        _nodkontaktSparad = true;
+        _nodkontaktNamn = "";
+        _nodkontaktRelation = "";
+        _nodkontaktTelefon = "";
     }
 
     private async Task SparaKontaktuppgifter()

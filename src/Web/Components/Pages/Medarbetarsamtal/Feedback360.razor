@@ -66,8 +66,24 @@
                     <MudText Typo="Typo.caption">@rad.SvarInkomna / @rad.AntalBedomare (@rad.SvarProcent %)</MudText>
                 </td>
                 <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Detaljer</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRunda(rad))">Detaljer</MudButton></td>
             </tr>
+            @if (_valdRunda == rad)
+            {
+                <tr>
+                    <td colspan="7">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>360-feedback — @rad.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Befattning:</strong> @rad.Befattning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Period:</strong> @rad.Period</MudText>
+                            <MudText Typo="Typo.body2"><strong>Bedömare:</strong> @rad.AntalBedomare</MudText>
+                            <MudText Typo="Typo.body2"><strong>Svar inkomna:</strong> @rad.SvarInkomna / @rad.AntalBedomare (@rad.SvarProcent %)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRunda = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -114,6 +130,10 @@
 
 @code {
     private bool _visaNyDialog;
+    private FeedbackRunda? _valdRunda;
+
+    private void ValjRunda(FeedbackRunda rad) => _valdRunda = _valdRunda == rad ? null : rad;
+
     private int _aktivaRundor = 4;
     private int _avslutade = 12;
     private int _vantar = 18;
