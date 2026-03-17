@@ -1,0 +1,54 @@
+@page "/minsida/arenden"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+
+<PageTitle>OpenHR - Mina pågående saker</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Mina pågående saker</MudText>
+
+@if (_arenden.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+        Du har inga pågående ärenden just nu.
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="3">
+        @foreach (var arende in _arenden)
+        {
+            <MudPaper Class="pa-4" Elevation="1">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@arende.Typ</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                            @arende.Beskrivning
+                        </MudText>
+                        <MudText Typo="Typo.caption">Skapad @arende.Datum</MudText>
+                    </div>
+                    <MudChip T="string" Size="Size.Small" Color="@arende.StatusFarg">@arende.Status</MudChip>
+                </div>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@code {
+    private List<ArendeRad> _arenden = [];
+
+    protected override void OnInitialized()
+    {
+        _arenden =
+        [
+            new("Semesteransökan", "Semester vecka 28-29", "Väntar på godkännande", "2026-03-10", Color.Warning),
+            new("Sjukfrånvaro", "Sjukanmälan 14-15 mars", "Godkänd", "2026-03-14", Color.Success),
+        ];
+    }
+
+    private record ArendeRad(string Typ, string Beskrivning, string Status, string Datum, Color StatusFarg);
+}

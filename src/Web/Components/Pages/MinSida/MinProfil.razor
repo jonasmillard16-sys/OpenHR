@@ -1,0 +1,95 @@
+@page "/minsida/profil"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.EmployeeLayout
+
+<PageTitle>OpenHR - Om mig</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Om mig</MudText>
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4">Personuppgifter</MudText>
+            <MudSimpleTable Dense="true">
+                <tbody>
+                    <tr><td><strong>Namn</strong></td><td>Anna Svensson</td></tr>
+                    <tr><td><strong>Personnummer</strong></td><td>19850615-****</td></tr>
+                    <tr><td><strong>Enhet</strong></td><td>Avdelning 32</td></tr>
+                    <tr><td><strong>Befattning</strong></td><td>Sjuksköterska</td></tr>
+                    <tr><td><strong>Anställd sedan</strong></td><td>2015-08-01</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4">Kontaktuppgifter</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                Ändra dina uppgifter nedan och klicka Spara.
+            </MudText>
+            <MudTextField @bind-Value="_epost" Label="E-post" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_adress" Label="Gatuadress" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_postnummer" Label="Postnummer" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_ort" Label="Ort" Variant="Variant.Outlined" Class="mb-3" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       FullWidth="true" Style="min-height: 48px;"
+                       OnClick="SparaKontaktuppgifter">
+                Spara
+            </MudButton>
+
+            @if (_sparad)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3">
+                    Dina kontaktuppgifter har sparats.
+                </MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4">Nödkontakter</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                Vem ska vi kontakta om något händer dig på jobbet?
+            </MudText>
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr><th>Namn</th><th>Relation</th><th>Telefon</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Karl Svensson</td><td>Make</td><td>070-987 65 43</td></tr>
+                    <tr><td>Maria Lindgren</td><td>Mor</td><td>070-111 22 33</td></tr>
+                </tbody>
+            </MudSimpleTable>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
+                       StartIcon="@Icons.Material.Filled.Add" Size="Size.Large"
+                       Style="min-height: 48px;">
+                Lägg till nödkontakt
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _epost = "anna.svensson@region.se";
+    private string _telefon = "070-123 45 67";
+    private string _adress = "Drottninggatan 15";
+    private string _postnummer = "41103";
+    private string _ort = "Göteborg";
+    private bool _sparad;
+
+    private async Task SparaKontaktuppgifter()
+    {
+        // TODO: Call API to save contact info
+        await Task.Delay(300); // Simulate save
+        _sparad = true;
+    }
+}
