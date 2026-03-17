@@ -68,8 +68,25 @@
                     <MudText Typo="Typo.caption">@rad.Procent %</MudText>
                 </td>
                 <td>@rad.SenasteKvitto</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Visa</MudButton></td>
             </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="8">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Friskvårdsbidrag</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Enhet:</strong> @rad.Enhet</MudText>
+                            <MudText Typo="Typo.body2"><strong>Tilldelat:</strong> @rad.Tilldelat kr</MudText>
+                            <MudText Typo="Typo.body2"><strong>Använt:</strong> @rad.Anvant kr</MudText>
+                            <MudText Typo="Typo.body2"><strong>Kvar:</strong> @rad.Kvar kr</MudText>
+                            <MudText Typo="Typo.body2"><strong>Utnyttjandegrad:</strong> @rad.Procent %</MudText>
+                            <MudText Typo="Typo.body2"><strong>Senaste kvitto:</strong> @rad.SenasteKvitto</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -113,6 +130,10 @@
 
 @code {
     private bool _visaNyDialog;
+    private FriskvardRad? _valdRad;
+
+    private void ValjRad(FriskvardRad rad) => _valdRad = _valdRad == rad ? null : rad;
+
     private int _antalUtnyttjat = 87;
     private int _vantar = 4;
     private string _totalUtbetalt = "218 400";

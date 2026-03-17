@@ -7,11 +7,57 @@
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Resor och utlägg</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Nytt resekrav</MudButton>
 </div>
+
+@if (_meddelande is not null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _meddelande = null)">@_meddelande</MudAlert>
+}
+
 <MudSimpleTable Hover="true" Elevation="2">
     <thead><tr><th>Anställd</th><th>Datum</th><th>Belopp</th><th>Status</th><th></th></tr></thead>
     <tbody>
-        <tr><td><strong>Erik Johansson</strong></td><td>2026-03-10</td><td>4 850 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Inskickad</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success">Godkänn</MudButton></td></tr>
-        <tr><td><strong>Anna Svensson</strong></td><td>2026-02-25</td><td>2 300 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td></td></tr>
-        <tr><td><strong>Lisa Holm</strong></td><td>2026-02-15</td><td>6 720 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Utbetald</MudChip></td><td></td></tr>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Datum</td>
+                <td>@rad.Belopp</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td>
+                    @if (rad.StatusText == "Inskickad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => Godkann(rad))">Godkänn</MudButton>
+                    }
+                </td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private string? _meddelande;
+
+    private List<ReseRad> _rader = [];
+
+    protected override void OnInitialized()
+    {
+        _rader =
+        [
+            new("Erik Johansson", "2026-03-10", "4 850 kr", "Inskickad", Color.Warning),
+            new("Anna Svensson", "2026-02-25", "2 300 kr", "Godkänd", Color.Success),
+            new("Lisa Holm", "2026-02-15", "6 720 kr", "Utbetald", Color.Success),
+        ];
+    }
+
+    private void Godkann(ReseRad rad)
+    {
+        var idx = _rader.IndexOf(rad);
+        if (idx >= 0)
+        {
+            _rader[idx] = rad with { StatusText = "Godkänd", StatusFarg = Color.Success };
+        }
+        _meddelande = $"Resekrav för {rad.Namn} ({rad.Belopp}) godkänt.";
+    }
+
+    private record ReseRad(string Namn, string Datum, string Belopp, string StatusText, Color StatusFarg);
+}

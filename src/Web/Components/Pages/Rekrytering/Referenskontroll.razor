@@ -63,8 +63,23 @@
                 <td>@rad.AntalReferenser</td>
                 <td>@rad.Genomforda / @rad.AntalReferenser</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjKontroll(rad))">Visa</MudButton></td>
             </tr>
+            @if (_valdKontroll == rad)
+            {
+                <tr>
+                    <td colspan="7">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Kandidat — Referenskontroll</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Tjänst:</strong> @rad.Tjanst</MudText>
+                            <MudText Typo="Typo.body2"><strong>Rekryterare:</strong> @rad.Rekryterare</MudText>
+                            <MudText Typo="Typo.body2"><strong>Referenser:</strong> @rad.Genomforda / @rad.AntalReferenser genomförda</MudText>
+                            <MudText Typo="Typo.body2"><strong>Bedömning:</strong> @rad.StatusText</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdKontroll = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -102,6 +117,10 @@
 
 @code {
     private bool _visaNyDialog;
+    private ReferensRad? _valdKontroll;
+
+    private void ValjKontroll(ReferensRad rad) => _valdKontroll = _valdKontroll == rad ? null : rad;
+
     private int _pagaende = 6;
     private int _godkanda = 23;
     private int _vantarSvar = 4;

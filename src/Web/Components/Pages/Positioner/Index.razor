@@ -20,45 +20,47 @@
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Sjuksköterska</td>
-            <td>Akutmottagningen</td>
-            <td>Anna Svensson</td>
-            <td>100%</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillsatt</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Överläkare</td>
-            <td>Medicinkliniken</td>
-            <td>Erik Johansson</td>
-            <td>100%</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillsatt</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Undersköterska</td>
-            <td>Vårdavdelning 3B</td>
-            <td>—</td>
-            <td>75%</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Vakant</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>Röntgensjuksköterska</td>
-            <td>Röntgen</td>
-            <td>—</td>
-            <td>100%</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Vakant</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
-        <tr>
-            <td>IT-tekniker</td>
-            <td>IT-avdelningen</td>
-            <td>—</td>
-            <td>100%</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Default">Frusen</MudChip></td>
-            <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
-        </tr>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td>@rad.Befattning</td>
+                <td>@rad.Avdelning</td>
+                <td>@rad.Anstalld</td>
+                <td>@rad.Sysselsattning</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">Visa</MudButton></td>
+            </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Befattning — @rad.Avdelning</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Anställd:</strong> @rad.Anstalld</MudText>
+                            <MudText Typo="Typo.body2"><strong>Sysselsättning:</strong> @rad.Sysselsattning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private PositionRad? _valdRad;
+
+    private void Valj(PositionRad rad) => _valdRad = _valdRad == rad ? null : rad;
+
+    private List<PositionRad> _rader =
+    [
+        new("Sjuksköterska", "Akutmottagningen", "Anna Svensson", "100%", "Tillsatt", Color.Success),
+        new("Överläkare", "Medicinkliniken", "Erik Johansson", "100%", "Tillsatt", Color.Success),
+        new("Undersköterska", "Vårdavdelning 3B", "—", "75%", "Vakant", Color.Warning),
+        new("Röntgensjuksköterska", "Röntgen", "—", "100%", "Vakant", Color.Warning),
+        new("IT-tekniker", "IT-avdelningen", "—", "100%", "Frusen", Color.Default),
+    ];
+
+    private record PositionRad(string Befattning, string Avdelning, string Anstalld, string Sysselsattning, string StatusText, Color StatusFarg);
+}

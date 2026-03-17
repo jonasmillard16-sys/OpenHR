@@ -1,25 +1,98 @@
 @page "/las"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 
 <PageTitle>OpenHR - LAS-uppföljning</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">LAS-uppföljning</MudText>
 
 <MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Kritiska (>330 dagar)</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">7</MudText><MudText Typo="Typo.body2">Varning (>300 dagar)</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_ackumuleringar.Count(a => a.Niva == "Kritisk")</MudText><MudText Typo="Typo.body2">Kritiska (>330 dagar)</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_ackumuleringar.Count(a => a.Niva == "Varning")</MudText><MudText Typo="Typo.body2">Varning (>300 dagar)</MudText></MudPaper></MudItem>
     <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">45</MudText><MudText Typo="Typo.body2">Under gräns</MudText></MudPaper></MudItem>
 </MudGrid>
+
+@* === DETAIL PANEL (when a person is selected) === *@
+@if (_valdPerson != null)
+{
+    <MudPaper Class="pa-6 mb-6" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_valdPerson.Namn — LAS-detaljer</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="StangDetalj" aria-label="Stäng" />
+        </div>
+
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption">Anställningsform</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">@_valdPerson.Form</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption">Ackumulerade dagar</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;" Color="@_valdPerson.StatusFarg">@_valdPerson.Dagar av @_valdPerson.Grans</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption">Dagar kvar till konvertering</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@(_valdPerson.Grans - _valdPerson.Dagar) dagar</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption">Prognos konvertering</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">@_valdPerson.Prognos</MudText>
+            </MudItem>
+        </MudGrid>
+
+        <MudProgressLinear Value="@((double)_valdPerson.Dagar / _valdPerson.Grans * 100)" Color="@_valdPerson.StatusFarg" Rounded="true" Size="Size.Large" Class="mb-4" />
+
+        <MudText Typo="Typo.h6" Class="mb-2">Perioder</MudText>
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-4">
+            <thead><tr><th>Från</th><th>Till</th><th>Dagar</th></tr></thead>
+            <tbody>
+                @foreach (var p in _valdPerson.Perioder)
+                {
+                    <tr><td>@p.Fran</td><td>@p.Till</td><td>@p.Dagar</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Vad vill du göra?</MudText>
+        <OhrSuggestionCard Title="Konvertera till tillsvidareanställning"
+                          Explanation="@($"{_valdPerson.Namn} har ackumulerat {_valdPerson.Dagar} dagar. Vid 365 dagar konverteras anställningen automatiskt enligt LAS §5a.")"
+                          Level="@(_valdPerson.Niva == "Kritisk" ? OhrSuggestionCard.SuggestionLevel.Error : OhrSuggestionCard.SuggestionLevel.Warning)"
+                          Actions="@(new Dictionary<string, string> {
+                              ["konvertera"] = "Konvertera till tillsvidare",
+                              ["forlaeng"] = "Förläng inte (avsluta)",
+                              ["pausa"] = "Pausa ackumulering (ej i tjänst)"
+                          })"
+                          OnActionClicked="HanteraAtgard" />
+
+        @if (_atgardBekraftad)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-3">@_atgardMeddelande</MudAlert>
+        }
+    </MudPaper>
+}
 
 <MudText Typo="Typo.h6" Class="mb-3">Kräver åtgärd</MudText>
 <MudSimpleTable Hover="true" Elevation="2">
     <thead><tr><th>Anställd</th><th>Anställningsform</th><th>Ackumulerat</th><th>Gräns</th><th>Status</th><th>Åtgärd</th></tr></thead>
     <tbody>
-        <tr><td><strong>Maria Lindgren</strong></td><td>SAVA</td><td>348 dagar</td><td>365</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Kritisk</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">Hantera</MudButton></td></tr>
-        <tr><td><strong>Johan Nilsson</strong></td><td>Vikariat</td><td>342 dagar</td><td>365</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Kritisk</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">Hantera</MudButton></td></tr>
-        <tr><td><strong>Sara Karlsson</strong></td><td>SAVA</td><td>335 dagar</td><td>365</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Kritisk</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">Hantera</MudButton></td></tr>
-        <tr><td><strong>Anders Olsson</strong></td><td>Vikariat</td><td>315 dagar</td><td>365</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Varning</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Visa</MudButton></td></tr>
-        <tr><td><strong>Helena Bergström</strong></td><td>SAVA</td><td>308 dagar</td><td>365</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Varning</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Visa</MudButton></td></tr>
+        @foreach (var a in _ackumuleringar)
+        {
+            <tr>
+                <td><strong>@a.Namn</strong></td>
+                <td>@a.Form</td>
+                <td>@a.Dagar dagar</td>
+                <td>@a.Grans</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@a.StatusFarg">@a.Niva</MudChip></td>
+                <td>
+                    <MudButton Size="Size.Small"
+                               Variant="@(a.Niva == "Kritisk" ? Variant.Filled : Variant.Outlined)"
+                               Color="Color.Primary"
+                               OnClick="@(() => ValjPerson(a))">
+                        @(a.Niva == "Kritisk" ? "Hantera" : "Visa")
+                    </MudButton>
+                </td>
+            </tr>
+        }
     </tbody>
 </MudSimpleTable>
 
@@ -31,3 +104,53 @@
         <tr><td>Magnus Pettersson</td><td>2026-12-01</td><td>Tidsbegränsad inte förlängd</td></tr>
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private LASRad? _valdPerson;
+    private bool _atgardBekraftad;
+    private string _atgardMeddelande = "";
+    private List<LASRad> _ackumuleringar = [];
+
+    protected override void OnInitialized()
+    {
+        _ackumuleringar =
+        [
+            new("Maria Lindgren", "SAVA", 348, 365, "Kritisk", Color.Error, "2026-04-12",
+                [new("2024-09-01", "2025-06-30", 182), new("2025-08-15", "2026-03-17", 166)]),
+            new("Johan Nilsson", "Vikariat", 342, 365, "Kritisk", Color.Error, "2026-04-18",
+                [new("2025-01-10", "2025-12-31", 240), new("2026-01-15", "2026-03-17", 102)]),
+            new("Sara Karlsson", "SAVA", 335, 365, "Kritisk", Color.Error, "2026-04-25",
+                [new("2024-06-01", "2025-03-31", 210), new("2025-09-01", "2026-03-17", 125)]),
+            new("Anders Olsson", "Vikariat", 315, 365, "Varning", Color.Warning, "2026-05-20",
+                [new("2025-03-01", "2026-03-17", 315)]),
+            new("Helena Bergström", "SAVA", 308, 365, "Varning", Color.Warning, "2026-05-28",
+                [new("2024-11-01", "2025-08-31", 210), new("2025-12-01", "2026-03-17", 98)]),
+        ];
+    }
+
+    private void ValjPerson(LASRad person)
+    {
+        _valdPerson = person;
+        _atgardBekraftad = false;
+    }
+
+    private void StangDetalj()
+    {
+        _valdPerson = null;
+    }
+
+    private void HanteraAtgard(string action)
+    {
+        _atgardBekraftad = true;
+        _atgardMeddelande = action switch
+        {
+            "konvertera" => $"{_valdPerson!.Namn} konverteras till tillsvidareanställning. Ärende skapas.",
+            "forlaeng" => $"{_valdPerson!.Namn}s anställning avslutas. Företrädesrätt registreras.",
+            "pausa" => $"Ackumulering pausad för {_valdPerson!.Namn}.",
+            _ => "Åtgärd registrerad."
+        };
+    }
+
+    private record LASPeriod(string Fran, string Till, int Dagar);
+    private record LASRad(string Namn, string Form, int Dagar, int Grans, string Niva, Color StatusFarg, string Prognos, List<LASPeriod> Perioder);
+}

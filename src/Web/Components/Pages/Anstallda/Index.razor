@@ -55,7 +55,7 @@ else
                     <td>@a.Befattning</td>
                     <td>@a.Anstallningsform</td>
                     <td>@a.Sysselsattningsgrad%</td>
-                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Nav.NavigateTo($"/anstallda/{a.Id.Value}"))">Öppna</MudButton></td>
                 </tr>
             }
         </tbody>

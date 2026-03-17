@@ -35,14 +35,32 @@
                 <td>@c.SistaArbetsdag.ToString("yyyy-MM-dd")</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Status)">@StatusText(c.Status)</MudChip></td>
                 <td><MudProgressLinear Color="@ProgressFarg(pct)" Value="@pct" Style="min-width: 100px;" /> <MudText Typo="Typo.caption">@done/@total</MudText></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjArende(c))">Öppna</MudButton></td>
             </tr>
+            @if (_valdArende == c)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>Offboarding — @c.AnstallId.ToString()[..8]...</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Anledning:</strong> @AnledningText(c.Anledning)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Sista arbetsdag:</strong> @c.SistaArbetsdag.ToString("yyyy-MM-dd")</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @StatusText(c.Status)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Checklista:</strong> @c.Steg.Count(s => s.Klar) / @c.Steg.Count klara</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdArende = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<OffboardingCase> _cases = [];
+    private OffboardingCase? _valdArende;
+
+    private void ValjArende(OffboardingCase c) => _valdArende = _valdArende == c ? null : c;
 
     protected override async Task OnInitializedAsync()
     {

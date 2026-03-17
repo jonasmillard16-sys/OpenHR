@@ -10,7 +10,45 @@
 <MudSimpleTable Hover="true" Elevation="2">
     <thead><tr><th>Runda</th><th>År</th><th>Avtalsområde</th><th>Budget</th><th>Status</th><th></th></tr></thead>
     <tbody>
-        <tr><td><strong>Löneöversyn 2026</strong></td><td>2026</td><td>AB</td><td>12 500 000 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
-        <tr><td>Löneöversyn 2025</td><td>2025</td><td>AB</td><td>11 800 000 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomförd</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td></tr>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Ar</td>
+                <td>@rad.Avtal</td>
+                <td>@rad.Budget</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">@(rad.StatusText == "Pågår" ? "Öppna" : "Visa")</MudButton></td>
+            </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Avtalsområde:</strong> @rad.Avtal</MudText>
+                            <MudText Typo="Typo.body2"><strong>Budget:</strong> @rad.Budget</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2">Löneöversynen omfattar alla tillsvidareanställda inom avtalsområdet.</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
+        }
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private LoneoversynRad? _valdRad;
+
+    private void Valj(LoneoversynRad rad) => _valdRad = _valdRad == rad ? null : rad;
+
+    private List<LoneoversynRad> _rader =
+    [
+        new("Löneöversyn 2026", "2026", "AB", "12 500 000 kr", "Pågår", Color.Warning),
+        new("Löneöversyn 2025", "2025", "AB", "11 800 000 kr", "Genomförd", Color.Success),
+    ];
+
+    private record LoneoversynRad(string Namn, string Ar, string Avtal, string Budget, string StatusText, Color StatusFarg);
+}

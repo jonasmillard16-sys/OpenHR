@@ -56,7 +56,7 @@
                 <td>@rad.Giltighetstid</td>
                 <td>@rad.Omfattar</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Visa PDF</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => VisaPdf(rad.Namn))">Visa PDF</MudButton></td>
             </tr>
         }
     </tbody>
@@ -83,11 +83,16 @@
                 <td>@rad.Faststalld</td>
                 <td>@rad.Ansvarig</td>
                 <td>@rad.SenastReviderad</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Visa PDF</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => VisaPdf(rad.Namn))">Visa PDF</MudButton></td>
             </tr>
         }
     </tbody>
 </MudSimpleTable>
+
+@if (_pdfMeddelande is not null)
+{
+    <MudAlert Severity="Severity.Info" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _pdfMeddelande = null)">@_pdfMeddelande</MudAlert>
+}
 
 <MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
     <TitleContent>
@@ -103,6 +108,13 @@
 
 @code {
     private bool _visaNyDialog;
+    private string? _pdfMeddelande;
+
+    private void VisaPdf(string dokumentNamn)
+    {
+        _pdfMeddelande = $"PDF öppnas: {dokumentNamn}...";
+    }
+
     private int _totalDokument = 34;
     private int _giltiga = 28;
     private int _garutSnart = 4;

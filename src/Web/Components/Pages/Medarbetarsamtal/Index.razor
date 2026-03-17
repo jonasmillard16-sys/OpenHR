@@ -32,14 +32,36 @@
                 <td>@(r.OverallRating.HasValue ? $"{r.OverallRating}/5" : "—")</td>
                 <td>@(r.GenomfordVid?.ToString("yyyy-MM-dd") ?? r.SkapadVid.ToString("yyyy-MM-dd"))</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjSamtal(r))">Öppna</MudButton></td>
             </tr>
+            @if (_valdSamtal == r)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>Medarbetarsamtal @r.Ar</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Anställd-ID:</strong> @r.AnstallId</MudText>
+                            <MudText Typo="Typo.body2"><strong>Betyg:</strong> @(r.OverallRating.HasValue ? $"{r.OverallRating}/5" : "Ej satt")</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @StatusText(r.Status)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Skapad:</strong> @r.SkapadVid.ToString("yyyy-MM-dd")</MudText>
+                            @if (r.GenomfordVid.HasValue)
+                            {
+                                <MudText Typo="Typo.body2"><strong>Genomförd:</strong> @r.GenomfordVid.Value.ToString("yyyy-MM-dd")</MudText>
+                            }
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdSamtal = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<PerformanceReview> _reviews = [];
+    private PerformanceReview? _valdSamtal;
+
+    private void ValjSamtal(PerformanceReview r) => _valdSamtal = _valdSamtal == r ? null : r;
 
     protected override async Task OnInitializedAsync()
     {

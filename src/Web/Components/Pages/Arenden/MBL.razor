@@ -65,8 +65,24 @@
                 <td>@rad.BegardDatum</td>
                 <td>@rad.ForhandlingsDatum</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Öppna</MudButton></td>
             </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="8">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.ArendeId — @rad.Beslutstyp</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Paragraf:</strong> @rad.Paragraf</MudText>
+                            <MudText Typo="Typo.body2"><strong>Facklig organisation:</strong> @rad.Fack</MudText>
+                            <MudText Typo="Typo.body2"><strong>Begärd:</strong> @rad.BegardDatum</MudText>
+                            <MudText Typo="Typo.body2"><strong>Förhandlingsdatum:</strong> @rad.ForhandlingsDatum</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -118,6 +134,10 @@
 
 @code {
     private bool _visaNyDialog;
+    private MBLRad? _valdRad;
+
+    private void ValjRad(MBLRad rad) => _valdRad = _valdRad == rad ? null : rad;
+
     private int _begarda = 2;
     private int _pagaende = 3;
     private int _avslutade = 8;

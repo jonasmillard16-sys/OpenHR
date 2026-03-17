@@ -40,6 +40,11 @@
     Påminnelser skickas automatiskt var 14:e dag.
 </MudAlert>
 
+@if (_paminnMeddelande is not null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _paminnMeddelande = null)">@_paminnMeddelande</MudAlert>
+}
+
 <MudText Typo="Typo.h6" Class="mb-3">Policyer och bekräftelsestatus</MudText>
 <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
     <thead>
@@ -67,13 +72,28 @@
                     <MudText Typo="Typo.caption">@rad.BekraftProcent %</MudText>
                 </td>
                 <td>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjPolicy(rad))">Visa</MudButton>
                     @if (rad.BekraftProcent < 100)
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">Påminn</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" OnClick="@(() => Paminn(rad))">Påminn</MudButton>
                     }
                 </td>
             </tr>
+            @if (_valdPolicy == rad)
+            {
+                <tr>
+                    <td colspan="7">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Version:</strong> @rad.Version</MudText>
+                            <MudText Typo="Typo.body2"><strong>Distribuerad:</strong> @rad.Distribuerad</MudText>
+                            <MudText Typo="Typo.body2"><strong>Målgrupp:</strong> @rad.Malgrupp</MudText>
+                            <MudText Typo="Typo.body2"><strong>Bekräftade:</strong> @rad.Bekraftade / @rad.Mottagare (@rad.BekraftProcent %)</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdPolicy = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -115,6 +135,12 @@
 
 @code {
     private bool _visaNyDialog;
+    private PolicyRad? _valdPolicy;
+    private string? _paminnMeddelande;
+
+    private void ValjPolicy(PolicyRad rad) => _valdPolicy = _valdPolicy == rad ? null : rad;
+    private void Paminn(PolicyRad rad) => _paminnMeddelande = $"Påminnelse skickad för: {rad.Namn}";
+
     private int _totalPolicyer = 12;
     private int _bekraftade = 84;
     private int _vantarBekraftelse = 198;

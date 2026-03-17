@@ -19,9 +19,32 @@
 <MudSimpleTable Hover="true" Elevation="2">
     <thead><tr><th>Anställd</th><th>Trigger</th><th>Status</th><th>Nästa uppföljning</th><th>Ärendeägare</th><th></th></tr></thead>
     <tbody>
-        <tr><td><strong>Karl Berg</strong></td><td>Upprepad korttidsfrånvaro</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Aktiv</MudChip></td><td>2026-03-28</td><td>Anna HR</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
-        <tr><td><strong>Helena Bergström</strong></td><td>Långtidssjuk >14 dagar</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar uppföljning</MudChip></td><td>2026-03-20</td><td>Anna HR</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
-        <tr><td><strong>Per Gustafsson</strong></td><td>Sjukfrånvaro >6 tillfällen/12 mån</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Aktiv</MudChip></td><td>2026-04-05</td><td>Erik Chef</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        @foreach (var rad in _rader)
+        {
+            <tr>
+                <td><strong>@rad.Namn</strong></td>
+                <td>@rad.Trigger</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
+                <td>@rad.NastaUppfoljning</td>
+                <td>@rad.Agare</td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">Öppna</MudButton></td>
+            </tr>
+            @if (_valdRad == rad)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Rehabiliteringsärende</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Trigger:</strong> @rad.Trigger</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
+                            <MudText Typo="Typo.body2"><strong>Nästa uppföljning:</strong> @rad.NastaUppfoljning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Ärendeägare:</strong> @rad.Agare</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
+        }
     </tbody>
 </MudSimpleTable>
 
@@ -29,9 +52,24 @@
 <MudSimpleTable Hover="true" Elevation="1">
     <thead><tr><th>Enhet</th><th>Korttid</th><th>Långtid</th><th>Totalt</th><th>Trend</th></tr></thead>
     <tbody>
-        <tr><td>Avdelning 32</td><td>2.1%</td><td>2.1%</td><td>4.2%</td><td>↗️ +0.3%</td></tr>
-        <tr><td>Avdelning 33</td><td>1.8%</td><td>1.5%</td><td>3.3%</td><td>↘️ -0.2%</td></tr>
-        <tr><td>Akutmottagningen</td><td>3.2%</td><td>2.8%</td><td>6.0%</td><td>↗️ +0.8%</td></tr>
-        <tr><td>IVA</td><td>1.5%</td><td>0.8%</td><td>2.3%</td><td>↘️ -0.5%</td></tr>
+        <tr><td>Avdelning 32</td><td>2.1%</td><td>2.1%</td><td>4.2%</td><td>+0.3%</td></tr>
+        <tr><td>Avdelning 33</td><td>1.8%</td><td>1.5%</td><td>3.3%</td><td>-0.2%</td></tr>
+        <tr><td>Akutmottagningen</td><td>3.2%</td><td>2.8%</td><td>6.0%</td><td>+0.8%</td></tr>
+        <tr><td>IVA</td><td>1.5%</td><td>0.8%</td><td>2.3%</td><td>-0.5%</td></tr>
     </tbody>
 </MudSimpleTable>
+
+@code {
+    private RehabRad? _valdRad;
+
+    private void Valj(RehabRad rad) => _valdRad = _valdRad == rad ? null : rad;
+
+    private List<RehabRad> _rader =
+    [
+        new("Karl Berg", "Upprepad korttidsfrånvaro", "Aktiv", Color.Info, "2026-03-28", "Anna HR"),
+        new("Helena Bergström", "Långtidssjuk >14 dagar", "Väntar uppföljning", Color.Warning, "2026-03-20", "Anna HR"),
+        new("Per Gustafsson", "Sjukfrånvaro >6 tillfällen/12 mån", "Aktiv", Color.Info, "2026-04-05", "Erik Chef"),
+    ];
+
+    private record RehabRad(string Namn, string Trigger, string StatusText, Color StatusFarg, string NastaUppfoljning, string Agare);
+}

@@ -34,15 +34,34 @@
                 <td>@(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</td>
                 <td>@(b.ArSkattepliktig ? "Ja" : "Nej")</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@(b.ArAktiv ? Color.Success : Color.Default)">@(b.ArAktiv ? "Aktiv" : "Inaktiv")</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjForman(b))">Visa</MudButton></td>
             </tr>
+            @if (_valdForman == b)
+            {
+                <tr>
+                    <td colspan="7">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@b.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Kategori:</strong> @KategoriText(b.Kategori)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Maxbelopp:</strong> @(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</MudText>
+                            <MudText Typo="Typo.body2"><strong>Skattepliktig:</strong> @(b.ArSkattepliktig ? "Ja" : "Nej")</MudText>
+                            <MudText Typo="Typo.body2"><strong>Antal anmälda:</strong> @AnmaldaCount(b.Id)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @(b.ArAktiv ? "Aktiv" : "Inaktiv")</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdForman = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<Benefit> _benefits = [];
+    private Benefit? _valdForman;
     private List<EmployeeBenefit> _employeeBenefits = [];
+
+    private void ValjForman(Benefit b) => _valdForman = _valdForman == b ? null : b;
 
     protected override async Task OnInitializedAsync()
     {

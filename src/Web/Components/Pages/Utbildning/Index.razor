@@ -34,15 +34,34 @@
                 <td>@LangdText(c.LangdMinuter)</td>
                 <td>@AnmaladeCount(c.Id)</td>
                 <td>@GenomfordaCount(c.Id)</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjKurs(c))">Visa</MudButton></td>
             </tr>
+            @if (_valdKurs == c)
+            {
+                <tr>
+                    <td colspan="7">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@c.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Kategori:</strong> @(c.ArObligatorisk ? "Obligatorisk" : (c.Kategori ?? "—"))</MudText>
+                            <MudText Typo="Typo.body2"><strong>Format:</strong> @FormatText(c.Format)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Längd:</strong> @LangdText(c.LangdMinuter)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Anmälda:</strong> @AnmaladeCount(c.Id)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Genomförda:</strong> @GenomfordaCount(c.Id)</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdKurs = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<Course> _courses = [];
+    private Course? _valdKurs;
     private List<CourseEnrollment> _enrollments = [];
+
+    private void ValjKurs(Course c) => _valdKurs = _valdKurs == c ? null : c;
 
     protected override async Task OnInitializedAsync()
     {

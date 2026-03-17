@@ -32,14 +32,32 @@
                 <td>@d.AnstallId.ToString()[..8]...</td>
                 <td>@d.UppladdadVid.ToString("yyyy-MM-dd")</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@KlassFarg(d.Klassificering)">@KlassText(d.Klassificering)</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjDokument(d))">Visa</MudButton></td>
             </tr>
+            @if (_valdDokument == d)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@d.FileName</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Kategori:</strong> @KategoriText(d.Kategori)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Uppladdad:</strong> @d.UppladdadVid.ToString("yyyy-MM-dd HH:mm")</MudText>
+                            <MudText Typo="Typo.body2"><strong>GDPR-klassificering:</strong> @KlassText(d.Klassificering)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Anställd-ID:</strong> @d.AnstallId</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdDokument = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<Document> _documents = [];
+    private Document? _valdDokument;
+
+    private void ValjDokument(Document d) => _valdDokument = _valdDokument == d ? null : d;
 
     protected override async Task OnInitializedAsync()
     {

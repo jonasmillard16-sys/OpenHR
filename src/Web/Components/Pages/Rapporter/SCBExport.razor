@@ -30,14 +30,30 @@
                     }
                     else if (r.Status == "Skickad")
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">Visa kvittens</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => VisaKvittens(r))">Visa kvittens</MudButton>
                     }
                     else
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success">Ladda ner</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success" OnClick="@(() => VisaKvittens(r))">Ladda ner</MudButton>
                     }
                 </td>
             </tr>
+            @if (_valdKvittens == r)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@r.Namn — Kvittens</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Mottagare:</strong> @r.Mottagare</MudText>
+                            <MudText Typo="Typo.body2"><strong>Period:</strong> @r.Period</MudText>
+                            <MudText Typo="Typo.body2"><strong>Deadline:</strong> @r.Deadline</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @r.Status</MudText>
+                            <MudText Typo="Typo.body2"><strong>Beskrivning:</strong> @r.Beskrivning</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdKvittens = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -69,6 +85,9 @@
 @code {
     private bool _visaGenereraDialog;
     private SCBRapport? _valdRapport;
+    private SCBRapport? _valdKvittens;
+
+    private void VisaKvittens(SCBRapport r) => _valdKvittens = _valdKvittens == r ? null : r;
 
     private List<SCBRapport> _rapporter =
     [

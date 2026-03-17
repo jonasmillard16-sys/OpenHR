@@ -91,16 +91,34 @@
                 <td>@TypText(c.Typ)</td>
                 <td>@(c.GiltigTill?.ToString("yyyy-MM-dd") ?? "—")</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@CertFarg(c)">@CertStatusText(c)</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjCert(c))">Visa</MudButton></td>
             </tr>
+            @if (_valdCert == c)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@c.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Anställd-ID:</strong> @c.AnstallId</MudText>
+                            <MudText Typo="Typo.body2"><strong>Typ:</strong> @TypText(c.Typ)</MudText>
+                            <MudText Typo="Typo.body2"><strong>Giltig t.o.m.:</strong> @(c.GiltigTill?.ToString("yyyy-MM-dd") ?? "—")</MudText>
+                            <MudText Typo="Typo.body2"><strong>Status:</strong> @CertStatusText(c)</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdCert = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<Certification> _certs = [];
+    private Certification? _valdCert;
     private List<Certification> _expiringCerts = [];
     private int _expiringCount;
+
+    private void ValjCert(Certification c) => _valdCert = _valdCert == c ? null : c;
     private List<MandatoryRow> _mandatoryRows = [];
 
     protected override async Task OnInitializedAsync()

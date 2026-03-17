@@ -101,8 +101,23 @@
                 <td>
                     <MudChip T="string" Size="Size.Small" Color="@(sim.KostnadAndring.StartsWith("+") ? Color.Error : Color.Success)">@sim.KostnadAndring</MudChip>
                 </td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa detaljer</MudButton></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjSimulering(sim))">Visa detaljer</MudButton></td>
             </tr>
+            @if (_valdSimulering == sim)
+            {
+                <tr>
+                    <td colspan="6">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@sim.Namn</strong></MudText>
+                            <MudText Typo="Typo.body2"><strong>Beskrivning:</strong> @sim.Beskrivning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Löneökning:</strong> @sim.Loneokning</MudText>
+                            <MudText Typo="Typo.body2"><strong>Personaländring:</strong> @sim.AntalAndring</MudText>
+                            <MudText Typo="Typo.body2"><strong>Beräknad kostnadspåverkan:</strong> @sim.KostnadAndring</MudText>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdSimulering = null)" Class="mt-2">Stäng</MudButton>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
@@ -121,6 +136,10 @@
 
 @code {
     private bool _visaNyDialog;
+    private SimuleringRad? _valdSimulering;
+
+    private void ValjSimulering(SimuleringRad sim) => _valdSimulering = _valdSimulering == sim ? null : sim;
+
     private string _totalLonekostnad = "52,3 Mkr";
     private string _agAvgifter = "16,4 Mkr";
     private string _pensionskostnad = "5,8 Mkr";
