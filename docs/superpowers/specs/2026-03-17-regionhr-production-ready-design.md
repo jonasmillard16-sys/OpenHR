@@ -1,9 +1,10 @@
-# RegionHR — Produktionsberedskapsdesign
+# OpenHR — Produktionsberedskapsdesign
 
 **Datum:** 2026-03-17
-**Scope:** Göra RegionHR till ett 100% funktionsdugligt, produktionsklart HR-system
+**Scope:** Göra OpenHR till ett 100% funktionsdugligt, produktionsklart HR-system
 **Målgrupp:** Svenska regioner med 10 000+ anställda (sjukvård)
 **Ersätter:** HEROMA (CGI)
+**Licens:** AGPL-3.0 — alla forks måste förbli öppen källkod
 
 ---
 
@@ -86,7 +87,7 @@ Istället för en komplex app med 130 menyval ser varje roll **bara sin värld.*
 
 ```
 ┌──────────────────────────────────────────┐
-│  RegionHR        🌐 SV  🔔  Anna ▼      │
+│  OpenHR        🌐 SV  🔔  Anna ▼      │
 ├──────────────────────────────────────────┤
 │                                          │
 │  ┌─────────────────┐ ┌─────────────────┐ │
@@ -137,7 +138,7 @@ Varje kort:
 
 ```
 ┌──────────────────────────────────────────┐
-│  RegionHR        🌐 SV  🔔 3  Erik ▼    │
+│  OpenHR        🌐 SV  🔔 3  Erik ▼    │
 ├──────────────────────────────────────────┤
 │                                          │
 │  ⚡ Saker som väntar på dig              │
@@ -1062,7 +1063,7 @@ Schemaläggning för 24/7 sjukvård är ett NP-svårt optimeringsproblem. Lösni
 
 ### Fas 1: Installation och tema
 - Installera MudBlazor NuGet-paket
-- Skapa RegionHR MudTheme som matchar Stina-principen:
+- Skapa OpenHR MudTheme som matchar Stina-principen:
   - Primärfärg: `#1a5276`, 18px bastext, 56px knappöjd
   - Högt kontrast-tema (WCAG AAA-nivå)
 - Lägg till MudDialogProvider, MudSnackbarProvider i App.razor
@@ -1074,7 +1075,7 @@ Schemaläggning för 24/7 sjukvård är ett NP-svårt optimeringsproblem. Lösni
 - Byt RhrInput → MudTextField (med inbyggd validering)
 
 ### Fas 3: DesignSystem-projektet
-- Behåll som wrapper-lager för RegionHR-specifika komponenter:
+- Behåll som wrapper-lager för OpenHR-specifika komponenter:
   - `RhrConversationFlow` — steg-för-steg-konversationsvy
   - `RhrBigCard` — de stora korten på startsidan
   - `RhrSuggestionCard` — intelligenta lösningsförslag
@@ -1097,8 +1098,8 @@ Detaljerad migreringsplan finns i `docs/heroma-migrering-analys.md`. Här samman
 
 | Fas | Tidsram | Omfattning |
 |-----|---------|------------|
-| 1. Parallellkörning | 3 månader | RegionHR körs parallellt med HEROMA, data synkas dagligen |
-| 2. Pilotgrupp | 2 månader | En enhet (50-100 anställda) går över helt till RegionHR |
+| 1. Parallellkörning | 3 månader | OpenHR körs parallellt med HEROMA, data synkas dagligen |
+| 2. Pilotgrupp | 2 månader | En enhet (50-100 anställda) går över helt till OpenHR |
 | 3. Stegvis utrullning | 4 månader | Förvaltning för förvaltning |
 | 4. HEROMA avstängning | 1 månad | Slutgiltig datamigrering, HEROMA avvecklas |
 
@@ -1111,7 +1112,7 @@ Detaljerad migreringsplan finns i `docs/heroma-migrering-analys.md`. Här samman
 ### Rollback-plan
 - HEROMA hålls aktivt under hela parallellkörningen
 - Vid kritiskt fel: återgå till HEROMA inom 24h
-- Data som skapats i RegionHR exporteras och matas in manuellt
+- Data som skapats i OpenHR exporteras och matas in manuellt
 
 ### Framgångskriterier innan HEROMA stängs
 - 100% av lönekörningar producerar identiska resultat i båda system (3 månader i rad)
