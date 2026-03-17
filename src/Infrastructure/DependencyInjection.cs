@@ -15,6 +15,7 @@ using RegionHR.Infrastructure.Export;
 using RegionHR.Infrastructure.Storage;
 using RegionHR.Infrastructure.GDPR;
 using RegionHR.Infrastructure.Notifications;
+using RegionHR.Infrastructure.Documents;
 using RegionHR.Infrastructure.Reporting;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -85,6 +86,10 @@ public static class DependencyInjection
 
         // Reporting
         services.AddScoped<ReportGenerator>();
+
+        // Document template engine & e-signing
+        services.AddSingleton<DocumentTemplateEngine>();
+        services.AddSingleton<ISigningService, SimpleConfirmationSigningService>();
 
         // Background services
         services.AddHostedService<NotificationReminderService>();
