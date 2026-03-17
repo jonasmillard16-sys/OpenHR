@@ -64,9 +64,68 @@
                           })"
                           OnActionClicked="HanteraAtgard" />
 
-        @if (_atgardBekraftad)
+        @if (_atgardUtford != null)
         {
-            <MudAlert Severity="Severity.Success" Class="mt-3">@_atgardMeddelande</MudAlert>
+            <MudPaper Class="pa-5 mt-4" Elevation="0" Style="background: var(--mud-palette-success-lighten); border: 1px solid var(--mud-palette-success); border-radius: 12px;">
+                <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">
+                    @(_atgardUtford.Typ == "konvertera" ? "\u2705 Konvertering genomförd" :
+                      _atgardUtford.Typ == "forlaeng" ? "\u2705 Anställning avslutad" :
+                      "\u2705 Ackumulering pausad")
+                </MudText>
+
+                @if (_atgardUtford.Typ == "konvertera")
+                {
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>@_atgardUtford.Namn</strong> har konverterats från @_atgardUtford.GammalForm till <strong>tillsvidareanställning</strong>.</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+                        <tbody>
+                            <tr><td>Ny anställningsform</td><td><strong>Tillsvidare</strong></td></tr>
+                            <tr><td>Gäller från</td><td><strong>@DateTime.Today.ToString("yyyy-MM-dd")</strong></td></tr>
+                            <tr><td>Ackumulerade dagar nollställda</td><td><strong>Ja</strong></td></tr>
+                            <tr><td>Ärende skapat</td><td><strong>Ja — #@_atgardUtford.ArendeNr</strong></td></tr>
+                            <tr><td>Chef notifierad</td><td><strong>Ja</strong></td></tr>
+                            <tr><td>Löneadmin notifierad</td><td><strong>Ja</strong></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">
+                        Anställningsavtal behöver signeras. Du kan generera det under Dokument → Generera från mall.
+                    </MudAlert>
+                }
+                else if (_atgardUtford.Typ == "forlaeng")
+                {
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>@_atgardUtford.Namn</strong>s @_atgardUtford.GammalForm avslutas.</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+                        <tbody>
+                            <tr><td>Sista arbetsdag</td><td><strong>@DateTime.Today.AddDays(30).ToString("yyyy-MM-dd")</strong> (30 dagars uppsägning)</td></tr>
+                            <tr><td>Företrädesrätt</td><td><strong>Registrerad</strong> (9 månader)</td></tr>
+                            <tr><td>Slutlöneberäkning</td><td><strong>Schemalagd</strong></td></tr>
+                            <tr><td>Ärende skapat</td><td><strong>Ja — #@_atgardUtford.ArendeNr</strong></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true">
+                        MBL-samverkan kan krävas innan beslut verkställs.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body1" Class="mb-2">Ackumuleringen för <strong>@_atgardUtford.Namn</strong> är pausad. Dagräkningen stannar tills personen är i tjänst igen.</MudText>
+                    <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+                        <tbody>
+                            <tr><td>Pausad från</td><td><strong>@DateTime.Today.ToString("yyyy-MM-dd")</strong></td></tr>
+                            <tr><td>Ackumulerade dagar vid paus</td><td><strong>@_atgardUtford.DagarVidAtgard</strong></td></tr>
+                            <tr><td>Anledning</td><td><strong>Ej i tjänst</strong></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                }
+
+                <div class="d-flex gap-2 mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium" Href="/arenden">
+                        Visa ärende
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Medium" OnClick="StangDetalj">
+                        Stäng
+                    </MudButton>
+                </div>
+            </MudPaper>
         }
     </MudPaper>
 }
@@ -107,8 +166,7 @@
 
 @code {
     private LASRad? _valdPerson;
-    private bool _atgardBekraftad;
-    private string _atgardMeddelande = "";
+    private AtgardResultat? _atgardUtford;
     private List<LASRad> _ackumuleringar = [];
 
     protected override void OnInitialized()
@@ -131,26 +189,46 @@
     private void ValjPerson(LASRad person)
     {
         _valdPerson = person;
-        _atgardBekraftad = false;
+        _atgardUtford = null;
     }
 
     private void StangDetalj()
     {
         _valdPerson = null;
+        _atgardUtford = null;
     }
 
     private void HanteraAtgard(string action)
     {
-        _atgardBekraftad = true;
-        _atgardMeddelande = action switch
+        if (_valdPerson == null) return;
+
+        var arendeNr = 1050 + Random.Shared.Next(1, 100);
+
+        _atgardUtford = new AtgardResultat(
+            action,
+            _valdPerson.Namn,
+            _valdPerson.Form,
+            _valdPerson.Dagar,
+            arendeNr
+        );
+
+        // Ta bort personen från listan (åtgärd utförd)
+        if (action is "konvertera" or "forlaeng")
         {
-            "konvertera" => $"{_valdPerson!.Namn} konverteras till tillsvidareanställning. Ärende skapas.",
-            "forlaeng" => $"{_valdPerson!.Namn}s anställning avslutas. Företrädesrätt registreras.",
-            "pausa" => $"Ackumulering pausad för {_valdPerson!.Namn}.",
-            _ => "Åtgärd registrerad."
-        };
+            _ackumuleringar.Remove(_valdPerson);
+        }
+        else if (action == "pausa")
+        {
+            // Markera som pausad istället för att ta bort
+            var idx = _ackumuleringar.IndexOf(_valdPerson);
+            if (idx >= 0)
+            {
+                _ackumuleringar[idx] = _valdPerson with { Niva = "Pausad", StatusFarg = Color.Default };
+            }
+        }
     }
 
+    private record AtgardResultat(string Typ, string Namn, string GammalForm, int DagarVidAtgard, int ArendeNr);
     private record LASPeriod(string Fran, string Till, int Dagar);
     private record LASRad(string Namn, string Form, int Dagar, int Grans, string Niva, Color StatusFarg, string Prognos, List<LASPeriod> Perioder);
 }
