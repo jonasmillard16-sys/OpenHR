@@ -1,6 +1,10 @@
 @page "/rapporter"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Reporting.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Rapporter</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rapportbibliotek</MudText>
@@ -22,3 +26,56 @@
         <tr><td><strong>Bemanningsanalys</strong></td><td>Bemanningsgrad per enhet, dag och skifttyp med avvikelser</td><td>Schema</td><td>Excel / PDF</td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Href="/rapporter/kor/Bemanningsanalys">Kör</MudButton></td></tr>
     </tbody>
 </MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Schemalagda rapporter</MudText>
+<MudPaper Elevation="2" Class="pa-4">
+    @if (_scheduledReports.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Tertiary">Inga schemalagda rapporter konfigurerade.</MudText>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true">
+            <thead>
+                <tr>
+                    <th>Rapport</th>
+                    <th>Cron-uttryck</th>
+                    <th>Mottagare</th>
+                    <th>Aktiv</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _scheduledReports)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@r.CronExpression</MudChip></td>
+                        <td>@(r.MottagareEpost ?? "—")</td>
+                        <td>
+                            <MudSwitch T="bool" Value="@r.ArSchemalagd" Color="Color.Success" ReadOnly="true" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    private List<ReportDefinition> _scheduledReports = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _scheduledReports = await Db.ReportDefinitions
+                .Where(r => r.CronExpression != null)
+                .OrderBy(r => r.Namn)
+                .ToListAsync();
+        }
+        catch
+        {
+            // DB may not be available in dev
+        }
+    }
+}

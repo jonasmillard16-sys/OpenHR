@@ -16,37 +16,67 @@
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
+                <MudTooltip Text="Totalt antal aktiva anställda i personalregistret just nu">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">Anställda</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/halsosam"))">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjukfranvaro%</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjukfranvaro%</MudText>
+                <MudTooltip Text="@($"Det betyder att ungefär {Math.Round(_sjukfranvaro * _headcount / 100)} av {_headcount} anställda i snitt är sjuka varje dag")">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/las"))">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
+                <MudTooltip Text="@($"{_lasAlarm} vikarier/timanställda närmar sig LAS-gränsen för konvertering till tillsvidareanställning")">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">LAS-alarm</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/rekrytering/vakanser"))">
-            <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakanser</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakanser</MudText>
+                <MudTooltip Text="@($"{_vakanser} publicerade vakanser som aktivt söker kandidater just nu")">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">Öppna vakanser</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/arenden"))">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
+                <MudTooltip Text="@($"{_godkannanden} ärenden (semester, frånvaro m.m.) väntar på chefsgodkännande")">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">Väntar godkännande</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/schema/bemanning"))">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
+            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
+                <MudTooltip Text="@($"{_bemanningsgrad}% av planerade tjänster är bemannade idag — {100 - _bemanningsgrad}% saknas")">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+                </MudTooltip>
+            </div>
             <MudText Typo="Typo.body2">Bemanning idag</MudText>
         </MudPaper>
     </MudItem>

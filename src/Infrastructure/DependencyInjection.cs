@@ -77,6 +77,7 @@ public static class DependencyInjection
 
         // Notifications
         services.AddSingleton<EmailNotificationSender>();
+        services.AddSingleton<SmsNotificationSender>();
 
         // File storage
         services.AddSingleton<IFileStorageService>(new LocalFileStorageService());
@@ -94,6 +95,7 @@ public static class DependencyInjection
         // Background services
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();
+        services.AddHostedService<ScheduledReportService>();
 
         // OpenTelemetry
         services.AddOpenTelemetry()
