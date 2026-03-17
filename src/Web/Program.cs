@@ -40,6 +40,7 @@ builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
 builder.Services.AddScoped<SelfServiceApiClient>();
 builder.Services.AddScoped<UserRoleService>();
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,37 @@
+@namespace RegionHR.Web.Components.Pages.Godkannanden
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">
+            <MudIcon Icon="@Icons.Material.Filled.Cancel" Class="mr-2" Style="vertical-align: middle;" />
+            Avslå ärende
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+            <strong>@ItemTyp:</strong> @ItemBeskrivning
+        </MudText>
+        <MudTextField @bind-Value="_reason" Label="Anledning till avslag"
+                      Variant="Variant.Outlined" Lines="3"
+                      Placeholder="Ange varför ärendet avslås..."
+                      Required="true" RequiredError="Ange en anledning" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Avbryt</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Error"
+                   Disabled="@(string.IsNullOrWhiteSpace(_reason))">
+            Avslå
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string ItemTyp { get; set; } = "";
+    [Parameter] public string ItemBeskrivning { get; set; } = "";
+
+    private string? _reason;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_reason));
+}

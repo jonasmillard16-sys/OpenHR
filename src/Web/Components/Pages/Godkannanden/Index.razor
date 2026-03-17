@@ -1,58 +1,147 @@
 @page "/godkannanden"
 @rendermode InteractiveServer
-@inject RegionHR.Web.Services.ArendeService ArendeService
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>Godkännanden - RegionHR</PageTitle>
+<PageTitle>Godkännanden — OpenHR</PageTitle>
 
-<h1>Väntande godkännanden</h1>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Godkännanden</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Väntande ärenden som kräver ditt beslut
+</MudText>
 
-<RhrCard>
-    <ChildContent>
-        @if (_loading)
-        {
-            <p>Laddar...</p>
-        }
-        else if (_vantande.Count == 0)
-        {
-            <RhrAlert Variant="success" Title="Allt klart!">Inga väntande godkännanden just nu.</RhrAlert>
-        }
-        else
-        {
-            <RhrAlert Variant="warning">@_vantande.Count ärende(n) väntar på ditt beslut.</RhrAlert>
-            <table class="rhr-table">
-                <thead>
-                    <tr>
-                        <th>Typ</th>
-                        <th>Beskrivning</th>
-                        <th>Skapat</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var a in _vantande)
-                    {
-                        <tr>
-                            <td><RhrBadge Text="@a.Typ.ToString()" Variant="info" /></td>
-                            <td>@a.Beskrivning</td>
-                            <td>@a.CreatedAt.ToString("yyyy-MM-dd")</td>
-                            <td>
-                                <a href="/arenden/@a.Id.Value" class="rhr-btn rhr-btn--primary rhr-btn--sm">Granska</a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </ChildContent>
-</RhrCard>
+@if (_pending.Count == 0)
+{
+    <MudPaper Class="pa-8 text-center" Elevation="2">
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline"
+                 Style="font-size: 4rem; color: var(--mud-palette-success);" />
+        <MudText Typo="Typo.h6" Class="mt-3" Style="font-weight: 600;">Allt klart!</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Inga väntande godkännanden just nu.
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        @_pending.Count ärende(n) väntar på ditt beslut.
+    </MudAlert>
+
+    <MudPaper Elevation="2">
+        <MudTable Items="_pending" Dense="true" Hover="true" Striped="true"
+                  Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Typ</MudTh>
+                <MudTh>Anställd</MudTh>
+                <MudTh>Datum</MudTh>
+                <MudTh>Beskrivning</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Style="text-align: right;">Åtgärder</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Typ">
+                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Typ)">
+                        @context.Typ
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Anställd">@context.Anstalld</MudTd>
+                <MudTd DataLabel="Datum">@context.Datum.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="Beskrivning">@context.Beskrivning</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntande</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Åtgärder" Style="text-align: right;">
+                    <MudButtonGroup OverrideStyles="false">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success"
+                                   Size="Size.Small" StartIcon="@Icons.Material.Filled.Check"
+                                   OnClick="@(() => Godkann(context))">
+                            Godkänn
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error"
+                                   Size="Size.Small" StartIcon="@Icons.Material.Filled.Close"
+                                   OnClick="@(() => Avsla(context))">
+                            Avslå
+                        </MudButton>
+                    </MudButtonGroup>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
 
 @code {
-    private List<RegionHR.CaseManagement.Domain.Case> _vantande = [];
-    private bool _loading = true;
+    private List<GodkannandeItem> _pending = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        _vantande = await ArendeService.HamtaVantandeGodkannandenAsync();
-        _loading = false;
+        _pending = new List<GodkannandeItem>
+        {
+            new(1, "Semester", "Anna Svensson", new DateOnly(2026, 3, 10),
+                "Semester 2026-04-14 till 2026-04-18 (5 dagar)"),
+            new(2, "Semester", "Erik Johansson", new DateOnly(2026, 3, 12),
+                "Semester 2026-06-23 till 2026-07-18 (20 dagar)"),
+            new(3, "Lönekörning", "Lönesystem", new DateOnly(2026, 3, 15),
+                "Lönekörning mars 2026 — 5 023 anställda, 48,2 MSEK"),
+            new(4, "MBL-förhandling", "Facklig repr.", new DateOnly(2026, 3, 14),
+                "MBL §11 — Omorganisation Avdelning 33"),
+            new(5, "Tjänstledighet", "Maria Lindgren", new DateOnly(2026, 3, 13),
+                "Tjänstledighet för studier 2026-08-25 till 2026-12-20"),
+        };
     }
+
+    private void Godkann(GodkannandeItem item)
+    {
+        _pending.Remove(item);
+        Snackbar.Add($"Godkänt: {item.Typ} — {item.Beskrivning}", Severity.Success,
+            config =>
+            {
+                config.Icon = Icons.Material.Filled.CheckCircle;
+                config.VisibleStateDuration = 4000;
+            });
+    }
+
+    private async Task Avsla(GodkannandeItem item)
+    {
+        var parameters = new DialogParameters<AvslaDialog>
+        {
+            { x => x.ItemTyp, item.Typ },
+            { x => x.ItemBeskrivning, item.Beskrivning }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AvslaDialog>("Avslå ärende", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            _pending.Remove(item);
+            var reason = result.Data as string ?? "";
+            Snackbar.Add($"Avslagit: {item.Typ} — {item.Anstalld}. Anledning: {reason}",
+                Severity.Info,
+                config =>
+                {
+                    config.Icon = Icons.Material.Filled.Cancel;
+                    config.VisibleStateDuration = 5000;
+                });
+        }
+    }
+
+    private static Color GetTypeColor(string typ) => typ switch
+    {
+        "Semester" => Color.Success,
+        "Lönekörning" => Color.Info,
+        "MBL-förhandling" => Color.Warning,
+        "Tjänstledighet" => Color.Primary,
+        _ => Color.Default
+    };
+
+    private record GodkannandeItem(int Id, string Typ, string Anstalld, DateOnly Datum, string Beskrivning);
 }

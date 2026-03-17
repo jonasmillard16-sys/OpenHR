@@ -1,0 +1,171 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+@inject RegionHR.Web.Services.AuthService Auth
+
+<PageTitle>Logga in — OpenHR</PageTitle>
+
+<MudThemeProvider Theme="_loginTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0e7490 0%, #1b2838 100%);">
+    <MudCard Style="width: 420px; border-radius: 16px;" Elevation="8">
+        <MudCardContent Class="pa-8">
+            <div class="d-flex flex-column align-center mb-6">
+                <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety"
+                         Style="font-size: 3rem; color: #0e7490;" />
+                <MudText Typo="Typo.h4" Class="mt-2" Style="font-weight: 800; color: #0e7490;">
+                    OpenHR
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Default" Style="color: #6b7280;">
+                    HR-system för regionen
+                </MudText>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true"
+                          CloseIconClicked="@(() => _errorMessage = null)">
+                    @_errorMessage
+                </MudAlert>
+            }
+
+            <MudSelect T="string" @bind-Value="_selectedUser" Label="Användare"
+                       Variant="Variant.Outlined" Class="mb-4"
+                       Placeholder="Välj användare..." AnchorOrigin="Origin.BottomCenter">
+                @foreach (var user in _demoUsers)
+                {
+                    <MudSelectItem Value="@user.Key">
+                        @user.Key — @user.Value
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_password" Label="Lösenord"
+                          Variant="Variant.Outlined" Class="mb-6"
+                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                          Placeholder="Valfritt lösenord"
+                          OnKeyUp="OnKeyUp" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large"
+                       Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem;"
+                       OnClick="HandleLogin" Disabled="_isLoggingIn">
+                @if (_isLoggingIn)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Logga in
+            </MudButton>
+
+            <MudDivider Class="my-5" />
+
+            <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #94a3b8;">
+                Demoinloggning — välj en användare och ange valfritt lösenord
+            </MudText>
+
+            <MudSimpleTable Dense="true" Class="mt-3" Style="font-size: 0.8rem;" Elevation="0">
+                <thead>
+                    <tr>
+                        <th style="padding: 4px 8px;">Användare</th>
+                        <th style="padding: 4px 8px;">Roll</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _demoUsers)
+                    {
+                        <tr>
+                            <td style="padding: 4px 8px;">@user.Key</td>
+                            <td style="padding: 4px 8px;">
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@GetRoleColor(user.Value)">
+                                    @user.Value
+                                </MudChip>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private string? _selectedUser;
+    private string? _password;
+    private string? _errorMessage;
+    private bool _showPassword;
+    private bool _isLoggingIn;
+
+    private static readonly Dictionary<string, string> _demoUsers = new()
+    {
+        ["Sara Andersson"] = "Anställd",
+        ["Eva Nilsson"] = "Chef",
+        ["Karl Berg"] = "HR",
+        ["Admin"] = "Admin"
+    };
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrEmpty(_selectedUser))
+        {
+            _errorMessage = "Välj en användare för att logga in.";
+            return;
+        }
+
+        _isLoggingIn = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        // Small delay for UX feel
+        await Task.Delay(400);
+
+        var role = _demoUsers[_selectedUser];
+        Auth.Login(_selectedUser, role);
+
+        Nav.NavigateTo("/", forceLoad: false);
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await HandleLogin();
+    }
+
+    private static Color GetRoleColor(string role) => role switch
+    {
+        "Admin" => Color.Error,
+        "HR" => Color.Warning,
+        "Chef" => Color.Info,
+        "Anställd" => Color.Success,
+        _ => Color.Default
+    };
+
+    private readonly MudTheme _loginTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0e7490",
+            PrimaryDarken = "#0c6078",
+            Background = "transparent",
+            Surface = "#ffffff",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[] { "Plus Jakarta Sans", "-apple-system", "system-ui", "sans-serif" },
+            },
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "12px",
+        }
+    };
+}

@@ -56,7 +56,7 @@
         <MudMenuItem Icon="@Icons.Material.Filled.Settings"
                      OnClick="@(() => Nav?.NavigateTo("/notiser/installningar"))">Inställningar</MudMenuItem>
         <MudDivider />
-        <MudMenuItem Icon="@Icons.Material.Filled.Logout">Logga ut</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">Logga ut</MudMenuItem>
     </MudMenu>
 </MudAppBar>
 
@@ -78,6 +78,7 @@
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
     [Inject] private IJSRuntime? JS { get; set; }
+    [Inject] private RegionHR.Web.Services.AuthService? AuthService { get; set; }
 
     private async Task ToggleDarkMode()
     {
@@ -153,6 +154,12 @@
         }
 
         return results;
+    }
+
+    private void HandleLogout()
+    {
+        AuthService?.Logout();
+        Nav?.NavigateTo("/login", forceLoad: true);
     }
 
     private void OnSearchSelected(string value)

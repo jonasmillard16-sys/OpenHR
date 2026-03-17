@@ -17,6 +17,8 @@ using RegionHR.Infrastructure.GDPR;
 using RegionHR.Infrastructure.Notifications;
 using RegionHR.Infrastructure.Documents;
 using RegionHR.Infrastructure.Reporting;
+using RegionHR.Infrastructure.Payroll;
+using RegionHR.Infrastructure.Scheduling;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -91,6 +93,13 @@ public static class DependencyInjection
         // Document template engine & e-signing
         services.AddSingleton<DocumentTemplateEngine>();
         services.AddSingleton<ISigningService, SimpleConfirmationSigningService>();
+
+        // Swedish payroll engine
+        services.AddSingleton<SwedishTaxCalculator>();
+        services.AddSingleton<KollektivavtalEngine>();
+
+        // Schema optimization
+        services.AddSingleton<SchemaOptimizer>();
 
         // Background services
         services.AddHostedService<NotificationReminderService>();

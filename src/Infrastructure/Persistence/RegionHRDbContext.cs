@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RegionHR.SharedKernel.Domain;
 using RegionHR.Core.Domain;
 using RegionHR.Payroll.Domain;
 using RegionHR.Scheduling.Domain;
@@ -146,5 +147,27 @@ public class RegionHRDbContext : DbContext
     {
         // Apply all configurations from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RegionHRDbContext).Assembly);
+
+        // Configure strongly-typed ID conversions for all entities that use them
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(EmployeeId))
+                {
+                    property.SetValueConverter(
+                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<EmployeeId, Guid>(
+                            v => v.Value,
+                            v => EmployeeId.From(v)));
+                }
+                else if (property.ClrType == typeof(OrganizationId))
+                {
+                    property.SetValueConverter(
+                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<OrganizationId, Guid>(
+                            v => v.Value,
+                            v => new OrganizationId(v)));
+                }
+            }
+        }
     }
 }
