@@ -3,9 +3,9 @@
 
 <MudLayout>
     <TopBar UserName="Sara Andersson" UnreadCount="5" />
-    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Mini"
-               OpenMiniOnHover="true" Elevation="1"
-               ClipMode="DrawerClipMode.Always">
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive"
+               Elevation="1" ClipMode="DrawerClipMode.Always"
+               Breakpoint="Breakpoint.Lg">
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="pt-16" id="main-content" role="main">
