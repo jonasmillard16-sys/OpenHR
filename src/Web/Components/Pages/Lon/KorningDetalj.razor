@@ -1,0 +1,75 @@
+@page "/lon/korning/{Id:guid}"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+
+<PageTitle>OpenHR - Lönekörning</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekörning Mars 2026</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Total brutto</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">158 432 100 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Total skatt</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">-47 529 630 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Total netto</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">110 902 470 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Anställda</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">5 023</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* Anomaly alerts — system is the expert *@
+<MudText Typo="Typo.h6" Class="mb-3">4 löner behöver din kontroll</MudText>
+@foreach (var a in _anomalier)
+{
+    <OhrSuggestionCard Title="@($"{a.Namn} — {a.Belopp}")"
+                       Explanation="@a.Forklaring"
+                       Level="OhrSuggestionCard.SuggestionLevel.Warning"
+                       Actions="@(new Dictionary<string, string> { ["ok"] = "OK, stämmer", ["andra"] = "Ändra" })" />
+}
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">5 019 löner ser bra ut</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
+           Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4">
+    Godkänn och skicka till utbetalning
+</MudButton>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-3">
+    Nästa steg: AGI-filen till Skatteverket skapas automatiskt den 12:e.
+</MudAlert>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private List<Anomali> _anomalier = [];
+    protected override void OnInitialized()
+    {
+        _anomalier = [
+            new("Anna Svensson", "32 400 kr (normalt 28 500 kr, +14%)", "3 nattpass extra + OB storhelg påsk = +3 900 kr"),
+            new("Karl Berg", "0 kr (normalt 28 500 kr)", "Hel sjukfrånvaro sedan 1 mars — sjuklön beräknad separat"),
+            new("Lisa Holm", "24 200 kr (normalt 21 375 kr, +13%)", "Övertid 18h x 180% = +2 825 kr"),
+            new("Per Gustafsson", "15 100 kr (normalt 28 500 kr, -47%)", "Tjänstledighet 50% sedan 15 mars"),
+        ];
+    }
+    private record Anomali(string Namn, string Belopp, string Forklaring);
+}

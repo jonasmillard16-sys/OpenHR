@@ -1,0 +1,44 @@
+@page "/lon/statistik"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Lönestatistik</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönestatistik 2026</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Totala lönekostnader (YTD)</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">462 440 700 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Arbetsgivaravgifter (YTD)</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">145 294 500 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Snittlön per anställd</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">30 690 kr</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.caption">Övertidskostnad (YTD)</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Warning" Style="font-weight: 700;">8 234 100 kr</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Månad för månad</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Period</th><th>Bruttolön</th><th>AG-avgifter</th><th>Pension</th><th>Nettolön</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Mars 2026</strong></td><td>158 432 100 kr</td><td>49 758 900 kr</td><td>12 890 300 kr</td><td>110 902 470 kr</td></tr>
+        <tr><td>Februari 2026</td><td>152 118 400 kr</td><td>47 775 500 kr</td><td>12 374 200 kr</td><td>106 482 880 kr</td></tr>
+        <tr><td>Januari 2026</td><td>151 890 200 kr</td><td>47 760 100 kr</td><td>12 355 800 kr</td><td>106 323 140 kr</td></tr>
+    </tbody>
+</MudSimpleTable>

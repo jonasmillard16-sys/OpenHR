@@ -1,0 +1,44 @@
+@page "/lon/korningar"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Lönekörningar</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Lönekörningar</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Href="/lon/korning/ny"
+               Style="min-height: 48px;">
+        Ny körning
+    </MudButton>
+</div>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Period</th><th>Status</th><th>Anställda</th><th>Total brutto</th><th>Total netto</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var k in _korningar)
+        {
+            <tr>
+                <td><strong>@k.Period</strong></td>
+                <td><MudChip T="string" Size="Size.Small" Color="@k.StatusFarg">@k.Status</MudChip></td>
+                <td>@k.Antal</td>
+                <td>@k.Brutto</td>
+                <td>@k.Netto</td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/lon/korning/{k.Id}")">Öppna</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<KorningRad> _korningar = [];
+    protected override void OnInitialized()
+    {
+        _korningar = [
+            new(Guid.NewGuid(), "2026-03", "Beräknad", 5023, "158 432 100 kr", "110 902 470 kr", Color.Info),
+            new(Guid.NewGuid(), "2026-02", "Utbetald", 5019, "152 118 400 kr", "106 482 880 kr", Color.Success),
+            new(Guid.NewGuid(), "2026-01", "Utbetald", 5015, "151 890 200 kr", "106 323 140 kr", Color.Success),
+        ];
+    }
+    private record KorningRad(Guid Id, string Period, string Status, int Antal, string Brutto, string Netto, Color StatusFarg);
+}
