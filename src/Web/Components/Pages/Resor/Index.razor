@@ -1,0 +1,17 @@
+@page "/resor"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Resor och utlägg</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Resor och utlägg</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Nytt resekrav</MudButton>
+</div>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Anställd</th><th>Datum</th><th>Belopp</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+        <tr><td><strong>Erik Johansson</strong></td><td>2026-03-10</td><td>4 850 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Inskickad</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success">Godkänn</MudButton></td></tr>
+        <tr><td><strong>Anna Svensson</strong></td><td>2026-02-25</td><td>2 300 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td></td></tr>
+        <tr><td><strong>Lisa Holm</strong></td><td>2026-02-15</td><td>6 720 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Utbetald</MudChip></td><td></td></tr>
+    </tbody>
+</MudSimpleTable>

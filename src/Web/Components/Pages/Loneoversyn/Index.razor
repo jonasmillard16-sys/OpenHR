@@ -1,0 +1,16 @@
+@page "/loneoversyn"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Löneöversyn</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Löneöversyn</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">Ny runda</MudButton>
+</div>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Runda</th><th>År</th><th>Avtalsområde</th><th>Budget</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+        <tr><td><strong>Löneöversyn 2026</strong></td><td>2026</td><td>AB</td><td>12 500 000 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        <tr><td>Löneöversyn 2025</td><td>2025</td><td>AB</td><td>11 800 000 kr</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Genomförd</MudChip></td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Visa</MudButton></td></tr>
+    </tbody>
+</MudSimpleTable>
