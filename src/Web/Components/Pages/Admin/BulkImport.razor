@@ -1,0 +1,154 @@
+@page "/admin/import"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Bulkimport</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bulkimport</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Steg 1 — Välj importtyp</MudText>
+            <MudSelect T="string" @bind-Value="_importTyp" Label="Importtyp" Variant="Variant.Outlined" Class="mb-4">
+                <MudSelectItem T="string" Value="@("Anställda")">Anställda (personalregister)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Lönedata")">Lönedata (lönearter)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Organisation")">Organisation (enheter)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Scheman")">Scheman (schemamallar)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Kompetenser")">Kompetenser (certifikat)</MudSelectItem>
+            </MudSelect>
+
+            <MudText Typo="Typo.h6" Class="mb-3">Steg 2 — Ladda upp fil</MudText>
+            <MudFileUpload T="IBrowserFile" Accept=".csv,.xlsx,.xls" MaximumFileCount="1" OnFilesChanged="OnFileSelected">
+                <CustomContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 64px; font-size: 1.1rem;" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="@context.OpenFilePickerAsync">
+                        Välj CSV- eller Excel-fil
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+            @if (_filnamn != null)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">Vald fil: @_filnamn (@_filStorlek)</MudAlert>
+            }
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-3">Steg 3 — Validera och importera</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_filnamn == null)" OnClick="@Validera" StartIcon="@Icons.Material.Filled.FactCheck">Validera</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="@(!_valideringKlar)" OnClick="@Importera" StartIcon="@Icons.Material.Filled.PlayArrow">Starta import</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-6" Elevation="2" Style="min-height: 100%;">
+            <MudText Typo="Typo.h6" Class="mb-3">Valideringsresultat</MudText>
+            @if (!_valideringKlar && _valideringsRader.Count == 0)
+            {
+                <MudAlert Severity="Severity.Normal">Ladda upp en fil och klicka Validera för att se resultat.</MudAlert>
+            }
+            else if (_valideringKlar)
+            {
+                <MudAlert Severity="@(_antalFel > 0 ? Severity.Error : Severity.Success)" Class="mb-3">
+                    @_antalRader rader analyserade: @_antalOk ok, @_antalVarningar varningar, @_antalFel fel
+                </MudAlert>
+                <MudSimpleTable Hover="true" Elevation="0" Dense="true">
+                    <thead><tr><th>Rad</th><th>Fält</th><th>Typ</th><th>Meddelande</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in _valideringsRader)
+                        {
+                            <tr>
+                                <td>@r.Rad</td>
+                                <td>@r.Falt</td>
+                                <td><MudChip T="string" Size="Size.Small" Color="@(r.Typ == "Fel" ? Color.Error : Color.Warning)">@r.Typ</MudChip></td>
+                                <td>@r.Meddelande</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            @if (_importKlar)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-4">Import slutförd! @_antalImporterade av @_antalRader poster importerade.</MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Importhistorik</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Datum</th><th>Typ</th><th>Fil</th><th>Poster</th><th>Utfört av</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>2026-03-10 14:22</td><td>Anställda</td><td>nyanstallda_mars.xlsx</td><td>48</td><td>Johan Eriksson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
+        <tr><td>2026-02-28 09:15</td><td>Lönedata</td><td>lonearter_feb.csv</td><td>4 210</td><td>Maria Lindqvist</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
+        <tr><td>2026-02-15 11:30</td><td>Organisation</td><td>enheter_uppdatering.xlsx</td><td>12</td><td>Johan Eriksson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
+        <tr><td>2026-01-20 08:45</td><td>Kompetenser</td><td>legitimationer_jan.csv</td><td>312</td><td>Anna Ström</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Delvis (3 fel)</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudPaper Class="pa-4 mt-6" Elevation="1">
+    <MudText Typo="Typo.h6" Class="mb-2">Mallnedladdning</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Ladda ner importmallar i CSV- eller Excel-format med korrekta kolumner och exempeldata.</MudText>
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download">Anställda (CSV)</MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download">Lönedata (CSV)</MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download">Organisation (CSV)</MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download">Scheman (CSV)</MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download">Kompetenser (CSV)</MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private string _importTyp = "Anställda";
+    private string? _filnamn;
+    private string? _filStorlek;
+    private bool _valideringKlar;
+    private bool _importKlar;
+    private int _antalRader;
+    private int _antalOk;
+    private int _antalVarningar;
+    private int _antalFel;
+    private int _antalImporterade;
+    private List<ValideringsRad> _valideringsRader = [];
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        _filnamn = file.Name;
+        _filStorlek = file.Size < 1024 * 1024 ? $"{file.Size / 1024} KB" : $"{file.Size / 1024 / 1024} MB";
+        _valideringKlar = false;
+        _importKlar = false;
+        _valideringsRader = [];
+    }
+
+    private void Validera()
+    {
+        _antalRader = 48;
+        _antalOk = 45;
+        _antalVarningar = 2;
+        _antalFel = 1;
+        _valideringsRader =
+        [
+            new(12, "Personnummer", "Fel", "Ogiltigt personnummer: kontrollsiffra stämmer ej"),
+            new(23, "E-post", "Varning", "E-postadress saknas — kan inte skicka välkomstmail"),
+            new(37, "Enhet", "Varning", "Enhetskod 'XY99' finns ej — tilldelas standardenhet"),
+        ];
+        _valideringKlar = true;
+        _importKlar = false;
+    }
+
+    private void Importera()
+    {
+        _antalImporterade = _antalOk + _antalVarningar;
+        _importKlar = true;
+    }
+
+    private class ValideringsRad(int rad, string falt, string typ, string meddelande)
+    {
+        public int Rad { get; set; } = rad;
+        public string Falt { get; set; } = falt;
+        public string Typ { get; set; } = typ;
+        public string Meddelande { get; set; } = meddelande;
+    }
+}

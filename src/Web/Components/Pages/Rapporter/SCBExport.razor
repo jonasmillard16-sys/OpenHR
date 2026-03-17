@@ -1,0 +1,115 @@
+@page "/rapporter/scb"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - SCB/SKR Statistikrapporter</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">SCB/SKR Statistikexport</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_rapporter.Count(r => r.Status == "Bekräftad")</MudText><MudText Typo="Typo.body2">Bekräftade</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@_rapporter.Count(r => r.Status == "Skickad")</MudText><MudText Typo="Typo.body2">Skickade</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_rapporter.Count(r => r.Status == "Ej skickad")</MudText><MudText Typo="Typo.body2">Ej skickade</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Obligatoriska statistikrapporter</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Rapport</th><th>Mottagare</th><th>Period</th><th>Deadline</th><th>Status</th><th>Åtgärd</th></tr></thead>
+    <tbody>
+        @foreach (var r in _rapporter)
+        {
+            <tr>
+                <td><strong>@r.Namn</strong><br /><MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@r.Beskrivning</MudText></td>
+                <td>@r.Mottagare</td>
+                <td>@r.Period</td>
+                <td>@r.Deadline</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@r.Status</MudChip></td>
+                <td>
+                    @if (r.Status == "Ej skickad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Generera(r))">Generera</MudButton>
+                    }
+                    else if (r.Status == "Skickad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">Visa kvittens</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success">Ladda ner</MudButton>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Senaste exporter</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Rapport</th><th>Exportdatum</th><th>Format</th><th>Antal poster</th><th>Skickad av</th></tr></thead>
+    <tbody>
+        <tr><td>Lönestatistik (nov)</td><td>2026-02-14 09:12</td><td>XML</td><td>4 832</td><td>Maria Lindqvist</td></tr>
+        <tr><td>KPR (Q3 2025)</td><td>2025-10-18 14:30</td><td>CSV</td><td>5 210</td><td>Maria Lindqvist</td></tr>
+        <tr><td>Konjunkturstatistik (Q3 2025)</td><td>2025-10-15 08:45</td><td>XML</td><td>4 798</td><td>Johan Eriksson</td></tr>
+        <tr><td>Lönestatistik (sep)</td><td>2025-12-13 10:20</td><td>XML</td><td>4 810</td><td>Maria Lindqvist</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+@if (_visaGenereraDialog)
+{
+    <MudOverlay Visible="true" DarkBackground="true" OnClick="@(() => _visaGenereraDialog = false)" />
+    <MudPaper Class="pa-6" Elevation="8" Style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1400; min-width: 450px;">
+        <MudText Typo="Typo.h6" Class="mb-4">Generera @_valdRapport?.Namn</MudText>
+        <MudAlert Severity="Severity.Info" Class="mb-4">Rapporten kommer att genereras baserat på aktuell data i systemet för perioden @_valdRapport?.Period. Kontrollera att all lönedata är stängd innan export.</MudAlert>
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+            <MudButton Variant="Variant.Text" OnClick="@(() => _visaGenereraDialog = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@BekraftaGenerera">Generera och skicka</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private bool _visaGenereraDialog;
+    private SCBRapport? _valdRapport;
+
+    private List<SCBRapport> _rapporter =
+    [
+        new("Lönestatistik", "SCB", "2026-02", "2026-03-31", "Ej skickad", "Årlig lönestrukturstatistik med yrkeskoder (SSYK) och löneuppgifter per anställd"),
+        new("Konjunkturstatistik", "SCB", "Q1 2026", "2026-04-15", "Ej skickad", "Kvartalsvis konjunkturlönestatistik — arbetade timmar, frånvaro, lönesumma"),
+        new("KPR (Kommunal Personal)", "SKR", "2025", "2026-03-15", "Skickad", "Personalstatistik för SKR — anställda, befattningar, sysselsättningsgrad"),
+        new("Sjukfrånvarostatistik", "SKR", "Q4 2025", "2026-02-28", "Bekräftad", "Kvartalsvis sjukfrånvarorapport per yrkeskategori och åldersgrupp"),
+        new("Personalprognos", "SKR", "2025", "2026-02-15", "Bekräftad", "Årlig personalförsörjningsrapport med pensionsavgångar och rekryteringsbehov"),
+        new("Jämställdhetsstatistik", "SCB", "2025", "2026-03-31", "Ej skickad", "Löne- och befattningsstatistik uppdelad på kön för jämställdhetsanalys"),
+    ];
+
+    private void Generera(SCBRapport rapport)
+    {
+        _valdRapport = rapport;
+        _visaGenereraDialog = true;
+    }
+
+    private void BekraftaGenerera()
+    {
+        if (_valdRapport != null)
+        {
+            _valdRapport.Status = "Skickad";
+        }
+        _visaGenereraDialog = false;
+    }
+
+    private static Color StatusFarg(string status) => status switch
+    {
+        "Bekräftad" => Color.Success,
+        "Skickad" => Color.Info,
+        "Ej skickad" => Color.Warning,
+        _ => Color.Default
+    };
+
+    private class SCBRapport(string namn, string mottagare, string period, string deadline, string status, string beskrivning)
+    {
+        public string Namn { get; set; } = namn;
+        public string Mottagare { get; set; } = mottagare;
+        public string Period { get; set; } = period;
+        public string Deadline { get; set; } = deadline;
+        public string Status { get; set; } = status;
+        public string Beskrivning { get; set; } = beskrivning;
+    }
+}

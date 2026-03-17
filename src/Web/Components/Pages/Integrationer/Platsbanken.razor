@@ -1,0 +1,125 @@
+@page "/integrationer/platsbanken"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Platsbanken</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Platsbanken — Arbetsförmedlingen</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Sync" Style="min-height: 48px;" OnClick="@SynkaAlla">Synka alla</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Publicerad")</MudText><MudText Typo="Typo.body2">Publicerade</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Väntar")</MudText><MudText Typo="Typo.body2">Väntar på publicering</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Avvisad")</MudText><MudText Typo="Typo.body2">Avvisade</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-text-secondary);"><MudText Typo="Typo.h3" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Avpublicerad")</MudText><MudText Typo="Typo.body2">Avpublicerade</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="4">
+            <MudText Typo="Typo.body2"><strong>API-anslutning:</strong></MudText>
+            <MudChip T="string" Size="Size.Small" Color="Color.Success">Ansluten</MudChip>
+        </MudItem>
+        <MudItem xs="4">
+            <MudText Typo="Typo.body2"><strong>Senaste synkronisering:</strong></MudText>
+            <MudText Typo="Typo.body2">2026-03-17 08:30</MudText>
+        </MudItem>
+        <MudItem xs="4">
+            <MudText Typo="Typo.body2"><strong>Arbetsgivare-ID:</strong></MudText>
+            <MudText Typo="Typo.body2">AF-2321001310</MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudText Typo="Typo.h6" Class="mb-3">Vakanser</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Vakans</th><th>Yrkeskod (SSYK)</th><th>Anställningsform</th><th>Sista ansökningsdag</th><th>Platsbanken-ID</th><th>Status</th><th>Åtgärd</th></tr></thead>
+    <tbody>
+        @foreach (var v in _vakanser)
+        {
+            <tr>
+                <td><strong>@v.Titel</strong><br /><MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@v.Enhet</MudText></td>
+                <td>@v.SSYK</td>
+                <td>@v.Anstallningsform</td>
+                <td>@v.SistaDag</td>
+                <td>@(v.PlatsbankenId ?? "—")</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(v.Status)">@v.Status</MudChip></td>
+                <td>
+                    @if (v.Status == "Väntar")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Publicera(v))">Publicera</MudButton>
+                    }
+                    else if (v.Status == "Publicerad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => Avpublicera(v))">Avpublicera</MudButton>
+                    }
+                    else if (v.Status == "Avvisad")
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" OnClick="@(() => v.Status = "Väntar")">Skicka igen</MudButton>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Synkroniseringslogg</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Tidpunkt</th><th>Händelse</th><th>Vakans</th><th>Resultat</th></tr></thead>
+    <tbody>
+        <tr><td>2026-03-17 08:30</td><td>Automatisk synk</td><td>Alla</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK — 4 aktiva</MudChip></td></tr>
+        <tr><td>2026-03-16 14:15</td><td>Publicering</td><td>Sjuksköterska, Kirurgi</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Publicerad</MudChip></td></tr>
+        <tr><td>2026-03-15 09:00</td><td>Avvisning</td><td>Systemutvecklare, IT</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Avvisad — saknar SSYK-kod</MudChip></td></tr>
+        <tr><td>2026-03-14 08:30</td><td>Automatisk synk</td><td>Alla</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK — 3 aktiva</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<PlatsbankenVakans> _vakanser =
+    [
+        new("Sjuksköterska", "Kirurgimottagningen", "2223", "Tillsvidareanställning", "2026-04-15", "Publicerad", "AF-12345678"),
+        new("Undersköterska", "Geriatrik avd 1", "5321", "Tillsvidareanställning", "2026-04-10", "Publicerad", "AF-12345679"),
+        new("Läkare (vikariat)", "Akutmottagningen", "2211", "Vikariat", "2026-04-20", "Publicerad", "AF-12345680"),
+        new("Systemutvecklare", "IT-avdelningen", "2514", "Tillsvidareanställning", "2026-04-30", "Avvisad", null),
+        new("Fysioterapeut", "Rehab-enheten", "2264", "Tillsvidareanställning", "2026-05-01", "Väntar", null),
+        new("HR-specialist", "HR-avdelningen", "2423", "Tillsvidareanställning", "2026-04-25", "Väntar", null),
+        new("Administratör", "Ekonomiavdelningen", "4110", "Vikariat", "2026-03-01", "Avpublicerad", "AF-12345675"),
+    ];
+
+    private void Publicera(PlatsbankenVakans v)
+    {
+        v.Status = "Publicerad";
+        v.PlatsbankenId = $"AF-{Random.Shared.Next(10000000, 99999999)}";
+    }
+
+    private void Avpublicera(PlatsbankenVakans v)
+    {
+        v.Status = "Avpublicerad";
+    }
+
+    private void SynkaAlla()
+    {
+        // Demo — no-op, data already current
+    }
+
+    private static Color StatusFarg(string status) => status switch
+    {
+        "Publicerad" => Color.Success,
+        "Väntar" => Color.Warning,
+        "Avvisad" => Color.Error,
+        "Avpublicerad" => Color.Default,
+        _ => Color.Default
+    };
+
+    private class PlatsbankenVakans(string titel, string enhet, string ssyk, string anstallningsform, string sistaDag, string status, string? platsbankenId)
+    {
+        public string Titel { get; set; } = titel;
+        public string Enhet { get; set; } = enhet;
+        public string SSYK { get; set; } = ssyk;
+        public string Anstallningsform { get; set; } = anstallningsform;
+        public string SistaDag { get; set; } = sistaDag;
+        public string Status { get; set; } = status;
+        public string? PlatsbankenId { get; set; } = platsbankenId;
+    }
+}
