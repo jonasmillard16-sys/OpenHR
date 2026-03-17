@@ -16,6 +16,7 @@ using RegionHR.Infrastructure.Storage;
 using RegionHR.Infrastructure.GDPR;
 using RegionHR.Infrastructure.Notifications;
 using RegionHR.Infrastructure.Documents;
+using RegionHR.Infrastructure.Integrations;
 using RegionHR.Infrastructure.Reporting;
 using RegionHR.Infrastructure.Payroll;
 using RegionHR.Infrastructure.Scheduling;
@@ -72,6 +73,7 @@ public static class DependencyInjection
         // Export services
         services.AddSingleton<ExportService>();
         services.AddSingleton<PdfPayslipGenerator>();
+        services.AddSingleton<PdfGenerator>();
 
         // Authorization services
         services.AddScoped<UnitScopeService>();
@@ -80,9 +82,11 @@ public static class DependencyInjection
         // Notifications
         services.AddSingleton<EmailNotificationSender>();
         services.AddSingleton<SmsNotificationSender>();
+        services.AddSingleton<EmailSender>();
 
         // File storage
         services.AddSingleton<IFileStorageService>(new LocalFileStorageService());
+        services.AddSingleton<FileStorageService>();
 
         // GDPR
         services.AddScoped<RegisterutdragGenerator>();
@@ -97,6 +101,10 @@ public static class DependencyInjection
         // Swedish payroll engine
         services.AddSingleton<SwedishTaxCalculator>();
         services.AddSingleton<KollektivavtalEngine>();
+
+        // Integration adapters
+        services.AddSingleton<Integrations.AGIXmlGenerator>();
+        services.AddSingleton<NordeaPainGenerator>();
 
         // Schema optimization
         services.AddSingleton<SchemaOptimizer>();
