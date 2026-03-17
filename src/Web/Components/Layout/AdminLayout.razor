@@ -1,0 +1,20 @@
+@inherits LayoutComponentBase
+@namespace RegionHR.Web.Components.Layout
+
+<MudLayout>
+    <TopBar UserName="Sara Andersson" UnreadCount="5" />
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Mini"
+               OpenMiniOnHover="true" Elevation="1"
+               ClipMode="DrawerClipMode.Always">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent Class="pt-16">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+}

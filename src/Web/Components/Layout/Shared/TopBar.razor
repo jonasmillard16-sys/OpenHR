@@ -1,0 +1,27 @@
+@namespace RegionHR.Web.Components.Layout.Shared
+
+<MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
+    <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700;">OpenHR</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.Language"
+                   Color="Color.Inherit"
+                   aria-label="Byt språk" />
+    <MudBadge Content="@UnreadCount" Overlap="true" Color="Color.Error"
+              Visible="@(UnreadCount > 0)">
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                       Color="Color.Inherit"
+                       aria-label="@($"{UnreadCount} olästa notiser")" />
+    </MudBadge>
+    <MudMenu Icon="@Icons.Material.Filled.Person" Color="Color.Inherit"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+             aria-label="Användarmeny">
+        <MudMenuItem>@UserName</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Settings">Inställningar</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Logout">Logga ut</MudMenuItem>
+    </MudMenu>
+</MudAppBar>
+
+@code {
+    [Parameter] public string UserName { get; set; } = "Användare";
+    [Parameter] public int UnreadCount { get; set; }
+}

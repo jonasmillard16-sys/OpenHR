@@ -1,0 +1,11 @@
+@inherits LayoutComponentBase
+@namespace RegionHR.Web.Components.Layout
+
+<MudLayout>
+    <TopBar UserName="Anna Svensson" UnreadCount="2" />
+    <MudMainContent Class="pt-16">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
