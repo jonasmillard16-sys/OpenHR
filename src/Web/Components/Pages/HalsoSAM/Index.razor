@@ -1,0 +1,37 @@
+@page "/halsosam"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - HälsoSAM</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">HälsoSAM — Rehabilitering</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/halsosam/ny" Style="min-height: 48px;">Nytt ärende</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">5</MudText><MudText Typo="Typo.body2">Nya signaler</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">8</MudText><MudText Typo="Typo.body2">Aktiv rehab</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Väntar uppföljning</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Style="font-weight: 700;">4.2%</MudText><MudText Typo="Typo.body2">Sjukfrånvaro</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Aktiva rehabiliteringsärenden</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Anställd</th><th>Trigger</th><th>Status</th><th>Nästa uppföljning</th><th>Ärendeägare</th><th></th></tr></thead>
+    <tbody>
+        <tr><td><strong>Karl Berg</strong></td><td>Upprepad korttidsfrånvaro</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Aktiv</MudChip></td><td>2026-03-28</td><td>Anna HR</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        <tr><td><strong>Helena Bergström</strong></td><td>Långtidssjuk >14 dagar</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar uppföljning</MudChip></td><td>2026-03-20</td><td>Anna HR</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        <tr><td><strong>Per Gustafsson</strong></td><td>Sjukfrånvaro >6 tillfällen/12 mån</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Aktiv</MudChip></td><td>2026-04-05</td><td>Erik Chef</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Sjukfrånvaro per enhet</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Enhet</th><th>Korttid</th><th>Långtid</th><th>Totalt</th><th>Trend</th></tr></thead>
+    <tbody>
+        <tr><td>Avdelning 32</td><td>2.1%</td><td>2.1%</td><td>4.2%</td><td>↗️ +0.3%</td></tr>
+        <tr><td>Avdelning 33</td><td>1.8%</td><td>1.5%</td><td>3.3%</td><td>↘️ -0.2%</td></tr>
+        <tr><td>Akutmottagningen</td><td>3.2%</td><td>2.8%</td><td>6.0%</td><td>↗️ +0.8%</td></tr>
+        <tr><td>IVA</td><td>1.5%</td><td>0.8%</td><td>2.3%</td><td>↘️ -0.5%</td></tr>
+    </tbody>
+</MudSimpleTable>
