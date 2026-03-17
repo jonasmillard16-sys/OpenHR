@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RegionHR.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="MudBlazor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharedKernel\RegionHR.SharedKernel.csproj" />
+    <ProjectReference Include="..\Infrastructure\RegionHR.Infrastructure.csproj" />
+    <ProjectReference Include="..\DesignSystem\RegionHR.DesignSystem.csproj" />
+    <ProjectReference Include="..\Modules\Core\RegionHR.Core.csproj" />
+    <ProjectReference Include="..\Modules\Payroll\RegionHR.Payroll.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\RegionHR.Scheduling.csproj" />
+    <ProjectReference Include="..\Modules\CaseManagement\RegionHR.CaseManagement.csproj" />
+    <ProjectReference Include="..\Modules\LAS\RegionHR.LAS.csproj" />
+    <ProjectReference Include="..\Modules\HalsoSAM\RegionHR.HalsoSAM.csproj" />
+    <ProjectReference Include="..\Modules\SalaryReview\RegionHR.SalaryReview.csproj" />
+    <ProjectReference Include="..\Modules\Travel\RegionHR.Travel.csproj" />
+    <ProjectReference Include="..\Modules\Recruitment\RegionHR.Recruitment.csproj" />
+    <ProjectReference Include="..\Modules\IntegrationHub\RegionHR.IntegrationHub.csproj" />
+    <ProjectReference Include="..\Modules\SelfService\RegionHR.SelfService.csproj" />
+  </ItemGroup>
+
+</Project>
