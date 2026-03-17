@@ -1,0 +1,90 @@
+@page "/rekrytering/pipeline"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Rekryteringspipeline</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rekryteringspipeline — Sjuksköterska Avd 32</MudText>
+
+<MudGrid Spacing="3">
+    @foreach (var steg in _pipeline)
+    {
+        <MudItem xs="12" sm="6" md="2">
+            <MudPaper Class="pa-3" Elevation="2" Style="min-height: 300px;">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@steg.Namn</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@steg.Farg">@steg.Kandidater.Count</MudChip>
+                </div>
+                <MudStack Spacing="2">
+                    @foreach (var k in steg.Kandidater)
+                    {
+                        <MudPaper Class="pa-3" Elevation="1" Style="cursor: pointer; border-left: 3px solid var(--mud-palette-primary);" @onclick="@(() => ValjKandidat(k))">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">@k.Namn</MudText>
+                            <MudText Typo="Typo.caption">@k.Info</MudText>
+                            @if (k.Poang > 0)
+                            {
+                                <MudRating ReadOnly="true" SelectedValue="@k.Poang" MaxValue="5" Size="Size.Small" Class="mt-1" />
+                            }
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@if (_valdKandidat != null)
+{
+    <MudPaper Class="pa-6 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 700;">@_valdKandidat.Namn</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _valdKandidat = null)" />
+        </div>
+        <MudText Typo="Typo.body1" Class="mb-3">@_valdKandidat.Info</MudText>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => FlyttaFramat(_valdKandidat))">Flytta framåt</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => Avvisa(_valdKandidat))">Avvisa</MudButton>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private Kandidat? _valdKandidat;
+    private List<PipelineSteg> _pipeline = [];
+
+    protected override void OnInitialized()
+    {
+        _pipeline = [
+            new("Mottagen", Color.Default, [new("Anna Bergman", "Ssk, 5 års erfarenhet", 0), new("Karl Lindqvist", "Nyexaminerad", 0)]),
+            new("Screenad", Color.Info, [new("Lisa Ek", "Ssk, 8 års erfarenhet, IVA", 4), new("Per Strand", "Ssk, 3 år", 3)]),
+            new("Intervjuad", Color.Warning, [new("Maria Holm", "Ssk, 10 år, specialistutb.", 5)]),
+            new("Erbjuden", Color.Success, [new("Johan Falk", "Ssk, 6 år, akutvård", 4)]),
+            new("Anställd", Color.Primary, []),
+        ];
+    }
+
+    private void ValjKandidat(Kandidat k) => _valdKandidat = k;
+
+    private void FlyttaFramat(Kandidat k)
+    {
+        for (int i = 0; i < _pipeline.Count - 1; i++)
+        {
+            if (_pipeline[i].Kandidater.Contains(k))
+            {
+                _pipeline[i].Kandidater.Remove(k);
+                _pipeline[i + 1].Kandidater.Add(k);
+                break;
+            }
+        }
+        _valdKandidat = null;
+    }
+
+    private void Avvisa(Kandidat k)
+    {
+        foreach (var steg in _pipeline)
+            steg.Kandidater.Remove(k);
+        _valdKandidat = null;
+    }
+
+    private record Kandidat(string Namn, string Info, int Poang);
+    private record PipelineSteg(string Namn, Color Farg, List<Kandidat> Kandidater);
+}

@@ -1,0 +1,16 @@
+@namespace RegionHR.Web.Components.Shared
+@inject ISnackbar Snackbar
+
+@code {
+    public void Show(string message, Func<Task> undoAction)
+    {
+        Snackbar.Add(message, Severity.Normal, config =>
+        {
+            config.Action = "Ångra";
+            config.ActionColor = Color.Warning;
+            config.OnClick = _ => undoAction();
+            config.VisibleStateDuration = 10000;
+            config.ShowCloseIcon = true;
+        });
+    }
+}
