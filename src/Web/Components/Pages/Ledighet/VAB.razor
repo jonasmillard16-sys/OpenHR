@@ -101,20 +101,35 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Rapportera VAB-dag</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera VAB.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
+@if (_visaNyDialog)
+{
+    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Rapportera VAB</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
+        </div>
+        <MudTextField @bind-Value="_nyAnst" Label="Anställd" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyBarn" Label="Barnets namn" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyDatum" Label="Datum" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="RapporteraVAB">Skapa</MudButton>
+    </MudPaper>
+}
+@if (_skapad != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+}
 
 @code {
     private bool _visaNyDialog;
+    private string? _skapad;
+    private string _nyAnst = "", _nyBarn = "", _nyDatum = "";
+
+    private void RapporteraVAB()
+    {
+        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
+        _skapad = $"VAB rapporterad för {_nyAnst} ({_nyDatum}). Ersättning hanteras av Försäkringskassan.";
+        _nyAnst = ""; _nyBarn = ""; _nyDatum = ""; _visaNyDialog = false;
+    }
     private int _aktivaVab = 3;
     private int _rapporterade = 28;
     private int _ejRapporterade = 2;

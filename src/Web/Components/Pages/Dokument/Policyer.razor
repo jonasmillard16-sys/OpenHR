@@ -121,20 +121,34 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Distribuera policy</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att distribuera policyer.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
+@if (_visaNyDialog)
+{
+    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Distribuera policy</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
+        </div>
+        <MudTextField @bind-Value="_nyPolicy" Label="Välj policy" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyMottagare" Label="Mottagare (enhet)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="Distribuera">Skapa</MudButton>
+    </MudPaper>
+}
+@if (_skapad != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+}
 
 @code {
     private bool _visaNyDialog;
+    private string? _skapad;
+    private string _nyPolicy = "", _nyMottagare = "";
+
+    private void Distribuera()
+    {
+        if (string.IsNullOrWhiteSpace(_nyPolicy)) return;
+        _skapad = $"Policy {_nyPolicy} distribuerad till {_nyMottagare}!";
+        _nyPolicy = ""; _nyMottagare = ""; _visaNyDialog = false;
+    }
     private PolicyRad? _valdPolicy;
     private string? _paminnMeddelande;
 

@@ -26,7 +26,7 @@
     <tbody>
         @foreach (var person in _team)
         {
-            <tr>
+            <tr style="cursor: pointer;" @onclick="@(() => ToggleDetalj(person))">
                 <td><strong>@person.Namn</strong></td>
                 <td>@person.Befattning</td>
                 <td>@person.Tjanstegrad</td>
@@ -34,31 +34,61 @@
                     <MudChip T="string" Size="Size.Small" Color="@person.StatusFarg">@person.Status</MudChip>
                 </td>
             </tr>
+            @if (_expanderad == person)
+            {
+                <tr>
+                    <td colspan="4">
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="6" md="3">
+                                    <MudText Typo="Typo.caption"><strong>Telefon</strong></MudText>
+                                    <MudText Typo="Typo.body2">@person.Telefon</MudText>
+                                </MudItem>
+                                <MudItem xs="6" md="3">
+                                    <MudText Typo="Typo.caption"><strong>E-post</strong></MudText>
+                                    <MudText Typo="Typo.body2">@person.Epost</MudText>
+                                </MudItem>
+                                <MudItem xs="6" md="3">
+                                    <MudText Typo="Typo.caption"><strong>Schema idag</strong></MudText>
+                                    <MudText Typo="Typo.body2">@person.Schema</MudText>
+                                </MudItem>
+                                <MudItem xs="6" md="3">
+                                    <MudText Typo="Typo.caption"><strong>Semesterdagar kvar</strong></MudText>
+                                    <MudText Typo="Typo.body2">@person.SemesterdagarKvar dagar</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </MudSimpleTable>
 
 @code {
     private List<TeamMedlem> _team = [];
+    private TeamMedlem? _expanderad;
+
+    private void ToggleDetalj(TeamMedlem person) => _expanderad = _expanderad == person ? null : person;
 
     protected override void OnInitialized()
     {
         _team =
         [
-            new("Anna Svensson", "Sjuksköterska", "100%", "Arbetar", Color.Success),
-            new("Karl Berg", "Sjuksköterska", "100%", "Sjuk", Color.Error),
-            new("Lisa Holm", "Undersköterska", "75%", "Arbetar", Color.Success),
-            new("Erik Johansson", "Sjuksköterska", "100%", "Semester", Color.Info),
-            new("Maria Lindgren", "Undersköterska", "100%", "Arbetar", Color.Success),
-            new("Johan Nilsson", "Läkare", "50%", "Arbetar", Color.Success),
-            new("Sara Karlsson", "Sjuksköterska", "100%", "Arbetar", Color.Success),
-            new("Anders Olsson", "Undersköterska", "100%", "Nattpass", Color.Warning),
-            new("Karin Eriksson", "Sjuksköterska", "80%", "Arbetar", Color.Success),
-            new("Per Gustafsson", "Undersköterska", "100%", "Ledig", Color.Default),
-            new("Helena Bergström", "Sjuksköterska", "100%", "Arbetar", Color.Success),
-            new("Magnus Pettersson", "Undersköterska", "75%", "Arbetar", Color.Success),
+            new("Anna Svensson", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 01", "anna.svensson@region.se", "07:00–15:30", 18),
+            new("Karl Berg", "Sjuksköterska", "100%", "Sjuk", Color.Error, "070-123 45 02", "karl.berg@region.se", "—", 22),
+            new("Lisa Holm", "Undersköterska", "75%", "Arbetar", Color.Success, "070-123 45 03", "lisa.holm@region.se", "08:00–14:00", 15),
+            new("Erik Johansson", "Sjuksköterska", "100%", "Semester", Color.Info, "070-123 45 04", "erik.johansson@region.se", "—", 8),
+            new("Maria Lindgren", "Undersköterska", "100%", "Arbetar", Color.Success, "070-123 45 05", "maria.lindgren@region.se", "07:00–15:30", 20),
+            new("Johan Nilsson", "Läkare", "50%", "Arbetar", Color.Success, "070-123 45 06", "johan.nilsson@region.se", "08:00–12:00", 25),
+            new("Sara Karlsson", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 07", "sara.karlsson@region.se", "07:00–15:30", 12),
+            new("Anders Olsson", "Undersköterska", "100%", "Nattpass", Color.Warning, "070-123 45 08", "anders.olsson@region.se", "21:00–07:00", 17),
+            new("Karin Eriksson", "Sjuksköterska", "80%", "Arbetar", Color.Success, "070-123 45 09", "karin.eriksson@region.se", "07:00–14:30", 14),
+            new("Per Gustafsson", "Undersköterska", "100%", "Ledig", Color.Default, "070-123 45 10", "per.gustafsson@region.se", "—", 10),
+            new("Helena Bergström", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 11", "helena.bergstrom@region.se", "07:00–15:30", 19),
+            new("Magnus Pettersson", "Undersköterska", "75%", "Arbetar", Color.Success, "070-123 45 12", "magnus.pettersson@region.se", "08:00–14:00", 16),
         ];
     }
 
-    private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string Status, Color StatusFarg);
+    private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string Status, Color StatusFarg, string Telefon, string Epost, string Schema, int SemesterdagarKvar);
 }

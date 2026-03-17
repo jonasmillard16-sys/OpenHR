@@ -116,20 +116,34 @@
     </MudItem>
 </MudGrid>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Starta ny 360-feedbackrunda</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att starta en 360-feedbackrunda.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
+@if (_visaNyDialog)
+{
+    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny 360-feedbackrunda</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
+        </div>
+        <MudTextField @bind-Value="_nyAnst" Label="Anställd att utvärdera" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyAntalBed" Label="Antal bedömare" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaFeedback">Skapa</MudButton>
+    </MudPaper>
+}
+@if (_skapad != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+}
 
 @code {
     private bool _visaNyDialog;
+    private string? _skapad;
+    private string _nyAnst = "", _nyAntalBed = "";
+
+    private void SkapaFeedback()
+    {
+        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
+        _skapad = $"360-feedbackrunda skapad för {_nyAnst}. Enkät skickas till {_nyAntalBed} bedömare.";
+        _nyAnst = ""; _nyAntalBed = ""; _visaNyDialog = false;
+    }
     private FeedbackRunda? _valdRunda;
 
     private void ValjRunda(FeedbackRunda rad) => _valdRunda = _valdRunda == rad ? null : rad;

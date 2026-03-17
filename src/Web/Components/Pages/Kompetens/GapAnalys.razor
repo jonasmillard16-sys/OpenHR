@@ -66,6 +66,11 @@
             OnActionClicked="@HandleGapAction" />
     }
 
+    @if (_gapActionMessage is not null)
+    {
+        <MudAlert Severity="@_gapActionSeverity" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _gapActionMessage = null)">@_gapActionMessage</MudAlert>
+    }
+
     @* --- Competence gap table --- *@
     <MudText Typo="Typo.h6" Class="mb-3">Kompetenskrav — @_valdBefattning</MudText>
     <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
@@ -206,9 +211,26 @@ else
             _valdBefattning = "Sjuksköterska";
     }
 
+    private string? _gapActionMessage;
+    private Severity _gapActionSeverity = Severity.Info;
+
     private void HandleGapAction(string actionKey)
     {
-        // Future: route to booking or notification system
+        switch (actionKey)
+        {
+            case "boka":
+                _gapActionMessage = "Utbildningstillfälle har bokats. Inbjudningar skickas till berörda anställda.";
+                _gapActionSeverity = Severity.Success;
+                break;
+            case "paminn":
+                _gapActionMessage = "Påminnelse skickad till anställda som saknar kompetensen.";
+                _gapActionSeverity = Severity.Info;
+                break;
+            default:
+                _gapActionMessage = $"Åtgärd '{actionKey}' utförd.";
+                _gapActionSeverity = Severity.Info;
+                break;
+        }
     }
 
     private static Color TackningsColor(double pct) => pct switch

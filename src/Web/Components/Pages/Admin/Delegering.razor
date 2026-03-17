@@ -5,7 +5,7 @@
 <PageTitle>OpenHR - Delegering</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Delegering av behörigheter</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny delegering</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Ny delegering</MudButton>
 </div>
 
 <MudGrid Spacing="3" Class="mb-4">
@@ -28,6 +28,40 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa ny delegering</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyFran" Label="Från (chef)" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyTill" Label="Till (ställföreträdare)" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_nyBehorighet" Label="Behörighet" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("Ledighet – godkänna")">Ledighet -- godkänna</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Tidrapporter – attestera")">Tidrapporter -- attestera</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Resor/utlägg – godkänna")">Resor/utlägg -- godkänna</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Lön – granska")">Lön -- granska</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Ärenden – handlägga")">Ärenden -- handlägga</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="_nyGiltigTom" Label="Giltig t.o.m." Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaDelegering"
+                               Disabled="@(string.IsNullOrWhiteSpace(_nyFran) || string.IsNullOrWhiteSpace(_nyTill) || string.IsNullOrWhiteSpace(_nyBehorighet))">Skapa delegering</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
 @if (_meddelande is not null)
 {
@@ -115,25 +149,32 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Ny delegering</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta systemadministratör för att skapa delegering.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private bool _visaNyDialog;
+    private bool _showForm;
+    private string _nyFran = "";
+    private string _nyTill = "";
+    private string _nyBehorighet = "";
+    private DateTime? _nyGiltigTom;
     private string? _meddelande;
     private DelegeringRad? _valdRad;
     private int _aktiva = 3;
     private int _kommande = 2;
     private int _utgangna = 5;
+
+    private void SkapaDelegering()
+    {
+        if (string.IsNullOrWhiteSpace(_nyFran) || string.IsNullOrWhiteSpace(_nyTill) || string.IsNullOrWhiteSpace(_nyBehorighet)) return;
+        var tom = _nyGiltigTom?.ToString("yyyy-MM-dd") ?? "Tillsvidare";
+        var period = $"{DateTime.Now:yyyy-MM-dd} – {tom}";
+        _rader.Insert(0, new DelegeringRad(_nyFran, _nyTill, period, _nyBehorighet, "Ny delegering", "Aktiv", Color.Success));
+        _aktiva++;
+        _meddelande = $"Delegering från {_nyFran} till {_nyTill} skapad.";
+        _nyFran = "";
+        _nyTill = "";
+        _nyBehorighet = "";
+        _nyGiltigTom = null;
+        _showForm = false;
+    }
 
     private void AvslutaDelegering(DelegeringRad rad)
     {

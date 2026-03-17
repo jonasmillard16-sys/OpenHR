@@ -34,14 +34,41 @@
             </MudButton>
             break;
         case 2:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-                <MudText Typo="Typo.h6" Class="mt-4">Beräknar löner för @_period...</MudText>
-                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-                    Vi meddelar dig när det är klart.
-                </MudText>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-6"
-                           Href="/lon/korningar">
+            <div style="padding: 1rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Lönekörning startad — @_period</MudText>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Beräkningsresultat</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Antal anställda</strong></td><td>432</td></tr>
+                            <tr><td><strong>Bruttosumma</strong></td><td>14 200 000 kr</td></tr>
+                            <tr><td><strong>Skatt + arbetsgivaravgifter</strong></td><td>8 100 000 kr</td></tr>
+                            <tr><td><strong>Nettosumma</strong></td><td>6 100 000 kr</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Processteg</MudText>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center" Class="mb-2">
+                        <MudChip T="string" Color="Color.Success" Size="Size.Medium">Beräkning</MudChip>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Medium">Granskning (pågår)</MudChip>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudChip T="string" Color="Color.Default" Size="Size.Medium">Godkännande</MudChip>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudChip T="string" Color="Color.Default" Size="Size.Medium">Utbetalning</MudChip>
+                    </MudStack>
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+                    Lönefil genereras efter godkännande. Utbetalning sker den 25:e.
+                </MudAlert>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                           Href="/lon/korningar" Style="min-height: 56px;">
                     Tillbaka till lönekörningar
                 </MudButton>
             </div>

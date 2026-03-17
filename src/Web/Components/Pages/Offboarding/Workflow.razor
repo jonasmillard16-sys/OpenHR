@@ -66,19 +66,55 @@
             break;
 
         case 4:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Offboarding klar</MudText>
-                <MudText Typo="Typo.h6" Class="mb-2">@_valdAnstalld</MudText>
-                <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Slutlön beräknad. Tillgångar checkade. Åtkomst schemalagd att stängas.</MudText>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" Class="mb-3" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="@(() => _intygGenererat = true)">
-                    Generera tjänstgöringsintyg (PDF)
-                </MudButton>
-                @if (_intygGenererat)
-                {
-                    <MudAlert Severity="Severity.Success" Class="mb-3">Tjänstgöringsintyg genererat och redo att ladda ner.</MudAlert>
-                }
-                <br />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/offboarding" Class="mt-2">
+            <div style="padding: 1rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Offboarding klar — @_valdAnstalld</MudText>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Checklista</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td>AD-konto avaktiverat</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
+                            <tr><td>Passerkort indraget</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
+                            <tr><td>Utrustning återlämnad</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
+                            <tr><td>Behörigheter stängda</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Slutlön</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td>Semesterersättning (12 dagar)</td><td><strong>18 240 kr</strong></td></tr>
+                            <tr><td>Övertidsersättning</td><td><strong>3 450 kr</strong></td></tr>
+                            <tr><td>Avdrag (friskvårdsbidrag ej nyttjat)</td><td><strong>0 kr</strong></td></tr>
+                            <tr><td>Slutlön (april)</td><td><strong>28 500 kr</strong></td></tr>
+                            <tr><td style="border-top: 2px solid var(--mud-palette-lines-default);"><strong>Total utbetalning</strong></td><td style="border-top: 2px solid var(--mud-palette-lines-default);"><strong>50 190 kr</strong></td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Tjänstgöringsintyg</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="@(() => _intygGenererat = true)" Style="min-height: 56px;">
+                        Generera tjänstgöringsintyg (PDF)
+                    </MudButton>
+                    @if (_intygGenererat)
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mt-3 mb-2">Tjänstgöringsintyg genererat!</MudAlert>
+                        <MudSimpleTable Dense="true" Class="mt-2">
+                            <tbody>
+                                <tr><td><strong>Namn</strong></td><td>@_valdAnstalld</td></tr>
+                                <tr><td><strong>Anställningsperiod</strong></td><td>2019-08-15 — 2026-04-30</td></tr>
+                                <tr><td><strong>Befattning</strong></td><td>Sjuksköterska, Medicinavdelning 3</td></tr>
+                                <tr><td><strong>Format</strong></td><td>PDF — redo att ladda ner</td></tr>
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudPaper>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/offboarding" Style="min-height: 56px;">
                     Tillbaka till offboarding
                 </MudButton>
             </div>

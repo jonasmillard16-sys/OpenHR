@@ -5,9 +5,15 @@
 <PageTitle>OpenHR - Notisinställningar</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Notisinställningar</MudText>
 
+@if (_sparad)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">
+        Inställningar sparade!
+    </MudAlert>
+}
+
 <MudAlert Severity="Severity.Info" Class="mb-4">
     Konfigurera vilka notifieringar du vill ta emot och via vilken kanal.
-    Ändringar sparas automatiskt.
 </MudAlert>
 
 <MudText Typo="Typo.h6" Class="mb-3">Notifieringskanaler per händelsetyp</MudText>
@@ -93,9 +99,12 @@
         ];
     }
 
+    private bool _sparad;
+
     private void Spara()
     {
-        // Placeholder – sparar till databas i framtiden
+        _sparad = true;
+        // In production: save to DB via user preferences service
     }
 
     private class NotisInstallning

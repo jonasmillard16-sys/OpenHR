@@ -5,7 +5,7 @@
 <PageTitle>OpenHR - Referenskontroller</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Referenskontroller</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny referenskontroll</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Ny referenskontroll</MudButton>
 </div>
 
 <MudGrid Spacing="3" Class="mb-4">
@@ -34,6 +34,39 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Ny referenskontroll</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyKandidat" Label="Kandidat" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyReferensnamn" Label="Referensnamn" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyTelefon" Label="Telefon" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_nyRelation" Label="Relation" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("Närmaste chef")">Närmaste chef</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Kollega")">Kollega</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Underställd")">Underställd</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Kund/extern")">Kund/extern</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaReferenskontroll"
+                               Disabled="@(string.IsNullOrWhiteSpace(_nyKandidat) || string.IsNullOrWhiteSpace(_nyReferensnamn))">Skapa</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
 <MudAlert Severity="Severity.Info" Class="mb-4">
     Referenskontroll genomförs för alla slutkandidater enligt rekryteringspolicy.
@@ -103,23 +136,27 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Ny referenskontroll</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta rekryteringsansvarig för att starta referenskontroll.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private bool _visaNyDialog;
+    private bool _showForm;
+    private string _nyKandidat = "";
+    private string _nyReferensnamn = "";
+    private string _nyTelefon = "";
+    private string _nyRelation = "";
     private ReferensRad? _valdKontroll;
 
     private void ValjKontroll(ReferensRad rad) => _valdKontroll = _valdKontroll == rad ? null : rad;
+
+    private void SkapaReferenskontroll()
+    {
+        if (string.IsNullOrWhiteSpace(_nyKandidat) || string.IsNullOrWhiteSpace(_nyReferensnamn)) return;
+        _kontroller.Insert(0, new ReferensRad(_nyKandidat, "Ny tjänst", "Du (inloggad)", 1, 0, "Ej påbörjad", Color.Info));
+        _pagaende++;
+        _nyKandidat = "";
+        _nyReferensnamn = "";
+        _nyTelefon = "";
+        _nyRelation = "";
+        _showForm = false;
+    }
 
     private int _pagaende = 6;
     private int _godkanda = 23;

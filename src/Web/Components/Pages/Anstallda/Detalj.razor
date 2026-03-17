@@ -118,19 +118,56 @@
         </MudTabPanel>
 
         <MudTabPanel Text="Frånvaro" Icon="@Icons.Material.Filled.EventBusy">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Frånvarohistorik visas här.</MudText>
+            <MudText Typo="Typo.h6" Class="mb-3">Frånvarohistorik</MudText>
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr><th>Datum</th><th>Typ</th><th>Dagar</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>2026-03-10</td><td>Sjukfrånvaro</td><td>2</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2026-02-14</td><td>VAB</td><td>1</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2026-01-20</td><td>Semester</td><td>5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2025-12-23</td><td>Semester</td><td>7</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2025-11-05</td><td>Sjukfrånvaro</td><td>3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                </tbody>
+            </MudSimpleTable>
         </MudTabPanel>
 
         <MudTabPanel Text="LAS" Icon="@Icons.Material.Filled.Warning">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">LAS-ackumulering för denna anställd visas här.</MudText>
+            <MudText Typo="Typo.h6" Class="mb-3">LAS-information</MudText>
+            <MudAlert Severity="Severity.Info" Class="mb-3">Tillsvidareanställd — LAS ej tillämpligt</MudAlert>
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                Denna anställd har en tillsvidareanställning. LAS-ackumulering för konvertering gäller inte.
+            </MudText>
         </MudTabPanel>
 
         <MudTabPanel Text="Kompetens" Icon="@Icons.Material.Filled.School">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Certifieringar och obligatoriska utbildningar visas här.</MudText>
+            <MudText Typo="Typo.h6" Class="mb-3">Certifieringar och utbildningar</MudText>
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr><th>Certifiering</th><th>Utfärdad</th><th>Giltig t.o.m.</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>HLR — Hjärt-lungräddning</td><td>2025-09-15</td><td>2026-09-15</td></tr>
+                    <tr><td>Brandskydd</td><td>2025-11-01</td><td>2026-11-01</td></tr>
+                    <tr><td>Läkemedelshantering</td><td>2024-06-10</td><td>2026-06-10</td></tr>
+                </tbody>
+            </MudSimpleTable>
         </MudTabPanel>
 
         <MudTabPanel Text="Dokument" Icon="@Icons.Material.Filled.Description">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Anställningskontrakt, intyg och andra dokument visas här.</MudText>
+            <MudText Typo="Typo.h6" Class="mb-3">Dokument i personalakten</MudText>
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr><th>Dokument</th><th>Datum</th><th>Typ</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Anställningsavtal</td><td>2019-08-01</td><td>Avtal</td></tr>
+                    <tr><td>Lönerevision 2025</td><td>2025-06-01</td><td>Beslut</td></tr>
+                    <tr><td>Medarbetarsamtal 2025</td><td>2025-10-15</td><td>Samtalsprotokoll</td></tr>
+                    <tr><td>Sekretessförbindelse</td><td>2019-08-01</td><td>Juridiskt</td></tr>
+                </tbody>
+            </MudSimpleTable>
         </MudTabPanel>
     </MudTabs>
 }

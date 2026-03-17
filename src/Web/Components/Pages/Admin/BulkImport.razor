@@ -153,7 +153,14 @@
 
     private void LaddaNerMall(string typ)
     {
-        _mallMeddelande = $"Mall för {typ} är under utveckling och kommer snart att kunna laddas ner.";
+        var mall = typ switch
+        {
+            "Anställda" => "Personnummer;Förnamn;Efternamn;Enhet;Befattning;Anställningsform;Startdatum;Sysselsättningsgrad\n19850115-1234;Anna;Svensson;Avdelning 32;Sjuksköterska;Tillsvidare;2020-01-15;100",
+            "Schema" => "Personnummer;Datum;Startklockslag;Slutklockslag;Passtyp\n19850115-1234;2026-04-01;07:00;16:00;Dag",
+            "Lönearter" => "Personnummer;Löneart;Belopp;Enhet;Period\n19850115-1234;OB-kväll;460;kr;2026-03",
+            _ => "Kolumn1;Kolumn2;Kolumn3"
+        };
+        _mallMeddelande = $"Mall för {typ} (CSV-format, semikolonseparerad):\n\n{mall}\n\nKopiera och klistra in i Excel eller spara som .csv-fil.";
     }
 
     private class ValideringsRad(int rad, string falt, string typ, string meddelande)

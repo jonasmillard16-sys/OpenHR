@@ -55,11 +55,31 @@
             break;
 
         case 4:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Medarbetarsamtal klart</MudText>
-                <MudText Typo="Typo.h6" Class="mb-2">@_valdAnstalld — 2026</MudText>
-                <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Samtalet har sparats. Både chef och medarbetare kan se det under "Medarbetarsamtal".</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/medarbetarsamtal">Tillbaka</MudButton>
+            <div style="padding: 1rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Medarbetarsamtal klart</MudText>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Sammanfattning</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Anställd</strong></td><td>@_valdAnstalld</td></tr>
+                            <tr><td><strong>Samtalstyp</strong></td><td>Årligt medarbetarsamtal</td></tr>
+                            <tr><td><strong>Datum</strong></td><td>@DateTime.Now.ToString("yyyy-MM-dd")</td></tr>
+                            <tr><td><strong>Dokumentation</strong></td><td>Komplett — självbedömning + chefsbedömning + mål</td></tr>
+                            <tr><td><strong>Uppsatta mål</strong></td><td>@AntalMal() st</td></tr>
+                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+                    Dokumentet sparas i personalakten. Både chef och medarbetare kan se det under "Medarbetarsamtal".
+                </MudAlert>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/medarbetarsamtal" Style="min-height: 56px;">
+                    Tillbaka till medarbetarsamtal
+                </MudButton>
             </div>
             break;
     }
@@ -70,7 +90,15 @@
     private int _step;
     private string _valdAnstalld = "";
     private string _mal1 = "", _mal2 = "", _mal3 = "";
+    private string _arendenummer = "";
     private readonly string[] _omraden = ["Yrkeskompetens", "Samarbete", "Kommunikation", "Ansvarstagande", "Utveckling"];
     private readonly Dictionary<string, int> _sjalvbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
     private readonly Dictionary<string, int> _chefsbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
+
+    protected override void OnInitialized()
+    {
+        _arendenummer = $"MBS-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+    }
+
+    private int AntalMal() => new[] { _mal1, _mal2, _mal3 }.Count(m => !string.IsNullOrWhiteSpace(m));
 }

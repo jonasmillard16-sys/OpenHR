@@ -29,12 +29,31 @@
             </MudButton>
             break;
         case 2:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Klart!</MudText>
-                <MudText Typo="Typo.h6" Class="mb-2">@_typ ansökan skickad</MudText>
-                <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Din chef meddelas och kan godkänna.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6" Href="/ledighet">Tillbaka till ledighetsöversikt</MudButton>
+            <div style="padding: 1rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Klart!</MudText>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Sammanfattning</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Ledighetstyp</strong></td><td>@_typ</td></tr>
+                            <tr><td><strong>Från</strong></td><td>@(_dateRange?.Start?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
+                            <tr><td><strong>Till</strong></td><td>@(_dateRange?.End?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
+                            <tr><td><strong>Antal dagar</strong></td><td>@AntalDagar()</td></tr>
+                            <tr><td><strong>Godkännare (chef)</strong></td><td>Eva Nilsson</td></tr>
+                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+                    Din chef har fått en notis om din ansökan.
+                </MudAlert>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/ledighet" Style="min-height: 56px;">
+                    Tillbaka till ledighetsöversikt
+                </MudButton>
             </div>
             break;
     }
@@ -45,6 +64,18 @@
     private int _step;
     private string _typ = "";
     private MudBlazor.DateRange? _dateRange;
+    private string _arendenummer = "";
+
+    protected override void OnInitialized()
+    {
+        _arendenummer = $"LED-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+    }
+
+    private int AntalDagar()
+    {
+        if (_dateRange?.Start == null || _dateRange?.End == null) return 0;
+        return (int)(_dateRange.End.Value - _dateRange.Start.Value).TotalDays + 1;
+    }
 
     private record LeaveType(string Icon, string Name);
     private static readonly LeaveType[] _typer =

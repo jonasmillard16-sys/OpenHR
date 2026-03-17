@@ -146,7 +146,7 @@
         if (string.IsNullOrWhiteSpace(_valdMottagare) || string.IsNullOrWhiteSpace(_meddelande) || string.IsNullOrWhiteSpace(_valdKategori))
             return;
 
-        _berom.Insert(0, new BeromPost(_valdMottagare, "Sara Andersson", _valdKategori, "2026-03-17", _meddelande));
+        _berom.Insert(0, new BeromPost(_valdMottagare, "Du (inloggad)", _valdKategori, DateTime.Now.ToString("yyyy-MM-dd"), _meddelande));
         _senastMottagare = _valdMottagare;
         _skickadBekraftelse = true;
         _valdMottagare = "";

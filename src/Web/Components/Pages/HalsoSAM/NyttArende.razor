@@ -30,12 +30,35 @@
             </MudStack>
             break;
         case 2:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Rehabärende skapat</MudText>
-                <MudText Typo="Typo.h6">@_valdAnstalld</MudText>
-                <MudText Typo="Typo.body1" Class="mb-2">Orsak: @_orsak</MudText>
-                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Första uppföljning schemalagd om 14 dagar.</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6" Href="/halsosam">Tillbaka</MudButton>
+            <div style="padding: 1rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Rehabärende skapat</MudText>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Ärendeuppgifter</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Anställd</strong></td><td>@_valdAnstalld</td></tr>
+                            <tr><td><strong>Ärendetyp</strong></td><td>@_orsak</td></tr>
+                            <tr><td><strong>Ansvarig HR</strong></td><td>Lisa Holm</td></tr>
+                            <tr><td><strong>Startdatum</strong></td><td>@DateTime.Now.ToString("yyyy-MM-dd")</td></tr>
+                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+
+                <MudPaper Class="pa-4 mb-4" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Nästa steg</MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Event">Boka uppföljningsmöte (schemalagt om 14 dagar)</MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Phone">Kontakta Försäkringskassan vid behov</MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Description">Dokumentera samtalsanteckningar i ärendet</MudListItem>
+                    </MudList>
+                </MudPaper>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/halsosam" Style="min-height: 56px;">
+                    Tillbaka till Hälso-SAM
+                </MudButton>
             </div>
             break;
     }
@@ -47,4 +70,10 @@
     private string _valdAnstalld = "";
     private string _orsak = "";
     private string _sokterm = "";
+    private string _arendenummer = "";
+
+    protected override void OnInitialized()
+    {
+        _arendenummer = $"SAM-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+    }
 }

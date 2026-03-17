@@ -125,20 +125,35 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Ny föräldraledighetplanering</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera ny föräldraledighet.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
+@if (_visaNyDialog)
+{
+    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny föräldraledighetplanering</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
+        </div>
+        <MudTextField @bind-Value="_nyAnst" Label="Anställd" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyStart" Label="Startdatum" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nySlut" Label="Slutdatum" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaPlanering">Skapa</MudButton>
+    </MudPaper>
+}
+@if (_skapad != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+}
 
 @code {
     private bool _visaNyDialog;
+    private string? _skapad;
+    private string _nyAnst = "", _nyStart = "", _nySlut = "";
+
+    private void SkapaPlanering()
+    {
+        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
+        _skapad = $"Föräldraledighet planerad för {_nyAnst} ({_nyStart} till {_nySlut}). Ansökan skickas till FK.";
+        _nyAnst = ""; _nyStart = ""; _nySlut = ""; _visaNyDialog = false;
+    }
     private ForaldraledighetRad? _valdRad;
 
     private void ValjRad(ForaldraledighetRad rad) => _valdRad = _valdRad == rad ? null : rad;

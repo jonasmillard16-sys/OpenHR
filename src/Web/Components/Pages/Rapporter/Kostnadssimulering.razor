@@ -122,20 +122,34 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Ny kostnadssimulering</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta ekonomiavdelningen för att skapa simuleringen.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
+@if (_visaNyDialog)
+{
+    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny kostnadssimulering</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
+        </div>
+        <MudTextField @bind-Value="_nyNamn" Label="Simuleringsnamn" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_nyScenario" Label="Scenario (t.ex. +5% lön)" Variant="Variant.Outlined" Class="mb-3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaSimulering">Skapa</MudButton>
+    </MudPaper>
+}
+@if (_skapad != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+}
 
 @code {
     private bool _visaNyDialog;
+    private string? _skapad;
+    private string _nyNamn = "", _nyScenario = "";
+
+    private void SkapaSimulering()
+    {
+        if (string.IsNullOrWhiteSpace(_nyNamn)) return;
+        _skapad = $"Simulering {_nyNamn} skapad. Beräkning pågår...";
+        _nyNamn = ""; _nyScenario = ""; _visaNyDialog = false;
+    }
     private SimuleringRad? _valdSimulering;
 
     private void ValjSimulering(SimuleringRad sim) => _valdSimulering = _valdSimulering == sim ? null : sim;

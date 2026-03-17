@@ -5,7 +5,7 @@
 <PageTitle>OpenHR - Successionsplanering</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Successionsplanering</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Lägg till nyckelposition</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Lägg till nyckelposition</MudButton>
 </div>
 
 <MudGrid Spacing="3" Class="mb-4">
@@ -34,6 +34,38 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Lägg till nyckelposition</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyPosition" Label="Position" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyInnehavare" Label="Nuvarande innehavare" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_nyEftradare" Label="Efterträdare" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_nyBeredskap" Label="Beredskap" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("Redo nu")">Redo nu</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Redo inom 1-2 år")">Redo inom 1-2 år</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Redo inom 3+ år")">Redo inom 3+ år</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LaggTillPosition"
+                               Disabled="@(string.IsNullOrWhiteSpace(_nyPosition) || string.IsNullOrWhiteSpace(_nyInnehavare))">Lägg till</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
 <MudAlert Severity="Severity.Warning" Class="mb-4">
     <strong>@_utanEftradare nyckelpositioner</strong> saknar identifierad efterträdare.
@@ -99,23 +131,30 @@
     </tbody>
 </MudSimpleTable>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Lägg till nyckelposition</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta HR för att registrera nyckelpositioner.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private bool _visaNyDialog;
+    private bool _showForm;
+    private string _nyPosition = "";
+    private string _nyInnehavare = "";
+    private string _nyEftradare = "";
+    private string _nyBeredskap = "";
     private SuccessionsRad? _valdPosition;
 
     private void ValjPosition(SuccessionsRad rad) => _valdPosition = _valdPosition == rad ? null : rad;
+
+    private void LaggTillPosition()
+    {
+        if (string.IsNullOrWhiteSpace(_nyPosition) || string.IsNullOrWhiteSpace(_nyInnehavare)) return;
+        var farg = _nyBeredskap switch { "Redo nu" => Color.Success, "Redo inom 1-2 år" => Color.Warning, _ => Color.Info };
+        var procent = _nyBeredskap switch { "Redo nu" => 90, "Redo inom 1-2 år" => 50, _ => 20 };
+        _positioner.Insert(0, new SuccessionsRad(_nyPosition, _nyInnehavare, "—", _nyEftradare, string.IsNullOrWhiteSpace(_nyEftradare) ? "" : _nyBeredskap, farg, procent));
+        _nyckelpositioner++;
+        if (!string.IsNullOrWhiteSpace(_nyEftradare)) _medEftradare++; else _utanEftradare++;
+        _nyPosition = "";
+        _nyInnehavare = "";
+        _nyEftradare = "";
+        _nyBeredskap = "";
+        _showForm = false;
+    }
 
     private int _nyckelpositioner = 14;
     private int _medEftradare = 9;

@@ -5,7 +5,7 @@
 <PageTitle>OpenHR - Anslagstavla</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Anslagstavla</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Nytt anslag</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Nytt anslag</MudButton>
 </div>
 
 <MudGrid Spacing="3" Class="mb-4">
@@ -35,6 +35,35 @@
     </MudItem>
 </MudGrid>
 
+@if (_showForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa nytt anslag</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_nyTitel" Label="Titel" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-Value="_nyPrioritet" Label="Prioritet" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("Hög")">Hög</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Normal")">Normal</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Låg")">Låg</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_nyMeddelande" Label="Meddelande" Variant="Variant.Outlined" Lines="3" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaAnslag"
+                               Disabled="@(string.IsNullOrWhiteSpace(_nyTitel) || string.IsNullOrWhiteSpace(_nyMeddelande))">Publicera</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
 <MudStack Spacing="3">
     @foreach (var anslag in _anslag)
     {
@@ -61,24 +90,28 @@
     }
 </MudStack>
 
-<MudDialog @bind-Visible="_visaNyDialog" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
-    <TitleContent>
-        <MudText Typo="Typo.h6">Skapa nytt anslag</MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-4">Funktionen är under utveckling. Kontakta kommunikationsavdelningen för att publicera anslag.</MudText>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="@(() => _visaNyDialog = false)">Stäng</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    private bool _visaNyDialog;
+    private bool _showForm;
+    private string _nyTitel = "";
+    private string _nyMeddelande = "";
+    private string _nyPrioritet = "Normal";
     private int _aktiva = 8;
     private int _dennaManad = 3;
     private int _schemalagda = 2;
     private int _lasgrad = 72;
+
+    private void SkapaAnslag()
+    {
+        if (string.IsNullOrWhiteSpace(_nyTitel) || string.IsNullOrWhiteSpace(_nyMeddelande)) return;
+        _anslag.Insert(0, new AnslagRad(_nyTitel, _nyPrioritet, DateTime.Now.ToString("yyyy-MM-dd"),
+            _nyMeddelande, "Alla enheter", "Du (inloggad)", 0, 1254, 0));
+        _aktiva++;
+        _dennaManad++;
+        _nyTitel = "";
+        _nyMeddelande = "";
+        _nyPrioritet = "Normal";
+        _showForm = false;
+    }
 
     private List<AnslagRad> _anslag = [];
 
