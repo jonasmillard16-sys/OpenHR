@@ -1,0 +1,20 @@
+@page "/ledighet/kalender"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Teamkalender</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Teamkalender — Mars 2026</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Avdelning 32</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2" Dense="true">
+    <thead><tr><th>Anställd</th><th>Mån 17</th><th>Tis 18</th><th>Ons 19</th><th>Tor 20</th><th>Fre 21</th></tr></thead>
+    <tbody>
+        <tr><td>Anna Svensson</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td style="background: #d4e6f1;">&#127796;</td></tr>
+        <tr><td>Karl Berg</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td><td style="background: #f5b7b1;">&#129298;</td></tr>
+        <tr><td>Lisa Holm</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td></tr>
+        <tr><td>Erik Johansson</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td><td style="background: #d4e6f1;">&#127796;</td></tr>
+        <tr><td>Per Gustafsson</td><td style="background: #fdebd0;">&#128118;</td><td style="background: #fdebd0;">&#128118;</td><td>&#9989;</td><td>&#9989;</td><td>&#9989;</td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.body2" Class="mt-3">&#9989; Arbetar | &#127796; Semester | &#129298; Sjuk | &#128118; VAB</MudText>

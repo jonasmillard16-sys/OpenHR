@@ -1,0 +1,17 @@
+@page "/ledighet/saldon"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Semestersaldon</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Semestersaldon 2026</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Anställd</th><th>Tilldelning</th><th>Uttagna</th><th>Sparade</th><th>Tillgängliga</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Anna Svensson</strong></td><td>25</td><td>7</td><td>5</td><td><strong>23</strong></td></tr>
+        <tr><td><strong>Karl Berg</strong></td><td>31</td><td>10</td><td>3</td><td><strong>24</strong></td></tr>
+        <tr><td><strong>Lisa Holm</strong></td><td>25</td><td>5</td><td>0</td><td><strong>20</strong></td></tr>
+        <tr><td><strong>Erik Johansson</strong></td><td>32</td><td>15</td><td>8</td><td><strong>25</strong></td></tr>
+        <tr><td><strong>Maria Lindgren</strong></td><td>25</td><td>3</td><td>2</td><td><strong>24</strong></td></tr>
+    </tbody>
+</MudSimpleTable>

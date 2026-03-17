@@ -1,0 +1,58 @@
+@page "/ledighet/ny"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Ny ledighetsansökan</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
+    @switch (_step)
+    {
+        case 0:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken typ av ledighet?</MudText>
+            <MudStack Spacing="3">
+                @foreach (var typ in _typer)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px; font-size: 1.125rem;" OnClick="@(() => { _typ = typ.Name; _step = 1; })">
+                        @typ.Icon @typ.Name
+                    </MudButton>
+                }
+            </MudStack>
+            break;
+        case 1:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilka dagar?</MudText>
+            <MudDateRangePicker Label="Välj period" @bind-DateRange="_dateRange" Class="mb-4" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 2)" Disabled="@(_dateRange?.Start == null)">
+                Nästa
+            </MudButton>
+            break;
+        case 2:
+            <div style="text-align: center; padding: 2rem 0;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" />
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;" Class="mb-4">Klart!</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@_typ ansökan skickad</MudText>
+                <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Din chef meddelas och kan godkänna.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6" Href="/ledighet">Tillbaka till ledighetsöversikt</MudButton>
+            </div>
+            break;
+    }
+</OhrConversationFlow>
+
+@code {
+    private readonly List<string> _steps = ["Typ", "Period", "Klart!"];
+    private int _step;
+    private string _typ = "";
+    private MudBlazor.DateRange? _dateRange;
+
+    private record LeaveType(string Icon, string Name);
+    private static readonly LeaveType[] _typer =
+    [
+        new("&#127796;", "Semester"),
+        new("&#128118;", "Föräldraledighet"),
+        new("&#127968;", "VAB"),
+        new("&#128218;", "Tjänstledighet"),
+        new("&#9200;", "Komptid")
+    ];
+}

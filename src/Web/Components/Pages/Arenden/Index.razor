@@ -1,0 +1,25 @@
+@page "/arenden"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Ärenden</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Ärenden</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/arenden/nytt" Style="min-height: 48px;">Nytt ärende</MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">8</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">15</MudText><MudText Typo="Typo.body2">Under behandling</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">142</MudText><MudText Typo="Typo.body2">Avslutade (YTD)</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>ID</th><th>Typ</th><th>Anställd</th><th>Status</th><th>Skapad</th><th></th></tr></thead>
+    <tbody>
+        <tr><td>#1042</td><td>Semester</td><td>Anna Svensson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td>2026-03-15</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="/arenden/1042">Öppna</MudButton></td></tr>
+        <tr><td>#1041</td><td>Sjukfrånvaro</td><td>Karl Berg</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td>2026-03-14</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        <tr><td>#1040</td><td>Tjänstledighet</td><td>Per Gustafsson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Under behandling</MudChip></td><td>2026-03-13</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+        <tr><td>#1039</td><td>Löneändring</td><td>Lisa Holm</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td>2026-03-12</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td></tr>
+    </tbody>
+</MudSimpleTable>
