@@ -1,0 +1,88 @@
+@page "/chef/franvarokalender"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.ManagerLayout
+
+<PageTitle>OpenHR - Frånvarokalender</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Frånvaro denna vecka</MudText>
+
+@if (_franvaro.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Variant="Variant.Text">
+        Ingen frånvaro rapporterad denna vecka.
+    </MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Typ</th>
+                <th>Period</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var f in _franvaro)
+            {
+                <tr>
+                    <td><strong>@f.Namn</strong></td>
+                    <td>@f.Typ</td>
+                    <td>@f.Period</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@f.StatusFarg">@f.Status</MudChip></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-3">Sammanfattning</MudText>
+<MudGrid Spacing="3">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">2</MudText>
+            <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">1</MudText>
+            <MudText Typo="Typo.body2">Semester</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">1</MudText>
+            <MudText Typo="Typo.body2">VAB</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="1">
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">0</MudText>
+            <MudText Typo="Typo.body2">Tjänstledighet</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<FranvaroRad> _franvaro = [];
+
+    protected override void OnInitialized()
+    {
+        _franvaro =
+        [
+            new("Karl Berg", "Sjukfrånvaro", "14 mars - pågående", "Sjuk dag 3", Color.Error),
+            new("Erik Johansson", "Semester", "17-21 mars", "Godkänd", Color.Info),
+            new("Per Gustafsson", "VAB", "17-18 mars", "Rapporterad", Color.Warning),
+            new("Anna Svensson", "Sjukfrånvaro", "16 mars", "Sjuk dag 1", Color.Error),
+        ];
+    }
+
+    private record FranvaroRad(string Namn, string Typ, string Period, string Status, Color StatusFarg);
+}

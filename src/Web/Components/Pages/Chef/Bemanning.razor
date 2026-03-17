@@ -1,0 +1,80 @@
+@page "/chef/bemanning"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.ManagerLayout
+
+<PageTitle>OpenHR - Bemanning idag</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bemanning idag</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    @DateTime.Today.ToString("dddd d MMMM yyyy")
+</MudText>
+
+<MudGrid Spacing="4" Class="mb-6">
+    @foreach (var pass in _bemanningsdata)
+    {
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-5 text-center" Elevation="2"
+                      Style="@($"border-top: 4px solid {pass.StatusFarg};")">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">@pass.PassTyp</MudText>
+                <MudText Typo="Typo.caption">@pass.Tid</MudText>
+                <MudText Typo="Typo.h3" Class="my-2" Style="font-weight: 700;"
+                         Color="@pass.MudColor">
+                    @pass.Faktisk / @pass.Krav
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                    @pass.StatusText
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Vem jobbar just nu</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Namn</th><th>Pass</th><th>Tid</th><th>Status</th></tr></thead>
+    <tbody>
+        @foreach (var person in _paPass)
+        {
+            <tr>
+                <td><strong>@person.Namn</strong></td>
+                <td>@person.Pass</td>
+                <td>@person.Tid</td>
+                <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Här</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<BemanningsRuta> _bemanningsdata = [];
+    private List<PersonPaPass> _paPass = [];
+
+    protected override void OnInitialized()
+    {
+        _bemanningsdata =
+        [
+            new("Dag", "07:00-16:00", 8, 8, "Fullbemannat", "#27ae60", Color.Success),
+            new("Kväll", "15:00-22:00", 6, 5, "1 saknas", "#f39c12", Color.Warning),
+            new("Natt", "21:00-07:00", 4, 4, "Fullbemannat", "#27ae60", Color.Success),
+        ];
+        _paPass =
+        [
+            new("Anna Svensson", "Dag", "07:00-16:00"),
+            new("Lisa Holm", "Dag", "07:00-16:00"),
+            new("Maria Lindgren", "Dag", "07:00-16:00"),
+            new("Sara Karlsson", "Dag", "07:00-16:00"),
+            new("Karin Eriksson", "Dag", "07:00-16:00"),
+            new("Helena Bergström", "Dag", "07:00-16:00"),
+            new("Magnus Pettersson", "Dag", "07:00-16:00"),
+            new("Johan Nilsson", "Dag", "07:00-12:00"),
+        ];
+    }
+
+    private record BemanningsRuta(string PassTyp, string Tid, int Krav, int Faktisk, string StatusText, string StatusFarg, Color MudColor);
+    private record PersonPaPass(string Namn, string Pass, string Tid);
+}

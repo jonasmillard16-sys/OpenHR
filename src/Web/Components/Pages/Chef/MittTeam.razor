@@ -1,0 +1,64 @@
+@page "/chef/team"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.ManagerLayout
+
+<PageTitle>OpenHR - Mitt team</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">
+    Tillbaka
+</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Mitt team</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Avdelning 32 — @_team.Count anställda
+</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
+    <thead>
+        <tr>
+            <th>Namn</th>
+            <th>Befattning</th>
+            <th>Tjänstegrad</th>
+            <th>Status idag</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var person in _team)
+        {
+            <tr>
+                <td><strong>@person.Namn</strong></td>
+                <td>@person.Befattning</td>
+                <td>@person.Tjanstegrad</td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@person.StatusFarg">@person.Status</MudChip>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<TeamMedlem> _team = [];
+
+    protected override void OnInitialized()
+    {
+        _team =
+        [
+            new("Anna Svensson", "Sjuksköterska", "100%", "Arbetar", Color.Success),
+            new("Karl Berg", "Sjuksköterska", "100%", "Sjuk", Color.Error),
+            new("Lisa Holm", "Undersköterska", "75%", "Arbetar", Color.Success),
+            new("Erik Johansson", "Sjuksköterska", "100%", "Semester", Color.Info),
+            new("Maria Lindgren", "Undersköterska", "100%", "Arbetar", Color.Success),
+            new("Johan Nilsson", "Läkare", "50%", "Arbetar", Color.Success),
+            new("Sara Karlsson", "Sjuksköterska", "100%", "Arbetar", Color.Success),
+            new("Anders Olsson", "Undersköterska", "100%", "Nattpass", Color.Warning),
+            new("Karin Eriksson", "Sjuksköterska", "80%", "Arbetar", Color.Success),
+            new("Per Gustafsson", "Undersköterska", "100%", "Ledig", Color.Default),
+            new("Helena Bergström", "Sjuksköterska", "100%", "Arbetar", Color.Success),
+            new("Magnus Pettersson", "Undersköterska", "75%", "Arbetar", Color.Success),
+        ];
+    }
+
+    private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string Status, Color StatusFarg);
+}
