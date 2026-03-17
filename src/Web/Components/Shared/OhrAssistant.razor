@@ -1,0 +1,115 @@
+@namespace RegionHR.Web.Components.Shared
+
+<div style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;">
+    @if (_open)
+    {
+        <MudPaper Elevation="8" Style="width: 380px; max-height: 500px; border-radius: 16px; overflow: hidden;">
+            <div style="background: var(--mud-palette-primary); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">OpenHR Assistent</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" OnClick="@(() => _open = false)" Size="Size.Small" />
+            </div>
+            <div style="padding: 16px; max-height: 340px; overflow-y: auto;" @ref="_chatContainer">
+                @foreach (var msg in _messages)
+                {
+                    <div style="margin-bottom: 12px; display: flex; flex-direction: column; align-items: @(msg.IsUser ? "flex-end" : "flex-start");">
+                        <MudPaper Class="pa-3" Elevation="0"
+                                  Style="@($"max-width: 85%; background: {(msg.IsUser ? "var(--mud-palette-primary)" : "#f0f2f5")}; color: {(msg.IsUser ? "white" : "inherit")}; border-radius: 12px;")">
+                            <MudText Typo="Typo.body2">@msg.Text</MudText>
+                        </MudPaper>
+                    </div>
+                }
+            </div>
+            <div style="padding: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px;">
+                <MudTextField @bind-Value="_input" Placeholder="Ställ en fråga..." Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Style="flex: 1;" OnKeyDown="HandleKey"
+                              Immediate="true" />
+                <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Primary" OnClick="Send" />
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.SmartToy"
+                Label="Fråga OpenHR" Size="Size.Large" OnClick="@(() => _open = true)"
+                Style="min-height: 56px;" />
+    }
+</div>
+
+@code {
+    private bool _open;
+    private string _input = "";
+    private List<ChatMessage> _messages = [new(false, "Hej! Jag kan svara på frågor om semester, lön, sjukfrånvaro, schema och mer. Vad undrar du?")];
+    private ElementReference _chatContainer;
+
+    private void HandleKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") Send();
+    }
+
+    private void Send()
+    {
+        if (string.IsNullOrWhiteSpace(_input)) return;
+        var question = _input.Trim();
+        _messages.Add(new(true, question));
+        _input = "";
+
+        var answer = GetAnswer(question.ToLower());
+        _messages.Add(new(false, answer));
+    }
+
+    private string GetAnswer(string q)
+    {
+        // Semester
+        if (q.Contains("semester") || q.Contains("ledig"))
+            return "Enligt kollektivavtalet AB har du 25 semesterdagar/år (31 om du fyllt 40, 32 om du fyllt 50). Dina sparade dagar kan du se under 'Jag vill ha ledigt' på din startsida. Sparade dagar gäller i 5 år.";
+
+        // Lön
+        if (q.Contains("lön") || q.Contains("betalt") || q.Contains("pengar"))
+            return "Lön betalas ut den 25:e varje månad. Din lönespecifikation hittar du under 'Min lön' på startsidan. OB-tillägg beräknas automatiskt baserat på ditt schema.";
+
+        // Sjuk
+        if (q.Contains("sjuk") || q.Contains("karens"))
+            return "Vid sjukdom: anmäl via 'Jag är sjuk' på startsidan. Dag 1 har karensavdrag (20% av veckolönen). Dag 2-14 får du 80% sjuklön. Från dag 8 behövs läkarintyg. Dag 15 anmäler vi till Försäkringskassan.";
+
+        // Schema
+        if (q.Contains("schema") || q.Contains("pass") || q.Contains("jobba"))
+            return "Ditt schema hittar du under 'Mitt schema' på startsidan. Vill du byta pass? Kontakta din chef eller använd passbytesfunktionen. Viloregler: minst 11 timmar mellan pass (9 inom sjukvård).";
+
+        // VAB
+        if (q.Contains("vab") || q.Contains("barn sjuk"))
+            return "VAB (vård av barn) gäller till barnet fyller 12 år. Max 120 dagar per barn och år. Anmäl via 'Jag vill ha ledigt' → VAB. Ersättning betalas av Försäkringskassan.";
+
+        // Föräldraledighet
+        if (q.Contains("föräldra") || q.Contains("mammaled") || q.Contains("pappaled"))
+            return "Du har rätt till 480 dagar föräldraledighet per barn (240 dagar per förälder). 390 dagar på sjukpenningnivå, 90 dagar på lägstanivå. Föräldralön (10% tillägget) betalas i 180 dagar per AB.";
+
+        // OB
+        if (q.Contains("ob") || q.Contains("obekväm"))
+            return "OB-tillägg per AB 2025: Vardag kväll (19-22) 46 kr/h, vardag natt (22-06) 113 kr/h, helg 55 kr/h, storhelg 130 kr/h. Beräknas automatiskt i din lön.";
+
+        // Friskvård
+        if (q.Contains("friskvård") || q.Contains("gym") || q.Contains("träning"))
+            return "Friskvårdsbidraget är max 5 000 kr per år (skattefritt). Spara kvittot och ladda upp under Förmåner → Friskvårdsbidrag. Det dras inte från lönen.";
+
+        // Pension
+        if (q.Contains("pension"))
+            return "Din pension via AKAP-KR: 6% på lön under 7,5 inkomstbasbelopp, 31,5% på lön över det. Inbetalas automatiskt av arbetsgivaren varje månad.";
+
+        // LAS
+        if (q.Contains("las") || q.Contains("visstid") || q.Contains("vikariat"))
+            return "Enligt LAS omvandlas en tidsbegränsad anställning till tillsvidare efter 365 dagar inom en 5-årsperiod. Din LAS-ackumulering kan du se under LAS-uppföljning (fråga din HR-kontakt om tillgång).";
+
+        // Övertid
+        if (q.Contains("övertid"))
+            return "Max 200 timmar övertid per år enligt ATL. Enkel övertid: 180% av timlönen. Kvalificerad övertid (natt/helg): 240%. Registreras automatiskt via ditt schema.";
+
+        // Kontakt
+        if (q.Contains("kontakt") || q.Contains("hr") || q.Contains("hjälp"))
+            return "Uppdatera dina kontaktuppgifter under 'Om mig' på startsidan. För HR-frågor som jag inte kan svara på, kontakta din HR-avdelning direkt.";
+
+        // Default
+        return "Det kan jag tyvärr inte svara på just nu. Prova att fråga om: semester, lön, sjukfrånvaro, VAB, föräldraledighet, OB-tillägg, friskvård, pension, schema eller övertid. Eller kontakta din HR-avdelning.";
+    }
+
+    private record ChatMessage(bool IsUser, string Text);
+}

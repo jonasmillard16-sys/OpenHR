@@ -11,6 +11,18 @@
     Hej @_data.Fornamn!
 </MudText>
 
+@if (_tips.Count > 0)
+{
+    <MudStack Spacing="2" Class="mb-4">
+        @foreach (var tip in _tips)
+        {
+            <MudAlert Severity="@tip.Severity" Variant="Variant.Text" Dense="true" NoIcon="false">
+                @tip.Text
+            </MudAlert>
+        }
+    </MudStack>
+}
+
 <MudGrid Spacing="4">
     <MudItem xs="12" sm="6">
         <OhrBigCard Icon="📅"
@@ -60,6 +72,7 @@
 
 @code {
     private DashboardData _data = new();
+    private List<TipData> _tips = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,5 +97,20 @@
                 NastaPassTid = "07:00-16:00"
             };
         }
+
+        GenerateTips();
     }
+
+    private void GenerateTips()
+    {
+        if (_data.SemesterdagarKvar > 15)
+            _tips.Add(new(Severity.Info, $"Du har {_data.SemesterdagarKvar} semesterdagar kvar. Dags att planera semester?"));
+        if (_data.OppnaArenden > 0)
+            _tips.Add(new(Severity.Warning, $"Du har {_data.OppnaArenden} öppna ärenden som väntar."));
+        // Always show a positive tip
+        if (_tips.Count == 0)
+            _tips.Add(new(Severity.Success, "Allt ser bra ut! Inga ärenden väntar."));
+    }
+
+    private record TipData(Severity Severity, string Text);
 }
