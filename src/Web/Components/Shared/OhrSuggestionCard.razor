@@ -1,0 +1,41 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudAlert Severity="@AlertSeverity" Variant="Variant.Outlined" Class="mb-3"
+          Dense="false">
+    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@Title</MudText>
+    @if (!string.IsNullOrEmpty(Explanation))
+    {
+        <MudText Typo="Typo.body1" Class="mt-1">@Explanation</MudText>
+    }
+    @if (Actions.Count > 0)
+    {
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            @foreach (var action in Actions)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Size="Size.Large" OnClick="@(() => OnActionClicked.InvokeAsync(action.Key))"
+                           Style="min-height: 48px;">
+                    @action.Value
+                </MudButton>
+            }
+        </div>
+    }
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Explanation { get; set; }
+    [Parameter] public Dictionary<string, string> Actions { get; set; } = new();
+    [Parameter] public SuggestionLevel Level { get; set; } = SuggestionLevel.Info;
+    [Parameter] public EventCallback<string> OnActionClicked { get; set; }
+
+    private Severity AlertSeverity => Level switch
+    {
+        SuggestionLevel.Warning => Severity.Warning,
+        SuggestionLevel.Error => Severity.Error,
+        SuggestionLevel.Success => Severity.Success,
+        _ => Severity.Info
+    };
+
+    public enum SuggestionLevel { Info, Warning, Error, Success }
+}

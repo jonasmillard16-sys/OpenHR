@@ -1,0 +1,36 @@
+@namespace RegionHR.Web.Components.Shared
+
+<div class="ohr-conversation" role="form" aria-label="@Steps.ElementAtOrDefault(CurrentStep)">
+    @if (CurrentStep > 0)
+    {
+        <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Variant="Variant.Text" Color="Color.Primary"
+                   OnClick="OnBack" aria-label="Tillbaka"
+                   Style="margin-bottom: 1rem; font-size: 1.125rem;">
+            Tillbaka
+        </MudButton>
+    }
+
+    <div style="margin-bottom: 1.5rem;">
+        <MudProgressLinear Value="@ProgressPercent" Color="Color.Primary"
+                           Rounded="true" Size="Size.Medium" />
+        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-1">
+            @Steps.ElementAtOrDefault(CurrentStep)
+        </MudText>
+    </div>
+
+    <div class="ohr-conversation__content">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<string> Steps { get; set; } = [];
+    [Parameter] public int CurrentStep { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    private int ProgressPercent => Steps.Count > 1
+        ? (int)((double)CurrentStep / (Steps.Count - 1) * 100)
+        : 100;
+}

@@ -1,0 +1,36 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudPaper Class="ohr-bigcard pa-6" Elevation="2"
+          Style="cursor: pointer; min-height: 180px; transition: transform 0.15s, box-shadow 0.15s;"
+          @onclick="Navigate" role="link" aria-label="@Title" tabindex="0"
+          @onkeydown="HandleKeyDown">
+    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;" aria-hidden="true">@Icon</div>
+    @if (!string.IsNullOrEmpty(BadgeValue))
+    {
+        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@BadgeValue</MudText>
+    }
+    <MudText Typo="Typo.h6" Style="font-weight: 600; margin-top: 0.5rem;">@Title</MudText>
+    @if (!string.IsNullOrEmpty(Description))
+    {
+        <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary); margin-top: 0.25rem;">
+            @Description
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = "";
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? BadgeValue { get; set; }
+    [Parameter, EditorRequired] public string Href { get; set; } = "";
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void Navigate() => Nav.NavigateTo(Href);
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+            Navigate();
+    }
+}
