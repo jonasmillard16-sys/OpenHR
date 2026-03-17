@@ -355,7 +355,7 @@ body, .mud-layout {
    DARK MODE — Deep midnight with warmth
    ═══════════════════════════════════════════════════════ */
 
-.mud-theme-dark {
+.ohr-dark {
     --ohr-bg: #0f1419 !important;
     --ohr-bg-card: #1a2332 !important;
     --ohr-bg-sidebar: #141c27 !important;
@@ -375,133 +375,160 @@ body, .mud-layout {
     --ohr-shadow-lg: 0 12px 40px rgba(0,0,0,0.4) !important;
 }
 
-.mud-theme-dark body,
-.mud-theme-dark .mud-layout,
-.mud-theme-dark .mud-main-content {
+.ohr-dark body,
+.ohr-dark .mud-layout,
+.ohr-dark .mud-main-content {
     background: #0f1419 !important;
 }
 
 /* Dark sidebar */
-.mud-theme-dark .mud-drawer {
+.ohr-dark .mud-drawer {
     background: #141c27 !important;
     border-right: 1px solid #1e293b !important;
 }
 
-.mud-theme-dark .mud-nav-link {
+.ohr-dark .mud-nav-link {
     color: #94a3b8 !important;
 }
 
-.mud-theme-dark .mud-nav-link:hover {
+.ohr-dark .mud-nav-link:hover {
     background: rgba(255,255,255,0.04) !important;
     color: #e2e8f0 !important;
 }
 
-.mud-theme-dark .mud-nav-link.active {
+.ohr-dark .mud-nav-link.active {
     background: rgba(56, 189, 248, 0.1) !important;
     color: #38bdf8 !important;
 }
 
-.mud-theme-dark .mud-nav-group .mud-nav-link {
+.ohr-dark .mud-nav-group .mud-nav-link {
     color: #e2e8f0 !important;
 }
 
 /* Dark AppBar */
-.mud-theme-dark .mud-appbar {
+.ohr-dark .mud-appbar {
     background: #0d1117 !important;
     border-bottom: 1px solid #1e293b !important;
 }
 
 /* Dark cards */
-.mud-theme-dark .mud-paper {
+.ohr-dark .mud-paper {
     background: #1a2332 !important;
     border-color: #1e293b !important;
 }
 
-.mud-theme-dark .mud-paper:hover {
+.ohr-dark .mud-paper:hover {
     border-color: #334155 !important;
 }
 
 /* Dark tables */
-.mud-theme-dark .mud-simple-table th {
+.ohr-dark .mud-simple-table th {
     background: #141c27 !important;
     color: #64748b !important;
     border-bottom-color: #1e293b !important;
 }
 
-.mud-theme-dark .mud-simple-table td {
+.ohr-dark .mud-simple-table td {
     border-bottom-color: #1e293b !important;
     color: #e2e8f0 !important;
 }
 
-.mud-theme-dark .mud-simple-table tr:hover td {
+.ohr-dark .mud-simple-table tr:hover td {
     background: rgba(255,255,255,0.03) !important;
 }
 
 /* Dark typography */
-.mud-theme-dark .mud-typography-h4,
-.mud-theme-dark .mud-typography-h5,
-.mud-theme-dark .mud-typography-h6 {
+.ohr-dark .mud-typography-h4,
+.ohr-dark .mud-typography-h5,
+.ohr-dark .mud-typography-h6 {
     color: #f1f5f9 !important;
 }
 
-.mud-theme-dark .mud-typography-body2,
-.mud-theme-dark .mud-typography-caption {
+.ohr-dark .mud-typography-body2,
+.ohr-dark .mud-typography-caption {
     color: #94a3b8 !important;
 }
 
 /* Dark buttons */
-.mud-theme-dark .mud-button-filled.mud-button-filled-primary {
+.ohr-dark .mud-button-filled.mud-button-filled-primary {
     background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%) !important;
 }
 
 /* Dark OhrBigCard */
-.mud-theme-dark .ohr-bigcard {
+.ohr-dark .ohr-bigcard {
     background: #1a2332 !important;
     border-color: #1e293b !important;
 }
 
-.mud-theme-dark .ohr-bigcard:hover {
+.ohr-dark .ohr-bigcard:hover {
     border-color: #38bdf8 !important;
     box-shadow: 0 12px 40px rgba(56, 189, 248, 0.1) !important;
 }
 
 /* Dark FAB */
-.mud-theme-dark .mud-fab {
+.ohr-dark .mud-fab {
     background: linear-gradient(135deg, #0e7490, #0891b2) !important;
     box-shadow: 0 8px 24px rgba(14, 116, 144, 0.3) !important;
 }
 
 /* Dark dividers */
-.mud-theme-dark .mud-divider {
+.ohr-dark .mud-divider {
     border-color: #1e293b !important;
 }
 
 /* Dark popover */
-.mud-theme-dark .mud-popover-paper {
+.ohr-dark .mud-popover-paper {
     background: #1a2332 !important;
     border-color: #1e293b !important;
 }
 
 /* Dark KPI numbers — ensure visibility */
-.mud-theme-dark .mud-typography-h4,
-.mud-theme-dark .mud-typography-h3 {
+.ohr-dark .mud-typography-h4,
+.ohr-dark .mud-typography-h3 {
     color: #f1f5f9 !important;
 }
 
 /* Dark alerts */
-.mud-theme-dark .mud-alert-filled-info { background: rgba(56, 189, 248, 0.1) !important; }
-.mud-theme-dark .mud-alert-filled-success { background: rgba(52, 211, 153, 0.1) !important; }
-.mud-theme-dark .mud-alert-filled-warning { background: rgba(251, 191, 36, 0.1) !important; }
-.mud-theme-dark .mud-alert-filled-error { background: rgba(248, 113, 113, 0.1) !important; }
+.ohr-dark .mud-alert-filled-info { background: rgba(56, 189, 248, 0.1) !important; }
+.ohr-dark .mud-alert-filled-success { background: rgba(52, 211, 153, 0.1) !important; }
+.ohr-dark .mud-alert-filled-warning { background: rgba(251, 191, 36, 0.1) !important; }
+.ohr-dark .mud-alert-filled-error { background: rgba(248, 113, 113, 0.1) !important; }
 
 /* Dark background for main content area — ensure consistency */
-.mud-theme-dark .mud-main-content {
+.ohr-dark .mud-main-content {
     background: #0f1419 !important;
 }
 
-/* Bottom part of page also dark */
-.mud-theme-dark {
+/* CRITICAL: Force dark background on entire viewport */
+.ohr-dark,
+.ohr-dark .mud-layout,
+.ohr-dark .mud-main-content,
+.ohr-dark .mud-container {
     background: #0f1419 !important;
+    color: #e2e8f0 !important;
+}
+
+/* Make the wrapper fill the entire viewport */
+.ohr-dark {
+    min-height: 100vh;
+}
+.ohr-light {
+    min-height: 100vh;
+}
+
+/* All text in dark mode */
+.ohr-dark .mud-typography,
+.ohr-dark p,
+.ohr-dark td,
+.ohr-dark span,
+.ohr-dark div {
+    color: inherit;
+}
+
+/* Ensure strong/bold text is also light */
+.ohr-dark strong,
+.ohr-dark b {
+    color: #f1f5f9 !important;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -542,8 +569,8 @@ body, .mud-layout {
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
-.mud-theme-dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
-.mud-theme-dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.ohr-dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+.ohr-dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 /* ═══════════════════════════════════════════════════════
    RESPONSIVE REFINEMENTS
