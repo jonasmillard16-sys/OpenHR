@@ -1,0 +1,171 @@
+@page "/anstallda/{Id:guid}"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@inject RegionHR.Web.Services.AnstallningService Service
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Anställd</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/anstallda" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+@if (_emp != null)
+{
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">@_emp.Fornamn @_emp.Efternamn</MudText>
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">@_emp.Personnummer.ToMaskedString()</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Edit" Href="@($"/anstallda/{Id}/redigera")"
+                   Style="min-height: 48px;">
+            Redigera
+        </MudButton>
+    </div>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+        <MudTabPanel Text="Personuppgifter" Icon="@Icons.Material.Filled.Person">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h6" Class="mb-3">Kontaktuppgifter</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>E-post</strong></td><td>@(_emp.Epost ?? "—")</td></tr>
+                            <tr><td><strong>Telefon</strong></td><td>@(_emp.Telefon ?? "—")</td></tr>
+                            <tr><td><strong>Adress</strong></td><td>@(_emp.Adress?.Gatuadress ?? "—")</td></tr>
+                            <tr><td><strong>Postnummer</strong></td><td>@(_emp.Adress?.Postnummer ?? "—")</td></tr>
+                            <tr><td><strong>Ort</strong></td><td>@(_emp.Adress?.Ort ?? "—")</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h6" Class="mb-3">Skatteuppgifter</MudText>
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Skattetabell</strong></td><td>@(_emp.Skattetabell?.ToString() ?? "—")</td></tr>
+                            <tr><td><strong>Skattekolumn</strong></td><td>@(_emp.Skattekolumn?.ToString() ?? "—")</td></tr>
+                            <tr><td><strong>Kommun</strong></td><td>@(_emp.Kommun ?? "—")</td></tr>
+                            <tr><td><strong>Kommunalskatt</strong></td><td>@(_emp.KommunalSkattesats.HasValue ? $"{_emp.KommunalSkattesats.Value}%" : "—")</td></tr>
+                            <tr><td><strong>Kyrkoavgift</strong></td><td>@(_emp.HarKyrkoavgift ? $"Ja ({_emp.Kyrkoavgiftssats}%)" : "Nej")</td></tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Anställningar" Icon="@Icons.Material.Filled.Work">
+            @if (_emp.Anstallningar.Count == 0)
+            {
+                <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga anställningar registrerade.</MudText>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead>
+                        <tr>
+                            <th>Form</th>
+                            <th>Befattning</th>
+                            <th>Enhet</th>
+                            <th>Lön</th>
+                            <th>Grad</th>
+                            <th>Från</th>
+                            <th>Till</th>
+                            <th>Avtal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _emp.Anstallningar.OrderByDescending(x => x.Giltighetsperiod.Start))
+                        {
+                            var isActive = a.Giltighetsperiod.IsActiveOn(DateOnly.FromDateTime(DateTime.Today));
+                            <tr>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="@(isActive ? Color.Success : Color.Default)">
+                                        @a.Anstallningsform
+                                    </MudChip>
+                                </td>
+                                <td>@(a.Befattningstitel ?? "—")</td>
+                                <td>@a.EnhetId</td>
+                                <td>@a.Manadslon.Amount.ToString("N0") kr</td>
+                                <td>@a.Sysselsattningsgrad.Value%</td>
+                                <td>@a.Giltighetsperiod.Start.ToString("yyyy-MM-dd")</td>
+                                <td>@(a.Giltighetsperiod.End?.ToString("yyyy-MM-dd") ?? "Tillsvidare")</td>
+                                <td>@a.Kollektivavtal</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Lön" Icon="@Icons.Material.Filled.Payments">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Lönehistorik hämtas från lönekörningar.</MudText>
+            <MudSimpleTable Hover="true" Class="mt-3">
+                <thead>
+                    <tr><th>Period</th><th>Brutto</th><th>Skatt</th><th>Netto</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in _lonehistorik)
+                    {
+                        <tr>
+                            <td>@l.Period</td>
+                            <td>@l.Brutto</td>
+                            <td>@l.Skatt</td>
+                            <td><strong>@l.Netto</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Frånvaro" Icon="@Icons.Material.Filled.EventBusy">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Frånvarohistorik visas här.</MudText>
+        </MudTabPanel>
+
+        <MudTabPanel Text="LAS" Icon="@Icons.Material.Filled.Warning">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">LAS-ackumulering för denna anställd visas här.</MudText>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Kompetens" Icon="@Icons.Material.Filled.School">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Certifieringar och obligatoriska utbildningar visas här.</MudText>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Dokument" Icon="@Icons.Material.Filled.Description">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Anställningskontrakt, intyg och andra dokument visas här.</MudText>
+        </MudTabPanel>
+    </MudTabs>
+}
+else if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudAlert Severity="Severity.Error">Anställd hittades inte.</MudAlert>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private RegionHR.Core.Domain.Employee? _emp;
+    private bool _loading = true;
+    private List<LonRad> _lonehistorik = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _emp = await Service.HamtaAsync(RegionHR.SharedKernel.Domain.EmployeeId.From(Id));
+
+            // Demo salary history — will be replaced by real payroll data
+            _lonehistorik =
+            [
+                new("2026-03", "32 400 kr", "-8 650 kr", "27 650 kr"),
+                new("2026-02", "28 500 kr", "-7 600 kr", "21 420 kr"),
+                new("2026-01", "28 500 kr", "-7 600 kr", "21 420 kr"),
+            ];
+        }
+        catch { }
+        _loading = false;
+    }
+
+    private record LonRad(string Period, string Brutto, string Skatt, string Netto);
+}

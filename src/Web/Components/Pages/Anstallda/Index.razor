@@ -1,0 +1,89 @@
+@page "/anstallda"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@inject RegionHR.Web.Services.AnstallningService Service
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Anställda</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Anställda</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Href="/anstallda/ny" Style="min-height: 48px;">
+        Ny anställd
+    </MudButton>
+</div>
+
+<MudTextField @bind-Value="_sokterm" Label="Sök namn..." Variant="Variant.Outlined"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" DebounceInterval="300"
+              @bind-Value:after="@(() => Sok(_sokterm))" Class="mb-4" />
+
+@if (_anstallda.Count == 0 && !_loading)
+{
+    <MudAlert Severity="Severity.Info">Inga anställda hittades.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Personnummer</th>
+                <th>Befattning</th>
+                <th>Form</th>
+                <th>Grad</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in _anstallda)
+            {
+                <tr style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo($"/anstallda/{a.Id.Value}"))">
+                    <td><strong>@a.Fornamn @a.Efternamn</strong></td>
+                    <td>@a.PersonnummerMaskerat</td>
+                    <td>@a.Befattning</td>
+                    <td>@a.Anstallningsform</td>
+                    <td>@a.Sysselsattningsgrad%</td>
+                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">Öppna</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2" />
+}
+
+@code {
+    private string _sokterm = "";
+    private bool _loading;
+    private List<RegionHR.Web.Services.EmployeeListItem> _anstallda = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LaddaAnstallda();
+    }
+
+    private async Task Sok(string term)
+    {
+        _sokterm = term;
+        await LaddaAnstallda();
+    }
+
+    private async Task LaddaAnstallda()
+    {
+        _loading = true;
+        try
+        {
+            _anstallda = await Service.HamtaAllaAsync(string.IsNullOrWhiteSpace(_sokterm) ? null : _sokterm);
+        }
+        catch
+        {
+            _anstallda = [];
+        }
+        _loading = false;
+    }
+}

@@ -1,6 +1,8 @@
 @page "/minsida/ledighet"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.EmployeeLayout
+@using RegionHR.Web.Services
+@inject SelfServiceApiClient SelfService
 
 <PageTitle>OpenHR - Min ledighet</PageTitle>
 
@@ -51,4 +53,25 @@
     private int _intjanade = 25;
     private int _uttagna = 7;
     private int _sparade = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var balance = await SelfService.GetVacationBalanceAsync(
+                Guid.Empty, DateTime.Today.Year);
+
+            if (balance is not null)
+            {
+                _tillgangliga = balance.TillgangligaDagar;
+                _intjanade = balance.Tilldelning;
+                _uttagna = balance.UttagnaDagar;
+                _sparade = balance.SparadeDagar;
+            }
+        }
+        catch
+        {
+            // Keep demo data as fallback
+        }
+    }
 }

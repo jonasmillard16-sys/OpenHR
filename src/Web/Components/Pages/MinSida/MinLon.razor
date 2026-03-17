@@ -1,6 +1,8 @@
 @page "/minsida/lon"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.EmployeeLayout
+@using RegionHR.Web.Services
+@inject SelfServiceApiClient SelfService
 
 <PageTitle>OpenHR - Min lön</PageTitle>
 
@@ -12,23 +14,23 @@
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">💰 Min lön</MudText>
 
 <MudPaper Class="pa-6 mb-6" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-3">Mars 2026</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">@_senastePeriod</MudText>
     <MudGrid Spacing="3">
         <MudItem xs="6" sm="3">
             <MudText Typo="Typo.caption">Bruttolön</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">32 400 kr</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_senasteBrutto)</MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudText Typo="Typo.caption">Skatt</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">-8 650 kr</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">-@FormatKr(_senasteSkatt)</MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudText Typo="Typo.caption">Tillägg</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-success);">+3 900 kr</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-success);">+@FormatKr(_senasteTillagg)</MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudText Typo="Typo.caption">Nettolön</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">27 650 kr</MudText>
+            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@FormatKr(_senasteNetto)</MudText>
         </MudItem>
     </MudGrid>
 
@@ -63,9 +65,41 @@
 
 @code {
     private List<LonPeriod> _historik = [];
+    private string _senastePeriod = "Mars 2026";
+    private decimal _senasteBrutto = 32_400m;
+    private decimal _senasteSkatt = 8_650m;
+    private decimal _senasteTillagg = 3_900m;
+    private decimal _senasteNetto = 27_650m;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var data = await SelfService.GetSalaryHistoryAsync(
+                EmployeeId.From(Guid.Empty));
+
+            if (data.Count > 0)
+            {
+                var senaste = data[0];
+                _senastePeriod = senaste.Period;
+                _senasteBrutto = senaste.Brutto;
+                _senasteSkatt = senaste.Skatt;
+                _senasteTillagg = senaste.OBTillagg + senaste.Overtid;
+                _senasteNetto = senaste.Netto;
+
+                _historik = data.Skip(1).Select(r => new LonPeriod(
+                    r.Period,
+                    FormatKr(r.Brutto),
+                    FormatKr(r.Netto)
+                )).ToList();
+                return;
+            }
+        }
+        catch
+        {
+            // Fallback to demo data
+        }
+
         _historik =
         [
             new("Februari 2026", "28 500 kr", "21 420 kr"),
@@ -75,6 +109,9 @@
             new("Oktober 2025", "29 100 kr", "21 870 kr"),
         ];
     }
+
+    private static string FormatKr(decimal belopp) =>
+        $"{belopp:N0} kr".Replace(",", " ");
 
     private record LonPeriod(string Period, string Brutto, string Netto);
 }

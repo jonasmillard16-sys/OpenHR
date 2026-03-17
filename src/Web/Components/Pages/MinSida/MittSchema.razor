@@ -1,6 +1,8 @@
 @page "/minsida/schema"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.EmployeeLayout
+@using RegionHR.Web.Services
+@inject SelfServiceApiClient SelfService
 
 <PageTitle>OpenHR - Mitt schema</PageTitle>
 
@@ -50,8 +52,38 @@
 @code {
     private List<SchemaRad> _veckoschema = [];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var shifts = await SelfService.GetUpcomingShiftsAsync(
+                EmployeeId.From(Guid.Empty));
+
+            if (shifts.Count > 0)
+            {
+                _veckoschema = shifts.Select(s => new SchemaRad(
+                    s.DagNamn,
+                    s.PassTyp,
+                    $"{s.Start} - {s.Slut}",
+                    $"{(int)s.Rast.TotalMinutes} min",
+                    s.Timmar.ToString("0.##").Replace('.', ','),
+                    s.PassTyp switch
+                    {
+                        "Dag" => Color.Info,
+                        "Kvall" => Color.Warning,
+                        "Natt" => Color.Error,
+                        _ => Color.Default
+                    },
+                    false
+                )).ToList();
+                return;
+            }
+        }
+        catch
+        {
+            // Fallback to demo data
+        }
+
         _veckoschema =
         [
             new("Måndag 17/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),

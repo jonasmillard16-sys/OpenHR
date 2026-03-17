@@ -1,6 +1,8 @@
 @page "/minsida/arenden"
 @rendermode InteractiveServer
 @layout RegionHR.Web.Components.Layout.EmployeeLayout
+@using RegionHR.Web.Services
+@inject SelfServiceApiClient SelfService
 
 <PageTitle>OpenHR - Mina pågående saker</PageTitle>
 
@@ -41,8 +43,39 @@ else
 @code {
     private List<ArendeRad> _arenden = [];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var cases = await SelfService.GetMyCasesAsync(
+                EmployeeId.From(Guid.Empty));
+
+            if (cases.Count > 0)
+            {
+                _arenden = cases.Select(c => new ArendeRad(
+                    c.Typ,
+                    c.Beskrivning,
+                    c.Status,
+                    c.Datum,
+                    c.Status switch
+                    {
+                        "Godkand" => Color.Success,
+                        "Avslutad" => Color.Success,
+                        "VantarGodkannande" => Color.Warning,
+                        "UnderBehandling" => Color.Info,
+                        "Avslagen" => Color.Error,
+                        "Makulerad" => Color.Error,
+                        _ => Color.Default
+                    }
+                )).ToList();
+                return;
+            }
+        }
+        catch
+        {
+            // Fallback to demo data
+        }
+
         _arenden =
         [
             new("Semesteransökan", "Semester vecka 28-29", "Väntar på godkännande", "2026-03-10", Color.Warning),

@@ -1,0 +1,134 @@
+@page "/anstallda/{Id:guid}/redigera"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@inject RegionHR.Web.Services.AnstallningService Service
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Redigera anställd</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="@($"/anstallda/{Id}")" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Redigera — @_fornamn @_efternamn</MudText>
+
+@if (_laddad)
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Kontaktuppgifter</MudText>
+                <MudTextField @bind-Value="_epost" Label="E-post" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_adress" Label="Gatuadress" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_postnummer" Label="Postnummer" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_ort" Label="Ort" Variant="Variant.Outlined" Class="mb-3" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Skatteuppgifter</MudText>
+                <MudNumericField @bind-Value="_skattetabell" Label="Skattetabell" Variant="Variant.Outlined" Class="mb-3" Min="29" Max="40" />
+                <MudNumericField @bind-Value="_skattekolumn" Label="Skattekolumn" Variant="Variant.Outlined" Class="mb-3" Min="1" Max="6" />
+                <MudTextField @bind-Value="_kommun" Label="Kommun" Variant="Variant.Outlined" Class="mb-3" />
+                <MudNumericField @bind-Value="_kommunalSkattesats" Label="Kommunalskatt (%)" Variant="Variant.Outlined" Class="mb-3" Min="0m" Max="100m" Step="0.01m" />
+                <MudCheckBox @bind-Value="_harKyrkoavgift" Label="Kyrkoavgift" Class="mb-3" />
+                @if (_harKyrkoavgift)
+                {
+                    <MudNumericField @bind-Value="_kyrkoavgiftssats" Label="Kyrkoavgiftssats (%)" Variant="Variant.Outlined" Class="mb-3" Min="0m" Max="10m" Step="0.01m" />
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex gap-3 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="Spara" Disabled="_sparar">
+            @(_sparar ? "Sparar..." : "Spara ändringar")
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   Style="min-height: 48px;" Href="@($"/anstallda/{Id}")">
+            Avbryt
+        </MudButton>
+    </div>
+
+    @if (_sparad)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">Ändringarna har sparats.</MudAlert>
+    }
+    @if (_felmeddelande is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@_felmeddelande</MudAlert>
+    }
+}
+else
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private string _fornamn = "", _efternamn = "";
+    private string _epost = "", _telefon = "";
+    private string _adress = "", _postnummer = "", _ort = "";
+    private int _skattetabell = 30, _skattekolumn = 1;
+    private string _kommun = "";
+    private decimal _kommunalSkattesats;
+    private bool _harKyrkoavgift;
+    private decimal? _kyrkoavgiftssats;
+    private bool _laddad;
+    private bool _sparar;
+    private bool _sparad;
+    private string? _felmeddelande;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var emp = await Service.HamtaAsync(RegionHR.SharedKernel.Domain.EmployeeId.From(Id));
+            if (emp != null)
+            {
+                _fornamn = emp.Fornamn;
+                _efternamn = emp.Efternamn;
+                _epost = emp.Epost ?? "";
+                _telefon = emp.Telefon ?? "";
+                _adress = emp.Adress?.Gatuadress ?? "";
+                _postnummer = emp.Adress?.Postnummer ?? "";
+                _ort = emp.Adress?.Ort ?? "";
+                _skattetabell = emp.Skattetabell ?? 30;
+                _skattekolumn = emp.Skattekolumn ?? 1;
+                _kommun = emp.Kommun ?? "";
+                _kommunalSkattesats = emp.KommunalSkattesats ?? 0m;
+                _harKyrkoavgift = emp.HarKyrkoavgift;
+                _kyrkoavgiftssats = emp.Kyrkoavgiftssats;
+            }
+        }
+        catch { }
+        _laddad = true;
+    }
+
+    private async Task Spara()
+    {
+        _sparar = true;
+        _sparad = false;
+        _felmeddelande = null;
+        try
+        {
+            var empId = RegionHR.SharedKernel.Domain.EmployeeId.From(Id);
+            var adress = string.IsNullOrWhiteSpace(_adress) && string.IsNullOrWhiteSpace(_postnummer) && string.IsNullOrWhiteSpace(_ort)
+                ? null
+                : new RegionHR.Core.Domain.Address(_adress, _postnummer, _ort);
+            await Service.UppdateraKontaktuppgifterMedAdressAsync(empId, _epost, _telefon, adress);
+            await Service.UppdateraSkatteuppgifterAsync(empId, _skattetabell, _skattekolumn, _kommun, _kommunalSkattesats, _harKyrkoavgift, _kyrkoavgiftssats);
+            _sparad = true;
+        }
+        catch (Exception ex)
+        {
+            _felmeddelande = $"Kunde inte spara: {ex.Message}";
+        }
+        finally
+        {
+            _sparar = false;
+        }
+    }
+}
