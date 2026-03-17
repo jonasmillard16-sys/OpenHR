@@ -1,0 +1,556 @@
+/* ═══════════════════════════════════════════════════════
+   OpenHR Nordic Refined Theme
+   Scandinavian-inspired: warm, clean, sophisticated
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT MODE
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+    --ohr-font: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+    --ohr-font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+
+    /* Surface system — warm greys, not cold */
+    --ohr-bg: #f6f5f2;
+    --ohr-bg-card: #ffffff;
+    --ohr-bg-sidebar: #fafaf8;
+    --ohr-bg-appbar: #1b2838;
+    --ohr-bg-hover: rgba(0,0,0,0.03);
+    --ohr-bg-active: rgba(27, 100, 140, 0.08);
+
+    /* Text — not pure black */
+    --ohr-text: #1a1a2e;
+    --ohr-text-secondary: #6b7280;
+    --ohr-text-muted: #9ca3af;
+
+    /* Brand — teal-petrol instead of dark navy */
+    --ohr-primary: #0e7490;
+    --ohr-primary-light: #ecfeff;
+    --ohr-primary-hover: #0c6078;
+    --ohr-accent: #f59e0b;
+    --ohr-accent-light: #fffbeb;
+
+    /* Status — richer, more saturated */
+    --ohr-success: #059669;
+    --ohr-success-bg: #ecfdf5;
+    --ohr-warning: #d97706;
+    --ohr-warning-bg: #fffbeb;
+    --ohr-error: #dc2626;
+    --ohr-error-bg: #fef2f2;
+    --ohr-info: #0284c7;
+    --ohr-info-bg: #f0f9ff;
+
+    /* Borders — softer */
+    --ohr-border: #e5e5e0;
+    --ohr-border-hover: #d1d1cc;
+
+    /* Shadows — warm tinted */
+    --ohr-shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03);
+    --ohr-shadow-md: 0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+    --ohr-shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    --ohr-shadow-glow: 0 0 0 3px rgba(14, 116, 144, 0.12);
+
+    /* Radius — more rounded for friendliness */
+    --ohr-radius: 12px;
+    --ohr-radius-lg: 16px;
+    --ohr-radius-xl: 20px;
+}
+
+/* ── Global ── */
+body, .mud-layout {
+    font-family: var(--ohr-font) !important;
+    background: var(--ohr-bg) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── AppBar — deep dark with subtle glass ── */
+.mud-appbar {
+    background: var(--ohr-bg-appbar) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+}
+
+.mud-appbar .mud-typography-h6 {
+    font-family: var(--ohr-font) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+    font-size: 1.2rem !important;
+}
+
+/* ── Sidebar — warm and clean ── */
+.mud-drawer {
+    background: var(--ohr-bg-sidebar) !important;
+    border-right: 1px solid var(--ohr-border) !important;
+    box-shadow: none !important;
+}
+
+.mud-nav-link {
+    font-family: var(--ohr-font) !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    border-radius: 10px !important;
+    margin: 2px 8px !important;
+    padding: 10px 16px !important;
+    color: var(--ohr-text-secondary) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mud-nav-link:hover {
+    background: var(--ohr-bg-hover) !important;
+    color: var(--ohr-text) !important;
+}
+
+.mud-nav-link.active {
+    background: var(--ohr-bg-active) !important;
+    color: var(--ohr-primary) !important;
+    font-weight: 600 !important;
+}
+
+.mud-nav-link .mud-nav-link-icon {
+    color: inherit !important;
+    opacity: 0.7;
+}
+
+.mud-nav-link.active .mud-nav-link-icon {
+    opacity: 1;
+}
+
+/* Nav group titles */
+.mud-nav-group .mud-nav-link {
+    font-weight: 600 !important;
+    color: var(--ohr-text) !important;
+}
+
+.mud-divider {
+    border-color: var(--ohr-border) !important;
+    opacity: 0.5;
+}
+
+/* ── Cards & Paper — warm shadows ── */
+.mud-paper {
+    font-family: var(--ohr-font) !important;
+    border-radius: var(--ohr-radius) !important;
+    border: 1px solid var(--ohr-border) !important;
+    box-shadow: var(--ohr-shadow-sm) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mud-paper:hover {
+    box-shadow: var(--ohr-shadow-md) !important;
+}
+
+.mud-paper.mud-elevation-0 {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.mud-paper.mud-elevation-1 {
+    box-shadow: var(--ohr-shadow-sm) !important;
+}
+
+.mud-paper.mud-elevation-2 {
+    box-shadow: var(--ohr-shadow-md) !important;
+}
+
+.mud-paper.mud-elevation-3 {
+    box-shadow: var(--ohr-shadow-lg) !important;
+}
+
+/* ── Typography — Plus Jakarta Sans ── */
+.mud-typography {
+    font-family: var(--ohr-font) !important;
+}
+
+.mud-typography-h4 {
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+    color: var(--ohr-text) !important;
+}
+
+.mud-typography-h5 {
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+}
+
+.mud-typography-h6 {
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.mud-typography-subtitle1 {
+    font-weight: 600 !important;
+}
+
+.mud-typography-body2, .mud-typography-caption {
+    color: var(--ohr-text-secondary) !important;
+}
+
+/* ── Buttons — refined ── */
+.mud-button-filled {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-family: var(--ohr-font) !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none !important;
+    box-shadow: var(--ohr-shadow-sm) !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mud-button-filled:hover {
+    box-shadow: var(--ohr-shadow-md) !important;
+    transform: translateY(-1px);
+}
+
+.mud-button-filled:active {
+    transform: translateY(0);
+}
+
+.mud-button-filled.mud-button-filled-primary {
+    background: linear-gradient(135deg, var(--ohr-primary) 0%, var(--ohr-primary-hover) 100%) !important;
+}
+
+.mud-button-outlined {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-family: var(--ohr-font) !important;
+    text-transform: none !important;
+    border-width: 1.5px !important;
+}
+
+.mud-button-text {
+    font-weight: 600 !important;
+    font-family: var(--ohr-font) !important;
+    text-transform: none !important;
+    border-radius: 10px !important;
+}
+
+/* ── Chips — pill shaped ── */
+.mud-chip {
+    font-family: var(--ohr-font) !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    letter-spacing: 0 !important;
+}
+
+/* ── Tables — cleaner ── */
+.mud-simple-table {
+    border-radius: var(--ohr-radius) !important;
+    overflow: hidden;
+}
+
+.mud-simple-table th {
+    font-family: var(--ohr-font) !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--ohr-text-muted) !important;
+    background: var(--ohr-bg) !important;
+    border-bottom: 2px solid var(--ohr-border) !important;
+    padding: 12px 16px !important;
+}
+
+.mud-simple-table td {
+    font-family: var(--ohr-font) !important;
+    padding: 14px 16px !important;
+    border-bottom: 1px solid var(--ohr-border) !important;
+}
+
+.mud-simple-table tr:last-child td {
+    border-bottom: none !important;
+}
+
+.mud-simple-table tr:hover td {
+    background: var(--ohr-bg-hover) !important;
+}
+
+/* ── Alerts — refined ── */
+.mud-alert {
+    border-radius: var(--ohr-radius) !important;
+    font-family: var(--ohr-font) !important;
+}
+
+/* ── Text Fields — cleaner ── */
+.mud-input, .mud-input-control {
+    font-family: var(--ohr-font) !important;
+}
+
+.mud-input-outlined .mud-input-outlined-border {
+    border-radius: 10px !important;
+}
+
+/* ── Progress bar ── */
+.mud-progress-linear {
+    border-radius: 99px !important;
+}
+
+/* ── Tab panels ── */
+.mud-tabs {
+    border-radius: var(--ohr-radius) !important;
+}
+
+/* ── OhrBigCard hover effect ── */
+.ohr-bigcard {
+    border: 1px solid var(--ohr-border) !important;
+    border-radius: var(--ohr-radius-lg) !important;
+    background: var(--ohr-bg-card) !important;
+    box-shadow: var(--ohr-shadow-sm) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ohr-bigcard:hover {
+    box-shadow: var(--ohr-shadow-lg) !important;
+    transform: translateY(-4px) !important;
+    border-color: var(--ohr-primary) !important;
+}
+
+/* ── FAB (FRÅGA OPENHR) ── */
+.mud-fab {
+    border-radius: 16px !important;
+    font-family: var(--ohr-font) !important;
+    font-weight: 700 !important;
+    text-transform: none !important;
+    box-shadow: var(--ohr-shadow-lg) !important;
+    background: linear-gradient(135deg, var(--ohr-primary), #0c6078) !important;
+}
+
+.mud-fab:hover {
+    box-shadow: 0 16px 48px rgba(14, 116, 144, 0.25) !important;
+    transform: translateY(-2px);
+}
+
+/* ── Main content area ── */
+.mud-main-content {
+    background: var(--ohr-bg) !important;
+}
+
+/* ── Menu dropdowns ── */
+.mud-menu .mud-list {
+    border-radius: var(--ohr-radius) !important;
+}
+
+.mud-popover-paper {
+    border-radius: var(--ohr-radius) !important;
+    box-shadow: var(--ohr-shadow-lg) !important;
+    border: 1px solid var(--ohr-border) !important;
+}
+
+/* ── Search field in AppBar ── */
+.white-text-field .mud-input {
+    color: rgba(255,255,255,0.95) !important;
+}
+
+.white-text-field input::placeholder {
+    color: rgba(255,255,255,0.5) !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DARK MODE — Deep midnight with warmth
+   ═══════════════════════════════════════════════════════ */
+
+.mud-theme-dark {
+    --ohr-bg: #0f1419 !important;
+    --ohr-bg-card: #1a2332 !important;
+    --ohr-bg-sidebar: #141c27 !important;
+    --ohr-bg-appbar: #0d1117 !important;
+    --ohr-bg-hover: rgba(255,255,255,0.04) !important;
+    --ohr-bg-active: rgba(56, 189, 248, 0.1) !important;
+    --ohr-text: #e2e8f0 !important;
+    --ohr-text-secondary: #94a3b8 !important;
+    --ohr-text-muted: #64748b !important;
+    --ohr-primary: #38bdf8 !important;
+    --ohr-primary-light: #0c4a6e !important;
+    --ohr-accent: #fbbf24 !important;
+    --ohr-border: #1e293b !important;
+    --ohr-border-hover: #334155 !important;
+    --ohr-shadow-sm: 0 1px 3px rgba(0,0,0,0.3) !important;
+    --ohr-shadow-md: 0 4px 12px rgba(0,0,0,0.3) !important;
+    --ohr-shadow-lg: 0 12px 40px rgba(0,0,0,0.4) !important;
+}
+
+.mud-theme-dark body,
+.mud-theme-dark .mud-layout,
+.mud-theme-dark .mud-main-content {
+    background: #0f1419 !important;
+}
+
+/* Dark sidebar */
+.mud-theme-dark .mud-drawer {
+    background: #141c27 !important;
+    border-right: 1px solid #1e293b !important;
+}
+
+.mud-theme-dark .mud-nav-link {
+    color: #94a3b8 !important;
+}
+
+.mud-theme-dark .mud-nav-link:hover {
+    background: rgba(255,255,255,0.04) !important;
+    color: #e2e8f0 !important;
+}
+
+.mud-theme-dark .mud-nav-link.active {
+    background: rgba(56, 189, 248, 0.1) !important;
+    color: #38bdf8 !important;
+}
+
+.mud-theme-dark .mud-nav-group .mud-nav-link {
+    color: #e2e8f0 !important;
+}
+
+/* Dark AppBar */
+.mud-theme-dark .mud-appbar {
+    background: #0d1117 !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+/* Dark cards */
+.mud-theme-dark .mud-paper {
+    background: #1a2332 !important;
+    border-color: #1e293b !important;
+}
+
+.mud-theme-dark .mud-paper:hover {
+    border-color: #334155 !important;
+}
+
+/* Dark tables */
+.mud-theme-dark .mud-simple-table th {
+    background: #141c27 !important;
+    color: #64748b !important;
+    border-bottom-color: #1e293b !important;
+}
+
+.mud-theme-dark .mud-simple-table td {
+    border-bottom-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+.mud-theme-dark .mud-simple-table tr:hover td {
+    background: rgba(255,255,255,0.03) !important;
+}
+
+/* Dark typography */
+.mud-theme-dark .mud-typography-h4,
+.mud-theme-dark .mud-typography-h5,
+.mud-theme-dark .mud-typography-h6 {
+    color: #f1f5f9 !important;
+}
+
+.mud-theme-dark .mud-typography-body2,
+.mud-theme-dark .mud-typography-caption {
+    color: #94a3b8 !important;
+}
+
+/* Dark buttons */
+.mud-theme-dark .mud-button-filled.mud-button-filled-primary {
+    background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%) !important;
+}
+
+/* Dark OhrBigCard */
+.mud-theme-dark .ohr-bigcard {
+    background: #1a2332 !important;
+    border-color: #1e293b !important;
+}
+
+.mud-theme-dark .ohr-bigcard:hover {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 12px 40px rgba(56, 189, 248, 0.1) !important;
+}
+
+/* Dark FAB */
+.mud-theme-dark .mud-fab {
+    background: linear-gradient(135deg, #0e7490, #0891b2) !important;
+    box-shadow: 0 8px 24px rgba(14, 116, 144, 0.3) !important;
+}
+
+/* Dark dividers */
+.mud-theme-dark .mud-divider {
+    border-color: #1e293b !important;
+}
+
+/* Dark popover */
+.mud-theme-dark .mud-popover-paper {
+    background: #1a2332 !important;
+    border-color: #1e293b !important;
+}
+
+/* Dark KPI numbers — ensure visibility */
+.mud-theme-dark .mud-typography-h4,
+.mud-theme-dark .mud-typography-h3 {
+    color: #f1f5f9 !important;
+}
+
+/* Dark alerts */
+.mud-theme-dark .mud-alert-filled-info { background: rgba(56, 189, 248, 0.1) !important; }
+.mud-theme-dark .mud-alert-filled-success { background: rgba(52, 211, 153, 0.1) !important; }
+.mud-theme-dark .mud-alert-filled-warning { background: rgba(251, 191, 36, 0.1) !important; }
+.mud-theme-dark .mud-alert-filled-error { background: rgba(248, 113, 113, 0.1) !important; }
+
+/* Dark background for main content area — ensure consistency */
+.mud-theme-dark .mud-main-content {
+    background: #0f1419 !important;
+}
+
+/* Bottom part of page also dark */
+.mud-theme-dark {
+    background: #0f1419 !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS & INTERACTIONS
+   ═══════════════════════════════════════════════════════ */
+
+/* Smooth page transitions */
+.mud-main-content > .mud-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth sidebar hover */
+.mud-nav-link {
+    transition: all 0.15s ease !important;
+}
+
+/* Focus ring — teal glow */
+*:focus-visible {
+    outline: 2px solid var(--ohr-primary) !important;
+    outline-offset: 2px !important;
+    border-radius: 8px;
+}
+
+/* Selection color */
+::selection {
+    background: rgba(14, 116, 144, 0.2);
+    color: inherit;
+}
+
+/* Scrollbar — thin and subtle */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+.mud-theme-dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+.mud-theme-dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE REFINEMENTS
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 960px) {
+    .mud-drawer {
+        box-shadow: var(--ohr-shadow-lg) !important;
+    }
+}
