@@ -1,0 +1,23 @@
+@page "/stampling"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Instämpling</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Instämpling idag</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@DateTime.Today.ToString("dddd d MMMM yyyy")</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">42</MudText><MudText Typo="Typo.body2">Instämplade</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Sena ankomster</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">2</MudText><MudText Typo="Typo.body2">Saknar stämpling</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>Namn</th><th>Planerat</th><th>Stämplat in</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>Anna Svensson</td><td>07:00</td><td>06:55</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
+        <tr><td>Lisa Holm</td><td>07:00</td><td>07:12</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Sen</MudChip></td></tr>
+        <tr><td>Karl Berg</td><td>07:00</td><td>—</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Saknas</MudChip></td></tr>
+        <tr><td>Maria Lindgren</td><td>07:00</td><td>06:58</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>

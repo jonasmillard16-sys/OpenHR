@@ -1,0 +1,19 @@
+@page "/schema/atl"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - ATL-efterlevnad</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">ATL-efterlevnad</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Arbetstidslagens efterlevnad per anställd</MudText>
+
+<MudAlert Severity="Severity.Success" Class="mb-4">✅ Inga aktiva ATL-överträdelser</MudAlert>
+
+<MudText Typo="Typo.h6" Class="mb-3">Nära gränsvärden</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Anställd</th><th>Regel</th><th>Gräns</th><th>Aktuellt</th><th>Marginal</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Erik Lindberg</strong></td><td>Veckoarbetstid (4v snitt)</td><td>48h</td><td>47h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">1h kvar</MudChip></td></tr>
+        <tr><td><strong>Sara Karlsson</strong></td><td>Årsövertid</td><td>200h</td><td>185h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">15h kvar</MudChip></td></tr>
+        <tr><td><strong>Anders Olsson</strong></td><td>Dygnsvila</td><td>11h (9h sjukvård)</td><td>9,5h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">OK (sjukvårdsundantag)</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>

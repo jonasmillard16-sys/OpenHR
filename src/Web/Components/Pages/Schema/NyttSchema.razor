@@ -1,0 +1,88 @@
+@page "/schema/ny"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Skapa schema</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/schema" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
+    @switch (_step)
+    {
+        case 0:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken period?</MudText>
+            <MudStack Spacing="3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                           Style="min-height: 64px; font-size: 1.25rem;" OnClick="@(() => { _period = "April 2026"; _step = 1; })">
+                    April 2026
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                           Style="min-height: 56px;" OnClick="@(() => { _period = "Maj 2026"; _step = 1; })">
+                    Maj 2026
+                </MudButton>
+            </MudStack>
+            break;
+        case 1:
+            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken enhet?</MudText>
+            <MudStack Spacing="3">
+                @foreach (var enhet in new[] { "Medicinkliniken (alla)", "Avdelning 32", "Avdelning 33", "Akutmottagningen", "IVA" })
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                               Style="min-height: 56px;" OnClick="@(() => { _enhet = enhet; _step = 2; })">
+                        @enhet
+                    </MudButton>
+                }
+            </MudStack>
+            break;
+        case 2:
+            <div style="text-align: center; padding: 2rem 0;">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6" Class="mt-4">Skapar schema för @_enhet — @_period</MudText>
+                <MudStack Spacing="1" Class="mt-3" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Kontrollerar vilka som kan jobba</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Kollar viloregler (ATL)</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Säkerställer minimibemanning</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">⏳ Optimerar...</MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6"
+                           OnClick="@(() => _step = 3)">
+                    Visa resultat
+                </MudButton>
+            </div>
+            break;
+        case 3:
+            <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: 600;">Förslag till schema — @_period</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4">@_enhet</MudText>
+            <MudAlert Severity="Severity.Success" Class="mb-4">✅ 847 av 850 pass tillsatta. Alla lagkrav uppfyllda.</MudAlert>
+
+            <OhrSuggestionCard Title="Avd 32 — nattpass 15-17 april"
+                              Explanation="Det saknas 1 sjuksköterska. Förslag: Fråga Anna Svensson eller Karl Berg — de har inga pass de nätterna."
+                              Level="OhrSuggestionCard.SuggestionLevel.Warning"
+                              Actions="@(new Dictionary<string, string> { ["anna"] = "Fråga Anna", ["karl"] = "Fråga Karl" })" />
+
+            <OhrSuggestionCard Title="Erik Lindberg — vecka 16"
+                              Explanation="Han har redan jobbat 47 av max 48 timmar den veckan. Förslag: Flytta hans lördagspass till vecka 17."
+                              Level="OhrSuggestionCard.SuggestionLevel.Warning"
+                              Actions="@(new Dictionary<string, string> { ["flytta"] = "Flytta", ["behall"] = "Behåll ändå" })" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
+                       Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4"
+                       Href="/schema">
+                Publicera schema
+            </MudButton>
+            <MudText Typo="Typo.body2" Class="mt-2 text-center" Style="color: var(--mud-palette-text-secondary);">
+                Alla anställda meddelas automatiskt.
+            </MudText>
+            break;
+    }
+</OhrConversationFlow>
+
+@code {
+    private readonly List<string> _steps = ["Period", "Enhet", "Genererar...", "Resultat"];
+    private int _step;
+    private string _period = "";
+    private string _enhet = "";
+}

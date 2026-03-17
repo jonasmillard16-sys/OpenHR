@@ -1,0 +1,74 @@
+@page "/schema"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Schemaöversikt</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Schemaöversikt</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Href="/schema/ny" Style="min-height: 48px;">
+        Skapa schema
+    </MudButton>
+</div>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">847</MudText>
+            <MudText Typo="Typo.body2">Pass denna vecka</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">98%</MudText>
+            <MudText Typo="Typo.body2">Bemanningsgrad</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">3</MudText>
+            <MudText Typo="Typo.body2">Obesatta pass</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">0</MudText>
+            <MudText Typo="Typo.body2">ATL-överträdelser</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Vecka 12 — Alla enheter</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Enhet</th><th>Mån</th><th>Tis</th><th>Ons</th><th>Tor</th><th>Fre</th><th>Lör</th><th>Sön</th></tr></thead>
+    <tbody>
+        @foreach (var e in _enheter)
+        {
+            <tr>
+                <td><strong>@e.Namn</strong></td>
+                @foreach (var d in e.Dagar)
+                {
+                    <td style="text-align: center;">
+                        <MudChip T="string" Size="Size.Small" Color="@d.Farg" Style="min-width: 40px;">@d.Antal</MudChip>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<EnhetSchema> _enheter = [];
+    protected override void OnInitialized()
+    {
+        _enheter = [
+            new("Avdelning 32", [new(8, Color.Success), new(8, Color.Success), new(7, Color.Warning), new(8, Color.Success), new(8, Color.Success), new(6, Color.Warning), new(6, Color.Warning)]),
+            new("Avdelning 33", [new(6, Color.Success), new(6, Color.Success), new(6, Color.Success), new(5, Color.Warning), new(6, Color.Success), new(4, Color.Success), new(4, Color.Success)]),
+            new("Akutmottagningen", [new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(10, Color.Success), new(10, Color.Success)]),
+            new("IVA", [new(10, Color.Success), new(10, Color.Success), new(10, Color.Success), new(10, Color.Success), new(8, Color.Warning), new(7, Color.Error), new(7, Color.Error)]),
+        ];
+    }
+    private record DagData(int Antal, Color Farg);
+    private record EnhetSchema(string Namn, List<DagData> Dagar);
+}

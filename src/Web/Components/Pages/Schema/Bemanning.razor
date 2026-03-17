@@ -1,0 +1,37 @@
+@page "/schema/bemanning"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Bemanningsöversikt</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bemanningsöversikt</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Realtid — alla enheter</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Enhet</th><th>Dag (07-16)</th><th>Kväll (15-22)</th><th>Natt (21-07)</th><th>Status</th></tr></thead>
+    <tbody>
+        @foreach (var e in _enheter)
+        {
+            <tr>
+                <td><strong>@e.Namn</strong></td>
+                <td>@e.Dag</td>
+                <td>@e.Kvall</td>
+                <td>@e.Natt</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@e.StatusFarg">@e.Status</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    private List<EnhetBemanning> _enheter = [];
+    protected override void OnInitialized()
+    {
+        _enheter = [
+            new("Avdelning 32", "8/8", "5/6", "4/4", "Delvis", Color.Warning),
+            new("Avdelning 33", "6/6", "4/4", "3/3", "Full", Color.Success),
+            new("Akutmottagningen", "12/12", "10/10", "8/8", "Full", Color.Success),
+            new("IVA", "10/10", "7/8", "6/7", "Underbem.", Color.Error),
+        ];
+    }
+    private record EnhetBemanning(string Namn, string Dag, string Kvall, string Natt, string Status, Color StatusFarg);
+}
