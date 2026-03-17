@@ -1,21 +1,23 @@
+@rendermode InteractiveServer
+
 <MudNavMenu Bordered="true" Class="py-2">
     <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Start</MudNavLink>
 
-    <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People" Expanded="false">
+    <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People" @bind-Expanded="_personalOpen">
         <MudNavLink Href="/anstallda">Anställda</MudNavLink>
         <MudNavLink Href="/organisation">Organisation</MudNavLink>
         <MudNavLink Href="/positioner">Positioner</MudNavLink>
         <MudNavLink Href="/kompetens">Kompetensregister</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments" Expanded="false">
+    <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments" @bind-Expanded="_lonOpen">
         <MudNavLink Href="/lon/korningar">Lönekörningar</MudNavLink>
         <MudNavLink Href="/lon/lonearter">Lönearter</MudNavLink>
         <MudNavLink Href="/loneoversyn">Löneöversyn</MudNavLink>
         <MudNavLink Href="/lon/statistik">Statistik</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth" Expanded="false">
+    <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth" @bind-Expanded="_schemaOpen">
         <MudNavLink Href="/schema">Schemaöversikt</MudNavLink>
         <MudNavLink Href="/schema/bemanning">Bemanning</MudNavLink>
         <MudNavLink Href="/stampling">Instämpling</MudNavLink>
@@ -41,3 +43,9 @@
     <MudDivider Class="my-2" />
     <MudNavLink Href="/minsida" Icon="@Icons.Material.Filled.AccountCircle">Min sida</MudNavLink>
 </MudNavMenu>
+
+@code {
+    private bool _personalOpen;
+    private bool _lonOpen;
+    private bool _schemaOpen;
+}
