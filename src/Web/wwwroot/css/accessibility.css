@@ -1,0 +1,56 @@
+/* WCAG 2.1 AA — OpenHR Accessibility Overrides */
+
+/* Ensure minimum touch target size 44x44px (WCAG 2.5.8) */
+.mud-button, .mud-icon-button, .mud-chip, .mud-nav-link {
+    min-height: 44px !important;
+}
+
+/* High contrast focus indicator (WCAG 2.4.7) */
+*:focus-visible {
+    outline: 3px solid #2e86c1 !important;
+    outline-offset: 2px !important;
+}
+
+/* Ensure text is not too small (WCAG 1.4.4) */
+body {
+    font-size: 1.125rem; /* 18px base */
+    line-height: 1.6;
+}
+
+/* Ensure sufficient color contrast for text (WCAG 1.4.3) */
+.mud-typography-body2 {
+    color: #34495e !important; /* Darker than default secondary text */
+}
+
+/* Skip-to-content link */
+.rhr-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 9999;
+    padding: 1rem 2rem;
+    background: #1a5276;
+    color: white;
+    font-size: 1.125rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+}
+.rhr-skip-link:focus {
+    left: 0;
+}
+
+/* Ensure table headers are distinguishable */
+th {
+    font-weight: 700 !important;
+    background-color: #f8f9fa;
+}
+
+/* Reduce motion for users who prefer it (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
