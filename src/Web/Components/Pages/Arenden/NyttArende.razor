@@ -1,0 +1,100 @@
+@page "/arenden/nytt"
+@rendermode InteractiveServer
+@inject RegionHR.Web.Services.ArendeService ArendeService
+@inject NavigationManager Nav
+
+<PageTitle>Nytt ärende - RegionHR</PageTitle>
+
+<h1>Nytt frånvaroärende</h1>
+
+<RhrCard>
+    <Header>Frånvaroinformation</Header>
+    <ChildContent>
+        @if (_felmeddelande is not null)
+        {
+            <RhrAlert Variant="danger">@_felmeddelande</RhrAlert>
+        }
+        @if (_sparat)
+        {
+            <RhrAlert Variant="success">Ärende skapat och skickat för godkännande!</RhrAlert>
+        }
+
+        <div class="rhr-grid rhr-grid--2" style="gap: 1rem;">
+            <div>
+                <label class="rhr-label">Frånvarotyp</label>
+                <select class="rhr-input" @bind="_franvaroTyp">
+                    <option value="Semester">Semester</option>
+                    <option value="Sjukfranvaro">Sjukfrånvaro</option>
+                    <option value="VAB">VAB</option>
+                    <option value="Foraldraledighet">Föräldraledighet</option>
+                    <option value="Tjanstledighet">Tjänstledighet</option>
+                    <option value="Komptid">Komptid</option>
+                </select>
+            </div>
+            <div></div>
+            <RhrInput Label="Från datum" Type="date" @bind-Value="_franDatum" Required="true" />
+            <RhrInput Label="Till datum" Type="date" @bind-Value="_tillDatum" Required="true" />
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <label class="rhr-label">Beskrivning / kommentar</label>
+            <textarea class="rhr-input" rows="3" @bind="_beskrivning" placeholder="Valfri kommentar..."></textarea>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+            <RhrButton OnClick="Skicka" Disabled="@_sparar">@(_sparar ? "Skickar..." : "Skicka ärende")</RhrButton>
+            <RhrButton Variant="secondary" OnClick="@(() => Nav.NavigateTo("/arenden"))">Avbryt</RhrButton>
+        </div>
+    </ChildContent>
+</RhrCard>
+
+@code {
+    private string _franvaroTyp = "Semester";
+    private string? _franDatum;
+    private string? _tillDatum;
+    private string? _beskrivning;
+    private string? _felmeddelande;
+    private bool _sparar;
+    private bool _sparat;
+
+    private async Task Skicka()
+    {
+        _felmeddelande = null;
+        _sparat = false;
+
+        if (string.IsNullOrWhiteSpace(_franDatum) || string.IsNullOrWhiteSpace(_tillDatum))
+        {
+            _felmeddelande = "Från- och tilldatum är obligatoriska.";
+            return;
+        }
+
+        var fran = DateOnly.Parse(_franDatum);
+        var till = DateOnly.Parse(_tillDatum);
+
+        if (till < fran)
+        {
+            _felmeddelande = "Tilldatum kan inte vara före fråndatum.";
+            return;
+        }
+
+        _sparar = true;
+        try
+        {
+            var typ = Enum.Parse<RegionHR.SharedKernel.Domain.AbsenceType>(_franvaroTyp);
+            // Demo: använder en fast anställd-ID
+            var demoAnstallId = RegionHR.SharedKernel.Domain.EmployeeId.New();
+            var id = await ArendeService.SkapaFranvaroarendeAsync(
+                demoAnstallId, typ, fran, till,
+                _beskrivning ?? $"{_franvaroTyp} {fran} - {till}");
+            _sparat = true;
+        }
+        catch (Exception ex)
+        {
+            _felmeddelande = $"Kunde inte skapa ärende: {ex.Message}";
+        }
+        finally
+        {
+            _sparar = false;
+        }
+    }
+}

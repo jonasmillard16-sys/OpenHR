@@ -1,0 +1,20 @@
+@namespace RegionHR.DesignSystem.Components
+
+<span class="rhr-traffic rhr-traffic--@Status.ToLower()"
+      role="img"
+      aria-label="@StatusLabel"
+      title="@StatusLabel">
+</span>
+
+@code {
+    /// <summary>Gron, Gul, or Rod</summary>
+    [Parameter] public string Status { get; set; } = "Gron";
+
+    private string StatusLabel => Status.ToLower() switch
+    {
+        "gron" => "Fullbemannat",
+        "gul" => "Delvis bemannat",
+        "rod" => "Underbemannat",
+        _ => Status
+    };
+}

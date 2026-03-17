@@ -1,0 +1,43 @@
+.rhr-nav {
+    padding: 0.5rem 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.rhr-nav__section {
+    padding: 1rem 1.5rem 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    font-weight: 600;
+}
+
+.rhr-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.5rem;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+    min-height: 44px;
+}
+
+.rhr-nav__link:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.rhr-nav__link.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-weight: 600;
+    border-left: 3px solid #fff;
+}
+
+.rhr-nav__icon {
+    width: 20px;
+    text-align: center;
+}

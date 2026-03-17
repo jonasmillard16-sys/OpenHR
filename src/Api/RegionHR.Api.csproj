@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RegionHR.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharedKernel\RegionHR.SharedKernel.csproj" />
+    <ProjectReference Include="..\Infrastructure\RegionHR.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Core\RegionHR.Core.csproj" />
+    <ProjectReference Include="..\Modules\Payroll\RegionHR.Payroll.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\RegionHR.Scheduling.csproj" />
+    <ProjectReference Include="..\Modules\CaseManagement\RegionHR.CaseManagement.csproj" />
+    <ProjectReference Include="..\Modules\LAS\RegionHR.LAS.csproj" />
+    <ProjectReference Include="..\Modules\HalsoSAM\RegionHR.HalsoSAM.csproj" />
+    <ProjectReference Include="..\Modules\SalaryReview\RegionHR.SalaryReview.csproj" />
+    <ProjectReference Include="..\Modules\Travel\RegionHR.Travel.csproj" />
+    <ProjectReference Include="..\Modules\Recruitment\RegionHR.Recruitment.csproj" />
+    <ProjectReference Include="..\Modules\IntegrationHub\RegionHR.IntegrationHub.csproj" />
+    <ProjectReference Include="..\Modules\SelfService\RegionHR.SelfService.csproj" />
+    <ProjectReference Include="..\Modules\Audit\RegionHR.Audit.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\RegionHR.Notifications.csproj" />
+    <ProjectReference Include="..\Modules\Leave\RegionHR.Leave.csproj" />
+    <ProjectReference Include="..\Modules\Documents\RegionHR.Documents.csproj" />
+    <ProjectReference Include="..\Modules\Performance\RegionHR.Performance.csproj" />
+    <ProjectReference Include="..\Modules\Reporting\RegionHR.Reporting.csproj" />
+    <ProjectReference Include="..\Modules\GDPR\RegionHR.GDPR.csproj" />
+    <ProjectReference Include="..\Modules\Competence\RegionHR.Competence.csproj" />
+    <ProjectReference Include="..\Modules\Benefits\RegionHR.Benefits.csproj" />
+    <ProjectReference Include="..\Modules\LMS\RegionHR.LMS.csproj" />
+    <ProjectReference Include="..\Modules\Positions\RegionHR.Positions.csproj" />
+    <ProjectReference Include="..\Modules\Offboarding\RegionHR.Offboarding.csproj" />
+    <ProjectReference Include="..\Modules\Analytics\RegionHR.Analytics.csproj" />
+    <ProjectReference Include="..\Modules\Configuration\RegionHR.Configuration.csproj" />
+  </ItemGroup>
+
+</Project>

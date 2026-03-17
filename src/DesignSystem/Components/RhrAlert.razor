@@ -1,0 +1,15 @@
+@namespace RegionHR.DesignSystem.Components
+
+<div class="rhr-alert rhr-alert--@Variant" role="alert" aria-live="polite">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <strong>@Title</strong><br />
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "info";
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

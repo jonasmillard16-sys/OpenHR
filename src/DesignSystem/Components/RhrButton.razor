@@ -1,0 +1,21 @@
+@namespace RegionHR.DesignSystem.Components
+
+<button class="rhr-btn rhr-btn--@Variant @(Size == "sm" ? "rhr-btn--sm" : "")"
+        type="@Type"
+        disabled="@Disabled"
+        @onclick="OnClick"
+        aria-label="@AriaLabel"
+        title="@Title">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "primary";
+    [Parameter] public string Size { get; set; } = "md";
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

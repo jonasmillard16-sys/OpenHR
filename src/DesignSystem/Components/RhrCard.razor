@@ -1,0 +1,18 @@
+@namespace RegionHR.DesignSystem.Components
+
+<div class="rhr-card" role="@(Role ?? "region")" aria-label="@AriaLabel">
+    @if (Header is not null)
+    {
+        <div class="rhr-card__header">@Header</div>
+    }
+    <div class="rhr-card__body">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public string? Role { get; set; }
+}

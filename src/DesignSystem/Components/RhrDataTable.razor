@@ -1,0 +1,36 @@
+@namespace RegionHR.DesignSystem.Components
+@typeparam TItem
+
+<div role="region" aria-label="@AriaLabel" tabindex="0">
+    <table class="rhr-table">
+        <thead>
+            <tr>
+                @HeaderContent
+            </tr>
+        </thead>
+        <tbody>
+            @if (Items is not null)
+            {
+                @foreach (var item in Items)
+                {
+                    <tr>
+                        @RowContent(item)
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    @if (Items is null || !Items.Any())
+    {
+        <p style="padding: var(--rhr-space-md); text-align: center; color: var(--rhr-text-muted);">
+            Inga poster att visa
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+    [Parameter] public RenderFragment<TItem> RowContent { get; set; } = default!;
+    [Parameter] public string AriaLabel { get; set; } = "Datatabell";
+}

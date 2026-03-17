@@ -1,0 +1,57 @@
+.rhr-app {
+    display: flex;
+    min-height: 100vh;
+}
+
+.rhr-sidebar {
+    width: 260px;
+    background: var(--rhr-primary);
+    color: #fff;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.rhr-sidebar__header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.rhr-sidebar__header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.rhr-sidebar__subtitle {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.rhr-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--rhr-bg-subtle);
+}
+
+.rhr-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid var(--rhr-border);
+    box-shadow: var(--rhr-shadow-sm);
+}
+
+.rhr-topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rhr-content {
+    padding: 1.5rem;
+    flex: 1;
+}

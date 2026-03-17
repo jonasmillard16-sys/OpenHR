@@ -1,0 +1,38 @@
+@page "/organisation"
+@rendermode InteractiveServer
+@inject RegionHR.Web.Services.AnstallningService Service
+
+<PageTitle>Organisation - RegionHR</PageTitle>
+
+<h1>Organisationsstruktur</h1>
+
+<RhrCard>
+    <ChildContent>
+        @if (_loading)
+        {
+            <p>Laddar organisation...</p>
+        }
+        else if (_rotenheter.Count == 0)
+        {
+            <RhrAlert Variant="info">Ingen organisation konfigurerad ännu. Skapa enheter via databasen eller API:t.</RhrAlert>
+        }
+        else
+        {
+            @foreach (var enhet in _rotenheter)
+            {
+                <OrgNode Enhet="enhet" Level="0" />
+            }
+        }
+    </ChildContent>
+</RhrCard>
+
+@code {
+    private List<RegionHR.Core.Domain.OrganizationUnit> _rotenheter = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rotenheter = await Service.HamtaOrganisationAsync();
+        _loading = false;
+    }
+}

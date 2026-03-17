@@ -1,0 +1,11 @@
+@namespace RegionHR.DesignSystem.Components
+
+<span class="rhr-badge rhr-badge--@Variant" role="status" aria-label="@AriaLabel">
+    @Text
+</span>
+
+@code {
+    [Parameter] public string Variant { get; set; } = "info";
+    [Parameter] public string Text { get; set; } = string.Empty;
+    [Parameter] public string? AriaLabel { get; set; }
+}

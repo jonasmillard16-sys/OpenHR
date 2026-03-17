@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RegionHR — HR-system för svensk region</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1e3a5f">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--p:#1e3a5f;--a:#2563eb;--bg:#f0f4f8;--c:#fff;--t:#1a202c;--m:#64748b;--b:#e2e8f0;--g:#16a34a;--r:#dc2626;--y:#ca8a04;--radius:10px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);font-size:14px}
+.hdr{background:linear-gradient(135deg,var(--p),var(--a));color:#fff;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.hdr h1{font-size:1.3rem}.hdr .s{opacity:.8;font-size:.8rem}.hdr .v{background:rgba(255,255,255,.15);padding:.2rem .6rem;border-radius:99px;font-size:.7rem}
+.lay{display:flex;min-height:calc(100vh - 56px)}
+.sb{width:220px;background:var(--c);border-right:1px solid var(--b);padding:.5rem 0;flex-shrink:0;overflow-y:auto}
+.sb .sec{padding:.4rem .8rem;font-size:.65rem;text-transform:uppercase;color:var(--m);font-weight:700;letter-spacing:.05em;margin-top:.6rem}
+.sb a{display:block;padding:.45rem .8rem;color:var(--t);text-decoration:none;font-size:.82rem;border-left:3px solid transparent;cursor:pointer}
+.sb a:hover{background:#f1f5f9}.sb a.act{background:#eff6ff;border-left-color:var(--a);color:var(--a);font-weight:600}
+.mn{flex:1;padding:1.2rem;overflow-y:auto}
+.sts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.st{background:var(--c);border-radius:var(--radius);padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,.08);text-align:center}
+.st .n{font-size:1.8rem;font-weight:700;color:var(--a)}.st .l{font-size:.75rem;color:var(--m)}
+.cd{background:var(--c);border-radius:var(--radius);padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1rem}
+.cd h2{font-size:1rem;margin-bottom:.8rem;color:var(--p);border-bottom:2px solid var(--b);padding-bottom:.4rem;display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;padding:.5rem .6rem;background:#f8fafc;color:var(--m);font-size:.7rem;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid var(--b)}
+td{padding:.5rem .6rem;border-bottom:1px solid var(--b)}tr:hover td{background:#f8fafc}
+.bg{display:inline-block;font-size:.68rem;padding:.12rem .45rem;border-radius:99px;font-weight:600;white-space:nowrap}
+.bg-g{background:#dcfce7;color:#166534}.bg-r{background:#fee2e2;color:#991b1b}.bg-y{background:#fef9c3;color:#854d0e}.bg-b{background:#dbeafe;color:#1e40af}.bg-gr{background:#f1f5f9;color:#475569}
+.pg{display:none}.pg.act{display:block}
+.btn{padding:.4rem .8rem;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .15s}
+.btn-p{background:var(--a);color:#fff}.btn-p:hover{background:#1d4ed8}
+.btn-s{background:#f1f5f9;color:var(--t);border:1px solid var(--b)}.btn-s:hover{background:#e2e8f0}
+.btn-d{background:#dc2626;color:#fff}.btn-d:hover{background:#b91c1c}
+.btn-g{background:#16a34a;color:#fff}.btn-g:hover{background:#15803d}
+.btn-y{background:#ca8a04;color:#fff}.btn-y:hover{background:#a16207}
+.btn-sm{padding:.25rem .5rem;font-size:.72rem}
+.bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+/* Modal */
+.modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--c);border-radius:12px;padding:1.5rem;width:90%;max-width:550px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{font-size:1.1rem;margin-bottom:1rem;color:var(--p)}
+.fg{margin-bottom:.8rem}
+.fg label{display:block;font-size:.78rem;font-weight:600;color:var(--m);margin-bottom:.25rem}
+.fg input,.fg select,.fg textarea{width:100%;padding:.45rem .6rem;border:1px solid var(--b);border-radius:6px;font-size:.85rem;font-family:inherit}
+.fg textarea{resize:vertical;min-height:60px}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--a);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.fg .help{font-size:.7rem;color:var(--m);margin-top:.2rem}
+.fg .err{font-size:.7rem;color:var(--r);margin-top:.2rem}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.modal-foot{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--b)}
+/* Toast */
+.toast-c{position:fixed;top:1rem;right:1rem;z-index:200;display:flex;flex-direction:column;gap:.5rem}
+.toast{padding:.7rem 1rem;border-radius:8px;color:#fff;font-size:.85rem;animation:slideIn .3s;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:400px}
+.toast-ok{background:#16a34a}.toast-err{background:#dc2626}.toast-info{background:var(--a)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* Info boxes */
+.info{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#1e40af}
+.warn{background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#854d0e}
+.danger{background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#991b1b}
+/* Integration grid */
+.ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.6rem}
+.ic{background:#f8fafc;border-radius:8px;padding:.6rem .8rem;border:1px solid var(--b);display:flex;align-items:center;gap:.6rem}
+.ic .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ic .nm{font-weight:600;font-size:.82rem}.ic .tp{font-size:.68rem;color:var(--m)}
+.empty{color:var(--m);font-style:italic;padding:1.5rem;text-align:center}
+/* Workflow steps */
+.wf{display:flex;gap:0;margin-bottom:1rem}
+.wf .step{flex:1;text-align:center;padding:.5rem;font-size:.75rem;font-weight:600;background:#f1f5f9;color:var(--m);border-right:2px solid var(--bg);position:relative}
+.wf .step:first-child{border-radius:8px 0 0 8px}.wf .step:last-child{border-radius:0 8px 8px 0;border-right:none}
+.wf .step.done{background:#dcfce7;color:#166534}.wf .step.current{background:#dbeafe;color:#1e40af}.wf .step.upcoming{background:#f1f5f9;color:#94a3b8}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem .8rem;font-size:.85rem;margin-bottom:1rem}
+.detail-grid dt{color:var(--m);font-size:.75rem}.detail-grid dd{font-weight:600;margin-bottom:.3rem}
+@media(max-width:768px){.sb{display:none}.sts{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<a href="#ct" class="skip" style="position:absolute;left:-9999px;top:0;z-index:999;background:var(--a);color:#fff;padding:.5rem 1rem;font-size:.9rem;text-decoration:none;&:focus{left:0}">Hoppa till innehåll</a>
+<div class="hdr">
+ <div><h1>RegionHR</h1><span class="s">HR-system för svensk region</span></div>
+ <span class="v">v0.5.0 · .NET 9 · 19 moduler · 359 tester</span>
+</div>
+<div class="lay">
+<nav class="sb" id="sidebar" role="navigation" aria-label="Huvudmeny">
+ <div class="sec">Översikt</div>
+ <a href="#" role="button" tabindex="0" onclick="P('dash')" class="act" id="n-dash">🏠 Dashboard</a>
+ <div class="sec">Personalhantering</div>
+ <a href="#" role="button" tabindex="0" onclick="P('emp')" id="n-emp">👥 Anställda</a>
+ <a href="#" role="button" tabindex="0" onclick="P('org')" id="n-org">🏢 Organisation</a>
+ <a href="#" role="button" tabindex="0" onclick="P('case')" id="n-case">📋 Ärenden</a>
+ <div class="sec">Lön &amp; Schema</div>
+ <a href="#" role="button" tabindex="0" onclick="P('pay')" id="n-pay">💰 Lönekörningar</a>
+ <a href="#" role="button" tabindex="0" onclick="P('sch')" id="n-sch">📅 Schemaläggning</a>
+ <a href="#" role="button" tabindex="0" onclick="P('time')" id="n-time">⏱️ Tidrapportering</a>
+ <div class="sec">Chef</div>
+ <a href="#" role="button" tabindex="0" onclick="P('mgr')" id="n-mgr">👔 Chefsportal</a>
+ <div class="sec">HR-moduler</div>
+ <a href="#" role="button" tabindex="0" onclick="P('las')" id="n-las">⚠️ LAS-uppföljning</a>
+ <a href="#" role="button" tabindex="0" onclick="P('rehab')" id="n-rehab">🏥 HälsoSAM</a>
+ <a href="#" role="button" tabindex="0" onclick="P('sr')" id="n-sr">📊 Löneöversyn</a>
+ <a href="#" role="button" tabindex="0" onclick="P('travel')" id="n-travel">✈️ Resor &amp; utlägg</a>
+ <a href="#" role="button" tabindex="0" onclick="P('rec')" id="n-rec">🔍 Rekrytering</a>
+ <div class="sec">Självservice</div>
+ <a href="#" role="button" tabindex="0" onclick="P('leave')" id="n-leave">🏖️ Ledighet</a>
+ <a href="#" role="button" tabindex="0" onclick="P('perf')" id="n-perf">💬 Medarbetarsamtal</a>
+ <a href="#" role="button" tabindex="0" onclick="P('comp')" id="n-comp">🎓 Kompetens</a>
+ <div class="sec">Administration</div>
+ <a href="#" role="button" tabindex="0" onclick="P('doc')" id="n-doc">📄 Dokument</a>
+ <a href="#" role="button" tabindex="0" onclick="P('gdpr')" id="n-gdpr">🔒 GDPR</a>
+ <a href="#" role="button" tabindex="0" onclick="P('report')" id="n-report">📈 Rapporter</a>
+ <a href="#" role="button" tabindex="0" onclick="P('audit')" id="n-audit">📝 Granskningslogg</a>
+ <div class="sec">System</div>
+ <a href="#" role="button" tabindex="0" onclick="P('integ')" id="n-integ">🔗 Integrationer</a>
+ <a href="#" role="button" tabindex="0" onclick="P('notis')" id="n-notis">🔔 Notiser</a>
+</nav>
+<main class="mn" id="ct" role="main" aria-label="Huvudinnehåll">
+
+<!-- DASHBOARD -->
+<div class="pg act" id="p-dash">
+ <div class="sts" id="d-sts"></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+  <div class="cd"><h2>Senaste ärenden</h2><div id="d-cases"></div></div>
+  <div class="cd"><h2>Dagens schema</h2><div id="d-sch"></div></div>
+ </div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0">
+  <div class="cd"><h2>LAS-varningar</h2><div id="d-las"></div></div>
+  <div class="cd"><h2>Aktiva rehabärenden</h2><div id="d-rehab"></div></div>
+ </div>
+</div>
+
+<!-- ANSTÄLLDA -->
+<div class="pg" id="p-emp">
+ <div class="cd">
+  <h2>Anställda <button class="btn btn-p btn-sm" onclick="openModal('m-emp')">+ Ny anställd</button></h2>
+  <div id="emp-t"></div>
+ </div>
+</div>
+
+<!-- ORGANISATION -->
+<div class="pg" id="p-org">
+ <div class="cd"><h2>Organisationsstruktur</h2><div id="org-t"></div></div>
+</div>
+
+<!-- ÄRENDEN -->
+<div class="pg" id="p-case">
+ <div class="cd">
+  <h2>Ärenden <button class="btn btn-p btn-sm" onclick="openModal('m-case')">+ Nytt frånvaroärende</button></h2>
+  <div class="info">📌 <strong>Arbetsrätt:</strong> Semester per AB 25: 25 dagar (under 40 år), 31 dagar (40–49), 32 dagar (50+). Sjukfrånvaro: karensavdrag = 20% av sjuklönen (16% av veckolön), 80% dag 2–14, läkarintyg dag 8, FK tar över dag 15. Föräldraledighet: 480 dagar (90 öronmärkta/förälder), 10% arbetsgivartillägg per AB i 180 dagar. VAB.</div>
+  <div id="case-t"></div>
+ </div>
+</div>
+
+<!-- LÖNEKÖRNINGAR -->
+<div class="pg" id="p-pay">
+ <div class="cd">
+  <h2>Lönekörningar <button class="btn btn-p btn-sm" onclick="openModal('m-pay')">+ Ny lönekörning</button></h2>
+  <div class="info">💡 <strong>Löneflöde:</strong> Skapa → Beräkna → Granska → Godkänn → Utbetala → Exportera (AGI till Skatteverket, pain.001 till Nordea). AG-avgifter: 31,42% (standard), 10,21% (67+ fr.o.m. 2026), 20,81% (19–22 år, på lön upp till 25 000 kr/mån). AKAP-KR: 6% under 7,5 IBB, 31,5% över. IBB 2026: 83 400 kr.</div>
+  <div id="pay-t"></div>
+ </div>
+ <div class="cd"><h2>Lönearter</h2><div id="pay-codes"></div></div>
+</div>
+
+<!-- SCHEMALÄGGNING -->
+<div class="pg" id="p-sch">
+ <div class="cd">
+  <h2>Scheman <button class="btn btn-p btn-sm" onclick="openModal('m-sch')">+ Nytt schema</button></h2>
+  <div class="info">⚖️ <strong>Arbetstidslagen (ATL SFS 1982:673):</strong> Max 40h/vecka ordinarie · Dygnsvila min 11h (9h undantag i sjukvård per SKR-avtal 2023) · Veckovila min 36h sammanhängande · Nattarbete (22–06) max 8h/24h · Allmän övertid max 200h/år, 48h/4 veckor · Extra övertid max 150h/år · EU-snitt max 48h/vecka över 4 månader</div>
+  <div id="sch-t"></div>
+ </div>
+ <div class="cd">
+  <h2>Instämpling <button class="btn btn-g btn-sm" onclick="openModal('m-clock')">⏱ Stämpla in/ut</button></h2>
+  <div id="clock-t"></div>
+ </div>
+</div>
+
+<!-- LAS -->
+<div class="pg" id="p-las">
+ <div class="sts" id="las-sts"></div>
+ <div class="cd">
+  <h2>LAS-uppföljning</h2>
+  <div class="warn">⚠️ <strong>LAS (SFS 1982:80, reformerad 2022-10-01):</strong> SAVA → tillsvidare efter 12 mån i 5-årsperiod (5a§). Vikariat → tillsvidare efter 24 mån i 5-årsperiod. Kedjeregel: SAVA + vikariat utan 6 mån uppehåll → sammanräknas. 3-i-månadsregeln: 3+ avtal samma månad → mellanliggande dagar räknas. Företrädesrätt: SAVA efter 9 mån/3 år, tillsvidare/vikariat efter 12 mån/3 år. Varar 9 månader. Turordning: sist in först ut, max 3 undantag per omgång (22§), 3 mån karens.</div>
+  <div id="las-t"></div>
+ </div>
+</div>
+
+<!-- HÄLSOSAM -->
+<div class="pg" id="p-rehab">
+ <div class="cd">
+  <h2>HälsoSAM – Rehabilitering <button class="btn btn-p btn-sm" onclick="openModal('m-rehab')">+ Nytt rehabärende</button></h2>
+  <div class="info">🏥 <strong>Rehabkedjan (SFB + AFS):</strong> Signal → Utredning → Rehabplan → Uppföljning dag 14/90/180/365 → Avslut. Läkarintyg krävs från dag 8. FK-anmälan inom 7 dagar efter dag 14 (senast dag 21). Max 10 karensavdrag per 12-månadersperiod. GDPR: hälsodata gallras 2 år efter avslutat ärende (Art 9.2b).</div>
+  <div id="rehab-t"></div>
+ </div>
+ <div class="cd">
+  <h2>Kommande uppföljningar (30 dagar)</h2>
+  <div id="rehab-fu"></div>
+ </div>
+</div>
+
+<!-- LÖNEÖVERSYN -->
+<div class="pg" id="p-sr">
+ <div class="cd">
+  <h2>Löneöversynsrundor <button class="btn btn-p btn-sm" onclick="openModal('m-sr')">+ Ny runda</button></h2>
+  <div class="info">📊 <strong>Löneöversynsprocess per AB 25:</strong> Planering (budget fördelas i organisationen) → Chefsförslag per anställd → Facklig avstämning (aggregerad statistik per avtalsområde) → Godkännande → Genomförande med retroaktiv utbetalning. Övertid per AB: enkel 180%, kvalificerad 240% av timlön. OB per Bilaga R: kväll/natt/helg/storhelg. Fredag kvälls-OB fr.o.m. 17:00 (AB 25).</div>
+  <div id="sr-t"></div>
+ </div>
+</div>
+
+<!-- RESOR -->
+<div class="pg" id="p-travel">
+ <div class="cd">
+  <h2>Resor &amp; utlägg <button class="btn btn-p btn-sm" onclick="openModal('m-travel')">+ Nytt resekrav</button></h2>
+  <div class="info">✈️ <strong>Skatteverkets satser 2025:</strong> Traktamente heldag inrikes 260 kr, halvdag 130 kr. Milersättning skattefritt 25 kr/mil (bil). Utlägg attesteras av närmaste chef. Traktamente och milersättning rapporteras på AGI fält 050/051. GDPR: kvitton sparas 7 år per bokföringslagen.</div>
+  <div id="travel-t"></div>
+ </div>
+</div>
+
+<!-- REKRYTERING -->
+<div class="pg" id="p-rec">
+ <div class="cd">
+  <h2>Vakanser <button class="btn btn-p btn-sm" onclick="openModal('m-rec')">+ Ny vakans</button></h2>
+  <div class="info">🔍 <strong>Rekryteringsflöde:</strong> Skapa vakans → Publicera (intern/extern/Platsbanken) → Ta emot ansökningar → Bedöm (poängmatris) → Intervju → Erbjud → Onboarding. GDPR: ansökningsdata för ej anställda gallras efter 2 år (diskrimineringslagen). Anonymiserat urval stöds.</div>
+  <div id="rec-t"></div>
+ </div>
+</div>
+
+<!-- TIDRAPPORTERING -->
+<div class="pg" id="p-time">
+ <div class="cd">
+  <h2>Tidrapportering</h2>
+  <div class="info">⏱️ <strong>Tidrapportering:</strong> Månadsvis per anställd. Planerade vs faktiska timmar, avvikelser auto-ifyllda från schema. Chef godkänner → exporteras till lön.</div>
+  <div id="time-t"></div>
+ </div>
+</div>
+
+<!-- CHEFSPORTAL -->
+<div class="pg" id="p-mgr">
+ <div class="sts" id="mgr-sts"></div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+  <div class="cd"><h2>Attestkö</h2><div id="mgr-attest"></div></div>
+  <div class="cd"><h2>Varningar</h2><div id="mgr-warn"></div></div>
+ </div>
+</div>
+
+<!-- INTEGRATIONER -->
+<div class="pg" id="p-integ">
+ <div class="cd"><h2>Integrationsstatus (14 system)</h2><div class="ig" id="integ-g"></div></div>
+</div>
+
+<!-- LEDIGHET -->
+<div class="pg" id="p-leave">
+ <div class="cd">
+  <h2>Ledighetsansökningar <button class="btn btn-p btn-sm" onclick="openModal('m-leave')">+ Ny ansökan</button></h2>
+  <div class="info">🏖️ <strong>Semester per AB 25:</strong> 25 dagar (under 40 år), 31 dagar (40–49), 32 dagar (50+). Max 5 års sparande. Sjukfrånvaro: karensavdrag dag 1, 80% dag 2–14, läkarintyg dag 8, FK tar över dag 15.</div>
+  <div id="leave-t"></div>
+ </div>
+</div>
+
+<!-- MEDARBETARSAMTAL -->
+<div class="pg" id="p-perf">
+ <div class="cd">
+  <h2>Medarbetarsamtal <button class="btn btn-p btn-sm" onclick="openModal('m-perf')">+ Nytt samtal</button></h2>
+  <div class="info">💬 <strong>Process:</strong> Planerad → Självbedömning → Chefsbedömning → Målsättning → Genomförd. Kopplas till löneöversyn.</div>
+  <div id="perf-t"></div>
+ </div>
+</div>
+
+<!-- KOMPETENS -->
+<div class="pg" id="p-comp">
+ <div class="cd">
+  <h2>Certifieringar &amp; kompetens <button class="btn btn-p btn-sm" onclick="openModal('m-comp')">+ Ny certifiering</button></h2>
+  <div class="info">🎓 <strong>Obligatoriska utbildningar:</strong> HLR, brandskydd, hygien (sjukvård). Legitimationer verifieras mot KOLL/HOSP (Socialstyrelsen). Varningar vid utgående certifikat (90 dagar).</div>
+  <div id="comp-t"></div>
+ </div>
+ <div class="cd"><h2>Utgående certifikat (90 dagar)</h2><div id="comp-exp"></div></div>
+</div>
+
+<!-- DOKUMENT -->
+<div class="pg" id="p-doc">
+ <div class="cd">
+  <h2>Dokumenthantering <button class="btn btn-p btn-sm" onclick="openModal('m-doc')">+ Nytt dokument</button></h2>
+  <div class="info">📄 <strong>Retention:</strong> Lönespecifikationer 7 år (bokföringslagen), läkarintyg 2 år efter avslutat ärende, anställningsavtal 7 år. GDPR-klassificering per dokument.</div>
+  <div id="doc-t"></div>
+ </div>
+</div>
+
+<!-- GDPR -->
+<div class="pg" id="p-gdpr">
+ <div class="cd">
+  <h2>GDPR-begäran <button class="btn btn-p btn-sm" onclick="openModal('m-gdpr')">+ Ny begäran</button></h2>
+  <div class="warn">🔒 <strong>GDPR:</strong> Registerutdrag (Art 15) inom 30 dagar. Dataportabilitet (Art 20). Rätt till radering (Art 17) med undantag för bokföringsskyldighet. Automatisk anonymisering vid utgången retentionstid.</div>
+  <div id="gdpr-t"></div>
+ </div>
+ <div class="cd"><h2>Utgången retention (att anonymisera)</h2><div id="gdpr-ret"></div></div>
+</div>
+
+<!-- RAPPORTER -->
+<div class="pg" id="p-report">
+ <div class="cd">
+  <h2>Rapporter <button class="btn btn-p btn-sm" onclick="openModal('m-report')">+ Ny rapport</button></h2>
+  <div class="info">📈 <strong>Standardrapporter:</strong> Personalrostar, löneregister, frånvarostatistik, övertidsrapport, LAS-status, bemanningsanalys, sjukfrånvaro-KPI, kostnad per enhet.</div>
+  <div id="report-t"></div>
+ </div>
+</div>
+
+<!-- GRANSKNINGSLOGG -->
+<div class="pg" id="p-audit">
+ <div class="cd">
+  <h2>Granskningslogg</h2>
+  <div class="info">📝 Alla ändringar i systemet loggas automatiskt med användar-ID, tidpunkt och före/efter-värden. Retention: 7 år.</div>
+  <div id="audit-t"></div>
+ </div>
+</div>
+
+<!-- NOTISER -->
+<div class="pg" id="p-notis">
+ <div class="cd">
+  <h2>Notiser</h2>
+  <div id="notis-t"></div>
+ </div>
+</div>
+
+</main>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-c" id="toasts"></div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- Ny anställd -->
+<div class="modal-bg" id="m-emp" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny anställd</h3>
+ <div class="fg"><label>Personnummer (YYYYMMDDNNNN)</label><input id="f-emp-pnr" placeholder="199001011234"/><div class="help">12 siffror, Luhn-validerat</div></div>
+ <div class="row">
+  <div class="fg"><label>Förnamn</label><input id="f-emp-fn" placeholder="Anna"/></div>
+  <div class="fg"><label>Efternamn</label><input id="f-emp-en" placeholder="Svensson"/></div>
+ </div>
+ <div class="row">
+  <div class="fg"><label>E-post</label><input id="f-emp-email" type="email" placeholder="anna@region.se"/></div>
+  <div class="fg"><label>Telefon</label><input id="f-emp-tel" placeholder="070-1234567"/></div>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-emp')">Avbryt</button>
+  <button class="btn btn-p" onclick="createEmployee()">Skapa anställd</button>
+ </div>
+</div></div>
+
+<!-- Nytt frånvaroärende -->
+<div class="modal-bg" id="m-case" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt frånvaroärende</h3>
+ <div class="fg"><label>Anställd</label><select id="f-case-emp"></select></div>
+ <div class="fg"><label>Frånvarotyp</label>
+  <select id="f-case-typ">
+   <option value="Semester">Semester (25 dgr/år per AB)</option>
+   <option value="Sjukfranvaro">Sjukfrånvaro (karensavdrag + 80% dag 2-14)</option>
+   <option value="Foraldraledighet">Föräldraledighet (480 dgr)</option>
+   <option value="VAB">VAB – vård av sjukt barn</option>
+   <option value="Tjanstledighet">Tjänstledighet</option>
+   <option value="Komptid">Komptid</option>
+   <option value="Utbildning">Utbildning</option>
+  </select>
+ </div>
+ <div class="row">
+  <div class="fg"><label>Från datum</label><input id="f-case-from" type="date"/></div>
+  <div class="fg"><label>Till datum</label><input id="f-case-to" type="date"/></div>
+ </div>
+ <div class="fg"><label>Beskrivning</label><textarea id="f-case-desc" placeholder="Ange detaljer..."></textarea></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-case')">Avbryt</button>
+  <button class="btn btn-p" onclick="createCase()">Skapa ärende</button>
+ </div>
+</div></div>
+
+<!-- Ny lönekörning -->
+<div class="modal-bg" id="m-pay" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny lönekörning</h3>
+ <div class="row">
+  <div class="fg"><label>År</label><input id="f-pay-yr" type="number" value="2026"/></div>
+  <div class="fg"><label>Månad</label><select id="f-pay-mo"><option value="1">Januari</option><option value="2">Februari</option><option value="3" selected>Mars</option><option value="4">April</option><option value="5">Maj</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Augusti</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">December</option></select></div>
+ </div>
+ <div class="fg"><label>Startad av</label><input id="f-pay-by" placeholder="Ditt namn"/></div>
+ <div class="info">Lönekörningen skapas som utkast. Du kan sedan beräkna, granska, godkänna och utbetala.</div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-pay')">Avbryt</button>
+  <button class="btn btn-p" onclick="createPayrollRun()">Skapa lönekörning</button>
+ </div>
+</div></div>
+
+<!-- Nytt schema -->
+<div class="modal-bg" id="m-sch" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt schema</h3>
+ <div class="fg"><label>Namn</label><input id="f-sch-name" placeholder="CIVA Grundschema V12-16"/></div>
+ <div class="fg"><label>Enhet</label><select id="f-sch-unit"></select></div>
+ <div class="row">
+  <div class="fg"><label>Startdatum</label><input id="f-sch-start" type="date"/></div>
+  <div class="fg"><label>Slutdatum</label><input id="f-sch-end" type="date"/></div>
+ </div>
+ <div class="fg"><label>Cykel (veckor)</label><input id="f-sch-cycle" type="number" value="4"/></div>
+ <div class="warn">⚖️ ATL: Schemat valideras mot arbetstidslagen — 11h dygnsvila (9h med sjukvårdsundantag), 36h veckovila, max 40h/vecka. Nattarbete (22–06) max 8h/dygn. Övertid max 48h/4 veckor, 200h/år.</div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-sch')">Avbryt</button>
+  <button class="btn btn-p" onclick="createSchedule()">Skapa schema</button>
+ </div>
+</div></div>
+
+<!-- Instämpling -->
+<div class="modal-bg" id="m-clock" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Instämpling / Utstämpling</h3>
+ <div class="fg"><label>Anställd</label><select id="f-clock-emp"></select></div>
+ <div class="fg"><label>Typ</label>
+  <select id="f-clock-type"><option value="in">Stämpla IN</option><option value="ut">Stämpla UT</option></select>
+ </div>
+ <div class="fg"><label>Källa</label>
+  <select id="f-clock-src"><option value="Webbterminal">Webbterminal</option><option value="PWA">PWA (mobil)</option><option value="Manuell">Manuell registrering</option></select>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-clock')">Avbryt</button>
+  <button class="btn btn-g" onclick="clockInOut()">Registrera</button>
+ </div>
+</div></div>
+
+<!-- Nytt rehabärende -->
+<div class="modal-bg" id="m-rehab" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt rehabiliteringsärende</h3>
+ <div class="fg"><label>Anställd</label><select id="f-rehab-emp"></select></div>
+ <div class="fg"><label>Trigger</label>
+  <select id="f-rehab-trigger">
+   <option value="SexTillfallenTolvManader">6+ sjuktillfällen på 12 månader</option>
+   <option value="FjortonSammanhangandeDagar">14+ sammanhängande sjukdagar</option>
+   <option value="MonsterDetekterat">Mönster detekterat (t.ex. fredagar)</option>
+   <option value="ChefInitierat">Chef-initierat</option>
+   <option value="MedarbetareInitierat">Medarbetare-initierat</option>
+  </select>
+ </div>
+ <div class="warn">🏥 Rehabkedjan: Signal (dag 1) → Samtalsplanering → Rehabplan → Uppföljning dag 14, 90, 180, 365 → Avslut. FK-anmälan krävs dag 15.</div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-rehab')">Avbryt</button>
+  <button class="btn btn-p" onclick="createRehab()">Skapa ärende</button>
+ </div>
+</div></div>
+
+<!-- Ny löneöversynsrunda -->
+<div class="modal-bg" id="m-sr" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny löneöversynsrunda</h3>
+ <div class="fg"><label>Namn</label><input id="f-sr-name" placeholder="Löneöversyn 2026 AB"/></div>
+ <div class="row">
+  <div class="fg"><label>År</label><input id="f-sr-yr" type="number" value="2026"/></div>
+  <div class="fg"><label>Avtalsområde</label><select id="f-sr-avt"><option value="AB">AB – Allmänna bestämmelser</option><option value="HOK">HOK</option></select></div>
+ </div>
+ <div class="fg"><label>Total budget (SEK)</label><input id="f-sr-budget" type="number" placeholder="500000"/></div>
+ <div class="fg"><label>Ikraftträdandedatum</label><input id="f-sr-date" type="date"/></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-sr')">Avbryt</button>
+  <button class="btn btn-p" onclick="createSalaryReview()">Skapa runda</button>
+ </div>
+</div></div>
+
+<!-- Nytt resekrav -->
+<div class="modal-bg" id="m-travel" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt resekrav</h3>
+ <div class="fg"><label>Anställd</label><select id="f-travel-emp"></select></div>
+ <div class="fg"><label>Beskrivning</label><input id="f-travel-desc" placeholder="Utbildning palliativ vård, Göteborg"/></div>
+ <div class="fg"><label>Resedatum</label><input id="f-travel-date" type="date"/></div>
+ <div class="row">
+  <div class="fg"><label>Hela dagar (260 kr/dag)</label><input id="f-travel-full" type="number" value="0"/></div>
+  <div class="fg"><label>Halva dagar (130 kr/dag)</label><input id="f-travel-half" type="number" value="0"/></div>
+ </div>
+ <div class="fg"><label>Körda mil (25 kr/mil)</label><input id="f-travel-km" type="number" step="0.1" value="0"/></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-travel')">Avbryt</button>
+  <button class="btn btn-p" onclick="createTravel()">Skapa resekrav</button>
+ </div>
+</div></div>
+
+<!-- Ny vakans -->
+<div class="modal-bg" id="m-rec" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny vakans</h3>
+ <div class="fg"><label>Titel</label><input id="f-rec-title" placeholder="Sjuksköterska, natt"/></div>
+ <div class="fg"><label>Enhet</label><select id="f-rec-unit"></select></div>
+ <div class="fg"><label>Beskrivning</label><textarea id="f-rec-desc" placeholder="Beskriv tjänsten, krav, önskemål..."></textarea></div>
+ <div class="row">
+  <div class="fg"><label>Anställningsform</label>
+   <select id="f-rec-type"><option value="Tillsvidare">Tillsvidare</option><option value="Vikariat">Vikariat</option><option value="SAVA">SAVA (allmän visstid)</option><option value="Provanstallning">Provanställning</option></select>
+  </div>
+  <div class="fg"><label>Sista ansökningsdag</label><input id="f-rec-deadline" type="date"/></div>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-rec')">Avbryt</button>
+  <button class="btn btn-p" onclick="createVacancy()">Skapa vakans</button>
+ </div>
+</div></div>
+
+<!-- Ny ledighetsansökan -->
+<div class="modal-bg" id="m-leave" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny ledighetsansökan</h3>
+ <div class="fg"><label>Anställd</label><select id="f-leave-emp"></select></div>
+ <div class="fg"><label>Typ</label>
+  <select id="f-leave-typ"><option value="Semester">Semester</option><option value="Sjukfranvaro">Sjukfrånvaro</option><option value="Foraldraledighet">Föräldraledighet</option><option value="VAB">VAB</option><option value="Tjanstledighet">Tjänstledighet</option><option value="Komptid">Komptid</option><option value="Utbildning">Utbildning</option></select>
+ </div>
+ <div class="row">
+  <div class="fg"><label>Från datum</label><input id="f-leave-from" type="date"/></div>
+  <div class="fg"><label>Till datum</label><input id="f-leave-to" type="date"/></div>
+ </div>
+ <div class="fg"><label>Beskrivning</label><textarea id="f-leave-desc" placeholder="Valfri beskrivning..."></textarea></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-leave')">Avbryt</button>
+  <button class="btn btn-p" onclick="createLeave()">Skapa ansökan</button>
+ </div>
+</div></div>
+
+<!-- Nytt medarbetarsamtal -->
+<div class="modal-bg" id="m-perf" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt medarbetarsamtal</h3>
+ <div class="fg"><label>Anställd</label><select id="f-perf-emp"></select></div>
+ <div class="fg"><label>Chef</label><select id="f-perf-chef"></select></div>
+ <div class="fg"><label>År</label><input id="f-perf-yr" type="number" value="2026"/></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-perf')">Avbryt</button>
+  <button class="btn btn-p" onclick="createPerf()">Skapa samtal</button>
+ </div>
+</div></div>
+
+<!-- Ny certifiering -->
+<div class="modal-bg" id="m-comp" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny certifiering</h3>
+ <div class="fg"><label>Anställd</label><select id="f-comp-emp"></select></div>
+ <div class="fg"><label>Namn</label><input id="f-comp-name" placeholder="t.ex. HLR, Sjuksköterskelegitimation"/></div>
+ <div class="fg"><label>Typ</label>
+  <select id="f-comp-typ"><option value="Legitimation">Legitimation</option><option value="Specialisering">Specialisering</option><option value="ObligatoriskUtbildning">Obligatorisk utbildning</option><option value="FrivilligUtbildning">Frivillig utbildning</option><option value="Certifikat">Certifikat</option></select>
+ </div>
+ <div class="fg"><label>Utfärdare</label><input id="f-comp-issuer" placeholder="t.ex. Socialstyrelsen"/></div>
+ <div class="row">
+  <div class="fg"><label>Giltig från</label><input id="f-comp-from" type="date"/></div>
+  <div class="fg"><label>Giltig till</label><input id="f-comp-to" type="date"/></div>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-comp')">Avbryt</button>
+  <button class="btn btn-p" onclick="createComp()">Spara certifiering</button>
+ </div>
+</div></div>
+
+<!-- Nytt dokument -->
+<div class="modal-bg" id="m-doc" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Nytt dokument</h3>
+ <div class="fg"><label>Anställd</label><select id="f-doc-emp"></select></div>
+ <div class="fg"><label>Kategori</label>
+  <select id="f-doc-kat"><option value="Anstallningsavtal">Anställningsavtal</option><option value="Lakarintyg">Läkarintyg</option><option value="Betyg">Betyg</option><option value="Legitimation">Legitimation</option><option value="Policy">Policy</option><option value="Lonespecifikation">Lönespecifikation</option><option value="Tjanstgoringsbevis">Tjänstgöringbevis</option><option value="Ovrigt">Övrigt</option></select>
+ </div>
+ <div class="fg"><label>Filnamn</label><input id="f-doc-fn" placeholder="avtal_2026.pdf"/></div>
+ <div class="fg"><label>Beskrivning</label><input id="f-doc-desc" placeholder="Valfri beskrivning"/></div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-doc')">Avbryt</button>
+  <button class="btn btn-p" onclick="createDoc()">Registrera dokument</button>
+ </div>
+</div></div>
+
+<!-- Ny GDPR-begäran -->
+<div class="modal-bg" id="m-gdpr" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny GDPR-begäran</h3>
+ <div class="fg"><label>Anställd</label><select id="f-gdpr-emp"></select></div>
+ <div class="fg"><label>Typ</label>
+  <select id="f-gdpr-typ"><option value="Registerutdrag">Registerutdrag (Art 15)</option><option value="Radering">Rätt till radering (Art 17)</option><option value="Dataportabilitet">Dataportabilitet (Art 20)</option><option value="Rattelse">Rättelse (Art 16)</option></select>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-gdpr')">Avbryt</button>
+  <button class="btn btn-p" onclick="createGdpr()">Skapa begäran</button>
+ </div>
+</div></div>
+
+<!-- Ny rapport -->
+<div class="modal-bg" id="m-report" role="dialog" aria-modal="true"><div class="modal">
+ <h3>Ny rapportdefinition</h3>
+ <div class="fg"><label>Namn</label><input id="f-rep-name" placeholder="Månatlig personalrostar"/></div>
+ <div class="fg"><label>Beskrivning</label><input id="f-rep-desc" placeholder="Genererar personalförteckning..."/></div>
+ <div class="fg"><label>Typ</label>
+  <select id="f-rep-typ"><option value="Personalrostter">Personalrostar</option><option value="Loneregister">Löneregister</option><option value="Franvarostatistik">Frånvarostatistik</option><option value="Overtidsrapport">Övertidsrapport</option><option value="LASStatus">LAS-status</option><option value="Bemanningsanalys">Bemanningsanalys</option><option value="SjukfranvaroKPI">Sjukfrånvaro-KPI</option><option value="KostnadPerEnhet">Kostnad per enhet</option></select>
+ </div>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-report')">Avbryt</button>
+  <button class="btn btn-p" onclick="createReport()">Skapa rapport</button>
+ </div>
+</div></div>
+
+<!-- Generisk bekräftelse -->
+<div class="modal-bg" id="m-confirm" role="dialog" aria-modal="true"><div class="modal">
+ <h3 id="confirm-title">Bekräfta</h3>
+ <p id="confirm-text" style="margin-bottom:1rem"></p>
+ <div class="modal-foot">
+  <button class="btn btn-s" onclick="closeModal('m-confirm')">Avbryt</button>
+  <button class="btn btn-p" id="confirm-btn" onclick="">Bekräfta</button>
+ </div>
+</div></div>
+
+<script>
+// ===== CORE =====
+const A='',E={},empList=[];
+const g=u=>fetch(A+u).then(r=>r.ok?r.json():Promise.reject(r)).catch(()=>null);
+const post=(u,b)=>fetch(A+u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(async r=>{if(!r.ok){const t=await r.text();throw new Error(t.substring(0,200))}return r.json()});
+function toast(msg,type='ok'){const d=document.getElementById('toasts'),t=document.createElement('div');t.className='toast toast-'+type;t.textContent=msg;d.appendChild(t);setTimeout(()=>t.remove(),4000)}
+function openModal(id){document.getElementById(id).classList.add('show');populateSelects()}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function confirm(title,text,action){document.getElementById('confirm-title').textContent=title;document.getElementById('confirm-text').textContent=text;document.getElementById('confirm-btn').onclick=()=>{closeModal('m-confirm');action()};openModal('m-confirm')}
+function bg(t,c){return`<span class="bg bg-${c}">${t}</span>`}
+function sB(s){const m={Publicerad:'g',Godkand:'g',Utbetald:'g',Avslutad:'gr',Planering:'b',Utkast:'gr',Inskickad:'y',UnderGranskning:'b',NaraGrans:'y',KritiskNara:'r',KonverteradTillTillsvidare:'r',Signal:'y',UnderUtredning:'y',AktivRehab:'b',Pagaende:'b',Planerad:'gr',Beraknad:'b',Skapad:'gr',Paborjad:'b',Oppnad:'b',UnderBehandling:'y',VantarGodkannande:'y',Genomford:'g',FackligAvstemning:'y',Mottagen:'b',Avslagen:'r',Intervju:'b',Erbjudande:'g',Anstalld:'g'};return bg(s,m[s]||'gr')}
+function fmt(n){return n!=null?new Intl.NumberFormat('sv-SE',{style:'currency',currency:'SEK',maximumFractionDigits:0}).format(n):'–'}
+function eN(id){const v=id?.value||id;return E[v]||((v||'').substring(0,8)+'…')}
+function tbl(h,rows){if(!rows||!rows.length)return'<div class="empty">Inga poster att visa</div>';return`<table><thead><tr>${h.map(x=>'<th>'+x+'</th>').join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`}
+function st(n,l){return`<div class="st"><div class="n">${n}</div><div class="l">${l}</div></div>`}
+
+// ===== NAVIGATION =====
+const loaders={dash:loadDash,emp:loadEmp,org:loadOrg,case:loadCase,pay:loadPay,sch:loadSch,time:loadTime,mgr:loadMgr,las:loadLAS,rehab:loadRehab,sr:loadSR,travel:loadTravel,rec:loadRec,integ:loadInteg,leave:loadLeave,perf:loadPerf,comp:loadComp,doc:loadDoc,gdpr:loadGdpr,report:loadReport,audit:loadAudit,notis:loadNotis};
+function P(p){document.querySelectorAll('.pg').forEach(x=>x.classList.remove('act'));document.querySelectorAll('.sb a').forEach(x=>x.classList.remove('act'));document.getElementById('p-'+p)?.classList.add('act');document.getElementById('n-'+p)?.classList.add('act');loaders[p]?.()}
+document.querySelectorAll('.sb a').forEach(a=>{a.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();a.click()}})});
+
+// ===== POPULATE SELECTS =====
+async function populateSelects(){
+ if(!empList.length){const d=await g('/api/v1/anstallda');if(d)d.forEach(e=>{empList.push(e);E[e.id.value]=e.fornamn+' '+e.efternamn})}
+ const opts=empList.map(e=>`<option value="${e.id.value}">${e.fornamn} ${e.efternamn} (${e.personnummer})</option>`).join('');
+ ['f-case-emp','f-clock-emp','f-rehab-emp','f-travel-emp','f-leave-emp','f-perf-emp','f-perf-chef','f-comp-emp','f-doc-emp','f-gdpr-emp'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.children.length)el.innerHTML=opts});
+ const units=await g('/api/v1/organisation');
+ if(units){const uo=units.map(u=>`<option value="${u.id.value||u.id}">${u.namn} (${u.typ})</option>`).join('');
+ ['f-sch-unit','f-rec-unit'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.children.length)el.innerHTML=uo})}
+}
+
+// ===== DASHBOARD =====
+async function loadDash(){
+ const[emps,integ,cases,schema,las,rehab,vak,resor,leave,perf,gdpr,docs]=await Promise.all([g('/api/v1/anstallda'),g('/api/v1/integration/status'),g('/api/v1/arenden'),g('/api/v1/schema'),g('/api/v1/las/dashboard'),g('/api/v1/halsosam/arenden'),g('/api/v1/rekrytering/vakanser'),g('/api/v1/resor'),g('/api/v1/ledighet/ansokngar'),g('/api/v1/medarbetarsamtal?ar=2026'),g('/api/v1/gdpr/begaran'),g('/api/v1/dokument')]);
+ if(emps)emps.forEach(e=>E[e.id.value]=e.fornamn+' '+e.efternamn);
+ document.getElementById('d-sts').innerHTML=[st(emps?.length||0,'Anställda'),st(integ?.integrationer?.length||0,'Integrationer'),st(schema?.length||0,'Scheman'),st(vak?.length||0,'Vakanser'),st(rehab?.length||0,'Rehabärenden'),st(resor?.length||0,'Resekrav'),st(leave?.length||0,'Ledighetsansökningar'),st(perf?.length||0,'Medarbetarsamtal'),st(gdpr?.length||0,'GDPR-begäran'),st(docs?.length||0,'Dokument')].join('');
+ document.getElementById('d-cases').innerHTML=cases?.length?tbl(['Typ','Status','Beskrivning'],cases.slice(0,5).map(c=>`<tr><td>${bg(c.typ,'b')}</td><td>${sB(c.status)}</td><td>${c.beskrivning||''}</td></tr>`)):'<div class="empty">Inga ärenden</div>';
+ document.getElementById('d-sch').innerHTML=schema?.length?tbl(['Schema','Status','Pass'],schema.map(s=>`<tr><td>${s.namn}</td><td>${sB(s.status)}</td><td>${bg(s.antalPass,'b')}</td></tr>`)):'<div class="empty">Inga scheman</div>';
+ document.getElementById('d-las').innerHTML=las&&(las.naraGrans>0||las.kritiskNara>0)?`<div class="danger">⚠️ ${las.kritiskNara} kritiska, ${las.naraGrans} nära gräns</div>`:'<div style="color:var(--g);padding:.5rem">✅ Inga aktiva LAS-varningar</div>';
+ document.getElementById('d-rehab').innerHTML=rehab?.length?tbl(['Anställd','Trigger','Status'],rehab.filter(r=>r.status!=='Avslutad').slice(0,5).map(r=>`<tr><td>${eN(r.anstallId)}</td><td>${bg(r.trigger,'y')}</td><td>${sB(r.status)}</td></tr>`)):'<div class="empty">Inga aktiva rehabärenden</div>';
+}
+
+// ===== ANSTÄLLDA =====
+async function loadEmp(){
+ const d=await g('/api/v1/anstallda');if(d)d.forEach(e=>E[e.id.value]=e.fornamn+' '+e.efternamn);
+ document.getElementById('emp-t').innerHTML=tbl(['Namn','Personnummer','E-post','Telefon','Anställningar'],(d||[]).map(e=>`<tr><td><strong>${e.fornamn} ${e.efternamn}</strong></td><td><code>${e.personnummer}</code></td><td>${e.epost||'–'}</td><td>${e.telefon||'–'}</td><td>${bg(e.aktivaAnstallningar,'b')}</td></tr>`))
+}
+async function createEmployee(){
+ try{const r=await post('/api/v1/anstalld',{personnummer:v('f-emp-pnr'),fornamn:v('f-emp-fn'),efternamn:v('f-emp-en'),epost:v('f-emp-email'),telefon:v('f-emp-tel')});closeModal('m-emp');toast('Anställd skapad!');P('emp')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== ORGANISATION =====
+async function loadOrg(){
+ const d=await g('/api/v1/organisation');
+ document.getElementById('org-t').innerHTML=tbl(['Enhet','Typ','Kostnadsställe'],(d||[]).map(u=>`<tr><td><strong>${u.namn}</strong></td><td>${bg(u.typ,'gr')}</td><td><code>${u.kostnadsstalle||'–'}</code></td></tr>`))
+}
+
+// ===== ÄRENDEN =====
+async function loadCase(){
+ const d=await g('/api/v1/arenden');
+ document.getElementById('case-t').innerHTML=tbl(['Typ','Status','Beskrivning','Skapad'],(d||[]).map(c=>`<tr><td>${bg(c.typ,'b')}</td><td>${sB(c.status)}</td><td>${c.beskrivning||'–'}</td><td>${new Date(c.createdAt).toLocaleDateString('sv-SE')}</td></tr>`))
+}
+async function createCase(){
+ try{await post('/api/v1/arenden/franvaro',{anstallId:v('f-case-emp'),franvaroTyp:v('f-case-typ'),franDatum:v('f-case-from'),tillDatum:v('f-case-to'),beskrivning:v('f-case-desc')});closeModal('m-case');toast('Frånvaroärende skapat!');P('case')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== LÖNEKÖRNINGAR =====
+async function loadPay(){
+ const d=await g('/api/v1/lon/korningar');
+ document.getElementById('pay-t').innerHTML=tbl(['Period','Status','Anställda','Brutto','Netto','Skatt','AG-avgifter','Åtgärder'],(d||[]).map(r=>`<tr><td><strong>${r.period}</strong></td><td>${sB(r.status)}</td><td>${r.antalAnstallda}</td><td>${fmt(r.totalBrutto)}</td><td>${fmt(r.totalNetto)}</td><td>${fmt(r.totalSkatt)}</td><td>${fmt(r.totalArbetsgivaravgifter)}</td><td class="bar">${payActions(r)}</td></tr>`));
+ const codes=await g('/api/v1/lon/lonearter');
+ document.getElementById('pay-codes').innerHTML=tbl(['Kod','Benämning','Kategori','Sem.grund.','Pens.grund.','AGI'],(codes||[]).map(c=>`<tr><td><code>${c.kod}</code></td><td>${c.benamning}</td><td>${sB(c.skattekategori)}</td><td>${c.arSemestergrundande?'✅':'–'}</td><td>${c.arPensionsgrundande?'✅':'–'}</td><td><code>${c.agiFaltkod||'–'}</code></td></tr>`))
+}
+function payActions(r){
+ const id=r.id?.value||r.id;
+ if(r.status==='Skapad')return`<button class="btn btn-p btn-sm" onclick="payAction('${id}','berakna')">Beräkna</button>`;
+ if(r.status==='Beraknad')return`<button class="btn btn-g btn-sm" onclick="payApprove('${id}')">Godkänn</button>`;
+ if(r.status==='Godkand')return`<button class="btn btn-p btn-sm" onclick="payAction('${id}','utbetala')">Utbetala</button>`;
+ if(r.status==='Utbetald')return`${bg('Klar','g')}`;
+ return'';
+}
+async function createPayrollRun(){
+ try{await post('/api/v1/lon/korning',{year:+v('f-pay-yr'),month:+v('f-pay-mo'),startadAv:v('f-pay-by')});closeModal('m-pay');toast('Lönekörning skapad!');P('pay')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function payAction(id,action){
+ try{await post(`/api/v1/lon/korning/${id}/${action}`,{});toast(`Lönekörning: ${action} klar!`);P('pay')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function payApprove(id){
+ const name=prompt('Godkänd av (ditt namn):');
+ if(!name)return;
+ try{await post(`/api/v1/lon/korning/${id}/godkann`,{godkandAv:name});toast('Lönekörning godkänd!');P('pay')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== SCHEMALÄGGNING =====
+async function loadSch(){
+ const d=await g('/api/v1/schema');
+ document.getElementById('sch-t').innerHTML=tbl(['Namn','Typ','Status','Period','Pass','Åtgärder'],(d||[]).map(s=>{const id=s.id?.value||s.id;return`<tr><td><strong>${s.namn}</strong></td><td>${bg(s.typ,'gr')}</td><td>${sB(s.status)}</td><td>${s.periodStart||'–'}</td><td>${bg(s.antalPass,'b')}</td><td>${s.status==='Utkast'?`<button class="btn btn-g btn-sm" onclick="publishSchedule('${id}')">Publicera</button>`:''}</td></tr>`}));
+ // Clock status
+ const empData=await g('/api/v1/anstallda');
+ if(empData){
+  let rows=[];
+  for(const e of empData.slice(0,10)){
+   const status=await g(`/api/v1/stampling/status/${e.id.value}`);
+   if(status)rows.push(`<tr><td>${e.fornamn} ${e.efternamn}</td><td>${status.arInstamplad?bg('Instämplad','g'):bg('Ej instämplad','gr')}</td><td>${status.aktivtPass?status.aktivtPass.passTyp:'–'}</td></tr>`);
+  }
+  document.getElementById('clock-t').innerHTML=tbl(['Anställd','Status','Pass'],rows);
+ }
+}
+async function createSchedule(){
+ try{await post('/api/v1/schema/periodschema',{enhetId:v('f-sch-unit'),namn:v('f-sch-name'),startDatum:v('f-sch-start'),slutDatum:v('f-sch-end')});closeModal('m-sch');toast('Schema skapat!');P('sch')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function publishSchedule(id){
+ try{await post(`/api/v1/schema/${id}/publicera`,{});toast('Schema publicerat!');P('sch')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function clockInOut(){
+ const emp=v('f-clock-emp'),type=v('f-clock-type'),src=v('f-clock-src');
+ const url=type==='in'?'/api/v1/stampling/in':'/api/v1/stampling/ut';
+ try{const r=await post(url,{anstallId:emp,kalla:src});closeModal('m-clock');const msg=type==='in'?'Instämplad!':'Utstämplad!';toast(msg+(r.matchatPass?' (matchat pass)':''));P('sch')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== LAS =====
+async function loadLAS(){
+ const[dash,accs]=await Promise.all([g('/api/v1/las/dashboard'),g('/api/v1/las/ackumuleringar')]);
+ if(dash)document.getElementById('las-sts').innerHTML=[st(dash.totaltAktiva,'Totalt aktiva'),st(dash.underGrans,'Under gräns'),st(dash.naraGrans,'Nära gräns ⚠️'),st(dash.kritiskNara,'Kritiska 🔴'),st(dash.konverterade,'Konverterade'),st(dash.medForetradesratt,'Företrädesrätt')].join('');
+ document.getElementById('las-t').innerHTML=accs?.length?tbl(['Anställd','Anställningsform','Ack. dagar','Status','Konv.datum','Företrädesrätt'],accs.map(a=>`<tr><td>${eN(a.anstallId)}</td><td>${bg(a.anstallningsform,'gr')}</td><td><strong>${a.ackumuleradeDagar}</strong></td><td>${sB(a.status)}</td><td>${a.konverteringsDatum||'–'}</td><td>${a.harForetradesratt?bg('Ja, t.o.m. '+a.foretradesrattUtgar,'y'):'–'}</td></tr>`)):'<div class="empty">Inga LAS-ackumuleringar registrerade. SAVA/vikariat registreras automatiskt vid anställning.</div>'
+}
+
+// ===== HÄLSOSAM =====
+async function loadRehab(){
+ const d=await g('/api/v1/halsosam/arenden');
+ document.getElementById('rehab-t').innerHTML=tbl(['Anställd','Trigger','Status','Skapad','Ärendeägare','Åtgärder'],(d||[]).map(r=>{const id=r.id;return`<tr><td>${eN(r.anstallId)}</td><td>${bg(r.trigger,'y')}</td><td>${sB(r.status)}</td><td>${new Date(r.skapadVid).toLocaleDateString('sv-SE')}</td><td>${r.arendeagareHR?eN(r.arendeagareHR):'–'}</td><td class="bar">${rehabActions(r)}</td></tr>`}));
+ const fu=await g('/api/v1/halsosam/kommande-uppfoljningar?dagar=30');
+ document.getElementById('rehab-fu').innerHTML=fu?.antalKommande>0?tbl(['Anställd','Dag','Datum'],fu.uppfoljningar.map(u=>`<tr><td>${eN(u.anstallId)}</td><td>${bg('Dag '+u.dagNr,'b')}</td><td>${new Date(u.datum).toLocaleDateString('sv-SE')}</td></tr>`)):'<div class="empty">Inga uppföljningar inom 30 dagar</div>';
+}
+function rehabActions(r){
+ if(r.status==='Signal')return`<button class="btn btn-p btn-sm" onclick="rehabAction('${r.id}','tilldela')">Tilldela ägare</button>`;
+ if(r.status==='UnderUtredning')return`<button class="btn btn-p btn-sm" onclick="rehabAction('${r.id}','rehabplan')">Sätt rehabplan</button>`;
+ if(r.status==='AktivRehab')return`<button class="btn btn-g btn-sm" onclick="rehabAction('${r.id}','avsluta')">Avsluta</button>`;
+ return'';
+}
+async function createRehab(){
+ try{await post('/api/v1/halsosam/arende',{anstallId:v('f-rehab-emp'),trigger:v('f-rehab-trigger')});closeModal('m-rehab');toast('Rehabärende skapat!');P('rehab')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function rehabAction(id,action){
+ if(action==='tilldela'){const hr=prompt('HR-ärendeägare (ange anställd-ID):');if(hr)try{await post(`/api/v1/halsosam/arende/${id}/tilldela`,{hrPersonId:hr});toast('Ärendeägare tilldelad!');P('rehab')}catch(e){toast('Fel: '+e.message,'err')}}
+ if(action==='rehabplan'){const plan=prompt('Ange rehabplan:');if(plan)try{await post(`/api/v1/halsosam/arende/${id}/rehabplan`,{plan});toast('Rehabplan satt!');P('rehab')}catch(e){toast('Fel: '+e.message,'err')}}
+ if(action==='avsluta'){const slutsats=prompt('Slutsats/orsak till avslut:');if(slutsats)try{await post(`/api/v1/halsosam/arende/${id}/avsluta`,{slutsats});toast('Ärende avslutat!');P('rehab')}catch(e){toast('Fel: '+e.message,'err')}}
+}
+
+// ===== LÖNEÖVERSYN =====
+async function loadSR(){
+ const d=await g('/api/v1/loneoversyn/rundor');
+ document.getElementById('sr-t').innerHTML=tbl(['Namn','År','Avtal','Status','Budget','Fördelat','Återstående','Förslag','Åtgärder'],(d||[]).map(r=>{const id=r.id?.value||r.id;return`<tr><td><strong>${r.namn}</strong></td><td>${r.ar}</td><td>${bg(r.avtal,'gr')}</td><td>${sB(r.status)}</td><td>${fmt(r.totalBudget)}</td><td>${fmt(r.fordeladBudget)}</td><td>${fmt(r.aterstaendeBudget)}</td><td>${bg(r.antalForslag,'b')}</td><td>${r.status==='Planering'?`<button class="btn btn-g btn-sm" onclick="srAction('${id}','genomfor')">Genomför</button>`:''}</td></tr>`}))
+}
+async function createSalaryReview(){
+ try{await post('/api/v1/loneoversyn/runda',{namn:v('f-sr-name'),ar:+v('f-sr-yr'),avtalsomrade:v('f-sr-avt'),budget:+v('f-sr-budget'),ikrafttradandeDatum:v('f-sr-date')});closeModal('m-sr');toast('Löneöversynsrunda skapad!');P('sr')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function srAction(id,action){
+ try{await post(`/api/v1/loneoversyn/runda/${id}/${action}`,{});toast('Löneöversyn: åtgärd klar!');P('sr')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== RESOR =====
+async function loadTravel(){
+ const d=await g('/api/v1/resor');
+ document.getElementById('travel-t').innerHTML=tbl(['Anställd','Beskrivning','Datum','Status','Belopp','Åtgärder'],(d||[]).map(t=>{const id=t.id?.value||t.id;return`<tr><td>${eN(t.anstallId)}</td><td>${t.beskrivning}</td><td>${t.reseDatum}</td><td>${sB(t.status)}</td><td><strong>${fmt(t.totalBelopp)}</strong></td><td>${t.status==='Utkast'?`<button class="btn btn-y btn-sm" onclick="travelSubmit('${id}')">Skicka in</button>`:''}</td></tr>`}))
+}
+async function createTravel(){
+ try{await post('/api/v1/resor',{anstallId:v('f-travel-emp'),beskrivning:v('f-travel-desc'),datum:v('f-travel-date'),helaDagar:+v('f-travel-full'),halvaDagar:+v('f-travel-half'),kordaMil:+v('f-travel-km')});closeModal('m-travel');toast('Resekrav skapat!');P('travel')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function travelSubmit(id){
+ try{await post(`/api/v1/resor/${id}/skickain`,{});toast('Resekrav inskickat!');P('travel')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== REKRYTERING =====
+async function loadRec(){
+ const d=await g('/api/v1/rekrytering/vakanser');
+ document.getElementById('rec-t').innerHTML=tbl(['Titel','Status','Sista dag','Extern','Platsbanken','Ansökningar','Åtgärder'],(d||[]).map(v=>{const id=v.id?.value||v.id;return`<tr><td><strong>${v.titel}</strong></td><td>${sB(v.status)}</td><td>${v.sistaAnsokningsDag}</td><td>${v.publiceradExternt?bg('Ja','g'):bg('Nej','gr')}</td><td>${v.publiceradPlatsbanken?bg('Ja','g'):bg('Nej','gr')}</td><td>${bg(v.antalAnsokngar,'b')}</td><td>${v.status==='Utkast'?`<button class="btn btn-g btn-sm" onclick="publishVacancy('${id}')">Publicera</button>`:''}</td></tr>`}))
+}
+async function createVacancy(){
+ try{await post('/api/v1/rekrytering/vakans',{enhetId:v('f-rec-unit'),titel:v('f-rec-title'),beskrivning:v('f-rec-desc'),anstallningsform:v('f-rec-type'),sistaDag:v('f-rec-deadline')});closeModal('m-rec');toast('Vakans skapad!');P('rec')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function publishVacancy(id){
+ try{await post(`/api/v1/rekrytering/vakans/${id}/publicera`,{externt:true,platsbanken:false});toast('Vakans publicerad!');P('rec')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== INTEGRATIONER =====
+async function loadInteg(){
+ const d=await g('/api/v1/integration/status');
+ if(d)document.getElementById('integ-g').innerHTML=d.integrationer.map(i=>`<div class="ic"><div class="dot" style="background:${i.status==='OK'?'var(--g)':'var(--r)'}"></div><div><div class="nm">${i.system}</div><div class="tp">${i.status}</div></div></div>`).join('')
+}
+
+// ===== LEDIGHET =====
+async function loadLeave(){
+ const d=await g('/api/v1/ledighet/ansokngar');
+ document.getElementById('leave-t').innerHTML=tbl(['Anställd','Typ','Från','Till','Dagar','Status','Åtgärder'],(d||[]).map(r=>{const id=r.id;return`<tr><td>${eN(r.anstallId)}</td><td>${bg(r.typ,'b')}</td><td>${r.franDatum}</td><td>${r.tillDatum}</td><td><strong>${r.antalDagar}</strong></td><td>${sB(r.status)}</td><td class="bar">${r.status==='Utkast'?`<button class="btn btn-y btn-sm" onclick="leaveAction('${id}','skickain')">Skicka in</button>`:r.status==='Inskickad'?`<button class="btn btn-g btn-sm" onclick="leaveApprove('${id}')">Godkänn</button>`:''}</td></tr>`}))
+}
+async function createLeave(){
+ try{await post('/api/v1/ledighet/ansokan',{anstallId:v('f-leave-emp'),typ:v('f-leave-typ'),franDatum:v('f-leave-from'),tillDatum:v('f-leave-to'),beskrivning:v('f-leave-desc')});closeModal('m-leave');toast('Ledighetsansökan skapad!');P('leave')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function leaveAction(id,action){
+ try{await post(`/api/v1/ledighet/ansokan/${id}/${action}`,{});toast('Ansökan uppdaterad!');P('leave')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function leaveApprove(id){
+ const name=prompt('Godkännare-ID:');if(!name)return;
+ try{await post(`/api/v1/ledighet/ansokan/${id}/godkann`,{godkannare:name});toast('Ansökan godkänd!');P('leave')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== MEDARBETARSAMTAL =====
+async function loadPerf(){
+ const d=await g('/api/v1/medarbetarsamtal?ar=2026');
+ document.getElementById('perf-t').innerHTML=tbl(['Anställd','Chef','År','Status','Betyg','Genomfört','Åtgärder'],(d||[]).map(r=>{const id=r.id;return`<tr><td>${eN(r.anstallId)}</td><td>${eN(r.chefId)}</td><td>${r.ar}</td><td>${sB(r.status)}</td><td>${r.overallRating||'–'}</td><td>${r.genomfordVid?new Date(r.genomfordVid).toLocaleDateString('sv-SE'):'–'}</td><td class="bar">${perfActions(r)}</td></tr>`}))
+}
+function perfActions(r){
+ const id=r.id;
+ if(r.status==='Planerad')return`<button class="btn btn-p btn-sm" onclick="perfSelf('${id}')">Självbedömning</button>`;
+ if(r.status==='SjalvbedomningKlar')return`<button class="btn btn-p btn-sm" onclick="perfManager('${id}')">Chefsbedömning</button>`;
+ if(r.status==='ChefsbedomningKlar')return`<button class="btn btn-g btn-sm" onclick="perfComplete('${id}')">Genomför</button>`;
+ return'';
+}
+async function createPerf(){
+ try{await post('/api/v1/medarbetarsamtal',{anstallId:v('f-perf-emp'),chefId:v('f-perf-chef'),ar:+v('f-perf-yr')});closeModal('m-perf');toast('Medarbetarsamtal skapat!');P('perf')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function perfSelf(id){const b=prompt('Självbedömning:');if(b)try{await post(`/api/v1/medarbetarsamtal/${id}/sjalvbedomning`,{bedomning:b});toast('Självbedömning sparad!');P('perf')}catch(e){toast('Fel: '+e.message,'err')}}
+async function perfManager(id){const b=prompt('Chefsbedömning:');const r=prompt('Betyg (1-5):');if(b&&r)try{await post(`/api/v1/medarbetarsamtal/${id}/chefsbedomning`,{bedomning:b,overallRating:+r});toast('Chefsbedömning sparad!');P('perf')}catch(e){toast('Fel: '+e.message,'err')}}
+async function perfComplete(id){try{await post(`/api/v1/medarbetarsamtal/${id}/genomfor`,{});toast('Samtal genomfört!');P('perf')}catch(e){toast('Fel: '+e.message,'err')}}
+
+// ===== KOMPETENS =====
+async function loadComp(){
+ const d=await g('/api/v1/kompetens');
+ document.getElementById('comp-t').innerHTML=tbl(['Anställd','Certifiering','Typ','Utfärdare','Giltig till','Status'],(d||[]).map(c=>`<tr><td>${eN(c.anstallId)}</td><td><strong>${c.namn}</strong></td><td>${bg(c.typ,'gr')}</td><td>${c.utfardare||'–'}</td><td>${c.giltigTill||'–'}</td><td>${sB(c.status)}</td></tr>`));
+ const exp=await g('/api/v1/kompetens/utgaende?dagar=90');
+ document.getElementById('comp-exp').innerHTML=exp?.length?tbl(['Anställd','Certifiering','Utgår','Dagar kvar'],exp.map(c=>`<tr><td>${eN(c.anstallId)}</td><td><strong>${c.namn}</strong></td><td>${c.giltigTill}</td><td>${bg(c.dagarKvar+' dagar',c.dagarKvar<30?'r':'y')}</td></tr>`)):'<div class="empty">Inga certifikat utgår inom 90 dagar</div>';
+}
+async function createComp(){
+ try{await post('/api/v1/kompetens',{anstallId:v('f-comp-emp'),namn:v('f-comp-name'),typ:v('f-comp-typ'),utfardare:v('f-comp-issuer')||null,giltigFran:v('f-comp-from')||null,giltigTill:v('f-comp-to')||null,obligatorisk:false});closeModal('m-comp');toast('Certifiering sparad!');P('comp')}catch(e){toast('Fel: '+e.message,'err')}
+}
+
+// ===== DOKUMENT =====
+async function loadDoc(){
+ const d=await g('/api/v1/dokument');
+ document.getElementById('doc-t').innerHTML=tbl(['Anställd','Kategori','Filnamn','Storlek','Uppladdat','Klassificering','Åtgärder'],(d||[]).map(doc=>{const id=doc.id;return`<tr><td>${eN(doc.anstallId)}</td><td>${bg(doc.kategori,'gr')}</td><td>${doc.fileName}</td><td>${(doc.fileSizeBytes/1024).toFixed(0)} KB</td><td>${new Date(doc.uppladdadVid).toLocaleDateString('sv-SE')}</td><td>${bg(doc.klassificering,'b')}</td><td>${!doc.isArchived?`<button class="btn btn-s btn-sm" onclick="archiveDoc('${id}')">Arkivera</button>`:bg('Arkiverad','gr')}</td></tr>`}))
+}
+async function createDoc(){
+ try{await post('/api/v1/dokument',{anstallId:v('f-doc-emp'),kategori:v('f-doc-kat'),fileName:v('f-doc-fn'),storagePath:'/uploads/'+v('f-doc-fn'),fileSizeBytes:0,contentType:'application/pdf',uppladdadAv:'admin'});closeModal('m-doc');toast('Dokument registrerat!');P('doc')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function archiveDoc(id){try{await post(`/api/v1/dokument/${id}/arkivera`,{});toast('Dokument arkiverat!');P('doc')}catch(e){toast('Fel: '+e.message,'err')}}
+
+// ===== GDPR =====
+async function loadGdpr(){
+ const d=await g('/api/v1/gdpr/begaran');
+ document.getElementById('gdpr-t').innerHTML=tbl(['Anställd','Typ','Status','Mottagen','Deadline','Försenad','Handläggare','Åtgärder'],(d||[]).map(r=>{const id=r.id;return`<tr><td>${eN(r.anstallId)}</td><td>${bg(r.typ,'b')}</td><td>${sB(r.status)}</td><td>${new Date(r.mottagen).toLocaleDateString('sv-SE')}</td><td>${new Date(r.deadline).toLocaleDateString('sv-SE')}</td><td>${r.arForsenad?bg('Ja','r'):bg('Nej','g')}</td><td>${r.handlaggarId||'–'}</td><td class="bar">${r.status==='Mottagen'?`<button class="btn btn-p btn-sm" onclick="gdprAssign('${id}')">Tilldela</button>`:r.status==='UnderBehandling'?`<button class="btn btn-g btn-sm" onclick="gdprComplete('${id}')">Slutför</button>`:''}</td></tr>`}));
+ const ret=await g('/api/v1/gdpr/retention');
+ document.getElementById('gdpr-ret').innerHTML=ret?.length?tbl(['Entitetstyp','Entitets-ID','Utgick','Orsak','Åtgärd'],ret.map(r=>`<tr><td>${r.entityType}</td><td><code>${r.entityId}</code></td><td>${new Date(r.retentionExpires).toLocaleDateString('sv-SE')}</td><td>${r.retentionReason}</td><td><button class="btn btn-d btn-sm" onclick="gdprAnon('${r.id}')">Anonymisera</button></td></tr>`)):'<div class="empty">Ingen utgången retention</div>';
+}
+async function createGdpr(){
+ try{await post('/api/v1/gdpr/begaran',{anstallId:v('f-gdpr-emp'),typ:v('f-gdpr-typ')});closeModal('m-gdpr');toast('GDPR-begäran skapad!');P('gdpr')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function gdprAssign(id){const h=prompt('Handläggar-ID:');if(h)try{await post(`/api/v1/gdpr/begaran/${id}/tilldela`,{handlaggarId:h});toast('Handläggare tilldelad!');P('gdpr')}catch(e){toast('Fel: '+e.message,'err')}}
+async function gdprComplete(id){try{await post(`/api/v1/gdpr/begaran/${id}/slutfor`,{filSokvag:null});toast('Begäran slutförd!');P('gdpr')}catch(e){toast('Fel: '+e.message,'err')}}
+async function gdprAnon(id){try{await post(`/api/v1/gdpr/retention/${id}/anonymisera`,{});toast('Post anonymiserad!');P('gdpr')}catch(e){toast('Fel: '+e.message,'err')}}
+
+// ===== RAPPORTER =====
+async function loadReport(){
+ const d=await g('/api/v1/rapporter');
+ document.getElementById('report-t').innerHTML=tbl(['Namn','Beskrivning','Typ','Schemalagd','Cron','Mottagare','Åtgärder'],(d||[]).map(r=>{const id=r.id;return`<tr><td><strong>${r.namn}</strong></td><td>${r.beskrivning||'–'}</td><td>${bg(r.typ,'gr')}</td><td>${r.arSchemalagd?bg('Ja','g'):bg('Nej','gr')}</td><td><code>${r.cronExpression||'–'}</code></td><td>${r.mottagareEpost||'–'}</td><td><button class="btn btn-p btn-sm" onclick="runReport('${id}')">Kör</button></td></tr>`}))
+}
+async function createReport(){
+ try{await post('/api/v1/rapporter',{namn:v('f-rep-name'),beskrivning:v('f-rep-desc'),typ:v('f-rep-typ')});closeModal('m-report');toast('Rapport skapad!');P('report')}catch(e){toast('Fel: '+e.message,'err')}
+}
+async function runReport(id){try{await post(`/api/v1/rapporter/${id}/kor`,{});toast('Rapport körd!');P('report')}catch(e){toast('Fel: '+e.message,'err')}}
+
+// ===== GRANSKNINGSLOGG =====
+async function loadAudit(){
+ const d=await g('/api/v1/audit?take=50');
+ document.getElementById('audit-t').innerHTML=d?.length?tbl(['Tidpunkt','Entitetstyp','Entitets-ID','Åtgärd','Användare'],(d||[]).map(a=>`<tr><td>${new Date(a.timestamp).toLocaleString('sv-SE')}</td><td>${bg(a.entityType,'gr')}</td><td><code>${a.entityId}</code></td><td>${sB(a.action)}</td><td>${a.userName||a.userId||'–'}</td></tr>`)):'<div class="empty">Inga granskningsloggar ännu</div>'
+}
+
+// ===== TIDRAPPORTERING =====
+async function loadTime(){
+ const d=await g('/api/v1/tidrapporter');
+ document.getElementById('time-t').innerHTML=tbl(['Anställd','År','Månad','Planerat','Faktiskt','Avvikelse','Övertid','Status','Åtgärder'],(d||[]).map(t=>{const id=t.id;return`<tr><td>${eN(t.anstallId)}</td><td>${t.ar}</td><td>${t.manad}</td><td>${t.planeradeTimmar}h</td><td>${t.faktiskaTimmar}h</td><td>${(t.faktiskaTimmar-t.planeradeTimmar).toFixed(1)}h</td><td>${t.overtid}h</td><td>${sB(t.status)}</td><td class="bar">${t.status==='Oppen'?`<button class="btn btn-y btn-sm" onclick="timeAction('${id}','skickain')">Skicka in</button>`:t.status==='Inskickad'?`<button class="btn btn-g btn-sm" onclick="timeApprove('${id}')">Godkänn</button>`:''}</td></tr>`}))
+}
+async function timeAction(id,action){try{await post(`/api/v1/tidrapporter/${id}/${action}`,{});toast('Tidrapport uppdaterad!');P('time')}catch(e){toast('Fel: '+e.message,'err')}}
+async function timeApprove(id){const g2=prompt('Godkännare-ID:');if(g2)try{await post(`/api/v1/tidrapporter/${id}/godkann`,{godkannare:g2});toast('Tidrapport godkänd!');P('time')}catch(e){toast('Fel: '+e.message,'err')}}
+
+// ===== CHEFSPORTAL =====
+async function loadMgr(){
+ const d=await g('/api/v1/chef/dashboard/00000000-0000-0000-0000-000000000000');
+ if(d){
+  document.getElementById('mgr-sts').innerHTML=[
+   st(d.godkannandeKo?.ledighet||0,'Ledighetsansökningar'),
+   st(d.godkannandeKo?.tidrapporter||0,'Tidrapporter'),
+   st(d.godkannandeKo?.arenden||0,'Ärenden'),
+   st(d.varningar?.lasAlarm||0,'LAS-alarm'),
+   st(d.varningar?.aktivRehab||0,'Aktiv rehab'),
+   st(d.varningar?.utgaendeCertifikat||0,'Utgående cert.'),
+   st(d.bemanningIdag?.antalPass||0,'Pass idag'),
+   st(d.medarbetarsamtal?.pagaende||0,'Samtal pågående')
+  ].join('');
+ }
+ const att=await g('/api/v1/chef/attestko');
+ if(att){
+  const rows=[];
+  (att.ledighetsansokngar||[]).forEach(r=>rows.push(`<tr><td>${bg('Ledighet','b')}</td><td>${eN(r.anstallId)}</td><td>${r.franDatum} – ${r.tillDatum}</td><td>${r.antalDagar} dagar</td></tr>`));
+  (att.tidrapporter||[]).forEach(t=>rows.push(`<tr><td>${bg('Tidrapport','gr')}</td><td>${eN(t.anstallId)}</td><td>${t.ar}-${String(t.manad).padStart(2,'0')}</td><td>${t.faktiskaTimmar}h</td></tr>`));
+  document.getElementById('mgr-attest').innerHTML=rows.length?tbl(['Typ','Anställd','Period','Detalj'],rows):'<div class="empty">Inget att attestera</div>';
+ }
+ document.getElementById('mgr-warn').innerHTML='<div class="info">Se LAS-uppföljning och HälsoSAM för detaljer om varningar.</div>';
+}
+
+// ===== NOTISER =====
+async function loadNotis(){
+ document.getElementById('notis-t').innerHTML='<div class="empty">Notiser visas per inloggad användare. Ange userId-parameter i API:et för att hämta notiser.</div>';
+}
+
+// ===== HELPERS =====
+function v(id){return document.getElementById(id)?.value||''}
+
+// ===== INIT =====
+loadDash();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+</script>
+</body>
+</html>

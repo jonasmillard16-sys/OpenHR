@@ -1,0 +1,31 @@
+@using RegionHR.Core.Domain
+
+<div style="margin-left: @(Level * 24)px; padding: 0.5rem 0; border-left: @(Level > 0 ? "2px solid var(--rhr-border)" : "none"); padding-left: @(Level > 0 ? "1rem" : "0");">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <RhrBadge Text="@Enhet.Typ.ToString()" Variant="@TypVariant" />
+        <strong>@Enhet.Namn</strong>
+        <span style="color: var(--rhr-text-muted); font-size: 0.85rem;">(@Enhet.Kostnadsstalle)</span>
+    </div>
+
+    @if (Enhet.Underenheter.Count > 0)
+    {
+        @foreach (var child in Enhet.Underenheter)
+        {
+            <OrgNode Enhet="child" Level="Level + 1" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public OrganizationUnit Enhet { get; set; } = default!;
+    [Parameter] public int Level { get; set; }
+
+    private string TypVariant => Enhet.Typ switch
+    {
+        OrganizationUnitType.Region => "info",
+        OrganizationUnitType.Forvaltning => "info",
+        OrganizationUnitType.Verksamhet => "warning",
+        OrganizationUnitType.Enhet or OrganizationUnitType.Avdelning => "success",
+        _ => "info"
+    };
+}

@@ -1,0 +1,26 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Fel - RegionHR</PageTitle>
+
+<div class="rhr-container" style="padding-top: 3rem;">
+    <RhrAlert Variant="danger" Title="Ett fel uppstod">
+        <p>Ett oväntat fel uppstod vid bearbetning av din begäran.</p>
+    </RhrAlert>
+
+    @if (ShowRequestId)
+    {
+        <p><strong>Begäran-ID:</strong> <code>@RequestId</code></p>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized()
+    {
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+    }
+}

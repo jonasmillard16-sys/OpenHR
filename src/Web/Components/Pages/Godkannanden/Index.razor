@@ -1,0 +1,58 @@
+@page "/godkannanden"
+@rendermode InteractiveServer
+@inject RegionHR.Web.Services.ArendeService ArendeService
+
+<PageTitle>Godkännanden - RegionHR</PageTitle>
+
+<h1>Väntande godkännanden</h1>
+
+<RhrCard>
+    <ChildContent>
+        @if (_loading)
+        {
+            <p>Laddar...</p>
+        }
+        else if (_vantande.Count == 0)
+        {
+            <RhrAlert Variant="success" Title="Allt klart!">Inga väntande godkännanden just nu.</RhrAlert>
+        }
+        else
+        {
+            <RhrAlert Variant="warning">@_vantande.Count ärende(n) väntar på ditt beslut.</RhrAlert>
+            <table class="rhr-table">
+                <thead>
+                    <tr>
+                        <th>Typ</th>
+                        <th>Beskrivning</th>
+                        <th>Skapat</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _vantande)
+                    {
+                        <tr>
+                            <td><RhrBadge Text="@a.Typ.ToString()" Variant="info" /></td>
+                            <td>@a.Beskrivning</td>
+                            <td>@a.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <a href="/arenden/@a.Id.Value" class="rhr-btn rhr-btn--primary rhr-btn--sm">Granska</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </ChildContent>
+</RhrCard>
+
+@code {
+    private List<RegionHR.CaseManagement.Domain.Case> _vantande = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _vantande = await ArendeService.HamtaVantandeGodkannandenAsync();
+        _loading = false;
+    }
+}

@@ -1,0 +1,134 @@
+@page "/arenden/{Id:guid}"
+@rendermode InteractiveServer
+@inject RegionHR.Web.Services.ArendeService ArendeService
+
+<PageTitle>Ärende - RegionHR</PageTitle>
+
+@if (_arende is null)
+{
+    <RhrAlert Variant="warning">Ärende hittades inte.</RhrAlert>
+}
+else
+{
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h1>Ärende: @_arende.Typ</h1>
+        <RhrBadge Text="@_arende.Status.ToString()" Variant="@StatusVariant(_arende.Status)" />
+    </div>
+
+    @if (_meddelande is not null)
+    {
+        <RhrAlert Variant="success">@_meddelande</RhrAlert>
+    }
+
+    <div class="rhr-grid rhr-grid--2">
+        <RhrCard>
+            <Header>Ärendeuppgifter</Header>
+            <ChildContent>
+                <table class="rhr-table">
+                    <tbody>
+                        <tr><td><strong>Typ</strong></td><td>@_arende.Typ</td></tr>
+                        <tr><td><strong>Status</strong></td><td>@_arende.Status</td></tr>
+                        <tr><td><strong>Aktuellt steg</strong></td><td>@(_arende.AktuellSteg ?? "-")</td></tr>
+                        <tr><td><strong>Beskrivning</strong></td><td>@_arende.Beskrivning</td></tr>
+                        <tr><td><strong>Skapat</strong></td><td>@_arende.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+                    </tbody>
+                </table>
+            </ChildContent>
+        </RhrCard>
+
+        @if (_arende.FranvaroData is not null)
+        {
+            <RhrCard>
+                <Header>Frånvarodata</Header>
+                <ChildContent>
+                    <table class="rhr-table">
+                        <tbody>
+                            <tr><td><strong>Frånvarotyp</strong></td><td>@_arende.FranvaroData.FranvaroTyp</td></tr>
+                            <tr><td><strong>Från</strong></td><td>@_arende.FranvaroData.FranDatum</td></tr>
+                            <tr><td><strong>Till</strong></td><td>@_arende.FranvaroData.TillDatum</td></tr>
+                            <tr><td><strong>Antal dagar</strong></td><td>@_arende.FranvaroData.AntalDagar</td></tr>
+                            <tr><td><strong>Omfattning</strong></td><td>@(_arende.FranvaroData.Omfattning)%</td></tr>
+                        </tbody>
+                    </table>
+                </ChildContent>
+            </RhrCard>
+        }
+    </div>
+
+    @if (_arende.Status == RegionHR.SharedKernel.Domain.CaseStatus.VantarGodkannande || _arende.Status == RegionHR.SharedKernel.Domain.CaseStatus.Oppnad)
+    {
+        <RhrCard AriaLabel="Åtgärder" style="margin-top: 1.5rem;">
+            <Header>Chefsgodkännande</Header>
+            <ChildContent>
+                <div style="margin-bottom: 1rem;">
+                    <label class="rhr-label">Kommentar (valfritt)</label>
+                    <textarea class="rhr-input" rows="2" @bind="_godkannandeKommentar"></textarea>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <RhrButton OnClick="Godkann" Variant="primary">Godkänn</RhrButton>
+                    <RhrButton OnClick="Avslag" Variant="danger">Avslå</RhrButton>
+                </div>
+            </ChildContent>
+        </RhrCard>
+    }
+
+    @if (_arende.Godkannanden.Count > 0)
+    {
+        <RhrCard style="margin-top: 1.5rem;">
+            <Header>Godkännandehistorik</Header>
+            <ChildContent>
+                <table class="rhr-table">
+                    <thead><tr><th>Steg</th><th>Status</th><th>Beslut</th><th>Kommentar</th></tr></thead>
+                    <tbody>
+                        @foreach (var g in _arende.Godkannanden)
+                        {
+                            <tr>
+                                <td>@g.Steg</td>
+                                <td><RhrBadge Text="@g.Status.ToString()" Variant="@(g.Status == RegionHR.CaseManagement.Domain.ApprovalStatus.Godkand ? "success" : g.Status == RegionHR.CaseManagement.Domain.ApprovalStatus.Avslagen ? "danger" : "warning")" /></td>
+                                <td>@(g.BeslutVid?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                                <td>@(g.Kommentar ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </ChildContent>
+        </RhrCard>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private RegionHR.CaseManagement.Domain.Case? _arende;
+    private string? _godkannandeKommentar;
+    private string? _meddelande;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _arende = await ArendeService.HamtaAsync(RegionHR.SharedKernel.Domain.CaseId.From(Id));
+    }
+
+    private async Task Godkann()
+    {
+        var godkannare = RegionHR.SharedKernel.Domain.EmployeeId.New(); // Demo
+        // First send for approval, then approve
+        _arende!.SkickaForGodkannande("Chefsgodkännande", godkannare);
+        await ArendeService.GodkannAsync(
+            RegionHR.SharedKernel.Domain.CaseId.From(Id), godkannare, _godkannandeKommentar);
+        _meddelande = "Ärende godkänt!";
+        _arende = await ArendeService.HamtaAsync(RegionHR.SharedKernel.Domain.CaseId.From(Id));
+    }
+
+    private Task Avslag()
+    {
+        _meddelande = "Ärende avslaget.";
+        return Task.CompletedTask;
+    }
+
+    private static string StatusVariant(RegionHR.SharedKernel.Domain.CaseStatus status) => status switch
+    {
+        RegionHR.SharedKernel.Domain.CaseStatus.VantarGodkannande => "warning",
+        RegionHR.SharedKernel.Domain.CaseStatus.Godkand or RegionHR.SharedKernel.Domain.CaseStatus.Avslutad => "success",
+        RegionHR.SharedKernel.Domain.CaseStatus.Avslagen => "danger",
+        _ => "info"
+    };
+}
