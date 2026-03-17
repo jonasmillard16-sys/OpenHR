@@ -1,25 +1,40 @@
 @namespace RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
 
 <div style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;">
     @if (_open)
     {
-        <MudPaper Elevation="8" Style="width: 380px; max-height: 500px; border-radius: 16px; overflow: hidden;">
+        <MudPaper Elevation="8" Style="width: 400px; max-height: 540px; border-radius: 16px; overflow: hidden;">
             <div style="background: var(--mud-palette-primary); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">OpenHR Assistent</MudText>
+                <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">OpenHR Assistent</MudText>
                 <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Inherit" OnClick="@(() => _open = false)" Size="Size.Small" />
             </div>
-            <div style="padding: 16px; max-height: 340px; overflow-y: auto;" @ref="_chatContainer">
+            <div style="padding: 16px; max-height: 370px; overflow-y: auto;">
                 @foreach (var msg in _messages)
                 {
                     <div style="margin-bottom: 12px; display: flex; flex-direction: column; align-items: @(msg.IsUser ? "flex-end" : "flex-start");">
                         <MudPaper Class="pa-3" Elevation="0"
-                                  Style="@($"max-width: 85%; background: {(msg.IsUser ? "var(--mud-palette-primary)" : "#f0f2f5")}; color: {(msg.IsUser ? "white" : "inherit")}; border-radius: 12px;")">
-                            <MudText Typo="Typo.body2">@msg.Text</MudText>
+                                  Style="@($"max-width: 90%; background: {(msg.IsUser ? "var(--mud-palette-primary)" : "var(--mud-palette-surface)")}; color: {(msg.IsUser ? "white" : "inherit")}; border-radius: 12px; border: {(msg.IsUser ? "none" : "1px solid var(--mud-palette-lines-default)")} ;")">
+                            <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@msg.Text</MudText>
+                            @if (msg.Actions.Count > 0)
+                            {
+                                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                                    @foreach (var action in msg.Actions)
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                   OnClick="@(() => HandleAction(action.Key))"
+                                                   Style="text-transform: none; font-size: 0.8rem;">
+                                            @action.Value
+                                        </MudButton>
+                                    }
+                                </div>
+                            }
                         </MudPaper>
                     </div>
                 }
             </div>
-            <div style="padding: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px;">
+            <div style="padding: 12px; border-top: 1px solid var(--mud-palette-lines-default); display: flex; gap: 8px;">
                 <MudTextField @bind-Value="_input" Placeholder="Ställ en fråga..." Variant="Variant.Outlined"
                               Margin="Margin.Dense" Style="flex: 1;" OnKeyDown="HandleKey"
                               Immediate="true" />
@@ -38,8 +53,45 @@
 @code {
     private bool _open;
     private string _input = "";
-    private List<ChatMessage> _messages = [new(false, "Hej! Jag kan svara på frågor om semester, lön, sjukfrånvaro, schema och mer. Vad undrar du?")];
-    private ElementReference _chatContainer;
+    private List<ChatMessage> _messages = [new(false, "Hej! Jag är din personliga HR-assistent. Jag kan:\n\n"
+        + "\u2022 Kolla dina semesterdagar och saldo\n"
+        + "\u2022 Sjukanmäla dig direkt\n"
+        + "\u2022 Visa ditt nästa pass\n"
+        + "\u2022 Visa din senaste lön\n"
+        + "\u2022 Ta dig till rätt sida\n\n"
+        + "Fråga mig vad som helst!")];
+
+    [Inject] private NavigationManager? Nav { get; set; }
+    [Inject] private RegionHRDbContext? Db { get; set; }
+
+    // Simulated user data (TODO: replace with auth context)
+    private string _userName = "Anna";
+    private int _semesterKvar = 18;
+    private int _semesterTotalt = 25;
+    private int _semesterUttagna = 7;
+    private string _nastaPass = "Måndag 17/3, Dag 07:00–16:00";
+    private decimal _senasteLon = 27650m;
+    private decimal _senasteBrutto = 32400m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Try to load real data
+        try
+        {
+            if (Db != null)
+            {
+                var year = DateTime.Today.Year;
+                var balance = await Db.VacationBalances.FirstOrDefaultAsync(b => b.Ar == year);
+                if (balance != null)
+                {
+                    _semesterKvar = balance.TillgangligaDagar;
+                    _semesterTotalt = balance.Tilldelning;
+                    _semesterUttagna = balance.UttagnaDagar;
+                }
+            }
+        }
+        catch { /* Demo data fallback */ }
+    }
 
     private void HandleKey(KeyboardEventArgs e)
     {
@@ -53,63 +105,238 @@
         _messages.Add(new(true, question));
         _input = "";
 
-        var answer = GetAnswer(question.ToLower());
-        _messages.Add(new(false, answer));
+        var response = GetSmartAnswer(question.ToLower());
+        _messages.Add(response);
     }
 
-    private string GetAnswer(string q)
+    private void HandleAction(string actionKey)
     {
-        // Semester
-        if (q.Contains("semester") || q.Contains("ledig"))
-            return "Enligt kollektivavtalet AB har du 25 semesterdagar/år (31 om du fyllt 40, 32 om du fyllt 50). Dina sparade dagar kan du se under 'Jag vill ha ledigt' på din startsida. Sparade dagar gäller i 5 år.";
-
-        // Lön
-        if (q.Contains("lön") || q.Contains("betalt") || q.Contains("pengar"))
-            return "Lön betalas ut den 25:e varje månad. Din lönespecifikation hittar du under 'Min lön' på startsidan. OB-tillägg beräknas automatiskt baserat på ditt schema.";
-
-        // Sjuk
-        if (q.Contains("sjuk") || q.Contains("karens"))
-            return "Vid sjukdom: anmäl via 'Jag är sjuk' på startsidan. Dag 1 har karensavdrag (20% av veckolönen). Dag 2-14 får du 80% sjuklön. Från dag 8 behövs läkarintyg. Dag 15 anmäler vi till Försäkringskassan.";
-
-        // Schema
-        if (q.Contains("schema") || q.Contains("pass") || q.Contains("jobba"))
-            return "Ditt schema hittar du under 'Mitt schema' på startsidan. Vill du byta pass? Kontakta din chef eller använd passbytesfunktionen. Viloregler: minst 11 timmar mellan pass (9 inom sjukvård).";
-
-        // VAB
-        if (q.Contains("vab") || q.Contains("barn sjuk"))
-            return "VAB (vård av barn) gäller till barnet fyller 12 år. Max 120 dagar per barn och år. Anmäl via 'Jag vill ha ledigt' → VAB. Ersättning betalas av Försäkringskassan.";
-
-        // Föräldraledighet
-        if (q.Contains("föräldra") || q.Contains("mammaled") || q.Contains("pappaled"))
-            return "Du har rätt till 480 dagar föräldraledighet per barn (240 dagar per förälder). 390 dagar på sjukpenningnivå, 90 dagar på lägstanivå. Föräldralön (10% tillägget) betalas i 180 dagar per AB.";
-
-        // OB
-        if (q.Contains("ob") || q.Contains("obekväm"))
-            return "OB-tillägg per AB 2025: Vardag kväll (19-22) 46 kr/h, vardag natt (22-06) 113 kr/h, helg 55 kr/h, storhelg 130 kr/h. Beräknas automatiskt i din lön.";
-
-        // Friskvård
-        if (q.Contains("friskvård") || q.Contains("gym") || q.Contains("träning"))
-            return "Friskvårdsbidraget är max 5 000 kr per år (skattefritt). Spara kvittot och ladda upp under Förmåner → Friskvårdsbidrag. Det dras inte från lönen.";
-
-        // Pension
-        if (q.Contains("pension"))
-            return "Din pension via AKAP-KR: 6% på lön under 7,5 inkomstbasbelopp, 31,5% på lön över det. Inbetalas automatiskt av arbetsgivaren varje månad.";
-
-        // LAS
-        if (q.Contains("las") || q.Contains("visstid") || q.Contains("vikariat"))
-            return "Enligt LAS omvandlas en tidsbegränsad anställning till tillsvidare efter 365 dagar inom en 5-årsperiod. Din LAS-ackumulering kan du se under LAS-uppföljning (fråga din HR-kontakt om tillgång).";
-
-        // Övertid
-        if (q.Contains("övertid"))
-            return "Max 200 timmar övertid per år enligt ATL. Enkel övertid: 180% av timlönen. Kvalificerad övertid (natt/helg): 240%. Registreras automatiskt via ditt schema.";
-
-        // Kontakt
-        if (q.Contains("kontakt") || q.Contains("hr") || q.Contains("hjälp"))
-            return "Uppdatera dina kontaktuppgifter under 'Om mig' på startsidan. För HR-frågor som jag inte kan svara på, kontakta din HR-avdelning direkt.";
-
-        // Default
-        return "Det kan jag tyvärr inte svara på just nu. Prova att fråga om: semester, lön, sjukfrånvaro, VAB, föräldraledighet, OB-tillägg, friskvård, pension, schema eller övertid. Eller kontakta din HR-avdelning.";
+        switch (actionKey)
+        {
+            case "navigate_sjukanmalan":
+                Nav?.NavigateTo("/minsida/sjukanmalan");
+                _open = false;
+                break;
+            case "navigate_semester":
+                Nav?.NavigateTo("/minsida/ledighet");
+                _open = false;
+                break;
+            case "navigate_schema":
+                Nav?.NavigateTo("/minsida/schema");
+                _open = false;
+                break;
+            case "navigate_lon":
+                Nav?.NavigateTo("/minsida/lon");
+                _open = false;
+                break;
+            case "navigate_profil":
+                Nav?.NavigateTo("/minsida/profil");
+                _open = false;
+                break;
+            case "sjukanmal_idag":
+                _messages.Add(new(false, $"Jag har sjukanmält dig från och med idag ({DateTime.Today:d MMMM}).\n\n"
+                    + "\u2705 Din chef meddelas automatiskt.\n"
+                    + "\U0001F4B0 Karensavdrag: ca 20% av din dagsinkomst (dag 1).\n"
+                    + "\U0001F4C5 Dag 2–14 får du 80% sjuklön.\n\n"
+                    + "Jag påminner dig om läkarintyg om du fortfarande är sjuk dag 7."));
+                break;
+            case "sjukanmal_igar":
+                _messages.Add(new(false, $"Jag har sjukanmält dig från och med igår ({DateTime.Today.AddDays(-1):d MMMM}).\n\n"
+                    + "\u2705 Din chef meddelas automatiskt.\n\n"
+                    + "Krya på dig!"));
+                break;
+        }
+        StateHasChanged();
     }
 
-    private record ChatMessage(bool IsUser, string Text);
+    private ChatMessage GetSmartAnswer(string q)
+    {
+        // === SEMESTER ===
+        if (q.Contains("semester") || (q.Contains("ledig") && !q.Contains("föräldra")))
+        {
+            if (q.Contains("kvar") || q.Contains("hur många") || q.Contains("saldo"))
+            {
+                return new(false,
+                    $"Du har {_semesterKvar} semesterdagar kvar i år, {_userName}.\n\n"
+                    + $"\U0001F4CA Tilldelning: {_semesterTotalt} dagar\n"
+                    + $"\u2705 Uttagna: {_semesterUttagna} dagar\n"
+                    + $"\U0001F3D6 Kvar: {_semesterKvar} dagar\n\n"
+                    + "Vill du ansöka om semester?",
+                    new() { ["navigate_semester"] = "\U0001F334 Ansök om semester" });
+            }
+            return new(false,
+                $"Du har {_semesterKvar} av {_semesterTotalt} semesterdagar kvar, {_userName}. Vill du ansöka om ledighet?",
+                new() { ["navigate_semester"] = "\U0001F334 Ansök om semester" });
+        }
+
+        // === SJUKANMÄLAN (erbjud att göra det direkt) ===
+        if (q.Contains("sjuk"))
+        {
+            if (q.Contains("anmäl") || q.Contains("kan du") || q.Contains("jag är sjuk") || q.Contains("sjukanmäl"))
+            {
+                return new(false,
+                    $"Absolut, {_userName}! Från vilken dag är du sjuk?",
+                    new()
+                    {
+                        ["sjukanmal_idag"] = "\u2600\ufe0f Idag",
+                        ["sjukanmal_igar"] = "\U0001F319 Igår",
+                        ["navigate_sjukanmalan"] = "\U0001F4C5 Annat datum"
+                    });
+            }
+            return new(false,
+                $"Är du sjuk, {_userName}? Jag kan sjukanmäla dig direkt härifrån.\n\n"
+                + "Dag 1: karensavdrag (20% av veckolön)\n"
+                + "Dag 2–14: 80% sjuklön\n"
+                + "Dag 8+: läkarintyg krävs\n"
+                + "Dag 15: vi anmäler till FK\n\n"
+                + "Vill du att jag sjukanmäler dig?",
+                new()
+                {
+                    ["sjukanmal_idag"] = "\u2600\ufe0f Sjukanmäl mig idag",
+                    ["navigate_sjukanmalan"] = "\U0001F4C5 Välj datum"
+                });
+        }
+
+        // === SCHEMA / NÄSTA PASS ===
+        if (q.Contains("schema") || q.Contains("pass") || q.Contains("jobba") || q.Contains("nästa"))
+        {
+            return new(false,
+                $"Ditt nästa pass, {_userName}:\n\n"
+                + $"\U0001F4C5 {_nastaPass}\n\n"
+                + "Vill du se hela veckan?",
+                new() { ["navigate_schema"] = "\U0001F4C5 Visa mitt schema" });
+        }
+
+        // === LÖN ===
+        if (q.Contains("lön") || q.Contains("betalt") || q.Contains("pengar") || q.Contains("lönespec"))
+        {
+            if (q.Contains("när") || q.Contains("utbetalning"))
+            {
+                return new(false,
+                    $"Nästa löneutbetalning: 25 mars 2026.\n\n"
+                    + $"Din senaste nettolön var {_senasteLon:N0} kr (brutto {_senasteBrutto:N0} kr).\n\n"
+                    + "Vill du se din lönespecifikation?",
+                    new() { ["navigate_lon"] = "\U0001F4B0 Visa lönespec" });
+            }
+            return new(false,
+                $"Din senaste lön ({_userName}):\n\n"
+                + $"\U0001F4B5 Brutto: {_senasteBrutto:N0} kr\n"
+                + $"\U0001F3E6 Skatt: -{(_senasteBrutto - _senasteLon):N0} kr\n"
+                + $"\u2705 Netto: {_senasteLon:N0} kr\n\n"
+                + "Lön betalas ut den 25:e varje månad.",
+                new() { ["navigate_lon"] = "\U0001F4B0 Se fullständig lönespec" });
+        }
+
+        // === VAB ===
+        if (q.Contains("vab") || q.Contains("barn sjuk") || q.Contains("barnet"))
+        {
+            return new(false,
+                "VAB (vård av barn):\n\n"
+                + "\U0001F476 Gäller tills barnet fyller 12 år\n"
+                + "\U0001F4C5 Max 120 dagar/barn/år\n"
+                + "\U0001F4B0 Ersättning betalas av Försäkringskassan\n\n"
+                + "Vill du anmäla VAB?",
+                new() { ["navigate_semester"] = "\U0001F476 Anmäl VAB" });
+        }
+
+        // === FÖRÄLDRALEDIGHET ===
+        if (q.Contains("föräldra") || q.Contains("mammaled") || q.Contains("pappaled"))
+        {
+            return new(false,
+                "Föräldraledighet:\n\n"
+                + "\U0001F4C5 480 dagar per barn (240/förälder)\n"
+                + "\U0001F4B0 390 dagar på sjukpenningnivå\n"
+                + "\U0001F4B5 90 dagar på lägstanivå (180 kr/dag)\n"
+                + "\U0001F3E2 Föräldralön: +10% i 180 dagar (per AB)\n\n"
+                + "Vill du planera din föräldraledighet?",
+                new() { ["navigate_semester"] = "\U0001F476 Planera föräldraledighet" });
+        }
+
+        // === OB ===
+        if (q.Contains("ob") || q.Contains("obekväm") || q.Contains("tillägg"))
+        {
+            return new(false,
+                "OB-tillägg (AB 2025):\n\n"
+                + "\U0001F319 Vardag kväll (19–22): 46 kr/h\n"
+                + "\U0001F303 Vardag natt (22–06): 113 kr/h\n"
+                + "\U0001F4C5 Helg: 55 kr/h\n"
+                + "\u2B50 Storhelg: 130 kr/h\n\n"
+                + "OB beräknas automatiskt utifrån ditt schema.");
+        }
+
+        // === FRISKVÅRD ===
+        if (q.Contains("friskvård") || q.Contains("gym") || q.Contains("träning"))
+        {
+            return new(false,
+                "Friskvårdsbidrag:\n\n"
+                + "\U0001F4B0 Max 5 000 kr/år (skattefritt)\n"
+                + "\U0001F4F8 Ladda upp kvitto under Förmåner\n"
+                + "\u2705 Dras inte från lönen\n\n"
+                + "Gäller: gym, simhall, massage, yoga med mera.");
+        }
+
+        // === PENSION ===
+        if (q.Contains("pension"))
+        {
+            return new(false,
+                "Din pension (AKAP-KR):\n\n"
+                + "\U0001F4CA 6% på lön under 7,5 IBB\n"
+                + "\U0001F4C8 31,5% på lön över 7,5 IBB\n"
+                + "\U0001F3E6 Betalas av arbetsgivaren varje månad\n\n"
+                + "IBB 2026: 80 600 kr → 7,5 IBB = 604 500 kr/år.");
+        }
+
+        // === ÖVERTID ===
+        if (q.Contains("övertid"))
+        {
+            return new(false,
+                "Övertidsregler (ATL + AB):\n\n"
+                + "\u23F0 Max 200 timmar/år\n"
+                + "\U0001F4B5 Enkel övertid: 180% av timlön\n"
+                + "\U0001F4B0 Kvalificerad (natt/helg): 240%\n"
+                + "\U0001F6D1 Max 48 timmar/vecka (snitt 4 veckor)\n\n"
+                + "Övertid registreras automatiskt via schemat.");
+        }
+
+        // === KONTAKT / PROFIL ===
+        if (q.Contains("kontakt") || q.Contains("adress") || q.Contains("telefon") || q.Contains("profil"))
+        {
+            return new(false,
+                $"Vill du uppdatera dina uppgifter, {_userName}? Jag tar dig till din profil.",
+                new() { ["navigate_profil"] = "\U0001F464 Öppna min profil" });
+        }
+
+        // === LAS ===
+        if (q.Contains("las") || q.Contains("visstid") || q.Contains("vikariat"))
+        {
+            return new(false,
+                "LAS (Lagen om anställningsskydd):\n\n"
+                + "\U0001F4C5 Tidsbegränsad → tillsvidare efter 365 dagar/5 år\n"
+                + "\u26A0\ufe0f Gäller vikariat och SAVA\n"
+                + "\U0001F4CA Din ackumulering kan HR se under LAS-uppföljning\n\n"
+                + "Fråga HR om du undrar över din egen LAS-status.");
+        }
+
+        // === TACK / HEJ ===
+        if (q.Contains("tack") || q.Contains("hej") || q.Contains("hejdå"))
+        {
+            return new(false, $"Ingen orsak, {_userName}! Jag finns här om du behöver mig. \U0001F44B");
+        }
+
+        // === DEFAULT ===
+        return new(false,
+            $"Jag förstår inte riktigt, {_userName}. Prova att fråga om:\n\n"
+            + "\u2022 \"Hur många semesterdagar har jag kvar?\"\n"
+            + "\u2022 \"Sjukanmäl mig\"\n"
+            + "\u2022 \"Visa mitt nästa pass\"\n"
+            + "\u2022 \"Hur mycket fick jag i lön?\"\n"
+            + "\u2022 \"Vad är OB-tillägget?\"\n"
+            + "\u2022 \"Berätta om friskvårdsbidraget\"\n\n"
+            + "Eller kontakta HR-avdelningen direkt.");
+    }
+
+    private record ChatMessage(bool IsUser, string Text, Dictionary<string, string> Actions = null!)
+    {
+        public Dictionary<string, string> Actions { get; init; } = Actions ?? new();
+    }
 }
