@@ -1,0 +1,114 @@
+@page "/"
+@rendermode InteractiveServer
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Dashboard</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Dashboard</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
+            <MudText Typo="Typo.body2">Anställda</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjukfranvaro%</MudText>
+            <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
+            <MudText Typo="Typo.body2">LAS-alarm</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakanser</MudText>
+            <MudText Typo="Typo.body2">Öppna vakanser</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
+            <MudText Typo="Typo.body2">Väntar godkännande</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="2">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
+            <MudText Typo="Typo.body2">Bemanning idag</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Senaste händelserna</MudText>
+            <MudStack Spacing="2">
+                @foreach (var h in _handelser)
+                {
+                    <div class="d-flex gap-3 align-center">
+                        <MudText Typo="Typo.caption" Style="min-width: 50px; color: var(--mud-palette-text-secondary);">@h.Tid</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@h.Farg">@h.Typ</MudChip>
+                        <MudText Typo="Typo.body2">@h.Text</MudText>
+                    </div>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Bemanning per enhet</MudText>
+            <MudSimpleTable Dense="true">
+                <thead><tr><th>Enhet</th><th>Status</th></tr></thead>
+                <tbody>
+                    <tr><td>Avdelning 32</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">8/8</MudChip></td></tr>
+                    <tr><td>Avdelning 33</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">5/6</MudChip></td></tr>
+                    <tr><td>Akutmottagningen</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">12/12</MudChip></td></tr>
+                    <tr><td>IVA</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">7/10</MudChip></td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private int _headcount = 5023;
+    private decimal _sjukfranvaro = 4.2m;
+    private int _lasAlarm = 14;
+    private int _vakanser = 5;
+    private int _godkannanden = 11;
+    private int _bemanningsgrad = 96;
+
+    private List<Handelse> _handelser = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _headcount = await Db.Employees.CountAsync();
+        }
+        catch { /* demo fallback */ }
+
+        _handelser = [
+            new("09:14", "Sjuk", "Anna Svensson sjukanmälde sig", Color.Error),
+            new("09:02", "Lön", "Lönekörning mars startad", Color.Info),
+            new("08:45", "Rekryt.", "3 nya ansökningar till Sjuksköterska vakans", Color.Primary),
+            new("08:30", "Schema", "Aprilschemat publicerat för Avd 32", Color.Success),
+            new("08:15", "LAS", "Maria Lindgren nådde 348 dagar — åtgärd krävs", Color.Warning),
+            new("07:55", "Rehab", "Uppföljningsmöte bokat med Karl Berg", Color.Info),
+            new("07:30", "Godkänn", "Erik Johanssons semester godkänd av chef", Color.Success),
+        ];
+    }
+
+    private record Handelse(string Tid, string Typ, string Text, Color Farg);
+}
