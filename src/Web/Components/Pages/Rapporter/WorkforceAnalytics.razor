@@ -31,6 +31,43 @@
     </MudItem>
 </MudGrid>
 
+<MudText Typo="Typo.h6" Class="mb-3">Åldersfördelning</MudText>
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudChart T="double" ChartType="ChartType.Pie" ChartSeries="@_alderSeries" ChartLabels="@_alderLabels" Width="300px" Height="300px" />
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Antal anställda per åldersgrupp</MudText>
+            <MudSimpleTable Dense="true">
+                <thead><tr><th>Åldersgrupp</th><th>Antal</th><th>Andel</th></tr></thead>
+                <tbody>
+                    @for (int i = 0; i < _alderLabels.Length; i++)
+                    {
+                        <tr>
+                            <td>@_alderLabels[i]</td>
+                            <td>@((int)_alderData[i])</td>
+                            <td>@((_alderData[i] / _alderData.Sum() * 100).ToString("F1")) %</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3">Personalutveckling (12 månader)</MudText>
+<MudPaper Class="pa-4 mb-6" Elevation="2">
+    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_headcountSeries" ChartLabels="@_headcountLabels" Width="100%" Height="350px" />
+</MudPaper>
+
+<MudText Typo="Typo.h6" Class="mb-3">Personalomsättning per enhet</MudText>
+<MudPaper Class="pa-4 mb-6" Elevation="2">
+    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_omsattningBarSeries" ChartLabels="@_omsattningBarLabels" Width="100%" Height="350px" />
+</MudPaper>
+
 <MudText Typo="Typo.h6" Class="mb-3">Pensionsavgångsprognos per år</MudText>
 <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
     <thead>
@@ -120,6 +157,19 @@
     private List<PensionsRad> _pensionsprognos = [];
     private List<OmsattningRad> _omsattning = [];
 
+    // Chart data - age distribution (pie chart + table)
+    private double[] _alderData = [68, 185, 312, 298, 224, 167];
+    private List<ChartSeries<double>> _alderSeries = [new ChartSeries<double> { Name = "Åldersfördelning", Data = new ChartData<double>(new double[] { 68, 185, 312, 298, 224, 167 }) }];
+    private string[] _alderLabels = ["< 25", "25-34", "35-44", "45-54", "55-64", "65+"];
+
+    // Chart data - headcount trend (line chart)
+    private List<ChartSeries<double>> _headcountSeries = [];
+    private string[] _headcountLabels = ["Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec", "Jan", "Feb", "Mar"];
+
+    // Chart data - turnover per unit (bar chart)
+    private List<ChartSeries<double>> _omsattningBarSeries = [];
+    private string[] _omsattningBarLabels = [];
+
     protected override void OnInitialized()
     {
         _pensionsprognos =
@@ -141,6 +191,20 @@
             new("IT-avdelningen", 45, 3, 5, 2, 7),
             new("HR-avdelningen", 28, 2, 3, 1, 7),
             new("Röntgen", 65, 5, 4, -1, 8),
+        ];
+
+        // Headcount trend series
+        _headcountSeries =
+        [
+            new ChartSeries<double> { Name = "Anställda", Data = new ChartData<double>(new double[] { 1240, 1242, 1245, 1238, 1250, 1255, 1252, 1248, 1245, 1247, 1250, 1254 }) }
+        ];
+
+        // Turnover per unit bar chart
+        _omsattningBarLabels = _omsattning.Select(o => o.Enhet).ToArray();
+        _omsattningBarSeries =
+        [
+            new ChartSeries<double> { Name = "Avgångar", Data = new ChartData<double>(_omsattning.Select(o => (double)o.Avgangar).ToArray()) },
+            new ChartSeries<double> { Name = "Nyanställningar", Data = new ChartData<double>(_omsattning.Select(o => (double)o.Nyanstallningar).ToArray()) }
         ];
     }
 

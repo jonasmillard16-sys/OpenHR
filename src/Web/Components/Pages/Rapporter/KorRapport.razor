@@ -36,9 +36,34 @@ else if (_result != null)
         <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Visar 20 av @_result.Count rader. Ladda ner för komplett data.</MudText>
     }
 
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download" Style="min-height: 48px;" OnClick="ExporteraExcel">
-        Ladda ner som Excel
-    </MudButton>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download" Style="min-height: 48px;" OnClick="ExporteraExcel">
+            Ladda ner som Excel
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" StartIcon="@Icons.Material.Filled.ContentCopy" Style="min-height: 48px;" OnClick="VisaCsv">
+            Exportera CSV
+        </MudButton>
+    </div>
+
+    @if (_visarCsv)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">CSV-export — @Namn</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visarCsv = false)" />
+            </div>
+            <MudTextField T="string" Value="@_csvInnehall" Variant="Variant.Outlined" Lines="12"
+                          Style="font-family: 'Courier New', monospace; font-size: 0.8rem;" ReadOnly="true" />
+            <div class="d-flex gap-2 mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="KopieraCsv">
+                    @(_kopierad ? "Kopierat!" : "Kopiera till urklipp")
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download" OnClick="LaddaNerCsv">
+                    Ladda ner CSV
+                </MudButton>
+            </div>
+        </MudPaper>
+    }
 }
 
 @code {
@@ -78,10 +103,42 @@ else if (_result != null)
         _running = false;
     }
 
+    private bool _visarCsv;
+    private string _csvInnehall = "";
+    private bool _kopierad;
+
+    private string GenereraCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(string.Join(";", _headers));
+        foreach (var row in _result)
+            sb.AppendLine(string.Join(";", row));
+        return sb.ToString();
+    }
+
+    private void VisaCsv()
+    {
+        _csvInnehall = GenereraCsv();
+        _visarCsv = true;
+        _kopierad = false;
+    }
+
+    private async Task KopieraCsv()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", _csvInnehall);
+        _kopierad = true;
+    }
+
+    private async Task LaddaNerCsv()
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(_csvInnehall);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", $"{Namn}.csv", base64, "text/csv");
+    }
+
     private async Task ExporteraExcel()
     {
-        // Simple CSV export for now
-        var csv = string.Join(",", _headers) + "\n" + string.Join("\n", _result.Select(r => string.Join(",", r)));
+        var csv = GenereraCsv();
         var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
         var base64 = Convert.ToBase64String(bytes);
         await JS.InvokeVoidAsync("downloadFile", $"{Namn}.csv", base64, "text/csv");

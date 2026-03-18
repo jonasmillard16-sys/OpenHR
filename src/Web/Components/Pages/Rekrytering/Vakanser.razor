@@ -29,7 +29,8 @@
         </div>
         <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_newTitel" Label="Tjänstetitel" Variant="Variant.Outlined" Required="true" />
+                <MudTextField @bind-Value="_newTitel" Label="Tjänstetitel" Variant="Variant.Outlined" Required="true"
+                              Error="@_titelFel" ErrorText="Tjänstetitel är obligatoriskt" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudSelect @bind-Value="_newEnhet" Label="Enhet" Variant="Variant.Outlined">
@@ -262,6 +263,7 @@
     // Form fields
     private string _newTitel = "", _newEnhet = "", _newForm = "Tillsvidare", _newGrad = "100%", _newBeskrivning = "";
     private DateTime? _newSistadag = DateTime.Today.AddDays(30);
+    private bool _titelFel;
 
     // Data
     private List<VakansData> _vakanser = [];
@@ -329,7 +331,8 @@
 
     private void SkapaVakans()
     {
-        if (string.IsNullOrWhiteSpace(_newTitel)) return;
+        _titelFel = string.IsNullOrWhiteSpace(_newTitel);
+        if (_titelFel) return;
         _vakanser.Insert(0, new(_newTitel, _newEnhet, _newForm, _newGrad, "Publicerad",
             _newSistadag?.ToString("yyyy-MM-dd") ?? "", _newBeskrivning, []));
         _showForm = false;
@@ -339,7 +342,8 @@
 
     private void SparaSomUtkast()
     {
-        if (string.IsNullOrWhiteSpace(_newTitel)) return;
+        _titelFel = string.IsNullOrWhiteSpace(_newTitel);
+        if (_titelFel) return;
         _vakanser.Insert(0, new(_newTitel, _newEnhet, _newForm, _newGrad, "Utkast", "", _newBeskrivning, []));
         _showForm = false;
         _skapad = $"Vakans \"{_newTitel}\" sparad som utkast.";
@@ -350,6 +354,7 @@
     {
         _newTitel = ""; _newEnhet = ""; _newForm = "Tillsvidare"; _newGrad = "100%"; _newBeskrivning = "";
         _newSistadag = DateTime.Today.AddDays(30);
+        _titelFel = false;
     }
 
     private void PubliceraVakans(VakansData v) { v.Status = "Publicerad"; v.SistaDag = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd"); }

@@ -126,7 +126,7 @@
         await Task.Delay(400);
 
         var role = _demoUsers[_selectedUser];
-        Auth.Login(_selectedUser, role);
+        await Auth.LoginAsync(_selectedUser, role);
 
         Nav.NavigateTo("/", forceLoad: false);
     }

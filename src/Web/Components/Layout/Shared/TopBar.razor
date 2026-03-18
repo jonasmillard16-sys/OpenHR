@@ -156,9 +156,10 @@
         return results;
     }
 
-    private void HandleLogout()
+    private async Task HandleLogout()
     {
-        AuthService?.Logout();
+        if (AuthService is not null)
+            await AuthService.LogoutAsync();
         Nav?.NavigateTo("/login", forceLoad: true);
     }
 

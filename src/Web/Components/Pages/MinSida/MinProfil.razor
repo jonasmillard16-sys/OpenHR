@@ -34,8 +34,10 @@
             <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
                 Ändra dina uppgifter nedan och klicka Spara.
             </MudText>
-            <MudTextField @bind-Value="_epost" Label="E-post" Variant="Variant.Outlined" Class="mb-3" />
-            <MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_epost" Label="E-post" Variant="Variant.Outlined" Class="mb-3"
+                          Required="true" Error="@_epostFel" ErrorText="@("E-postadressen måste innehålla @")" />
+            <MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" Class="mb-3"
+                          Required="true" Error="@_telefonFel" ErrorText="Ange telefonnummer i format 07X-XXX XX XX" />
             <MudTextField @bind-Value="_adress" Label="Gatuadress" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_postnummer" Label="Postnummer" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_ort" Label="Ort" Variant="Variant.Outlined" Class="mb-3" />
@@ -108,6 +110,11 @@
     private string _postnummer = "41103";
     private string _ort = "Göteborg";
     private bool _sparad;
+    private bool _epostFel;
+    private bool _telefonFel;
+
+    private static readonly System.Text.RegularExpressions.Regex _telefonRegex =
+        new(@"^[\d\s\-\+\(\)]{7,}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,6 +160,25 @@
 
     private async Task SparaKontaktuppgifter()
     {
+        _sparad = false;
+        _epostFel = false;
+        _telefonFel = false;
+
+        // Validate email contains @
+        if (string.IsNullOrWhiteSpace(_epost) || !_epost.Contains('@'))
+        {
+            _epostFel = true;
+        }
+
+        // Validate phone format (digits, spaces, dashes, at least 7 chars)
+        if (string.IsNullOrWhiteSpace(_telefon) || !_telefonRegex.IsMatch(_telefon))
+        {
+            _telefonFel = true;
+        }
+
+        if (_epostFel || _telefonFel)
+            return;
+
         try
         {
             await SelfService.SaveContactInfoAsync(

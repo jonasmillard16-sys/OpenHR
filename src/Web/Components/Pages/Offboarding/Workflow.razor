@@ -96,7 +96,7 @@
 
                 <MudPaper Class="pa-4 mb-4" Elevation="1">
                     <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Tjänstgöringsintyg</MudText>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="@(() => _intygGenererat = true)" Style="min-height: 56px;">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="GenereraIntyg" Style="min-height: 56px;">
                         Generera tjänstgöringsintyg (PDF)
                     </MudButton>
                     @if (_intygGenererat)
@@ -110,6 +110,10 @@
                                 <tr><td><strong>Format</strong></td><td>PDF — redo att ladda ner</td></tr>
                             </tbody>
                         </MudSimpleTable>
+
+                        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2" Style="font-weight: 600;">Förhandsvisning</MudText>
+                        <MudPaper Class="pa-4" Elevation="0" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fafafa; border: 1px solid #e0e0e0; line-height: 1.6;">@_intygPreview</MudPaper>
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">I produktion genereras en riktig PDF-fil.</MudAlert>
                     }
                 </MudPaper>
 
@@ -127,4 +131,23 @@
     private string _valdAnstalld = "", _sokterm = "";
     private bool _dator, _passerkort, _telefon, _nycklar, _klader;
     private bool _intygGenererat;
+    private string _intygPreview = "";
+
+    private void GenereraIntyg()
+    {
+        var generator = new RegionHR.Infrastructure.Export.PdfGenerator();
+        var data = new RegionHR.Infrastructure.Export.TjanstgoringsintyData(
+            _valdAnstalld,
+            "19850612-XXXX",
+            "Västra Götalandsregionen",
+            "2019-08-15",
+            "2026-04-30",
+            "Sjuksköterska, Medicinavdelning 3",
+            "Tillsvidare",
+            "100%"
+        );
+        var bytes = generator.GenerateTjanstgoringsintyg(data);
+        _intygPreview = System.Text.Encoding.UTF8.GetString(bytes);
+        _intygGenererat = true;
+    }
 }

@@ -12,6 +12,11 @@
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Anställda</MudText>
     <div class="d-flex gap-2">
         <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="ExporteraCsv"
+                   Style="min-height: 48px;">
+            CSV
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
                    StartIcon="@Icons.Material.Filled.Download" OnClick="ExporteraExcel"
                    Style="min-height: 48px;">
             Exportera Excel
@@ -66,6 +71,26 @@ else
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2" />
 }
 
+@if (_visarCsv)
+{
+    <MudPaper Class="pa-4 mt-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">CSV-export — Anställda</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visarCsv = false)" />
+        </div>
+        <MudTextField T="string" Value="@_csvInnehall" Variant="Variant.Outlined" Lines="10"
+                      Style="font-family: 'Courier New', monospace; font-size: 0.8rem;" ReadOnly="true" />
+        <div class="d-flex gap-2 mt-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="KopieraCsv">
+                @(_kopierad ? "Kopierat!" : "Kopiera till urklipp")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download" OnClick="LaddaNerCsv">
+                Ladda ner CSV
+            </MudButton>
+        </div>
+    </MudPaper>
+}
+
 @code {
     private string _sokterm = "";
     private bool _loading;
@@ -94,6 +119,34 @@ else
             _anstallda = [];
         }
         _loading = false;
+    }
+
+    private bool _visarCsv;
+    private string _csvInnehall = "";
+    private bool _kopierad;
+
+    private void ExporteraCsv()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Förnamn;Efternamn;Personnummer;Befattning;Anställningsform;Sysselsättningsgrad (%)");
+        foreach (var a in _anstallda)
+            sb.AppendLine($"{a.Fornamn};{a.Efternamn};{a.PersonnummerMaskerat};{a.Befattning};{a.Anstallningsform};{a.Sysselsattningsgrad}");
+        _csvInnehall = sb.ToString();
+        _visarCsv = true;
+        _kopierad = false;
+    }
+
+    private async Task KopieraCsv()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", _csvInnehall);
+        _kopierad = true;
+    }
+
+    private async Task LaddaNerCsv()
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(_csvInnehall);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", $"anstallda-{DateTime.Now:yyyy-MM-dd}.csv", base64, "text/csv");
     }
 
     private async Task ExporteraExcel()

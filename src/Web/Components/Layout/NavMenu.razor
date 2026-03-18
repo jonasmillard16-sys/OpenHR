@@ -3,7 +3,7 @@
 <MudNavMenu Bordered="true" Class="py-2">
     <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Start</MudNavLink>
 
-    @if (Auth.IsChef)
+    @if (Auth.IsInitialized && Auth.IsChef)
     {
         <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People"
                      Expanded="@_personalOpen" ExpandedChanged="@(v => _personalOpen = v)">
@@ -14,7 +14,7 @@
         </MudNavGroup>
     }
 
-    @if (Auth.IsHR)
+    @if (Auth.IsInitialized && Auth.IsHR)
     {
         <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments"
                      Expanded="@_lonOpen" ExpandedChanged="@(v => _lonOpen = v)">
@@ -25,7 +25,7 @@
         </MudNavGroup>
     }
 
-    @if (Auth.IsChef)
+    @if (Auth.IsInitialized && Auth.IsChef)
     {
         <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth"
                      Expanded="@_schemaOpen" ExpandedChanged="@(v => _schemaOpen = v)">
@@ -40,7 +40,7 @@
 
     <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">Ledighet</MudNavLink>
 
-    @if (Auth.IsChef)
+    @if (Auth.IsInitialized && Auth.IsChef)
     {
         <MudNavLink Href="/godkannanden" Icon="@Icons.Material.Filled.CheckCircle">Godkännanden</MudNavLink>
         <MudNavLink Href="/halsosam" Icon="@Icons.Material.Filled.LocalHospital">HälsoSAM</MudNavLink>
@@ -51,7 +51,7 @@
         <MudNavLink Href="/rapporter" Icon="@Icons.Material.Filled.BarChart">Rapporter</MudNavLink>
     }
 
-    @if (Auth.IsHR)
+    @if (Auth.IsInitialized && Auth.IsHR)
     {
         <MudDivider Class="my-2" />
         <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">Inställningar</MudNavLink>

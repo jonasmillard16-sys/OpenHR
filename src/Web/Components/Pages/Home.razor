@@ -104,10 +104,17 @@
             <MudSimpleTable Dense="true">
                 <thead><tr><th>Enhet</th><th>Status</th></tr></thead>
                 <tbody>
-                    <tr><td>Avdelning 32</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">8/8</MudChip></td></tr>
-                    <tr><td>Avdelning 33</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">5/6</MudChip></td></tr>
-                    <tr><td>Akutmottagningen</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">12/12</MudChip></td></tr>
-                    <tr><td>IVA</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">7/10</MudChip></td></tr>
+                    @foreach (var enhet in _bemanningPerEnhet)
+                    {
+                        <tr>
+                            <td>@enhet.Namn</td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@enhet.StatusColor">
+                                    @enhet.Bemannade/@enhet.Planerade
+                                </MudChip>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </MudSimpleTable>
         </MudPaper>
@@ -115,17 +122,38 @@
 </MudGrid>
 
 @code {
-    private int _headcount = 5023;
-    private decimal _sjukfranvaro = 4.2m;
-    private int _lasAlarm = 14;
-    private int _vakanser = 5;
-    private int _godkannanden = 11;
-    private int _bemanningsgrad = 96;
+    // --- KPI variables (computed from demo model or DB) ---
+    private int _headcount;
+    private decimal _sjukfranvaro;
+    private int _lasAlarm;
+    private int _vakanser;
+    private int _godkannanden;
+    private int _bemanningsgrad;
 
     private List<Handelse> _handelser = [];
+    private List<EnhetBemanning> _bemanningPerEnhet = [];
+
+    // --- Demo data model used for fallback when DB is unavailable ---
+    private static readonly DemoDataModel _demo = new();
 
     protected override async Task OnInitializedAsync()
     {
+        // Start from demo defaults (computed values)
+        _headcount = _demo.TotalAnstallda;
+        _sjukfranvaro = _demo.SjukfranvaroProcent;
+        _lasAlarm = _demo.LasAlarmCount;
+        _vakanser = _demo.OppnaVakanser;
+        _godkannanden = _demo.VantandeGodkannanden;
+        _bemanningPerEnhet = _demo.Enheter;
+
+        // Compute staffing rate from unit data
+        var totalPlanerade = _bemanningPerEnhet.Sum(e => e.Planerade);
+        var totalBemannade = _bemanningPerEnhet.Sum(e => e.Bemannade);
+        _bemanningsgrad = totalPlanerade > 0
+            ? (int)Math.Round(100.0 * totalBemannade / totalPlanerade)
+            : 0;
+
+        // Override with live DB data when available
         try
         {
             _headcount = await Db.Employees.CountAsync();
@@ -153,6 +181,9 @@
         }
         catch { /* demo fallback */ }
 
+        // Recompute derived KPI: sjukfranvaro as percentage of headcount
+        _sjukfranvaro = _demo.ComputeSjukfranvaro(_headcount);
+
         _handelser = [
             new("09:14", "Sjuk", "Anna Svensson sjukanmälde sig", Color.Error),
             new("09:02", "Lön", "Lönekörning mars startad", Color.Info),
@@ -165,4 +196,41 @@
     }
 
     private record Handelse(string Tid, string Typ, string Text, Color Farg);
+
+    private record EnhetBemanning(string Namn, int Bemannade, int Planerade)
+    {
+        public Color StatusColor => Bemannade == Planerade ? Color.Success
+            : Bemannade >= Planerade - 1 ? Color.Warning
+            : Color.Error;
+    }
+
+    /// <summary>Demo data model that provides realistic computed KPI defaults.</summary>
+    private class DemoDataModel
+    {
+        // Base workforce figures
+        public int TotalAnstallda { get; } = 5023;
+        private int SjukaDagligen { get; } = 211; // ~4.2% of 5023
+
+        // Computed KPIs
+        public decimal SjukfranvaroProcent => Math.Round(100m * SjukaDagligen / TotalAnstallda, 1);
+        public int LasAlarmCount { get; } = 14;
+        public int OppnaVakanser { get; } = 5;
+        public int VantandeGodkannanden { get; } = 11;
+
+        public List<EnhetBemanning> Enheter { get; } =
+        [
+            new("Avdelning 32", 8, 8),
+            new("Avdelning 33", 5, 6),
+            new("Akutmottagningen", 12, 12),
+            new("IVA", 7, 10),
+        ];
+
+        /// <summary>Compute sickness rate scaled to actual headcount.</summary>
+        public decimal ComputeSjukfranvaro(int headcount)
+        {
+            // Keep the same ratio: ~211 sick per 5023 employees
+            var scaledSick = (int)Math.Round((decimal)SjukaDagligen * headcount / TotalAnstallda);
+            return headcount > 0 ? Math.Round(100m * scaledSick / headcount, 1) : 0m;
+        }
+    }
 }

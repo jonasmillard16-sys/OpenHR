@@ -32,9 +32,10 @@
 
         case 2:
             <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Förhandsgranskning — @_mallNamn</MudText>
-            <MudPaper Class="pa-6" Elevation="1" Style="white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; background: #fafafa; border: 1px solid #e0e0e0;">
-                @_preview
+            <MudPaper Class="pa-6" Elevation="1" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fafafa; border: 1px solid #e0e0e0; line-height: 1.6;">
+                @_pdfPreview
             </MudPaper>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">I produktion genereras en riktig PDF-fil.</MudAlert>
             <div class="d-flex gap-3 mt-4">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download" Style="min-height: 48px;" OnClick="LaddaNer">Ladda ner</MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" Style="min-height: 48px;" OnClick="@(() => _step = 1)">Redigera</MudButton>
@@ -50,6 +51,7 @@
     private List<string> _fields = [];
     private Dictionary<string, string> _fieldValues = new();
     private string _preview = "";
+    private string _pdfPreview = "";
 
     private void ValjMall(string id, string namn)
     {
@@ -72,12 +74,50 @@
     private void Generera()
     {
         _preview = TemplateEngine.Generate(_mallId, _fieldValues);
+
+        // Generate PDF preview using PdfGenerator
+        var pdfGen = new RegionHR.Infrastructure.Export.PdfGenerator();
+        byte[] pdfBytes;
+        if (_mallId == "tjanstgoringsbevis")
+        {
+            pdfBytes = pdfGen.GenerateTjanstgoringsintyg(new RegionHR.Infrastructure.Export.TjanstgoringsintyData(
+                _fieldValues.GetValueOrDefault("Namn", "—"),
+                _fieldValues.GetValueOrDefault("Personnummer", "—"),
+                _fieldValues.GetValueOrDefault("Arbetsgivare", "Västra Götalandsregionen"),
+                _fieldValues.GetValueOrDefault("Startdatum", "—"),
+                _fieldValues.GetValueOrDefault("Slutdatum", "—"),
+                _fieldValues.GetValueOrDefault("Befattning", "—"),
+                _fieldValues.GetValueOrDefault("Anställningsform", "Tillsvidare"),
+                _fieldValues.GetValueOrDefault("Sysselsättningsgrad", "100%")
+            ));
+        }
+        else if (_mallId == "anstallningsavtal")
+        {
+            _ = int.TryParse(_fieldValues.GetValueOrDefault("Sysselsättningsgrad", "100").Replace("%", ""), out var grad);
+            _ = decimal.TryParse(_fieldValues.GetValueOrDefault("Månadslön", "0").Replace(" ", ""), out var lon);
+            pdfBytes = pdfGen.GenerateAnstallningsavtal(new RegionHR.Infrastructure.Export.AnstallningsavtalData(
+                _fieldValues.GetValueOrDefault("Namn", "—"),
+                _fieldValues.GetValueOrDefault("Personnummer", "—"),
+                _fieldValues.GetValueOrDefault("Arbetsgivare", "Västra Götalandsregionen"),
+                _fieldValues.GetValueOrDefault("Befattning", "—"),
+                _fieldValues.GetValueOrDefault("Tillträdesdatum", DateTime.Today.ToString("yyyy-MM-dd")),
+                _fieldValues.GetValueOrDefault("Anställningsform", "Tillsvidare"),
+                grad == 0 ? 100 : grad,
+                lon,
+                _fieldValues.GetValueOrDefault("Kollektivavtal", "AB")
+            ));
+        }
+        else
+        {
+            pdfBytes = System.Text.Encoding.UTF8.GetBytes(_preview);
+        }
+        _pdfPreview = System.Text.Encoding.UTF8.GetString(pdfBytes);
         _step = 2;
     }
 
     private async Task LaddaNer()
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(_preview);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(_pdfPreview);
         var base64 = Convert.ToBase64String(bytes);
         await JS.InvokeVoidAsync("downloadFile", $"{_mallNamn}.txt", base64, "text/plain");
     }

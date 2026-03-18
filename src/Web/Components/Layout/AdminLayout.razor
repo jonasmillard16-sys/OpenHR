@@ -9,7 +9,11 @@
     <MudDialogProvider />
     <MudSnackbarProvider />
 
-    @if (!Auth.IsLoggedIn)
+    @if (!Auth.IsInitialized)
+    {
+        @* Waiting for auth initialization *@
+    }
+    else if (!Auth.IsLoggedIn)
     {
         @* Redirect to login *@
     }
@@ -38,11 +42,16 @@
     private bool _drawerOpen = true;
     private bool _isDarkMode;
 
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!Auth.IsLoggedIn)
+        if (firstRender)
         {
-            Nav.NavigateTo("/login");
+            await Auth.InitializeAsync();
+            if (!Auth.IsLoggedIn)
+            {
+                Nav.NavigateTo("/login");
+            }
+            StateHasChanged();
         }
     }
 
