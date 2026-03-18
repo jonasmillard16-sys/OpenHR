@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:17
+  db:
+    image: postgres:17-alpine
     container_name: regionhr-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: regionhr
+      POSTGRES_DB: openhr
     ports:
       - "54322:5432"
     volumes:
@@ -38,6 +38,18 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: regionhr
       RABBITMQ_DEFAULT_PASS: regionhr
+
+  app:
+    build: .
+    container_name: regionhr-app
+    ports:
+      - "5076:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__RegionHR=Host=db;Port=5432;Database=openhr;Username=postgres;Password=postgres
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:
