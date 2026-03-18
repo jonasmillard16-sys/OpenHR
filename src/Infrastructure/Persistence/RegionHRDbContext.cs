@@ -143,31 +143,76 @@ public class RegionHRDbContext : DbContext
     public DbSet<FieldPermission> FieldPermissions => Set<FieldPermission>();
     public DbSet<DelegatedAccess> DelegatedAccesses => Set<DelegatedAccess>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Register value converters BEFORE model validation — this is the only way
+        // to make EF Core accept strongly-typed IDs without [NotMapped]
+        // ALL strongly-typed IDs and value objects need converters
+        configurationBuilder.Properties<EmployeeId>().HaveConversion<EmployeeIdConverter>();
+        configurationBuilder.Properties<OrganizationId>().HaveConversion<OrganizationIdConverter>();
+        configurationBuilder.Properties<EmploymentId>().HaveConversion<EmploymentIdConverter>();
+        configurationBuilder.Properties<CaseId>().HaveConversion<CaseIdConverter>();
+        configurationBuilder.Properties<PayrollRunId>().HaveConversion<PayrollRunIdConverter>();
+        configurationBuilder.Properties<ScheduleId>().HaveConversion<ScheduleIdConverter>();
+        configurationBuilder.Properties<StaffingTemplateId>().HaveConversion<StaffingTemplateIdConverter>();
+        configurationBuilder.Properties<ShiftSwapId>().HaveConversion<ShiftSwapIdConverter>();
+        configurationBuilder.Properties<Money>().HaveConversion<MoneyConverter>();
+        configurationBuilder.Properties<Percentage>().HaveConversion<PercentageConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Apply all configurations from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RegionHRDbContext).Assembly);
-
-        // Configure strongly-typed ID conversions for all entities that use them
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.ClrType == typeof(EmployeeId))
-                {
-                    property.SetValueConverter(
-                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<EmployeeId, Guid>(
-                            v => v.Value,
-                            v => EmployeeId.From(v)));
-                }
-                else if (property.ClrType == typeof(OrganizationId))
-                {
-                    property.SetValueConverter(
-                        new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<OrganizationId, Guid>(
-                            v => v.Value,
-                            v => new OrganizationId(v)));
-                }
-            }
-        }
     }
+}
+
+// EF Core value converters for strongly-typed IDs
+public class EmployeeIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<EmployeeId, Guid>
+{
+    public EmployeeIdConverter() : base(v => v.Value, v => EmployeeId.From(v)) { }
+}
+
+public class OrganizationIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<OrganizationId, Guid>
+{
+    public OrganizationIdConverter() : base(v => v.Value, v => new OrganizationId(v)) { }
+}
+
+public class EmploymentIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<EmploymentId, Guid>
+{
+    public EmploymentIdConverter() : base(v => v.Value, v => new EmploymentId(v)) { }
+}
+
+public class CaseIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<CaseId, Guid>
+{
+    public CaseIdConverter() : base(v => v.Value, v => new CaseId(v)) { }
+}
+
+public class PayrollRunIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<PayrollRunId, Guid>
+{
+    public PayrollRunIdConverter() : base(v => v.Value, v => new PayrollRunId(v)) { }
+}
+
+public class ScheduleIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<ScheduleId, Guid>
+{
+    public ScheduleIdConverter() : base(v => v.Value, v => new ScheduleId(v)) { }
+}
+
+public class StaffingTemplateIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<StaffingTemplateId, Guid>
+{
+    public StaffingTemplateIdConverter() : base(v => v.Value, v => new StaffingTemplateId(v)) { }
+}
+
+public class ShiftSwapIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<ShiftSwapId, Guid>
+{
+    public ShiftSwapIdConverter() : base(v => v.Value, v => new ShiftSwapId(v)) { }
+}
+
+public class MoneyConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Money, decimal>
+{
+    public MoneyConverter() : base(v => v.Amount, v => new Money(v, "SEK")) { }
+}
+
+public class PercentageConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Percentage, decimal>
+{
+    public PercentageConverter() : base(v => v.Value, v => new Percentage(v)) { }
 }
