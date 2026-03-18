@@ -1,11 +1,21 @@
 using MudBlazor.Services;
 using Microsoft.AspNetCore.Localization;
 using RegionHR.Infrastructure;
+using RegionHR.Infrastructure.Persistence;
+using RegionHR.Web.Health;
 using RegionHR.Web.Hubs;
+using RegionHR.Web.Middleware;
 using RegionHR.Web.Services;
 using RegionHR.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Structured JSON logging
+builder.Logging.AddJsonConsole(options =>
+{
+    options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions { Indented = false };
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+});
 
 // Blazor
 builder.Services.AddRazorComponents()
@@ -35,6 +45,10 @@ builder.Services.AddInfrastructure(connectionString);
 // SignalR
 builder.Services.AddSignalR();
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("postgresql");
+
 // Application services
 builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
@@ -44,10 +58,24 @@ builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 
+// Seed database (auto-migrate + seed on startup)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<RegionHRDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        await SeedData.SeedAsync(db);
+    }
+    catch { /* DB not available — demo mode */ }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
 }
+
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
@@ -57,5 +85,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<NotificationHub>("/hubs/notifications");
+
+app.MapHealthChecks("/health");
 
 app.Run();

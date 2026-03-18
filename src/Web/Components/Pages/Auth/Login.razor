@@ -32,65 +32,159 @@
                 </MudAlert>
             }
 
-            <MudSelect T="string" @bind-Value="_selectedUser" Label="Användare"
-                       Variant="Variant.Outlined" Class="mb-4"
-                       Placeholder="Välj användare..." AnchorOrigin="Origin.BottomCenter">
-                @foreach (var user in _demoUsers)
-                {
-                    <MudSelectItem Value="@user.Key">
-                        @user.Key — @user.Value
-                    </MudSelectItem>
-                }
-            </MudSelect>
+            @* Step 1: Choose eID method *@
+            @if (_authStep == AuthStep.ChooseMethod)
+            {
+                <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-4" Style="font-weight: 600;">
+                    Välj inloggningsmetod
+                </MudText>
 
-            <MudTextField @bind-Value="_password" Label="Lösenord"
-                          Variant="Variant.Outlined" Class="mb-6"
-                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                          OnAdornmentClick="@(() => _showPassword = !_showPassword)"
-                          Placeholder="Valfritt lösenord"
-                          OnKeyUp="OnKeyUp" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           FullWidth="true" Size="Size.Large" Class="mb-3"
+                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding-left: 16px;"
+                           StartIcon="@Icons.Material.Filled.CreditCard"
+                           OnClick="@(() => StartAuthentication(EidMethod.SITHS))">
+                    SITHS-kort
+                    <MudText Typo="Typo.caption" Style="margin-left: auto; color: #94a3b8;">
+                        Vårdpersonal
+                    </MudText>
+                </MudButton>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       FullWidth="true" Size="Size.Large"
-                       Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem;"
-                       OnClick="HandleLogin" Disabled="_isLoggingIn">
-                @if (_isLoggingIn)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                }
-                Logga in
-            </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                           FullWidth="true" Size="Size.Large" Class="mb-3"
+                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding-left: 16px;"
+                           StartIcon="@Icons.Material.Filled.PhoneAndroid"
+                           OnClick="@(() => StartAuthentication(EidMethod.BankID))">
+                    BankID
+                    <MudText Typo="Typo.caption" Style="margin-left: auto; color: #94a3b8;">
+                        Alla anställda
+                    </MudText>
+                </MudButton>
+            }
 
-            <MudDivider Class="my-5" />
+            @* Step 2: Simulated authentication *@
+            @if (_authStep == AuthStep.Authenticating)
+            {
+                <div class="d-flex flex-column align-center py-4">
+                    @if (_selectedMethod == EidMethod.SITHS)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard"
+                                 Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;" Class="mb-2">
+                            Läser SITHS-kort...
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                            Sätt in ditt SITHS-kort i kortläsaren
+                        </MudText>
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true"
+                                           Style="width: 100%; border-radius: 4px;" Class="mb-2" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid"
+                                 Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;" Class="mb-2">
+                            Öppna BankID-appen på din telefon
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                            Skanna QR-koden med BankID-appen
+                        </MudText>
+                        <MudPaper Outlined="true" Class="d-flex align-center justify-center mb-4"
+                                  Style="width: 160px; height: 160px; border: 2px dashed #0e7490; border-radius: 12px;">
+                            <div style="text-align: center;">
+                                <MudIcon Icon="@Icons.Material.Filled.QrCode2"
+                                         Style="font-size: 4rem; color: #0e7490; opacity: 0.6;" />
+                                <MudText Typo="Typo.caption" Style="color: #94a3b8;">
+                                    QR-kod (mock)
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true"
+                                           Style="width: 100%; border-radius: 4px;" Class="mb-2" />
+                    }
+                </div>
+            }
 
-            <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #94a3b8;">
-                Demoinloggning — välj en användare och ange valfritt lösenord
-            </MudText>
+            @* Step 3: Verified *@
+            @if (_authStep == AuthStep.Verified)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.VerifiedUser">
+                    <strong>Verifierad!</strong> Identitet bekräftad via @(_selectedMethod == EidMethod.SITHS ? "SITHS-kort" : "BankID").
+                </MudAlert>
+            }
 
-            <MudSimpleTable Dense="true" Class="mt-3" Style="font-size: 0.8rem;" Elevation="0">
-                <thead>
-                    <tr>
-                        <th style="padding: 4px 8px;">Användare</th>
-                        <th style="padding: 4px 8px;">Roll</th>
-                    </tr>
-                </thead>
-                <tbody>
+            @* Step 4: User/role selection (shown after verification) *@
+            @if (_authStep == AuthStep.Verified || _authStep == AuthStep.LoggingIn)
+            {
+                <MudSelect T="string" @bind-Value="_selectedUser" Label="Användare"
+                           Variant="Variant.Outlined" Class="mb-4"
+                           Placeholder="Välj användare..." AnchorOrigin="Origin.BottomCenter">
                     @foreach (var user in _demoUsers)
                     {
-                        <tr>
-                            <td style="padding: 4px 8px;">@user.Key</td>
-                            <td style="padding: 4px 8px;">
-                                <MudChip T="string" Size="Size.Small"
-                                         Color="@GetRoleColor(user.Value)">
-                                    @user.Value
-                                </MudChip>
-                            </td>
-                        </tr>
+                        <MudSelectItem Value="@user.Key">
+                            @user.Key — @user.Value
+                        </MudSelectItem>
                     }
-                </tbody>
-            </MudSimpleTable>
+                </MudSelect>
+
+                <MudTextField @bind-Value="_password" Label="Lösenord"
+                              Variant="Variant.Outlined" Class="mb-6"
+                              InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                              Placeholder="Valfritt lösenord"
+                              OnKeyUp="OnKeyUp" />
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           FullWidth="true" Size="Size.Large"
+                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem;"
+                           OnClick="HandleLogin" Disabled="_isLoggingIn">
+                    @if (_isLoggingIn)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Logga in
+                </MudButton>
+
+                <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
+                           Class="mt-2" Style="text-transform: none;"
+                           OnClick="ResetToMethodSelection">
+                    Byt inloggningsmetod
+                </MudButton>
+            }
+
+            @if (_authStep == AuthStep.Verified || _authStep == AuthStep.LoggingIn)
+            {
+                <MudDivider Class="my-5" />
+
+                <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #94a3b8;">
+                    Demoinloggning — välj en användare och ange valfritt lösenord
+                </MudText>
+
+                <MudSimpleTable Dense="true" Class="mt-3" Style="font-size: 0.8rem;" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th style="padding: 4px 8px;">Användare</th>
+                            <th style="padding: 4px 8px;">Roll</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in _demoUsers)
+                        {
+                            <tr>
+                                <td style="padding: 4px 8px;">@user.Key</td>
+                                <td style="padding: 4px 8px;">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@GetRoleColor(user.Value)">
+                                        @user.Value
+                                    </MudChip>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudCardContent>
     </MudCard>
 </div>
@@ -101,6 +195,11 @@
     private string? _errorMessage;
     private bool _showPassword;
     private bool _isLoggingIn;
+    private AuthStep _authStep = AuthStep.ChooseMethod;
+    private EidMethod _selectedMethod;
+
+    private enum AuthStep { ChooseMethod, Authenticating, Verified, LoggingIn }
+    private enum EidMethod { SITHS, BankID }
 
     private static readonly Dictionary<string, string> _demoUsers = new()
     {
@@ -109,6 +208,28 @@
         ["Karl Berg"] = "HR",
         ["Admin"] = "Admin"
     };
+
+    private async Task StartAuthentication(EidMethod method)
+    {
+        _selectedMethod = method;
+        _authStep = AuthStep.Authenticating;
+        _errorMessage = null;
+        StateHasChanged();
+
+        // Simulate eID authentication delay (2 seconds)
+        await Task.Delay(2000);
+
+        _authStep = AuthStep.Verified;
+        StateHasChanged();
+    }
+
+    private void ResetToMethodSelection()
+    {
+        _authStep = AuthStep.ChooseMethod;
+        _selectedUser = null;
+        _password = null;
+        _errorMessage = null;
+    }
 
     private async Task HandleLogin()
     {
@@ -119,6 +240,7 @@
         }
 
         _isLoggingIn = true;
+        _authStep = AuthStep.LoggingIn;
         _errorMessage = null;
         StateHasChanged();
 
