@@ -11,7 +11,7 @@
 
 <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;
             background: linear-gradient(135deg, #0e7490 0%, #1b2838 100%);">
-    <MudCard Style="width: 420px; border-radius: 16px;" Elevation="8">
+    <MudCard Style="width: 440px; border-radius: 16px;" Elevation="8">
         <MudCardContent Class="pa-8">
             <div class="d-flex flex-column align-center mb-6">
                 <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety"
@@ -19,7 +19,7 @@
                 <MudText Typo="Typo.h4" Class="mt-2" Style="font-weight: 800; color: #0e7490;">
                     OpenHR
                 </MudText>
-                <MudText Typo="Typo.body2" Color="Color.Default" Style="color: #6b7280;">
+                <MudText Typo="Typo.body2" Style="color: #6b7280;">
                     HR-system för regionen
                 </MudText>
             </div>
@@ -27,13 +27,11 @@
             @if (!string.IsNullOrEmpty(_errorMessage))
             {
                 <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true"
-                          CloseIconClicked="@(() => _errorMessage = null)">
-                    @_errorMessage
-                </MudAlert>
+                          CloseIconClicked="@(() => _errorMessage = null)">@_errorMessage</MudAlert>
             }
 
-            @* Step 1: Choose eID method *@
-            @if (_authStep == AuthStep.ChooseMethod)
+            @* ══════ STEG 1: Välj metod ══════ *@
+            @if (_step == Step.ChooseMethod)
             {
                 <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-4" Style="font-weight: 600;">
                     Välj inloggningsmetod
@@ -41,103 +39,161 @@
 
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                            FullWidth="true" Size="Size.Large" Class="mb-3"
-                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding-left: 16px;"
-                           StartIcon="@Icons.Material.Filled.CreditCard"
-                           OnClick="@(() => StartAuthentication(EidMethod.SITHS))">
-                    SITHS-kort
-                    <MudText Typo="Typo.caption" Style="margin-left: auto; color: #94a3b8;">
-                        Vårdpersonal
-                    </MudText>
+                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding: 16px;"
+                           OnClick="@(() => StartBankID())">
+                    <div class="d-flex align-center" style="width: 100%;">
+                        <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid" Class="mr-3" />
+                        <div>
+                            <MudText Typo="Typo.body1" Style="font-weight: 600;">BankID</MudText>
+                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Alla anställda</MudText>
+                        </div>
+                    </div>
                 </MudButton>
 
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                            FullWidth="true" Size="Size.Large" Class="mb-3"
-                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding-left: 16px;"
-                           StartIcon="@Icons.Material.Filled.PhoneAndroid"
-                           OnClick="@(() => StartAuthentication(EidMethod.BankID))">
-                    BankID
-                    <MudText Typo="Typo.caption" Style="margin-left: auto; color: #94a3b8;">
-                        Alla anställda
-                    </MudText>
+                           Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem; justify-content: flex-start; padding: 16px;"
+                           OnClick="@(() => StartSITHS())">
+                    <div class="d-flex align-center" style="width: 100%;">
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-3" />
+                        <div>
+                            <MudText Typo="Typo.body1" Style="font-weight: 600;">SITHS-kort</MudText>
+                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Vårdpersonal med kortläsare</MudText>
+                        </div>
+                    </div>
                 </MudButton>
             }
 
-            @* Step 2: Simulated authentication *@
-            @if (_authStep == AuthStep.Authenticating)
+            @* ══════ STEG 2: BankID — Starta appen ══════ *@
+            @if (_step == Step.BankID_OpenApp)
             {
-                <div class="d-flex flex-column align-center py-4">
-                    @if (_selectedMethod == EidMethod.SITHS)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.CreditCard"
-                                 Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
-                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;" Class="mb-2">
-                            Läser SITHS-kort...
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                            Sätt in ditt SITHS-kort i kortläsaren
-                        </MudText>
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true"
-                                           Style="width: 100%; border-radius: 4px;" Class="mb-2" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid"
-                                 Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
-                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;" Class="mb-2">
-                            Öppna BankID-appen på din telefon
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                            Skanna QR-koden med BankID-appen
-                        </MudText>
-                        <MudPaper Outlined="true" Class="d-flex align-center justify-center mb-4"
-                                  Style="width: 160px; height: 160px; border: 2px dashed #0e7490; border-radius: 12px;">
-                            <div style="text-align: center;">
-                                <MudIcon Icon="@Icons.Material.Filled.QrCode2"
-                                         Style="font-size: 4rem; color: #0e7490; opacity: 0.6;" />
-                                <MudText Typo="Typo.caption" Style="color: #94a3b8;">
-                                    QR-kod (mock)
-                                </MudText>
-                            </div>
-                        </MudPaper>
-                        <MudProgressLinear Color="Color.Primary" Indeterminate="true"
-                                           Style="width: 100%; border-radius: 4px;" Class="mb-2" />
-                    }
+                <div class="d-flex flex-column align-center">
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">BankID</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                        Starta BankID-appen och tryck på "Skanna QR-kod"
+                    </MudText>
+
+                    @* Animerad QR-kod *@
+                    <div style="width: 180px; height: 180px; border: 2px solid #0e7490; border-radius: 12px;
+                                display: flex; align-items: center; justify-content: center;
+                                background: white; position: relative; overflow: hidden;" class="mb-4">
+                        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 12px;">
+                            @for (int i = 0; i < 64; i++)
+                            {
+                                var filled = (_qrSeed + i) % 3 != 0;
+                                <div style="width: 14px; height: 14px; border-radius: 2px;
+                                            background: @(filled ? "#1b2838" : "transparent");
+                                            transition: background 0.3s;"></div>
+                            }
+                        </div>
+                    </div>
+
+                    <MudText Typo="Typo.caption" Style="color: #94a3b8;" Class="mb-2">
+                        QR-koden uppdateras automatiskt (@_bankIdTimer sek)
+                    </MudText>
+                    <MudProgressLinear Color="Color.Primary" Value="@_bankIdProgress" Class="mb-4"
+                                       Style="width: 100%; border-radius: 4px;" />
+
+                    <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
+                               Style="text-transform: none;" OnClick="CancelAuth">
+                        Avbryt
+                    </MudButton>
                 </div>
             }
 
-            @* Step 3: Verified *@
-            @if (_authStep == AuthStep.Verified)
+            @* ══════ STEG 3: BankID — Skriv in säkerhetskod ══════ *@
+            @if (_step == Step.BankID_EnterCode)
             {
-                <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.VerifiedUser">
-                    <strong>Verifierad!</strong> Identitet bekräftad via @(_selectedMethod == EidMethod.SITHS ? "SITHS-kort" : "BankID").
-                </MudAlert>
+                <div class="d-flex flex-column align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">Skriv in din säkerhetskod</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                        Ange din personliga säkerhetskod i BankID-appen
+                    </MudText>
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" Class="mb-4" />
+                    <MudText Typo="Typo.caption" Style="color: #94a3b8;">Väntar på bekräftelse...</MudText>
+                </div>
             }
 
-            @* Step 4: User/role selection (shown after verification) *@
-            @if (_authStep == AuthStep.Verified || _authStep == AuthStep.LoggingIn)
+            @* ══════ STEG 4: BankID — Verifierar ══════ *@
+            @if (_step == Step.BankID_Verifying)
             {
-                <MudSelect T="string" @bind-Value="_selectedUser" Label="Användare"
-                           Variant="Variant.Outlined" Class="mb-4"
-                           Placeholder="Välj användare..." AnchorOrigin="Origin.BottomCenter">
+                <div class="d-flex flex-column align-center py-4">
+                    <MudProgressCircular Color="Color.Success" Indeterminate="true" Size="Size.Large" Class="mb-4" />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Verifierar identitet...</MudText>
+                </div>
+            }
+
+            @* ══════ STEG: SITHS — Läser kort ══════ *@
+            @if (_step == Step.SITHS_Reading)
+            {
+                <div class="d-flex flex-column align-center">
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">SITHS-kort</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                        Sätt in ditt SITHS-kort i kortläsaren
+                    </MudText>
+
+                    <div style="width: 120px; height: 80px; border: 2px solid #0e7490; border-radius: 12px;
+                                display: flex; align-items: center; justify-content: center;
+                                background: linear-gradient(135deg, #f0fdfa, #ecfeff); position: relative;" class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" Style="font-size: 2.5rem; color: #0e7490;" />
+                        @if (_sithsCardInserted)
+                        {
+                            <div style="position: absolute; top: -8px; right: -8px;">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="font-size: 1.2rem; color: #059669;" />
+                            </div>
+                        }
+                    </div>
+
+                    <MudText Typo="Typo.body2" Style="@($"font-weight: 600; color: {(_sithsCardInserted ? "#059669" : "#6b7280")};")" Class="mb-2">
+                        @(_sithsCardInserted ? "Kort detekterat — läser certifikat..." : "Väntar på kort...")
+                    </MudText>
+                    <MudProgressLinear Color="@(_sithsCardInserted ? Color.Success : Color.Primary)"
+                                       Indeterminate="true" Style="width: 100%; border-radius: 4px;" Class="mb-4" />
+
+                    <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
+                               Style="text-transform: none;" OnClick="CancelAuth">
+                        Avbryt
+                    </MudButton>
+                </div>
+            }
+
+            @* ══════ STEG: SITHS — Ange PIN ══════ *@
+            @if (_step == Step.SITHS_EnterPin)
+            {
+                <div class="d-flex flex-column align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Pin" Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">Ange PIN-kod</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
+                        Ange din SITHS-korts PIN-kod
+                    </MudText>
+                    <MudTextField @bind-Value="_sithsPin" Label="PIN-kod" Variant="Variant.Outlined"
+                                  InputType="InputType.Password" Style="width: 200px;" Class="mb-4"
+                                  OnKeyUp="@(async (e) => { if (e.Key == "Enter") await VerifySithsPin(); })" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               Style="border-radius: 12px; text-transform: none; min-width: 200px;"
+                               OnClick="VerifySithsPin">Verifiera</MudButton>
+                </div>
+            }
+
+            @* ══════ STEG: Verifierad! ══════ *@
+            @if (_step == Step.Verified)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.VerifiedUser"
+                          Style="border-radius: 12px;">
+                    <strong>Identitet verifierad!</strong><br />
+                    @_verifiedName via @(_method == EidMethod.BankID ? "BankID" : "SITHS-kort")
+                </MudAlert>
+
+                <MudSelect T="string" @bind-Value="_selectedUser" Label="Välj profil"
+                           Variant="Variant.Outlined" Class="mb-4" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var user in _demoUsers)
                     {
-                        <MudSelectItem Value="@user.Key">
-                            @user.Key — @user.Value
-                        </MudSelectItem>
+                        <MudSelectItem Value="@user.Key">@user.Key — @user.Value</MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudTextField @bind-Value="_password" Label="Lösenord"
-                              Variant="Variant.Outlined" Class="mb-6"
-                              InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                              OnAdornmentClick="@(() => _showPassword = !_showPassword)"
-                              Placeholder="Valfritt lösenord"
-                              OnKeyUp="OnKeyUp" />
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           FullWidth="true" Size="Size.Large"
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
                            Style="border-radius: 12px; text-transform: none; font-weight: 600; font-size: 1rem;"
                            OnClick="HandleLogin" Disabled="_isLoggingIn">
                     @if (_isLoggingIn)
@@ -148,38 +204,22 @@
                 </MudButton>
 
                 <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
-                           Class="mt-2" Style="text-transform: none;"
-                           OnClick="ResetToMethodSelection">
+                           Class="mt-2" Style="text-transform: none;" OnClick="CancelAuth">
                     Byt inloggningsmetod
                 </MudButton>
-            }
 
-            @if (_authStep == AuthStep.Verified || _authStep == AuthStep.LoggingIn)
-            {
-                <MudDivider Class="my-5" />
-
+                <MudDivider Class="my-4" />
                 <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #94a3b8;">
-                    Demoinloggning — välj en användare och ange valfritt lösenord
+                    Demoinloggning — välj en profil ovan
                 </MudText>
-
-                <MudSimpleTable Dense="true" Class="mt-3" Style="font-size: 0.8rem;" Elevation="0">
-                    <thead>
-                        <tr>
-                            <th style="padding: 4px 8px;">Användare</th>
-                            <th style="padding: 4px 8px;">Roll</th>
-                        </tr>
-                    </thead>
+                <MudSimpleTable Dense="true" Class="mt-2" Style="font-size: 0.8rem;" Elevation="0">
+                    <thead><tr><th style="padding: 4px 8px;">Profil</th><th style="padding: 4px 8px;">Roll</th></tr></thead>
                     <tbody>
-                        @foreach (var user in _demoUsers)
+                        @foreach (var u in _demoUsers)
                         {
-                            <tr>
-                                <td style="padding: 4px 8px;">@user.Key</td>
-                                <td style="padding: 4px 8px;">
-                                    <MudChip T="string" Size="Size.Small"
-                                             Color="@GetRoleColor(user.Value)">
-                                        @user.Value
-                                    </MudChip>
-                                </td>
+                            <tr style="cursor: pointer;" @onclick="@(() => _selectedUser = u.Key)">
+                                <td style="padding: 4px 8px;">@u.Key</td>
+                                <td style="padding: 4px 8px;"><MudChip T="string" Size="Size.Small" Color="@GetRoleColor(u.Value)">@u.Value</MudChip></td>
                             </tr>
                         }
                     </tbody>
@@ -190,16 +230,15 @@
 </div>
 
 @code {
-    private string? _selectedUser;
-    private string? _password;
-    private string? _errorMessage;
-    private bool _showPassword;
-    private bool _isLoggingIn;
-    private AuthStep _authStep = AuthStep.ChooseMethod;
-    private EidMethod _selectedMethod;
+    private Step _step = Step.ChooseMethod;
+    private EidMethod _method;
+    private string? _selectedUser, _errorMessage, _verifiedName, _sithsPin;
+    private bool _isLoggingIn, _sithsCardInserted;
+    private int _qrSeed, _bankIdTimer = 30;
+    private double _bankIdProgress;
 
-    private enum AuthStep { ChooseMethod, Authenticating, Verified, LoggingIn }
-    private enum EidMethod { SITHS, BankID }
+    private enum Step { ChooseMethod, BankID_OpenApp, BankID_EnterCode, BankID_Verifying, SITHS_Reading, SITHS_EnterPin, Verified }
+    private enum EidMethod { BankID, SITHS }
 
     private static readonly Dictionary<string, string> _demoUsers = new()
     {
@@ -209,63 +248,116 @@
         ["Admin"] = "Admin"
     };
 
-    private async Task StartAuthentication(EidMethod method)
+    // ── BankID Flow ──
+    private async Task StartBankID()
     {
-        _selectedMethod = method;
-        _authStep = AuthStep.Authenticating;
+        _method = EidMethod.BankID;
+        _step = Step.BankID_OpenApp;
+        _bankIdTimer = 30;
+        _bankIdProgress = 0;
+        _qrSeed = Random.Shared.Next(100);
         _errorMessage = null;
         StateHasChanged();
 
-        // Simulate eID authentication delay (2 seconds)
+        // Animate QR code + countdown
+        for (int i = 0; i < 15; i++)
+        {
+            await Task.Delay(500);
+            _qrSeed = Random.Shared.Next(100);
+            _bankIdTimer = 30 - i;
+            _bankIdProgress = (i / 15.0) * 100;
+            StateHasChanged();
+            if (_step != Step.BankID_OpenApp) return; // cancelled
+        }
+
+        // User "scanned" — proceed to security code
+        _step = Step.BankID_EnterCode;
+        StateHasChanged();
+
+        // Wait for "user to enter code"
+        await Task.Delay(3000);
+        if (_step != Step.BankID_EnterCode) return;
+
+        // Verifying
+        _step = Step.BankID_Verifying;
+        StateHasChanged();
+        await Task.Delay(1500);
+
+        // Done!
+        _verifiedName = "Personnummer: 198503**-****";
+        _step = Step.Verified;
+        StateHasChanged();
+    }
+
+    // ── SITHS Flow ──
+    private async Task StartSITHS()
+    {
+        _method = EidMethod.SITHS;
+        _step = Step.SITHS_Reading;
+        _sithsCardInserted = false;
+        _errorMessage = null;
+        StateHasChanged();
+
+        // Wait for "card insertion"
         await Task.Delay(2000);
+        if (_step != Step.SITHS_Reading) return;
 
-        _authStep = AuthStep.Verified;
+        _sithsCardInserted = true;
+        StateHasChanged();
+
+        // Read certificate
+        await Task.Delay(2000);
+        if (_step != Step.SITHS_Reading) return;
+
+        // Ask for PIN
+        _sithsPin = "";
+        _step = Step.SITHS_EnterPin;
         StateHasChanged();
     }
 
-    private void ResetToMethodSelection()
+    private async Task VerifySithsPin()
     {
-        _authStep = AuthStep.ChooseMethod;
-        _selectedUser = null;
-        _password = null;
-        _errorMessage = null;
+        if (string.IsNullOrWhiteSpace(_sithsPin))
+        {
+            _errorMessage = "Ange PIN-kod.";
+            return;
+        }
+
+        _step = Step.BankID_Verifying; // reuse verifying step
+        StateHasChanged();
+        await Task.Delay(1500);
+
+        _verifiedName = "HSA-ID: SE230000****-XXXX";
+        _step = Step.Verified;
+        StateHasChanged();
     }
 
+    // ── Login ──
     private async Task HandleLogin()
     {
         if (string.IsNullOrEmpty(_selectedUser))
         {
-            _errorMessage = "Välj en användare för att logga in.";
+            _errorMessage = "Välj en profil.";
             return;
         }
-
         _isLoggingIn = true;
-        _authStep = AuthStep.LoggingIn;
-        _errorMessage = null;
         StateHasChanged();
-
-        // Small delay for UX feel
         await Task.Delay(400);
-
         var role = _demoUsers[_selectedUser];
         await Auth.LoginAsync(_selectedUser, role);
-
         Nav.NavigateTo("/", forceLoad: false);
     }
 
-    private async Task OnKeyUp(KeyboardEventArgs e)
+    private void CancelAuth()
     {
-        if (e.Key == "Enter")
-            await HandleLogin();
+        _step = Step.ChooseMethod;
+        _errorMessage = null;
+        _sithsPin = null;
     }
 
     private static Color GetRoleColor(string role) => role switch
     {
-        "Admin" => Color.Error,
-        "HR" => Color.Warning,
-        "Chef" => Color.Info,
-        "Anställd" => Color.Success,
-        _ => Color.Default
+        "Admin" => Color.Error, "HR" => Color.Warning, "Chef" => Color.Info, "Anställd" => Color.Success, _ => Color.Default
     };
 
     private readonly MudTheme _loginTheme = new()
@@ -284,9 +376,6 @@
                 FontFamily = new[] { "Plus Jakarta Sans", "-apple-system", "system-ui", "sans-serif" },
             },
         },
-        LayoutProperties = new LayoutProperties
-        {
-            DefaultBorderRadius = "12px",
-        }
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" }
     };
 }
