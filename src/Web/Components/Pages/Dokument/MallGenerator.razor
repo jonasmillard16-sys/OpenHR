@@ -32,12 +32,15 @@
 
         case 2:
             <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Förhandsgranskning — @_mallNamn</MudText>
-            <MudPaper Class="pa-6" Elevation="1" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fafafa; border: 1px solid #e0e0e0; line-height: 1.6;">
+            <MudPaper Class="pa-6" Elevation="1" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fdfdfd; border: 1px solid #d0d0d0; line-height: 1.7; border-radius: 8px;">
                 @_pdfPreview
             </MudPaper>
-            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">I produktion genereras en riktig PDF-fil.</MudAlert>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">
+                PDF-generering kräver QuestPDF-paketet. Installera med: dotnet add package QuestPDF
+            </MudAlert>
             <div class="d-flex gap-3 mt-4">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Download" Style="min-height: 48px;" OnClick="LaddaNer">Ladda ner</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Print" Style="min-height: 48px;" OnClick="SkrivUt">Skriv ut</MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" Style="min-height: 48px;" OnClick="@(() => _step = 1)">Redigera</MudButton>
             </div>
             break;
@@ -113,6 +116,11 @@
         }
         _pdfPreview = System.Text.Encoding.UTF8.GetString(pdfBytes);
         _step = 2;
+    }
+
+    private async Task SkrivUt()
+    {
+        await JS.InvokeVoidAsync("window.print");
     }
 
     private async Task LaddaNer()

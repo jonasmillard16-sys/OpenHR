@@ -1,6 +1,7 @@
 @page "/rekrytering/vakanser"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Components.Shared
+@inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Rekrytering</PageTitle>
 
@@ -359,7 +360,29 @@
 
     private void PubliceraVakans(VakansData v) { v.Status = "Publicerad"; v.SistaDag = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd"); }
     private void StangVakans(VakansData v) { v.Status = "Stängd"; }
-    private void AvanceraAnsokan(AnsokningData a, string nyStatus) { a.Status = nyStatus; }
+
+    private void AvanceraAnsokan(AnsokningData a, string nyStatus)
+    {
+        var oldStatus = a.Status;
+        a.Status = nyStatus;
+
+        if (nyStatus == "Avslagen")
+        {
+            Snackbar.Add("Ansökan avslagen. Ångra?", Severity.Normal, config =>
+            {
+                config.Action = "Ångra";
+                config.ActionColor = Color.Warning;
+                config.OnClick = _ =>
+                {
+                    a.Status = oldStatus;
+                    InvokeAsync(StateHasChanged);
+                    return Task.CompletedTask;
+                };
+                config.VisibleStateDuration = 10000;
+                config.ShowCloseIcon = true;
+            });
+        }
+    }
 
     private static Color StatusFarg(string s) => s switch
     {

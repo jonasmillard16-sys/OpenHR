@@ -3,7 +3,7 @@
 @inject RegionHR.Web.Services.AnstallningService Service
 @inject NavigationManager Nav
 
-<PageTitle>OpenHR - Anställd</PageTitle>
+<PageTitle>OpenHR - Anst&#228;lld</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/anstallda" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
@@ -29,11 +29,11 @@
                     <MudText Typo="Typo.h6" Class="mb-3">Kontaktuppgifter</MudText>
                     <MudSimpleTable Dense="true">
                         <tbody>
-                            <tr><td><strong>E-post</strong></td><td>@(_emp.Epost ?? "—")</td></tr>
-                            <tr><td><strong>Telefon</strong></td><td>@(_emp.Telefon ?? "—")</td></tr>
-                            <tr><td><strong>Adress</strong></td><td>@(_emp.Adress?.Gatuadress ?? "—")</td></tr>
-                            <tr><td><strong>Postnummer</strong></td><td>@(_emp.Adress?.Postnummer ?? "—")</td></tr>
-                            <tr><td><strong>Ort</strong></td><td>@(_emp.Adress?.Ort ?? "—")</td></tr>
+                            <tr><td><strong>E-post</strong></td><td>@(_emp.Epost ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Telefon</strong></td><td>@(_emp.Telefon ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Adress</strong></td><td>@(_emp.Adress?.Gatuadress ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Postnummer</strong></td><td>@(_emp.Adress?.Postnummer ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Ort</strong></td><td>@(_emp.Adress?.Ort ?? "&#8212;")</td></tr>
                         </tbody>
                     </MudSimpleTable>
                 </MudItem>
@@ -41,10 +41,10 @@
                     <MudText Typo="Typo.h6" Class="mb-3">Skatteuppgifter</MudText>
                     <MudSimpleTable Dense="true">
                         <tbody>
-                            <tr><td><strong>Skattetabell</strong></td><td>@(_emp.Skattetabell?.ToString() ?? "—")</td></tr>
-                            <tr><td><strong>Skattekolumn</strong></td><td>@(_emp.Skattekolumn?.ToString() ?? "—")</td></tr>
-                            <tr><td><strong>Kommun</strong></td><td>@(_emp.Kommun ?? "—")</td></tr>
-                            <tr><td><strong>Kommunalskatt</strong></td><td>@(_emp.KommunalSkattesats.HasValue ? $"{_emp.KommunalSkattesats.Value}%" : "—")</td></tr>
+                            <tr><td><strong>Skattetabell</strong></td><td>@(_emp.Skattetabell?.ToString() ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Skattekolumn</strong></td><td>@(_emp.Skattekolumn?.ToString() ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Kommun</strong></td><td>@(_emp.Kommun ?? "&#8212;")</td></tr>
+                            <tr><td><strong>Kommunalskatt</strong></td><td>@(_emp.KommunalSkattesats.HasValue ? $"{_emp.KommunalSkattesats.Value}%" : "&#8212;")</td></tr>
                             <tr><td><strong>Kyrkoavgift</strong></td><td>@(_emp.HarKyrkoavgift ? $"Ja ({_emp.Kyrkoavgiftssats}%)" : "Nej")</td></tr>
                         </tbody>
                     </MudSimpleTable>
@@ -52,10 +52,10 @@
             </MudGrid>
         </MudTabPanel>
 
-        <MudTabPanel Text="Anställningar" Icon="@Icons.Material.Filled.Work">
+        <MudTabPanel Text="Anst&#228;llningar" Icon="@Icons.Material.Filled.Work">
             @if (_emp.Anstallningar.Count == 0)
             {
-                <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga anställningar registrerade.</MudText>
+                <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga anst&#228;llningar registrerade.</MudText>
             }
             else
             {
@@ -65,9 +65,9 @@
                             <th>Form</th>
                             <th>Befattning</th>
                             <th>Enhet</th>
-                            <th>Lön</th>
+                            <th>L&#246;n</th>
                             <th>Grad</th>
-                            <th>Från</th>
+                            <th>Fr&#229;n</th>
                             <th>Till</th>
                             <th>Avtal</th>
                         </tr>
@@ -82,7 +82,7 @@
                                         @a.Anstallningsform
                                     </MudChip>
                                 </td>
-                                <td>@(a.Befattningstitel ?? "—")</td>
+                                <td>@(a.Befattningstitel ?? "&#8212;")</td>
                                 <td>@a.EnhetId</td>
                                 <td>@a.Manadslon.Amount.ToString("N0") kr</td>
                                 <td>@a.Sysselsattningsgrad.Value%</td>
@@ -96,8 +96,8 @@
             }
         </MudTabPanel>
 
-        <MudTabPanel Text="Lön" Icon="@Icons.Material.Filled.Payments">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Lönehistorik hämtas från lönekörningar.</MudText>
+        <MudTabPanel Text="L&#246;n" Icon="@Icons.Material.Filled.Payments">
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">L&#246;nehistorik h&#228;mtas fr&#229;n l&#246;nek&#246;rningar.</MudText>
             <MudSimpleTable Hover="true" Class="mt-3">
                 <thead>
                     <tr><th>Period</th><th>Brutto</th><th>Skatt</th><th>Netto</th></tr>
@@ -116,27 +116,27 @@
             </MudSimpleTable>
         </MudTabPanel>
 
-        <MudTabPanel Text="Frånvaro" Icon="@Icons.Material.Filled.EventBusy">
-            <MudText Typo="Typo.h6" Class="mb-3">Frånvarohistorik</MudText>
+        <MudTabPanel Text="Fr&#229;nvaro" Icon="@Icons.Material.Filled.EventBusy">
+            <MudText Typo="Typo.h6" Class="mb-3">Fr&#229;nvarohistorik</MudText>
             <MudSimpleTable Hover="true">
                 <thead>
                     <tr><th>Datum</th><th>Typ</th><th>Dagar</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>2026-03-10</td><td>Sjukfrånvaro</td><td>2</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2026-03-10</td><td>Sjukfr&#229;nvaro</td><td>2</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
                     <tr><td>2026-02-14</td><td>VAB</td><td>1</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
                     <tr><td>2026-01-20</td><td>Semester</td><td>5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
                     <tr><td>2025-12-23</td><td>Semester</td><td>7</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                    <tr><td>2025-11-05</td><td>Sjukfrånvaro</td><td>3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
+                    <tr><td>2025-11-05</td><td>Sjukfr&#229;nvaro</td><td>3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
                 </tbody>
             </MudSimpleTable>
         </MudTabPanel>
 
         <MudTabPanel Text="LAS" Icon="@Icons.Material.Filled.Warning">
             <MudText Typo="Typo.h6" Class="mb-3">LAS-information</MudText>
-            <MudAlert Severity="Severity.Info" Class="mb-3">Tillsvidareanställd — LAS ej tillämpligt</MudAlert>
+            <MudAlert Severity="Severity.Info" Class="mb-3">Tillsvidareanst&#228;lld &#8212; LAS ej till&#228;mpligt</MudAlert>
             <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-                Denna anställd har en tillsvidareanställning. LAS-ackumulering för konvertering gäller inte.
+                Denna anst&#228;lld har en tillsvidareanst&#228;llning. LAS-ackumulering f&#246;r konvertering g&#228;ller inte.
             </MudText>
         </MudTabPanel>
 
@@ -144,12 +144,12 @@
             <MudText Typo="Typo.h6" Class="mb-3">Certifieringar och utbildningar</MudText>
             <MudSimpleTable Hover="true">
                 <thead>
-                    <tr><th>Certifiering</th><th>Utfärdad</th><th>Giltig t.o.m.</th></tr>
+                    <tr><th>Certifiering</th><th>Utf&#228;rdad</th><th>Giltig t.o.m.</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>HLR — Hjärt-lungräddning</td><td>2025-09-15</td><td>2026-09-15</td></tr>
+                    <tr><td>HLR &#8212; Hj&#228;rt-lungr&#228;ddning</td><td>2025-09-15</td><td>2026-09-15</td></tr>
                     <tr><td>Brandskydd</td><td>2025-11-01</td><td>2026-11-01</td></tr>
-                    <tr><td>Läkemedelshantering</td><td>2024-06-10</td><td>2026-06-10</td></tr>
+                    <tr><td>L&#228;kemedelshantering</td><td>2024-06-10</td><td>2026-06-10</td></tr>
                 </tbody>
             </MudSimpleTable>
         </MudTabPanel>
@@ -161,12 +161,33 @@
                     <tr><th>Dokument</th><th>Datum</th><th>Typ</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Anställningsavtal</td><td>2019-08-01</td><td>Avtal</td></tr>
-                    <tr><td>Lönerevision 2025</td><td>2025-06-01</td><td>Beslut</td></tr>
+                    <tr><td>Anst&#228;llningsavtal</td><td>2019-08-01</td><td>Avtal</td></tr>
+                    <tr><td>L&#246;nerevision 2025</td><td>2025-06-01</td><td>Beslut</td></tr>
                     <tr><td>Medarbetarsamtal 2025</td><td>2025-10-15</td><td>Samtalsprotokoll</td></tr>
-                    <tr><td>Sekretessförbindelse</td><td>2019-08-01</td><td>Juridiskt</td></tr>
+                    <tr><td>Sekretessf&#246;rbindelse</td><td>2019-08-01</td><td>Juridiskt</td></tr>
                 </tbody>
             </MudSimpleTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="&#196;ndringshistorik" Icon="@Icons.Material.Filled.History">
+            <MudText Typo="Typo.h6" Class="mb-3">&#196;ndringshistorik</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+                Alla &#228;ndringar som r&#246;r denna anst&#228;lld loggas automatiskt i granskningsloggen.
+            </MudText>
+            <MudTimeline TimelinePosition="TimelinePosition.Start">
+                @foreach (var entry in _auditEntries)
+                {
+                    <MudTimelineItem Color="@entry.Farg" Size="Size.Small" Icon="@entry.Ikon">
+                        <ItemContent>
+                            <MudPaper Class="pa-3 mb-1" Elevation="1">
+                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@entry.Tidpunkt</MudText>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@entry.Beskrivning</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@entry.Anvandare</MudText>
+                            </MudPaper>
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
         </MudTabPanel>
     </MudTabs>
 }
@@ -176,7 +197,7 @@ else if (_loading)
 }
 else
 {
-    <MudAlert Severity="Severity.Error">Anställd hittades inte.</MudAlert>
+    <MudAlert Severity="Severity.Error">Anst&#228;lld hittades inte.</MudAlert>
 }
 
 @code {
@@ -204,4 +225,17 @@ else
     }
 
     private record LonRad(string Period, string Brutto, string Skatt, string Netto);
+
+    private record AuditEntryVm(string Tidpunkt, string Anvandare, string Beskrivning, Color Farg, string Ikon);
+
+    // Audit trail demo data
+    private List<AuditEntryVm> _auditEntries = new()
+    {
+        new AuditEntryVm("2026-03-18 09:15", "Sara Andersson (HR)", "Ändrade befattning: Undersköterska \u2192 Sjuksköterska", Color.Warning, Icons.Material.Filled.SwapHoriz),
+        new AuditEntryVm("2026-03-15 14:30", "System", "Lönerevision genomförd, ny lön 34 500 kr", Color.Info, Icons.Material.Filled.Payments),
+        new AuditEntryVm("2026-03-10 08:00", "Eva Nilsson (Chef)", "Godkände semesteransökan 15\u201319 april", Color.Success, Icons.Material.Filled.EventAvailable),
+        new AuditEntryVm("2026-02-01 10:00", "Sara Andersson (HR)", "Uppdaterade kontaktuppgifter", Color.Warning, Icons.Material.Filled.Edit),
+        new AuditEntryVm("2026-01-15 13:45", "System", "Certifiering HLR förnyad, giltig till 2026-09-15", Color.Info, Icons.Material.Filled.Verified),
+        new AuditEntryVm("2026-01-15 09:00", "System", "Anställd skapad i systemet", Color.Primary, Icons.Material.Filled.PersonAdd),
+    };
 }

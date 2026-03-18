@@ -2,6 +2,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Components.Shared
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>OpenHR - Offboarding</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/offboarding" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
@@ -112,8 +113,16 @@
                         </MudSimpleTable>
 
                         <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2" Style="font-weight: 600;">Förhandsvisning</MudText>
-                        <MudPaper Class="pa-4" Elevation="0" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fafafa; border: 1px solid #e0e0e0; line-height: 1.6;">@_intygPreview</MudPaper>
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">I produktion genereras en riktig PDF-fil.</MudAlert>
+                        <MudPaper Class="pa-5" Elevation="1" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fdfdfd; border: 1px solid #d0d0d0; line-height: 1.7; border-radius: 8px;">@_intygPreview</MudPaper>
+                        <div class="d-flex gap-2 mt-3">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Medium"
+                                       StartIcon="@Icons.Material.Filled.Print" OnClick="SkrivUt" Style="min-height: 44px;">
+                                Skriv ut
+                            </MudButton>
+                        </div>
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">
+                            PDF-generering kräver QuestPDF-paketet. Installera med: dotnet add package QuestPDF
+                        </MudAlert>
                     }
                 </MudPaper>
 
@@ -132,6 +141,11 @@
     private bool _dator, _passerkort, _telefon, _nycklar, _klader;
     private bool _intygGenererat;
     private string _intygPreview = "";
+
+    private async Task SkrivUt()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
 
     private void GenereraIntyg()
     {

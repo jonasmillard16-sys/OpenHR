@@ -10,6 +10,7 @@ public class AuthService
     public string? Role { get; private set; }
     public bool IsLoggedIn => UserName != null;
     public bool IsInitialized { get; private set; }
+    public bool IsDarkMode { get; private set; }
 
     public AuthService(ProtectedSessionStorage storage)
     {
@@ -23,8 +24,10 @@ public class AuthService
         {
             var nameResult = await _storage.GetAsync<string>("auth_user");
             var roleResult = await _storage.GetAsync<string>("auth_role");
+            var darkResult = await _storage.GetAsync<bool>("dark_mode");
             if (nameResult.Success) UserName = nameResult.Value;
             if (roleResult.Success) Role = roleResult.Value;
+            if (darkResult.Success) IsDarkMode = darkResult.Value;
         }
         catch { /* First load, no stored values */ }
         IsInitialized = true;
@@ -44,6 +47,12 @@ public class AuthService
         Role = null;
         await _storage.DeleteAsync("auth_user");
         await _storage.DeleteAsync("auth_role");
+    }
+
+    public async Task SetDarkModeAsync(bool value)
+    {
+        IsDarkMode = value;
+        await _storage.SetAsync("dark_mode", value);
     }
 
     public bool HasRole(params string[] roles) => Role != null && roles.Contains(Role);

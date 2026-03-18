@@ -1,6 +1,7 @@
 @page "/las"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Components.Shared
+@inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - LAS-uppföljning</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">LAS-uppföljning</MudText>
@@ -218,11 +219,30 @@
         }
         else if (action == "pausa")
         {
-            // Markera som pausad istället för att ta bort
+            var originalRad = _valdPerson;
             var idx = _ackumuleringar.IndexOf(_valdPerson);
             if (idx >= 0)
             {
                 _ackumuleringar[idx] = _valdPerson with { Niva = "Pausad", StatusFarg = Color.Default };
+
+                Snackbar.Add("Ackumulering pausad. Ångra?", Severity.Normal, config =>
+                {
+                    config.Action = "Ångra";
+                    config.ActionColor = Color.Warning;
+                    config.OnClick = _ =>
+                    {
+                        var currentIdx = _ackumuleringar.FindIndex(a => a.Namn == originalRad.Namn);
+                        if (currentIdx >= 0)
+                        {
+                            _ackumuleringar[currentIdx] = originalRad;
+                        }
+                        _atgardUtford = null;
+                        InvokeAsync(StateHasChanged);
+                        return Task.CompletedTask;
+                    };
+                    config.VisibleStateDuration = 10000;
+                    config.ShowCloseIcon = true;
+                });
             }
         }
     }

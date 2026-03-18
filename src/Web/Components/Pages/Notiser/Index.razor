@@ -4,13 +4,21 @@
 @using RegionHR.Notifications.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Notiser</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Notiser</MudText>
 
-<MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="MarkAllRead" Class="mb-4">
-    Markera alla som lästa
-</MudButton>
+<MudStack Row="true" Spacing="2" Class="mb-4">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="MarkAllRead"
+               StartIcon="@Icons.Material.Filled.DoneAll">
+        Markera alla som lästa
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SimulateNotification"
+               StartIcon="@Icons.Material.Filled.NotificationAdd">
+        Simulera notis
+    </MudButton>
+</MudStack>
 
 @if (!_notiser.Any())
 {
@@ -41,6 +49,31 @@ else
 
 @code {
     private List<NotisViewModel> _notiser = new();
+    private int _simulationCount;
+
+    private static readonly string[] SimTitles =
+    [
+        "Ny ledighetsansökan",
+        "Schemaändring publicerad",
+        "Lönebesked tillgängligt",
+        "Nytt ärende tilldelat",
+        "Medarbetarsamtal påminnelse",
+        "Certifiering snart utgången",
+        "Ny sjukanmälan",
+        "MBL-förhandling kallelse",
+    ];
+
+    private static readonly string[] SimMessages =
+    [
+        "Anna Svensson har ansökt om semester 21–25 april.",
+        "Schemat för vecka 14 har uppdaterats av din chef.",
+        "Ditt lönebesked för mars 2026 finns nu tillgängligt.",
+        "Du har tilldelats ärende #2026-0342 av HR.",
+        "Påminnelse: medarbetarsamtal med Erik Johansson imorgon kl 10:00.",
+        "Sjuksköterska-legitimation för Lisa Holm går ut om 30 dagar.",
+        "Karl Berg har rapporterat sjukfrånvaro idag.",
+        "MBL §11-förhandling kring omorganisation kallas den 25 mars.",
+    ];
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,8 +112,39 @@ else
         }
     }
 
+    private void SimulateNotification()
+    {
+        var index = _simulationCount % SimTitles.Length;
+        var now = DateTime.Now;
+
+        var simulated = new NotisViewModel
+        {
+            Id = Guid.NewGuid(),
+            Titel = SimTitles[index],
+            Meddelande = SimMessages[index],
+            Tid = now.ToString("yyyy-MM-dd HH:mm:ss"),
+            ArLast = false
+        };
+
+        _notiser.Insert(0, simulated);
+        _simulationCount++;
+
+        Snackbar.Add($"Ny notis: {simulated.Titel}", Severity.Info,
+            config =>
+            {
+                config.Icon = Icons.Material.Filled.NotificationsActive;
+                config.VisibleStateDuration = 3000;
+            });
+
+        StateHasChanged();
+    }
+
     private async Task MarkAllRead()
     {
+        // Save previous read-state so we can undo
+        var previousStates = _notiser.Select(n => new { n.Titel, WasRead = n.ArLast }).ToList();
+        var hadUnread = _notiser.Any(n => !n.ArLast);
+
         try
         {
             var unread = await Db.Notifications
@@ -98,6 +162,28 @@ else
             n.ArLast = true;
 
         StateHasChanged();
+
+        if (hadUnread)
+        {
+            Snackbar.Add("Alla notiser markerade som lästa. Ångra?", Severity.Normal, config =>
+            {
+                config.Action = "Ångra";
+                config.ActionColor = Color.Warning;
+                config.OnClick = _ =>
+                {
+                    foreach (var prev in previousStates)
+                    {
+                        var notis = _notiser.FirstOrDefault(n => n.Titel == prev.Titel);
+                        if (notis != null)
+                            notis.ArLast = prev.WasRead;
+                    }
+                    InvokeAsync(StateHasChanged);
+                    return Task.CompletedTask;
+                };
+                config.VisibleStateDuration = 10000;
+                config.ShowCloseIcon = true;
+            });
+        }
     }
 
     private class NotisViewModel

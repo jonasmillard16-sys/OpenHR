@@ -1,0 +1,19 @@
+@namespace RegionHR.Web.Components.Shared
+
+@if (IsLoading)
+{
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        <MudText Typo="Typo.body2" Class="mt-3" Style="color: var(--mud-palette-text-secondary);">@Message</MudText>
+    </div>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string Message { get; set; } = "Laddar...";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
