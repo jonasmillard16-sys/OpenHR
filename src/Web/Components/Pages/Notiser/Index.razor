@@ -18,6 +18,13 @@
                StartIcon="@Icons.Material.Filled.NotificationAdd">
         Simulera notis
     </MudButton>
+    @if (_selectedNotiser.Count > 0)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="RaderaValda"
+                   StartIcon="@Icons.Material.Filled.DeleteSweep">
+            Radera valda (@_selectedNotiser.Count)
+        </MudButton>
+    }
 </MudStack>
 
 @if (!_notiser.Any())
@@ -32,10 +39,15 @@ else
             <MudPaper Class="@($"pa-4 {(n.ArLast ? "" : "mud-elevation-3")}")" Elevation="@(n.ArLast ? 0 : 2)"
                       Style="@(n.ArLast ? "" : "border-left: 4px solid var(--mud-palette-primary);")">
                 <div class="d-flex justify-space-between align-center">
+                    <div class="d-flex align-center gap-2">
+                        <MudCheckBox T="bool" Value="@(_selectedNotiser.Contains(n))"
+                                     ValueChanged="@((bool val) => ToggleNotis(n, val))"
+                                     Color="Color.Primary" />
                     <div>
                         <MudText Typo="Typo.subtitle1" Style="@($"font-weight: {(n.ArLast ? "400" : "600")};")">@n.Titel</MudText>
                         <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@n.Meddelande</MudText>
                         <MudText Typo="Typo.caption">@n.Tid</MudText>
+                    </div>
                     </div>
                     @if (!n.ArLast)
                     {
@@ -49,6 +61,7 @@ else
 
 @code {
     private List<NotisViewModel> _notiser = new();
+    private HashSet<NotisViewModel> _selectedNotiser = new();
     private int _simulationCount;
 
     private static readonly string[] SimTitles =
@@ -137,6 +150,28 @@ else
             });
 
         StateHasChanged();
+    }
+
+    private void ToggleNotis(NotisViewModel notis, bool value)
+    {
+        if (value)
+            _selectedNotiser.Add(notis);
+        else
+            _selectedNotiser.Remove(notis);
+    }
+
+    private void RaderaValda()
+    {
+        var count = _selectedNotiser.Count;
+        foreach (var n in _selectedNotiser.ToList())
+            _notiser.Remove(n);
+        _selectedNotiser.Clear();
+        Snackbar.Add($"{count} notis(er) raderade", Severity.Success,
+            config =>
+            {
+                config.Icon = Icons.Material.Filled.Delete;
+                config.VisibleStateDuration = 4000;
+            });
     }
 
     private async Task MarkAllRead()

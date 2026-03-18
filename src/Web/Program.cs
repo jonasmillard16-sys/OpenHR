@@ -56,6 +56,21 @@ builder.Services.AddScoped<SelfServiceApiClient>();
 builder.Services.AddScoped<UserRoleService>();
 builder.Services.AddScoped<AuthService>();
 
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(
+        context => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 10,
+            }));
+    options.RejectionStatusCode = 429;
+});
+
 var app = builder.Build();
 
 // Seed database (auto-migrate + seed on startup)
@@ -75,9 +90,11 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 }
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseStaticFiles();
+app.UseRateLimiter();
 app.UseAntiforgery();
 app.UseRequestLocalization();
 

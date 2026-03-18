@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/accessibility.css" />
     <link rel="stylesheet" href="css/print.css" />
     <link rel="stylesheet" href="css/mobile.css" />
+    <link rel="manifest" href="/manifest.json" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>
@@ -21,5 +22,6 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="js/download.js"></script>
     <script src="js/signalr-notifications.js"></script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');</script>
 </body>
 </html>

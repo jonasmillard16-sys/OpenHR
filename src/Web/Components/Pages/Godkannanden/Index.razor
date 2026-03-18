@@ -28,10 +28,32 @@ else
         @_pending.Count ärende(n) väntar på ditt beslut.
     </MudAlert>
 
+    @if (_selected.Count > 0)
+    {
+        <MudPaper Class="pa-3 mb-4 d-flex align-center gap-3" Elevation="2"
+                  Style="background: var(--mud-palette-background-grey);">
+            <MudText Typo="Typo.body1" Style="font-weight: 600;">@_selected.Count valda</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                       OnClick="GodkannAlla">
+                Godkänn alla
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       OnClick="AvslaAlla">
+                Avslå alla
+            </MudButton>
+        </MudPaper>
+    }
+
     <MudPaper Elevation="2">
         <MudTable Items="_pending" Dense="true" Hover="true" Striped="true"
                   Breakpoint="Breakpoint.Sm">
             <HeaderContent>
+                <MudTh>
+                    <MudCheckBox T="bool" Value="_selectAll" ValueChanged="ToggleSelectAll"
+                                 Color="Color.Primary" />
+                </MudTh>
                 <MudTh>Typ</MudTh>
                 <MudTh>Anställd</MudTh>
                 <MudTh>Datum</MudTh>
@@ -40,6 +62,11 @@ else
                 <MudTh Style="text-align: right;">Åtgärder</MudTh>
             </HeaderContent>
             <RowTemplate>
+                <MudTd>
+                    <MudCheckBox T="bool" Value="@(_selected.Contains(context))"
+                                 ValueChanged="@((bool val) => ToggleItem(context, val))"
+                                 Color="Color.Primary" />
+                </MudTd>
                 <MudTd DataLabel="Typ">
                     <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Typ)">
                         @context.Typ
@@ -72,6 +99,8 @@ else
 
 @code {
     private List<GodkannandeItem> _pending = [];
+    private HashSet<GodkannandeItem> _selected = new();
+    private bool _selectAll;
 
     protected override void OnInitialized()
     {
@@ -131,6 +160,54 @@ else
                     config.VisibleStateDuration = 5000;
                 });
         }
+    }
+
+    private void ToggleSelectAll(bool value)
+    {
+        _selectAll = value;
+        if (value)
+            _selected = new HashSet<GodkannandeItem>(_pending);
+        else
+            _selected.Clear();
+    }
+
+    private void ToggleItem(GodkannandeItem item, bool value)
+    {
+        if (value)
+            _selected.Add(item);
+        else
+            _selected.Remove(item);
+        _selectAll = _selected.Count == _pending.Count && _pending.Count > 0;
+    }
+
+    private void GodkannAlla()
+    {
+        var count = _selected.Count;
+        foreach (var item in _selected.ToList())
+            _pending.Remove(item);
+        _selected.Clear();
+        _selectAll = false;
+        Snackbar.Add($"Godkänt {count} ärende(n)", Severity.Success,
+            config =>
+            {
+                config.Icon = Icons.Material.Filled.CheckCircle;
+                config.VisibleStateDuration = 4000;
+            });
+    }
+
+    private void AvslaAlla()
+    {
+        var count = _selected.Count;
+        foreach (var item in _selected.ToList())
+            _pending.Remove(item);
+        _selected.Clear();
+        _selectAll = false;
+        Snackbar.Add($"Avslagit {count} ärende(n)", Severity.Info,
+            config =>
+            {
+                config.Icon = Icons.Material.Filled.Cancel;
+                config.VisibleStateDuration = 4000;
+            });
     }
 
     private static Color GetTypeColor(string typ) => typ switch

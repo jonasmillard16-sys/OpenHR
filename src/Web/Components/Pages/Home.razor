@@ -10,8 +10,29 @@
 
 <PageTitle>OpenHR — Dashboard</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Dashboard</MudText>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Dashboard</MudText>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Tune"
+               OnClick="@(() => _showCustomize = !_showCustomize)">
+        Anpassa
+    </MudButton>
+</div>
 
+@if (_showCustomize)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Visa sektioner</MudText>
+        <MudStack Row="true" Spacing="4">
+            <MudCheckBox T="bool" @bind-Value="_showKpi" Label="KPI-kort" Color="Color.Primary" />
+            <MudCheckBox T="bool" @bind-Value="_showHandelser" Label="Senaste händelserna" Color="Color.Primary" />
+            <MudCheckBox T="bool" @bind-Value="_showBemanning" Label="Bemanning per enhet" Color="Color.Primary" />
+        </MudStack>
+    </MudPaper>
+}
+
+@if (_showKpi)
+{
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="6" sm="2">
         <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
@@ -80,8 +101,11 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
+}
 
 <MudGrid Spacing="4">
+@if (_showHandelser)
+{
     <MudItem xs="12" md="7">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Senaste händelserna</MudText>
@@ -97,7 +121,10 @@
             </MudStack>
         </MudPaper>
     </MudItem>
+}
 
+@if (_showBemanning)
+{
     <MudItem xs="12" md="5">
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Bemanning per enhet</MudText>
@@ -119,9 +146,16 @@
             </MudSimpleTable>
         </MudPaper>
     </MudItem>
+}
 </MudGrid>
 
 @code {
+    // --- Dashboard customization toggles ---
+    private bool _showCustomize;
+    private bool _showKpi = true;
+    private bool _showHandelser = true;
+    private bool _showBemanning = true;
+
     // --- KPI variables (computed from demo model or DB) ---
     private int _headcount;
     private decimal _sjukfranvaro;
