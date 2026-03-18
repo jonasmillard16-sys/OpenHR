@@ -62,6 +62,11 @@ public sealed class Employment : Entity<EmploymentId>
         UpdatedBy = andradAv;
     }
 
+    public void SattBefattning(string befattningstitel)
+    {
+        Befattningstitel = befattningstitel;
+    }
+
     public void AndraSysselsattningsgrad(Percentage nyGrad)
     {
         Sysselsattningsgrad = nyGrad;

@@ -72,13 +72,14 @@ public static class SeedData
 
             var startdatum = DateOnly.FromDateTime(DateTime.Today.AddYears(-Random.Shared.Next(1, 15)));
 
-            employee.LaggTillAnstallning(
+            var employment = employee.LaggTillAnstallning(
                 enhetId,
                 EmploymentType.Tillsvidare,
                 CollectiveAgreementType.AB,
                 lon,
                 Percentage.FullTime,
                 startdatum);
+            employment.SattBefattning(befattning);
 
             db.Employees.Add(employee);
         }
