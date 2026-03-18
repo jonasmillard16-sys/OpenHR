@@ -2,9 +2,146 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 
 <PageTitle>OpenHR - Teamkalender</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Teamkalender — Mars 2026</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Teamkalender — @_currentMonth.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))</MudText>
 <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Avdelning 32</MudText>
 
+@* Month navigation *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PreviousMonth" />
+    <MudText Typo="Typo.h6" Style="font-weight: 600; min-width: 160px; text-align: center;">
+        @_currentMonth.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))
+    </MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextMonth" />
+    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToToday">Idag</MudButton>
+</MudStack>
+
+@* Monthly calendar grid *@
+<MudPaper Elevation="2" Class="pa-3 mb-6">
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+        @* Day headers *@
+        @foreach (var dayName in _dayNames)
+        {
+            <div style="text-align: center; font-weight: 600; padding: 8px 4px; background: var(--mud-palette-background-grey); border-radius: 4px;">
+                @dayName
+            </div>
+        }
+
+        @* Empty cells before first day *@
+        @for (var i = 0; i < _firstDayOffset; i++)
+        {
+            <div style="min-height: 80px; padding: 4px;"></div>
+        }
+
+        @* Calendar days *@
+        @for (var day = 1; day <= _daysInMonth; day++)
+        {
+            var currentDay = day;
+            var date = new DateOnly(_currentMonth.Year, _currentMonth.Month, currentDay);
+            var isToday = date == DateOnly.FromDateTime(DateTime.Today);
+            var dayLeaves = GetLeavesForDate(date);
+            var hasLeave = dayLeaves.Any();
+            var isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+
+            <div @onclick="@(() => ShowDayDetails(date))"
+                 style="min-height: 80px; padding: 4px; border: 1px solid var(--mud-palette-lines-default);
+                        border-radius: 4px; cursor: @(hasLeave ? "pointer" : "default");
+                        background: @(isToday ? "var(--mud-palette-primary-lighten)" : isWeekend ? "var(--mud-palette-background-grey)" : "transparent");
+                        transition: background 0.15s;">
+                <div style="font-weight: @(isToday ? "700" : "400"); font-size: 0.85rem;
+                            color: @(isToday ? "var(--mud-palette-primary)" : "inherit");">
+                    @currentDay
+                </div>
+                @if (hasLeave)
+                {
+                    @foreach (var leave in dayLeaves.Take(3))
+                    {
+                        <MudChip T="string" Size="Size.Small" Style="@($"font-size: 0.7rem; height: 20px; margin: 1px 0; background: {leave.Color}; color: white;")"
+                                 Class="px-1">
+                            @leave.ShortName
+                        </MudChip>
+                    }
+                    @if (dayLeaves.Count > 3)
+                    {
+                        <MudText Typo="Typo.caption" Style="font-size: 0.65rem;">+@(dayLeaves.Count - 3) till</MudText>
+                    }
+                }
+            </div>
+        }
+    </div>
+</MudPaper>
+
+@* Legend *@
+<MudStack Row="true" Spacing="4" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div style="width: 16px; height: 16px; border-radius: 3px; background: #0e7490;"></div>
+        <MudText Typo="Typo.body2">Semester</MudText>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div style="width: 16px; height: 16px; border-radius: 3px; background: #dc2626;"></div>
+        <MudText Typo="Typo.body2">Sjuk</MudText>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div style="width: 16px; height: 16px; border-radius: 3px; background: #f59e0b;"></div>
+        <MudText Typo="Typo.body2">VAB</MudText>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div style="width: 16px; height: 16px; border-radius: 3px; background: #7c3aed;"></div>
+        <MudText Typo="Typo.body2">Föräldraledighet</MudText>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div style="width: 16px; height: 16px; border-radius: 3px; background: #6b7280;"></div>
+        <MudText Typo="Typo.body2">Tjänstledighet</MudText>
+    </MudStack>
+</MudStack>
+
+@* Day detail popover *@
+@if (_selectedDate.HasValue)
+{
+    var selectedLeaves = GetLeavesForDate(_selectedDate.Value);
+    <MudPaper Elevation="4" Class="pa-4 mb-4" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-2">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                @_selectedDate.Value.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _selectedDate = null)" />
+        </div>
+        @if (selectedLeaves.Any())
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>Anställd</th>
+                        <th>Typ</th>
+                        <th>Period</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var leave in selectedLeaves)
+                    {
+                        <tr>
+                            <td>@leave.EmployeeName</td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Style="@($"background: {leave.Color}; color: white;")">
+                                    @leave.Type
+                                </MudChip>
+                            </td>
+                            <td>@leave.StartDate.ToString("d MMM") – @leave.EndDate.ToString("d MMM")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                Inga ledigheter denna dag.
+            </MudText>
+        }
+    </MudPaper>
+}
+
+@* Weekly team overview (original table, kept below) *@
+<MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 600;">Veckovy — v.@GetWeekNumber()</MudText>
 <MudSimpleTable Hover="true" Elevation="2" Dense="true">
     <thead><tr><th>Anställd</th><th>Mån 17</th><th>Tis 18</th><th>Ons 19</th><th>Tor 20</th><th>Fre 21</th></tr></thead>
     <tbody>
@@ -34,9 +171,109 @@
     private const string Sjuk = "\U0001F912";
     private const string Barn = "\U0001F476";
 
+    private DateOnly _currentMonth = new(2026, 3, 1);
+    private int _daysInMonth;
+    private int _firstDayOffset;
+    private DateOnly? _selectedDate;
+
+    private readonly string[] _dayNames = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
+
+    private List<LeaveEntry> _leaveEntries = [];
     private List<KalenderRad> _data = [];
 
     protected override void OnInitialized()
+    {
+        CalculateMonthData();
+        LoadLeaveEntries();
+        LoadWeekData();
+    }
+
+    private void CalculateMonthData()
+    {
+        _daysInMonth = DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month);
+        var firstDay = new DateOnly(_currentMonth.Year, _currentMonth.Month, 1);
+        // Monday=0, Sunday=6
+        _firstDayOffset = ((int)firstDay.DayOfWeek + 6) % 7;
+    }
+
+    private void LoadLeaveEntries()
+    {
+        // Demo data: 6 leave entries across the current month
+        var year = _currentMonth.Year;
+        var month = _currentMonth.Month;
+
+        _leaveEntries =
+        [
+            new("Anna Svensson", "Semester",
+                new DateOnly(year, month, Math.Min(14, _daysInMonth)),
+                new DateOnly(year, month, Math.Min(18, _daysInMonth)),
+                "#0e7490"),
+            new("Karl Berg", "Sjuk",
+                new DateOnly(year, month, Math.Min(3, _daysInMonth)),
+                new DateOnly(year, month, Math.Min(7, _daysInMonth)),
+                "#dc2626"),
+            new("Erik Johansson", "Semester",
+                new DateOnly(year, month, Math.Min(10, _daysInMonth)),
+                new DateOnly(year, month, Math.Min(21, _daysInMonth)),
+                "#0e7490"),
+            new("Per Gustafsson", "VAB",
+                new DateOnly(year, month, Math.Min(17, _daysInMonth)),
+                new DateOnly(year, month, Math.Min(18, _daysInMonth)),
+                "#f59e0b"),
+            new("Maria Lindgren", "Föräldraledighet",
+                new DateOnly(year, month, 1),
+                new DateOnly(year, month, _daysInMonth),
+                "#7c3aed"),
+            new("Sofia Nilsson", "Tjänstledighet",
+                new DateOnly(year, month, Math.Min(22, _daysInMonth)),
+                new DateOnly(year, month, Math.Min(26, _daysInMonth)),
+                "#6b7280"),
+        ];
+    }
+
+    private List<LeaveEntry> GetLeavesForDate(DateOnly date)
+    {
+        return _leaveEntries
+            .Where(l => date >= l.StartDate && date <= l.EndDate)
+            .ToList();
+    }
+
+    private void ShowDayDetails(DateOnly date)
+    {
+        _selectedDate = _selectedDate == date ? null : date;
+    }
+
+    private void PreviousMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(-1);
+        _selectedDate = null;
+        CalculateMonthData();
+        LoadLeaveEntries();
+    }
+
+    private void NextMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(1);
+        _selectedDate = null;
+        CalculateMonthData();
+        LoadLeaveEntries();
+    }
+
+    private void GoToToday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _currentMonth = new DateOnly(today.Year, today.Month, 1);
+        _selectedDate = today;
+        CalculateMonthData();
+        LoadLeaveEntries();
+    }
+
+    private int GetWeekNumber()
+    {
+        return System.Globalization.ISOWeek.GetWeekOfYear(new DateTime(2026, 3, 17));
+    }
+
+    private void LoadWeekData()
     {
         _data =
         [
@@ -49,6 +286,13 @@
     }
 
     private static DagCell D(string symbol, string? bg = null) => new(symbol, bg);
+
+    private record LeaveEntry(string EmployeeName, string Type, DateOnly StartDate, DateOnly EndDate, string Color)
+    {
+        public string ShortName => EmployeeName.Split(' ')[0][..Math.Min(3, EmployeeName.Split(' ')[0].Length)] +
+                                   " " + Type[..Math.Min(3, Type.Length)];
+    }
+
     private record DagCell(string Symbol, string? Bakgrund);
     private record KalenderRad(string Namn, List<DagCell> Dagar);
 }

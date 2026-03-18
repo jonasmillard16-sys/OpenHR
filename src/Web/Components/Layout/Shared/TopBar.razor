@@ -1,12 +1,14 @@
 @namespace RegionHR.Web.Components.Layout.Shared
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
+@using RegionHR.Web.Localization
 
 <MudAppBar Fixed="true" Color="Color.Primary" Elevation="1">
     <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 700; cursor: pointer;" @onclick="@(() => Nav?.NavigateTo("/"))">OpenHR</MudText>
 
     <div style="margin-left: 1rem; max-width: 320px; flex: 1;">
-        <MudAutocomplete T="string" Placeholder="Sök anställd eller sida..."
+        <MudAutocomplete T="string" Placeholder="@L["Search"]"
                          SearchFunc="Search" Variant="Variant.Filled" Dense="true"
                          Style="background: rgba(255,255,255,0.15); border-radius: 8px;"
                          Class="white-text-field"
@@ -18,15 +20,15 @@
     <MudSpacer />
 
     @* Dark mode toggle *@
-    <MudTooltip Text="@(IsDarkMode ? "Ljust läge" : "Mörkt läge")">
+    <MudTooltip Text="@(IsDarkMode ? L["LightMode"] : L["DarkMode"])">
         <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                       Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="Växla mörkt/ljust läge" />
+                       Color="Color.Inherit" OnClick="ToggleDarkMode" aria-label="@L["DarkMode"]" />
     </MudTooltip>
 
     @* Language selector *@
     <MudMenu Icon="@Icons.Material.Filled.Language" Color="Color.Inherit"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
-             aria-label="Byt språk">
+             aria-label="@L["ChangeLanguage"]">
         <MudMenuItem OnClick="@(() => SetLanguage("sv"))">
             Svenska @(_currentLang == "sv" ? "\u2713" : "")
         </MudMenuItem>
@@ -36,13 +38,13 @@
     </MudMenu>
 
     @* Notifications *@
-    <MudTooltip Text="@($"{UnreadCount} olästa notiser")">
+    <MudTooltip Text="@($"{UnreadCount} {L["Notifications"].ToString().ToLower()}")">
         <MudBadge Content="@UnreadCount" Overlap="true" Color="Color.Error"
                   Visible="@(UnreadCount > 0)">
             <MudIconButton Icon="@Icons.Material.Filled.Notifications"
                            Color="Color.Inherit"
                            OnClick="@(() => Nav?.NavigateTo("/notiser"))"
-                           aria-label="Notiser" />
+                           aria-label="@L["Notifications"]" />
         </MudBadge>
     </MudTooltip>
 
@@ -52,11 +54,11 @@
              aria-label="Användarmeny">
         <MudMenuItem>@UserName</MudMenuItem>
         <MudMenuItem Icon="@Icons.Material.Filled.AccountCircle"
-                     OnClick="@(() => Nav?.NavigateTo("/minsida"))">Min sida</MudMenuItem>
+                     OnClick="@(() => Nav?.NavigateTo("/minsida"))">@L["MyPage"]</MudMenuItem>
         <MudMenuItem Icon="@Icons.Material.Filled.Settings"
-                     OnClick="@(() => Nav?.NavigateTo("/notiser/installningar"))">Inställningar</MudMenuItem>
+                     OnClick="@(() => Nav?.NavigateTo("/notiser/installningar"))">@L["Settings"]</MudMenuItem>
         <MudDivider />
-        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">Logga ut</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">@L["Logout"]</MudMenuItem>
     </MudMenu>
 </MudAppBar>
 
@@ -74,11 +76,13 @@
     [Parameter] public EventCallback<bool> IsDarkModeChanged { get; set; }
 
     private string _currentLang = "sv";
+    private List<string> _recentSearches = new();
 
     [Inject] private RegionHRDbContext? Db { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
     [Inject] private IJSRuntime? JS { get; set; }
     [Inject] private RegionHR.Web.Services.AuthService? AuthService { get; set; }
+    [Inject] private IStringLocalizer<SharedResources> L { get; set; } = default!;
 
     private async Task ToggleDarkMode()
     {
@@ -123,12 +127,54 @@
         ["dokument"] = "/dokument",
         ["kompetens"] = "/kompetens",
         ["notiser"] = "/notiser",
+        // Ärende types
+        ["rehab"] = "/halsosam",
+        ["rehabilitering"] = "/halsosam",
+        // Document types
+        ["anställningsavtal"] = "/dokument",
+        ["tjänstgöringsintyg"] = "/dokument",
+        // More page routes
+        ["godkännanden"] = "/godkannanden",
+        ["dashboard"] = "/",
+        ["start"] = "/",
+        ["personal"] = "/anstallda",
+        ["anställda"] = "/anstallda",
+        ["organisation"] = "/organisation",
+        ["positioner"] = "/positioner",
+        ["tidrapporter"] = "/tidrapporter",
+        ["instämpling"] = "/stampling",
+        ["löneöversyn"] = "/loneoversyn",
+        ["lönearter"] = "/lon/lonearter",
+        ["statistik"] = "/lon/statistik",
+        ["hälsosam"] = "/halsosam",
+        ["ärenden"] = "/arenden",
+        ["mbl"] = "/arenden/mbl",
+        ["ledighet"] = "/ledighet",
+        ["kalender"] = "/ledighet/kalender",
+        ["vab"] = "/ledighet/vab",
+        ["föräldraledighet"] = "/ledighet/foraldraledighet",
+        ["min sida"] = "/minsida",
+        ["profil"] = "/minsida/profil",
+        ["offboarding"] = "/offboarding",
+        ["förmåner"] = "/formaner",
+        ["friskvård"] = "/formaner/friskvard",
+        ["utbildning"] = "/utbildning",
+        ["e-learning"] = "/utbildning/elearning",
+        ["audit"] = "/audit",
+        ["granskningslogg"] = "/audit",
     };
 
     private async Task<IEnumerable<string>> Search(string value, CancellationToken ct)
     {
+        // Show recent searches when search field is focused with empty text
         if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+        {
+            if (string.IsNullOrEmpty(value) && _recentSearches.Count > 0)
+            {
+                return _recentSearches.Select(s => $"\U0001F552 {s}");
+            }
             return Array.Empty<string>();
+        }
 
         var term = value.ToLower();
         var results = new List<string>();
@@ -163,13 +209,39 @@
         Nav?.NavigateTo("/login", forceLoad: true);
     }
 
+    private void AddToRecentSearches(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+        _recentSearches.Remove(searchTerm);
+        _recentSearches.Insert(0, searchTerm);
+        if (_recentSearches.Count > 3)
+            _recentSearches = _recentSearches.Take(3).ToList();
+    }
+
     private void OnSearchSelected(string value)
     {
         if (string.IsNullOrEmpty(value)) return;
 
+        // Handle recent search selection (clock emoji prefix)
+        if (value.StartsWith("\U0001F552"))
+        {
+            var recentTerm = value[2..].Trim();
+            // Re-trigger search with the recent term - navigate if it matches a known route
+            var matchingNav = _navSuggestions
+                .FirstOrDefault(kv => kv.Key.Equals(recentTerm, StringComparison.OrdinalIgnoreCase));
+            if (matchingNav.Value is not null)
+            {
+                Nav?.NavigateTo(matchingNav.Value);
+                return;
+            }
+        }
+
         if (value.StartsWith("\u27a1") && value.Contains('(') && value.Contains(')'))
         {
             var route = value.Split('(').Last().TrimEnd(')');
+            // Extract search term for recent searches
+            var label = value[2..].Split('(')[0].Trim();
+            AddToRecentSearches(label);
             Nav?.NavigateTo(route);
             return;
         }
@@ -178,7 +250,11 @@
         {
             var guidStr = value.Split('(').Last().TrimEnd(')');
             if (Guid.TryParse(guidStr, out var id))
+            {
+                var name = value.Split('(')[0].Trim();
+                AddToRecentSearches(name);
                 Nav?.NavigateTo($"/anstallda/{id}");
+            }
         }
     }
 }

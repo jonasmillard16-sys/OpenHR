@@ -1,68 +1,71 @@
 @inject RegionHR.Web.Services.AuthService Auth
+@using Microsoft.Extensions.Localization
+@using RegionHR.Web.Localization
+@inject IStringLocalizer<SharedResources> L
 
 <MudNavMenu Bordered="true" Class="py-2">
-    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Start</MudNavLink>
+    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">@L["Start"]</MudNavLink>
 
     @if (Auth.IsInitialized && Auth.IsChef)
     {
-        <MudNavGroup Title="Personal" Icon="@Icons.Material.Filled.People"
+        <MudNavGroup Title="@L["Personnel"]" Icon="@Icons.Material.Filled.People"
                      Expanded="@_personalOpen" ExpandedChanged="@(v => _personalOpen = v)">
-            <MudNavLink Href="/anstallda">Anställda</MudNavLink>
-            <MudNavLink Href="/organisation">Organisation</MudNavLink>
-            <MudNavLink Href="/positioner">Positioner</MudNavLink>
-            <MudNavLink Href="/kompetens">Kompetensregister</MudNavLink>
+            <MudNavLink Href="/anstallda">@L["Employees"]</MudNavLink>
+            <MudNavLink Href="/organisation">@L["Organisation"]</MudNavLink>
+            <MudNavLink Href="/positioner">@L["Positions"]</MudNavLink>
+            <MudNavLink Href="/kompetens">@L["CompetenceRegistry"]</MudNavLink>
         </MudNavGroup>
     }
 
     @if (Auth.IsInitialized && Auth.IsHR)
     {
-        <MudNavGroup Title="Lön" Icon="@Icons.Material.Filled.Payments"
+        <MudNavGroup Title="@L["Salary"]" Icon="@Icons.Material.Filled.Payments"
                      Expanded="@_lonOpen" ExpandedChanged="@(v => _lonOpen = v)">
-            <MudNavLink Href="/lon/korningar">Lönekörningar</MudNavLink>
-            <MudNavLink Href="/lon/lonearter">Lönearter</MudNavLink>
-            <MudNavLink Href="/loneoversyn">Löneöversyn</MudNavLink>
-            <MudNavLink Href="/lon/statistik">Statistik</MudNavLink>
+            <MudNavLink Href="/lon/korningar">@L["PayRuns"]</MudNavLink>
+            <MudNavLink Href="/lon/lonearter">@L["PayTypes"]</MudNavLink>
+            <MudNavLink Href="/loneoversyn">@L["SalaryReview"]</MudNavLink>
+            <MudNavLink Href="/lon/statistik">@L["Statistics"]</MudNavLink>
         </MudNavGroup>
     }
 
     @if (Auth.IsInitialized && Auth.IsChef)
     {
-        <MudNavGroup Title="Schema och Tid" Icon="@Icons.Material.Filled.CalendarMonth"
+        <MudNavGroup Title="@L["ScheduleAndTime"]" Icon="@Icons.Material.Filled.CalendarMonth"
                      Expanded="@_schemaOpen" ExpandedChanged="@(v => _schemaOpen = v)">
-            <MudNavLink Href="/schema">Schemaöversikt</MudNavLink>
-            <MudNavLink Href="/schema/bemanning">Bemanning</MudNavLink>
-            <MudNavLink Href="/stampling">Instämpling</MudNavLink>
-            <MudNavLink Href="/tidrapporter">Tidrapporter</MudNavLink>
+            <MudNavLink Href="/schema">@L["ScheduleOverview"]</MudNavLink>
+            <MudNavLink Href="/schema/bemanning">@L["Staffing"]</MudNavLink>
+            <MudNavLink Href="/stampling">@L["TimeClocking"]</MudNavLink>
+            <MudNavLink Href="/tidrapporter">@L["TimeReports"]</MudNavLink>
         </MudNavGroup>
 
-        <MudNavLink Href="/arenden" Icon="@Icons.Material.Filled.Assignment">Ärenden</MudNavLink>
+        <MudNavLink Href="/arenden" Icon="@Icons.Material.Filled.Assignment">@L["Cases"]</MudNavLink>
     }
 
-    <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">Ledighet</MudNavLink>
+    <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">@L["Leave"]</MudNavLink>
 
     @if (Auth.IsInitialized && Auth.IsChef)
     {
-        <MudNavLink Href="/godkannanden" Icon="@Icons.Material.Filled.CheckCircle">Godkännanden</MudNavLink>
-        <MudNavLink Href="/halsosam" Icon="@Icons.Material.Filled.LocalHospital">HälsoSAM</MudNavLink>
-        <MudNavLink Href="/las" Icon="@Icons.Material.Filled.Warning">LAS</MudNavLink>
-        <MudNavLink Href="/dokument" Icon="@Icons.Material.Filled.Description">Dokument</MudNavLink>
-        <MudNavLink Href="/medarbetarsamtal" Icon="@Icons.Material.Filled.RecordVoiceOver">Medarbetarsamtal</MudNavLink>
-        <MudNavLink Href="/rekrytering/vakanser" Icon="@Icons.Material.Filled.PersonSearch">Rekrytering</MudNavLink>
-        <MudNavLink Href="/rapporter" Icon="@Icons.Material.Filled.BarChart">Rapporter</MudNavLink>
+        <MudNavLink Href="/godkannanden" Icon="@Icons.Material.Filled.CheckCircle">@L["Approvals"]</MudNavLink>
+        <MudNavLink Href="/halsosam" Icon="@Icons.Material.Filled.LocalHospital">@L["HalsoSAM"]</MudNavLink>
+        <MudNavLink Href="/las" Icon="@Icons.Material.Filled.Warning">@L["LAS"]</MudNavLink>
+        <MudNavLink Href="/dokument" Icon="@Icons.Material.Filled.Description">@L["Documents"]</MudNavLink>
+        <MudNavLink Href="/medarbetarsamtal" Icon="@Icons.Material.Filled.RecordVoiceOver">@L["PerformanceReviews"]</MudNavLink>
+        <MudNavLink Href="/rekrytering/vakanser" Icon="@Icons.Material.Filled.PersonSearch">@L["Recruitment"]</MudNavLink>
+        <MudNavLink Href="/rapporter" Icon="@Icons.Material.Filled.BarChart">@L["Reports"]</MudNavLink>
     }
 
     @if (Auth.IsInitialized && Auth.IsHR)
     {
         <MudDivider Class="my-2" />
-        <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">Inställningar</MudNavLink>
-        <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">GDPR</MudNavLink>
-        <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">Granskningslogg</MudNavLink>
+        <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">@L["Settings"]</MudNavLink>
+        <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
+        <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>
     }
 
-    <MudNavLink Href="/notiser" Icon="@Icons.Material.Filled.Notifications">Notiser</MudNavLink>
+    <MudNavLink Href="/notiser" Icon="@Icons.Material.Filled.Notifications">@L["Notifications"]</MudNavLink>
 
     <MudDivider Class="my-2" />
-    <MudNavLink Href="/minsida" Icon="@Icons.Material.Filled.AccountCircle">Min sida</MudNavLink>
+    <MudNavLink Href="/minsida" Icon="@Icons.Material.Filled.AccountCircle">@L["MyPage"]</MudNavLink>
 </MudNavMenu>
 
 @code {

@@ -16,26 +16,72 @@
       </xsd:complexType>
     </xsd:element>
   </xsd:schema>
-  <data name="AppName"><value>OpenHR</value></data>
-  <data name="MySchedule"><value>Mitt schema</value></data>
-  <data name="MyScheduleDesc"><value>Se när du jobbar</value></data>
-  <data name="MyLeave"><value>Jag vill ha ledigt</value></data>
-  <data name="MyLeaveDesc"><value>Ansök om semester</value></data>
-  <data name="MySalary"><value>Min lön</value></data>
-  <data name="MySalaryDesc"><value>Se vad du fått i lön</value></data>
-  <data name="ImSick"><value>Jag är sjuk</value></data>
-  <data name="ImSickDesc"><value>Meddela att du inte kan jobba</value></data>
-  <data name="MyThings"><value>Mina pågående saker</value></data>
-  <data name="MyThingsDesc"><value>Se status på dina ärenden</value></data>
-  <data name="AboutMe"><value>Om mig</value></data>
-  <data name="AboutMeDesc"><value>Min adress, telefon och uppgifter</value></data>
-  <data name="Back"><value>Tillbaka</value></data>
-  <data name="Done"><value>Klart!</value></data>
-  <data name="Approve"><value>Godkänn</value></data>
-  <data name="Reject"><value>Nej</value></data>
-  <data name="DaysLeft"><value>dagar kvar</value></data>
-  <data name="ThingsWaiting"><value>Saker som väntar på dig</value></data>
-  <data name="LogOut"><value>Logga ut</value></data>
-  <data name="Settings"><value>Inställningar</value></data>
-  <data name="ChangeLanguage"><value>Byt språk</value></data>
+  <data name="AppName" xml:space="preserve"><value>OpenHR</value></data>
+  <data name="Login" xml:space="preserve"><value>Logga in</value></data>
+  <data name="Logout" xml:space="preserve"><value>Logga ut</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Employees" xml:space="preserve"><value>Anställda</value></data>
+  <data name="Schedule" xml:space="preserve"><value>Schema</value></data>
+  <data name="Salary" xml:space="preserve"><value>Lön</value></data>
+  <data name="Leave" xml:space="preserve"><value>Ledighet</value></data>
+  <data name="Cases" xml:space="preserve"><value>Ärenden</value></data>
+  <data name="Documents" xml:space="preserve"><value>Dokument</value></data>
+  <data name="Reports" xml:space="preserve"><value>Rapporter</value></data>
+  <data name="Settings" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="MyPage" xml:space="preserve"><value>Min sida</value></data>
+  <data name="Notifications" xml:space="preserve"><value>Notiser</value></data>
+  <data name="Search" xml:space="preserve"><value>Sök anställd eller sida...</value></data>
+  <data name="DarkMode" xml:space="preserve"><value>Mörkt läge</value></data>
+  <data name="LightMode" xml:space="preserve"><value>Ljust läge</value></data>
+  <data name="Save" xml:space="preserve"><value>Spara</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="Create" xml:space="preserve"><value>Skapa</value></data>
+  <data name="Delete" xml:space="preserve"><value>Ta bort</value></data>
+  <data name="Edit" xml:space="preserve"><value>Redigera</value></data>
+  <data name="Back" xml:space="preserve"><value>Tillbaka</value></data>
+  <data name="Approve" xml:space="preserve"><value>Godkänn</value></data>
+  <data name="Reject" xml:space="preserve"><value>Avslå</value></data>
+  <data name="MySchedule" xml:space="preserve"><value>Mitt schema</value></data>
+  <data name="MyScheduleDesc" xml:space="preserve"><value>Se när du jobbar</value></data>
+  <data name="MyLeave" xml:space="preserve"><value>Jag vill ha ledigt</value></data>
+  <data name="MyLeaveDesc" xml:space="preserve"><value>Ansök om semester</value></data>
+  <data name="MySalary" xml:space="preserve"><value>Min lön</value></data>
+  <data name="MySalaryDesc" xml:space="preserve"><value>Se vad du fått i lön</value></data>
+  <data name="ImSick" xml:space="preserve"><value>Jag är sjuk</value></data>
+  <data name="ImSickDesc" xml:space="preserve"><value>Meddela att du inte kan jobba</value></data>
+  <data name="MyThings" xml:space="preserve"><value>Mina pågående saker</value></data>
+  <data name="MyThingsDesc" xml:space="preserve"><value>Se status på dina ärenden</value></data>
+  <data name="AboutMe" xml:space="preserve"><value>Om mig</value></data>
+  <data name="AboutMeDesc" xml:space="preserve"><value>Min adress, telefon och uppgifter</value></data>
+  <data name="Done" xml:space="preserve"><value>Klart!</value></data>
+  <data name="DaysLeft" xml:space="preserve"><value>dagar kvar</value></data>
+  <data name="ThingsWaiting" xml:space="preserve"><value>Saker som väntar på dig</value></data>
+  <data name="LogOut" xml:space="preserve"><value>Logga ut</value></data>
+  <data name="ChangeLanguage" xml:space="preserve"><value>Byt språk</value></data>
+  <data name="Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Personnel" xml:space="preserve"><value>Personal</value></data>
+  <data name="Organisation" xml:space="preserve"><value>Organisation</value></data>
+  <data name="Positions" xml:space="preserve"><value>Positioner</value></data>
+  <data name="CompetenceRegistry" xml:space="preserve"><value>Kompetensregister</value></data>
+  <data name="PayRuns" xml:space="preserve"><value>Lönekörningar</value></data>
+  <data name="PayTypes" xml:space="preserve"><value>Lönearter</value></data>
+  <data name="SalaryReview" xml:space="preserve"><value>Löneöversyn</value></data>
+  <data name="Statistics" xml:space="preserve"><value>Statistik</value></data>
+  <data name="ScheduleAndTime" xml:space="preserve"><value>Schema och Tid</value></data>
+  <data name="ScheduleOverview" xml:space="preserve"><value>Schemaöversikt</value></data>
+  <data name="Staffing" xml:space="preserve"><value>Bemanning</value></data>
+  <data name="TimeClocking" xml:space="preserve"><value>Instämpling</value></data>
+  <data name="TimeReports" xml:space="preserve"><value>Tidrapporter</value></data>
+  <data name="Approvals" xml:space="preserve"><value>Godkännanden</value></data>
+  <data name="HalsoSAM" xml:space="preserve"><value>HälsoSAM</value></data>
+  <data name="LAS" xml:space="preserve"><value>LAS</value></data>
+  <data name="PerformanceReviews" xml:space="preserve"><value>Medarbetarsamtal</value></data>
+  <data name="Recruitment" xml:space="preserve"><value>Rekrytering</value></data>
+  <data name="AuditLog" xml:space="preserve"><value>Granskningslogg</value></data>
+  <data name="GDPR" xml:space="preserve"><value>GDPR</value></data>
+  <data name="SimulateNotification" xml:space="preserve"><value>Simulera notis</value></data>
+  <data name="MarkAllRead" xml:space="preserve"><value>Markera alla som lästa</value></data>
+  <data name="NoNotifications" xml:space="preserve"><value>Inga notiser att visa.</value></data>
+  <data name="New" xml:space="preserve"><value>Ny</value></data>
+  <data name="RecentSearches" xml:space="preserve"><value>Senaste sökningar</value></data>
 </root>
