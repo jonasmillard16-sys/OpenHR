@@ -1,0 +1,18 @@
+/* Performance optimizations */
+
+/* Reduce paint complexity */
+.mud-drawer { will-change: transform; }
+.mud-appbar { will-change: transform; }
+
+/* Lazy render off-screen content */
+.mud-main-content { content-visibility: auto; contain-intrinsic-size: 0 500px; }
+
+/* Reduce layout shift */
+.mud-simple-table { contain: layout style; }
+.mud-paper { contain: layout style paint; }
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Font display swap for faster first paint */
+@font-face { font-display: swap; }

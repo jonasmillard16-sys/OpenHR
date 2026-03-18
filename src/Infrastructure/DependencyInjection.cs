@@ -113,6 +113,8 @@ public static class DependencyInjection
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();
         services.AddHostedService<ScheduledReportService>();
+        services.AddHostedService<CertificationReminderService>();
+        services.AddHostedService<LASAlertService>();
 
         // OpenTelemetry
         services.AddOpenTelemetry()

@@ -41,6 +41,10 @@
     }
 </div>
 
+@* Performance tip: For pages that import large data lists (e.g., employee tables,
+   scheduling grids), use <MudVirtualize> to virtualize rendering and reduce DOM size.
+   Example: <MudVirtualize Items="_employees" Context="emp">...</MudVirtualize> *@
+
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode;
