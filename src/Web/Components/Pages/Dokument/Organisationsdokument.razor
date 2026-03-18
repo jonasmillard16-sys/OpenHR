@@ -1,5 +1,6 @@
 @page "/dokument/organisation"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using Microsoft.JSInterop
 
 <PageTitle>OpenHR - Organisationsdokument</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -88,9 +89,35 @@
     </tbody>
 </MudSimpleTable>
 
-@if (_pdfMeddelande is not null)
+@if (_visarPdf != null)
 {
-    <MudAlert Severity="Severity.Info" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _pdfMeddelande = null)">@_pdfMeddelande</MudAlert>
+    <MudPaper Class="pa-5 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 700;">@_visarPdf</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visarPdf = null)" Size="Size.Small" />
+        </div>
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+            <tbody>
+                <tr><td style="width: 160px;"><strong>Dokument</strong></td><td>@_visarPdf</td></tr>
+                <tr><td><strong>Typ</strong></td><td>PDF</td></tr>
+                <tr><td><strong>Storlek</strong></td><td>@(Random.Shared.Next(120, 850)) KB</td></tr>
+                <tr><td><strong>Senast ändrad</strong></td><td>@DateTime.Today.AddDays(-Random.Shared.Next(1, 90)).ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>Ansvarig</strong></td><td>HR-avdelningen</td></tr>
+            </tbody>
+        </MudSimpleTable>
+        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">@_visarPdf
+
+Dokumentet innehåller gällande bestämmelser och avtal.
+Fastställt av behörig beslutsfattare.
+
+I produktion öppnas dokumentet som riktig PDF.</MudPaper>
+        <div class="d-flex gap-2 mt-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       OnClick="@(() => { if (JS != null) JS.InvokeVoidAsync("eval", "window.print()"); })">Skriv ut</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                       OnClick="@(() => _visarPdf = null)">Stäng</MudButton>
+        </div>
+    </MudPaper>
 }
 
 @if (_visaNyDialog)
@@ -121,11 +148,13 @@
         _skapad = $"Dokument {_nyTitel} uppladdat!";
         _nyTitel = ""; _nyKategori = ""; _visaNyDialog = false;
     }
-    private string? _pdfMeddelande;
+    private string? _visarPdf;
+
+    [Inject] private IJSRuntime? JS { get; set; }
 
     private void VisaPdf(string dokumentNamn)
     {
-        _pdfMeddelande = $"PDF öppnas: {dokumentNamn}...";
+        _visarPdf = _visarPdf == dokumentNamn ? null : dokumentNamn;
     }
 
     private int _totalDokument = 34;
