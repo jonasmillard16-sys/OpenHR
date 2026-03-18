@@ -43,24 +43,25 @@ public static class SeedData
         db.OrganizationUnits.AddRange(region, sjukhus, avd32, avd33, akuten, iva);
 
         // Employees (10 realistic Swedish employees) with employments
+        // Personnummer with valid Luhn check digits
         var seedEmployees = new (string Fornamn, string Efternamn, string Pnr, string Befattning, OrganizationId Enhet, Money Lon)[]
         {
-            ("Anna", "Svensson", "19850315-2345", "Sjukskoterska", avd32.Id, Money.SEK(34500m)),
-            ("Erik", "Johansson", "19780622-1230", "Lakare", akuten.Id, Money.SEK(62000m)),
-            ("Maria", "Lindgren", "19900101-5674", "Underskoterska", avd33.Id, Money.SEK(27800m)),
-            ("Karl", "Berg", "19820714-3450", "Sjukskoterska", iva.Id, Money.SEK(35200m)),
-            ("Sara", "Karlsson", "19950430-7896", "Underskoterska", avd32.Id, Money.SEK(27500m)),
-            ("Johan", "Nilsson", "19880215-2344", "Lakare", akuten.Id, Money.SEK(58000m)),
-            ("Helena", "Bergstrom", "19920918-4562", "Sjukskoterska", avd33.Id, Money.SEK(33800m)),
-            ("Anders", "Olsson", "19750305-6786", "Verksamhetschef", sjukhus.Id, Money.SEK(52000m)),
-            ("Eva", "Nilsson", "19800712-1350", "HR-chef", sjukhus.Id, Money.SEK(48000m)),
-            ("Per", "Andersson", "19870523-2460", "Underskoterska", iva.Id, Money.SEK(28200m)),
+            ("Anna", "Svensson", "198503152383", "Sjukskoterska", avd32.Id, Money.SEK(34500m)),
+            ("Erik", "Johansson", "197806221211", "Lakare", akuten.Id, Money.SEK(62000m)),
+            ("Maria", "Lindgren", "199001015604", "Underskoterska", avd33.Id, Money.SEK(27800m)),
+            ("Karl", "Berg", "198207143499", "Sjukskoterska", iva.Id, Money.SEK(35200m)),
+            ("Sara", "Karlsson", "199504307843", "Underskoterska", avd32.Id, Money.SEK(27500m)),
+            ("Johan", "Nilsson", "198802152382", "Lakare", akuten.Id, Money.SEK(58000m)),
+            ("Helena", "Bergstrom", "199209184528", "Sjukskoterska", avd33.Id, Money.SEK(33800m)),
+            ("Anders", "Olsson", "197503056789", "Verksamhetschef", sjukhus.Id, Money.SEK(52000m)),
+            ("Eva", "Nilsson", "198007121303", "HR-chef", sjukhus.Id, Money.SEK(48000m)),
+            ("Per", "Andersson", "198705232466", "Underskoterska", iva.Id, Money.SEK(28200m)),
         };
 
         foreach (var (fornamn, efternamn, pnr, befattning, enhetId, lon) in seedEmployees)
         {
             var employee = Employee.Skapa(
-                new Personnummer(pnr),
+                Personnummer.CreateValidated(pnr),
                 fornamn,
                 efternamn);
 

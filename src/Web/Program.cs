@@ -82,7 +82,7 @@ using (var scope = app.Services.CreateScope())
         await db.Database.EnsureCreatedAsync();
         await SeedData.SeedAsync(db);
     }
-    catch { /* DB not available — demo mode */ }
+    catch (Exception ex) { var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>(); logger.LogError(ex, "Database seed failed"); }
 }
 
 if (!app.Environment.IsDevelopment())

@@ -1,3 +1,3 @@
-namespace RegionHR.Web.Localization;
+namespace RegionHR.Web;
 
 public class SharedResources { }

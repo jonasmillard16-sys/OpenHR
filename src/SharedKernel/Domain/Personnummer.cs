@@ -111,6 +111,32 @@ public sealed record Personnummer
         return sum % 10 == 0;
     }
 
+    /// <summary>
+    /// Creates a Personnummer from YYYYMMDD + 3 digits, calculating the correct Luhn check digit.
+    /// Used for seed data and testing.
+    /// </summary>
+    public static Personnummer CreateValidated(string elevenDigits)
+    {
+        var clean = elevenDigits.Replace("-", "").Replace(" ", "");
+        if (clean.Length == 12)
+        {
+            // Already has check digit — try it
+            try { return new Personnummer(clean); }
+            catch { /* Fall through to recalculate */ }
+        }
+        if (clean.Length < 11) clean = clean.PadRight(11, '0');
+        var luhnInput = clean[2..11]; // YYMMDD + NNN (9 digits)
+        int sum = 0;
+        for (int i = 0; i < 9; i++)
+        {
+            int d = luhnInput[i] - '0';
+            int m = d * (i % 2 == 0 ? 2 : 1);
+            sum += m > 9 ? m - 9 : m;
+        }
+        int check = (10 - (sum % 10)) % 10;
+        return new Personnummer(clean[..11] + check);
+    }
+
     // Implicit conversion support
     public static implicit operator string(Personnummer p) => p._value;
 }
