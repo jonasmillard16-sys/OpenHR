@@ -95,9 +95,81 @@ else if (_result != null)
                 catch { _result = [["Anna Svensson", "198506XX-XXXX", "Avd 32", "Sjuksköterska", "2015-08-01"]]; }
                 break;
 
+            case "Löneregister":
+                _headers = ["Namn", "Personnummer", "Befattning", "Brutto", "Skatt", "Netto", "AG-avgift"];
+                try
+                {
+                    var loneEmps = await Db.Employees.Include(e => e.Anstallningar).Take(100).ToListAsync();
+                    _result = loneEmps.Select(e =>
+                    {
+                        var anst = e.Anstallningar.FirstOrDefault();
+                        var brutto = anst?.Manadslon.Amount ?? 30000m;
+                        var skatt = Math.Round(brutto * 0.32m, 0);
+                        var netto = brutto - skatt;
+                        var avgift = Math.Round(brutto * 0.3142m, 0);
+                        return new List<string>
+                        {
+                            $"{e.Fornamn} {e.Efternamn}", e.Personnummer.ToMaskedString(),
+                            anst?.Befattningstitel ?? "—",
+                            $"{brutto:N0} kr", $"-{skatt:N0} kr", $"{netto:N0} kr", $"{avgift:N0} kr"
+                        };
+                    }).ToList();
+                }
+                catch
+                {
+                    _result =
+                    [
+                        ["Anna Svensson", "198503XX-XXXX", "Sjuksköterska", "34 500 kr", "-11 084 kr", "23 416 kr", "10 840 kr"],
+                        ["Erik Johansson", "197806XX-XXXX", "Läkare", "62 000 kr", "-22 424 kr", "39 576 kr", "19 480 kr"],
+                        ["Maria Lindgren", "199001XX-XXXX", "Undersköterska", "27 800 kr", "-8 896 kr", "18 904 kr", "8 735 kr"],
+                        ["Karl Berg", "198207XX-XXXX", "Sjuksköterska", "35 200 kr", "-11 264 kr", "23 936 kr", "11 060 kr"],
+                        ["Sara Karlsson", "199504XX-XXXX", "Undersköterska", "27 500 kr", "-8 800 kr", "18 700 kr", "8 641 kr"],
+                    ];
+                }
+                break;
+
+            case "Frånvarostatistik":
+                _headers = ["Enhet", "Sjukfrånvaro (%)", "Sjukdagar", "VAB (dagar)", "Semester (dagar)", "Övrig frånvaro", "Totalt"];
+                _result =
+                [
+                    ["Avdelning 32", "4,2%", "126", "45", "312", "18", "501"],
+                    ["Avdelning 33", "5,1%", "89", "32", "245", "12", "378"],
+                    ["Akutmottagningen", "3,8%", "105", "28", "298", "22", "453"],
+                    ["IVA", "6,3%", "142", "51", "267", "31", "491"],
+                    ["Administration", "2,1%", "34", "18", "189", "8", "249"],
+                    ["Totalt", "4,2%", "496", "174", "1 311", "91", "2 072"],
+                ];
+                break;
+
+            case "LAS-status":
+                _headers = ["Namn", "Anställningsform", "Ackumulerade dagar", "Gräns", "Kvar till gräns", "Prognos konvertering", "Varningsnivå"];
+                _result =
+                [
+                    ["Maria Lindgren", "SAVA", "348", "365", "17", "2026-04-12", "Kritisk"],
+                    ["Johan Nilsson", "Vikariat", "342", "365", "23", "2026-04-18", "Kritisk"],
+                    ["Sara Karlsson", "SAVA", "335", "365", "30", "2026-04-25", "Kritisk"],
+                    ["Anders Olsson", "Vikariat", "315", "365", "50", "2026-05-20", "Varning"],
+                    ["Helena Bergström", "SAVA", "308", "365", "57", "2026-05-28", "Varning"],
+                    ["Lisa Ekström", "Vikariat", "245", "365", "120", "2026-08-15", "Under gräns"],
+                    ["Per Strand", "SAVA", "189", "365", "176", "2026-11-01", "Under gräns"],
+                ];
+                break;
+
+            case "Bemanningsanalys":
+                _headers = ["Enhet", "Planerad bemanning", "Faktisk bemanning", "Bemanningsgrad", "Dag", "Kväll", "Natt", "Avvikelse"];
+                _result =
+                [
+                    ["Avdelning 32", "8", "8", "100%", "3", "3", "2", "0"],
+                    ["Avdelning 33", "6", "5", "83%", "2", "2", "1", "-1"],
+                    ["Akutmottagningen", "12", "12", "100%", "5", "4", "3", "0"],
+                    ["IVA", "10", "7", "70%", "3", "2", "2", "-3"],
+                    ["Totalt", "36", "32", "89%", "13", "11", "8", "-4"],
+                ];
+                break;
+
             default:
                 _headers = ["Kolumn 1", "Kolumn 2", "Kolumn 3"];
-                _result = [["Data", "Data", "Data"]];
+                _result = [["Ingen data tillgänglig för denna rapport", "", ""]];
                 break;
         }
         _running = false;
