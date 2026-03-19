@@ -363,6 +363,17 @@ public static class SeedData
                 "Karin Ek", "karin.ek@mail.se", "Sjukskoterska, barnklinik",
                 "Nyexaminerad 2025. Praktik pa Sahlgrenska."));
 
+        // === HeadcountPlan per enhet (budget for 2026) ===
+        var hcAvd32 = RegionHR.Positions.Domain.HeadcountPlan.Skapa(avd32.Id.Value, 2026, 8, 8.0m, 2_760_000m);
+        hcAvd32.UppdateraFaktiskt(8, 8.0m, 2_832_000m);
+        var hcAvd33 = RegionHR.Positions.Domain.HeadcountPlan.Skapa(avd33.Id.Value, 2026, 6, 6.0m, 1_944_000m);
+        hcAvd33.UppdateraFaktiskt(5, 5.0m, 1_620_000m);
+        var hcAkuten = RegionHR.Positions.Domain.HeadcountPlan.Skapa(akuten.Id.Value, 2026, 12, 12.0m, 6_048_000m);
+        hcAkuten.UppdateraFaktiskt(10, 10.0m, 5_040_000m);
+        var hcIva = RegionHR.Positions.Domain.HeadcountPlan.Skapa(iva.Id.Value, 2026, 10, 10.0m, 3_816_000m);
+        hcIva.UppdateraFaktiskt(7, 7.0m, 2_671_200m);
+        db.HeadcountPlans.AddRange(hcAvd32, hcAvd33, hcAkuten, hcIva);
+
         await db.SaveChangesAsync();
     }
 }

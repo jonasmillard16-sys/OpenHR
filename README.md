@@ -45,7 +45,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 
 - **Medarbetarresor (Journeys)** — se "Delvis implementerad" ovan
 - **Arbetsmiljö SAM** — se "Delvis implementerad" ovan
-- **Strategisk Workforce Planning** — what-if-scenarier, ingen beräkningsmotor
+- **Strategisk Workforce Planning** — se "Delvis implementerad" ovan
 - **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
 - **Benefits Enrollment** — se "Delvis implementerad" ovan
 - **Talangpool** — se "Delvis implementerad" ovan
