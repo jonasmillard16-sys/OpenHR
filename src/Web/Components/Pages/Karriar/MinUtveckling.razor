@@ -1,16 +1,16 @@
 @page "/karriar/min-utveckling"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Competence.Domain
+@using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
-@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>OpenHR — Min utvecklingsplan</PageTitle>
+<PageTitle>OpenHR — Utvecklingsplan</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Min utvecklingsplan</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Utvecklingsplan</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Dina registrerade kompetenser och eventuella gap mot din positions kravprofil.
+    Visa en anställds kompetenser och gap mot positionens kravprofil.
 </MudText>
 
 @if (_loading)
@@ -21,76 +21,117 @@ else if (_error != null)
 {
     <MudAlert Severity="Severity.Error">@_error</MudAlert>
 }
-else if (_mySkills.Count == 0 && _gapItems.Count == 0)
-{
-    <MudAlert Severity="Severity.Info">Inga kompetenser registrerade för dig ännu.</MudAlert>
-}
 else
 {
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Dina kompetenser</MudText>
-    @if (_mySkills.Count > 0)
-    {
-        <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
-            <thead><tr><th>Skill</th><th>Kategori</th><th>Din nivå</th></tr></thead>
-            <tbody>
-                @foreach (var ms in _mySkills)
-                {
-                    <tr>
-                        <td><strong>@ms.SkillNamn</strong></td>
-                        <td><MudChip T="string" Size="Size.Small">@ms.Kategori</MudChip></td>
-                        <td><MudRating ReadOnly="true" SelectedValue="@ms.Niva" MaxValue="5" Size="Size.Small" /></td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-    }
-
-    @if (_positionNamn != null)
-    {
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Gap mot position: @_positionNamn</MudText>
-        @if (_gapItems.Count > 0)
+    <MudSelect T="Guid?" @bind-Value="_selectedAnstallId" Label="Välj anställd" Variant="Variant.Outlined"
+               Class="mb-4" Style="max-width: 400px;">
+        @foreach (var emp in _employeesWithSkills)
         {
-            <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
-                <thead><tr><th>Skill</th><th>Krävd nivå</th><th>Din nivå</th><th>Gap</th></tr></thead>
-                <tbody>
-                    @foreach (var g in _gapItems)
-                    {
-                        <tr>
-                            <td><strong>@g.SkillNamn</strong></td>
-                            <td><MudRating ReadOnly="true" SelectedValue="@g.KravdNiva" MaxValue="5" Size="Size.Small" /></td>
-                            <td><MudRating ReadOnly="true" SelectedValue="@g.DinNiva" MaxValue="5" Size="Size.Small" /></td>
-                            <td>
-                                @if (g.Gap > 0)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">-@g.Gap</MudChip>
-                                }
-                                else
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
+            <MudSelectItem T="Guid?" Value="@((Guid?)emp.Id.Value)">@emp.Fornamn @emp.Efternamn</MudSelectItem>
         }
-        else
+    </MudSelect>
+
+    @if (_selectedAnstallId != null)
+    {
+        var selected = _employeesWithSkills.FirstOrDefault(e => e.Id.Value == _selectedAnstallId);
+        if (selected != null)
         {
-            <MudAlert Severity="Severity.Success" Variant="Variant.Text">Inga gap — du uppfyller alla krav för din position.</MudAlert>
+            var myEmpSkills = _allEmpSkills.Where(es => es.AnstallId == selected.Id.Value).ToList();
+
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                Kompetenser — @selected.Fornamn @selected.Efternamn
+            </MudText>
+
+            @if (myEmpSkills.Count > 0)
+            {
+                <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+                    <thead><tr><th>Skill</th><th>Kategori</th><th>Nivå</th></tr></thead>
+                    <tbody>
+                        @foreach (var es in myEmpSkills)
+                        {
+                            var skill = _allSkills.FirstOrDefault(s => s.Id == es.SkillId);
+                            <tr>
+                                <td><strong>@(skill?.Namn ?? "?")</strong></td>
+                                <td>@(skill?.Kategori.ToString() ?? "?")</td>
+                                <td><MudRating ReadOnly="true" SelectedValue="@es.Niva" MaxValue="5" Size="Size.Small" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">Inga kompetenser registrerade.</MudAlert>
+            }
+
+            var position = _allPositions.FirstOrDefault(p => p.InnehavareAnstallId == selected.Id.Value);
+
+            @if (position != null)
+            {
+                var posKrav = _allRequirements.Where(r => r.PositionId == position.Id).ToList();
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+                    Gap mot position: @position.Titel
+                </MudText>
+
+                @if (posKrav.Count > 0)
+                {
+                    <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+                        <thead><tr><th>Skill</th><th>Krävd nivå</th><th>Anställds nivå</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @foreach (var k in posKrav)
+                            {
+                                var skill = _allSkills.FirstOrDefault(s => s.Id == k.SkillId);
+                                var empSkill = myEmpSkills.FirstOrDefault(es => es.SkillId == k.SkillId);
+                                var dinNiva = empSkill?.Niva ?? 0;
+                                <tr>
+                                    <td>@(skill?.Namn ?? "?")</td>
+                                    <td><MudRating ReadOnly="true" SelectedValue="@k.MinNiva" MaxValue="5" Size="Size.Small" /></td>
+                                    <td><MudRating ReadOnly="true" SelectedValue="@dinNiva" MaxValue="5" Size="Size.Small" /></td>
+                                    <td>
+                                        @if (dinNiva >= k.MinNiva)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Uppfylld</MudChip>
+                                        }
+                                        else if (dinNiva == 0)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Error">Saknas</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">@dinNiva / @k.MinNiva</MudChip>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info">Positionen har inga definierade krav.</MudAlert>
+                }
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+                    Ingen position kopplad — gap-analys ej tillgänglig.
+                </MudAlert>
+            }
         }
     }
     else
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-            Ingen position kopplad — gap-analys ej tillgänglig.
-        </MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Välj en anställd ovan för att se kompetenser och gap.</MudAlert>
     }
 }
 
 @code {
-    private List<MySkillVm> _mySkills = [];
-    private List<GapVm> _gapItems = [];
-    private string? _positionNamn;
+    private List<Employee> _employeesWithSkills = [];
+    private List<Skill> _allSkills = [];
+    private List<EmployeeSkill> _allEmpSkills = [];
+    private List<PositionSkillRequirement> _allRequirements = [];
+    private List<RegionHR.Positions.Domain.Position> _allPositions = [];
+    private Guid? _selectedAnstallId;
     private bool _loading = true;
     private string? _error;
 
@@ -98,44 +139,22 @@ else
     {
         try
         {
-            // Hämta första anställd som har skills (i produktion: inloggad användare)
-            var allSkills = await Db.Skills.ToListAsync();
-            var allEmpSkills = await Db.EmployeeSkills.ToListAsync();
+            _allSkills = await Db.Skills.ToListAsync();
+            _allEmpSkills = await Db.EmployeeSkills.ToListAsync();
+            _allRequirements = await Db.PositionSkillRequirements.ToListAsync();
+            _allPositions = await Db.Positions_Table
+                .Where(p => p.InnehavareAnstallId != null)
+                .ToListAsync();
 
-            // Hitta en anställd med skills att visa
-            var anstallId = allEmpSkills.Select(es => es.AnstallId).Distinct().FirstOrDefault();
-            if (anstallId == Guid.Empty) { _loading = false; return; }
-
-            var myEmpSkills = allEmpSkills.Where(es => es.AnstallId == anstallId).ToList();
-            _mySkills = myEmpSkills.Select(es =>
-            {
-                var skill = allSkills.FirstOrDefault(s => s.Id == es.SkillId);
-                return new MySkillVm(skill?.Namn ?? "?", skill?.Kategori.ToString() ?? "?", es.Niva);
-            }).OrderBy(s => s.SkillNamn).ToList();
-
-            // Hitta position via InnehavareAnstallId
-            var position = await Db.Positions_Table
-                .FirstOrDefaultAsync(p => p.InnehavareAnstallId == anstallId);
-
-            if (position != null)
-            {
-                _positionNamn = position.Titel;
-                var krav = await Db.PositionSkillRequirements
-                    .Where(r => r.PositionId == position.Id).ToListAsync();
-
-                _gapItems = krav.Select(k =>
-                {
-                    var skill = allSkills.FirstOrDefault(s => s.Id == k.SkillId);
-                    var empSkill = myEmpSkills.FirstOrDefault(es => es.SkillId == k.SkillId);
-                    var dinNiva = empSkill?.Niva ?? 0;
-                    return new GapVm(skill?.Namn ?? "?", k.MinNiva, dinNiva, Math.Max(0, k.MinNiva - dinNiva));
-                }).OrderByDescending(g => g.Gap).ToList();
-            }
+            // Visa bara anställda som har minst en skill registrerad
+            var anstallIdsWithSkills = _allEmpSkills.Select(es => es.AnstallId).Distinct().ToHashSet();
+            var allEmployees = await Db.Employees.ToListAsync();
+            _employeesWithSkills = allEmployees
+                .Where(e => anstallIdsWithSkills.Contains(e.Id.Value))
+                .OrderBy(e => e.Efternamn)
+                .ToList();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
     }
-
-    private record MySkillVm(string SkillNamn, string Kategori, int Niva);
-    private record GapVm(string SkillNamn, int KravdNiva, int DinNiva, int Gap);
 }
