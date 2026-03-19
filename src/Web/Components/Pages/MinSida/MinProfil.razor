@@ -1,7 +1,9 @@
 @page "/minsida/profil"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Services
+@using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
+@inject AuthService Auth
 
 <PageTitle>OpenHR - Om mig</PageTitle>
 
@@ -9,6 +11,11 @@
            Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
     Tillbaka
 </MudButton>
+
+@if (_noAuth)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">Ingen anställd kopplad till ditt konto. Profiluppgifter kan inte visas.</MudAlert>
+}
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Om mig</MudText>
 
@@ -99,17 +106,17 @@
 </MudGrid>
 
 @code {
-    private string _namn = "Anna Svensson";
-    private string _personnummer = "19850615-****";
-    private string _enhet = "Avdelning 32";
-    private string _befattning = "Sjuksköterska";
-    private string _anstaldSedan = "2015-08-01";
-    private string _epost = "anna.svensson@region.se";
-    private string _telefon = "070-123 45 67";
-    private string _adress = "Drottninggatan 15";
-    private string _postnummer = "41103";
-    private string _ort = "Göteborg";
-    private bool _sparad;
+    private string _namn = "";
+    private string _personnummer = "";
+    private string _enhet = "";
+    private string _befattning = "";
+    private string _anstaldSedan = "";
+    private string _epost = "";
+    private string _telefon = "";
+    private string _adress = "";
+    private string _postnummer = "";
+    private string _ort = "";
+    private bool _sparad, _noAuth;
     private bool _epostFel;
     private bool _telefonFel;
 
@@ -118,10 +125,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (Auth.EmployeeId == null) { _noAuth = true; return; }
         try
         {
             var profil = await SelfService.GetProfileAsync(
-                EmployeeId.From(Guid.Empty));
+                EmployeeId.From(Auth.EmployeeId.Value));
 
             if (profil is not null)
             {
@@ -137,9 +145,9 @@
                 _ort = profil.Ort;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Keep demo data as fallback
+            _namn = $"Fel: {ex.Message}";
         }
     }
 
@@ -181,14 +189,15 @@
 
         try
         {
+            if (Auth.EmployeeId == null) return;
             await SelfService.SaveContactInfoAsync(
-                EmployeeId.From(Guid.Empty),
+                EmployeeId.From(Auth.EmployeeId.Value),
                 _epost, _telefon, _adress, _postnummer, _ort);
             _sparad = true;
         }
-        catch
+        catch (Exception ex)
         {
-            _sparad = true; // Fallback: show success anyway for demo
+            _namn = $"Kunde inte spara: {ex.Message}";
         }
     }
 }

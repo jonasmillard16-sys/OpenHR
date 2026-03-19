@@ -2,113 +2,83 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
+@using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
+@inject AuthService Auth
 
 <PageTitle>OpenHR - Min sida</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-6" Style="font-weight: 700;">
-    Hej @_data.Fornamn!
-</MudText>
-
-@if (_tips.Count > 0)
+@if (Auth.EmployeeId == null)
 {
-    <MudStack Spacing="2" Class="mb-4">
-        @foreach (var tip in _tips)
-        {
-            <MudAlert Severity="@tip.Severity" Variant="Variant.Text" Dense="true" NoIcon="false">
-                @tip.Text
-            </MudAlert>
-        }
-    </MudStack>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">Ingen anställd kopplad till ditt konto. Personliga uppgifter kan inte visas.</MudAlert>
 }
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-6" Style="font-weight: 700;">
+        Hej @_data.Fornamn!
+    </MudText>
 
-<MudGrid Spacing="4">
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="📅"
-                    Title="Mitt schema"
-                    Description="Se när du jobbar"
-                    BadgeValue="@(_data.NastaPass != "-" ? $"{_data.NastaPass} {_data.NastaPassTid}" : null)"
-                    Href="/minsida/schema" />
-    </MudItem>
+    @if (_tips.Count > 0)
+    {
+        <MudStack Spacing="2" Class="mb-4">
+            @foreach (var tip in _tips)
+            {
+                <MudAlert Severity="@tip.Severity" Variant="Variant.Text" Dense="true">@tip.Text</MudAlert>
+            }
+        </MudStack>
+    }
 
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="🌴"
-                    Title="Jag vill ha ledigt"
-                    Description="Ansök om semester"
-                    BadgeValue="@($"{_data.SemesterdagarKvar} dagar kvar")"
-                    Href="/minsida/ledighet" />
-    </MudItem>
-
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="💰"
-                    Title="Min lön"
-                    Description="Se vad du fått i lön"
-                    Href="/minsida/lon" />
-    </MudItem>
-
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="😷"
-                    Title="Jag är sjuk"
-                    Description="Meddela att du inte kan jobba"
-                    Href="/minsida/sjukanmalan" />
-    </MudItem>
-
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="📋"
-                    Title="Mina pågående saker"
-                    Description="Se status på dina ärenden"
-                    BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} öppna" : null)"
-                    Href="/minsida/arenden" />
-    </MudItem>
-
-    <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="👤"
-                    Title="Om mig"
-                    Description="Min adress, telefon och uppgifter"
-                    Href="/minsida/profil" />
-    </MudItem>
-</MudGrid>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="📅" Title="Mitt schema" Description="Se när du jobbar"
+                        BadgeValue="@(_data.NastaPass != "-" ? $"{_data.NastaPass} {_data.NastaPassTid}" : null)"
+                        Href="/minsida/schema" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="🌴" Title="Jag vill ha ledigt" Description="Ansök om semester"
+                        BadgeValue="@($"{_data.SemesterdagarKvar} dagar kvar")"
+                        Href="/minsida/ledighet" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="💰" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="😷" Title="Jag är sjuk" Description="Meddela att du inte kan jobba" Href="/minsida/sjukanmalan" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="📋" Title="Mina pågående saker" Description="Se status på dina ärenden"
+                        BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} öppna" : null)"
+                        Href="/minsida/arenden" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <OhrBigCard Icon="👤" Title="Om mig" Description="Min adress, telefon och uppgifter" Href="/minsida/profil" />
+        </MudItem>
+    </MudGrid>
+}
 
 @code {
     private DashboardData _data = new();
     private List<TipData> _tips = [];
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
+        if (Auth.EmployeeId == null) return;
         try
         {
-            // TODO: Get actual employee ID from auth context
-            // For now, try to load first employee or use demo data
-            _data = await SelfService.GetDashboardAsync(
-                EmployeeId.From(Guid.Empty));
+            _data = await SelfService.GetDashboardAsync(EmployeeId.From(Auth.EmployeeId.Value));
+            if (_data.SemesterdagarKvar > 15)
+                _tips.Add(new(Severity.Info, $"Du har {_data.SemesterdagarKvar} semesterdagar kvar. Dags att planera semester?"));
+            if (_data.OppnaArenden > 0)
+                _tips.Add(new(Severity.Warning, $"Du har {_data.OppnaArenden} öppna ärenden som väntar."));
+            if (_tips.Count == 0)
+                _tips.Add(new(Severity.Success, "Allt ser bra ut! Inga ärenden väntar."));
         }
-        catch
-        {
-            // Demo data fallback
-            _data = new DashboardData
-            {
-                Fornamn = "Anna",
-                Efternamn = "Svensson",
-                SemesterdagarKvar = 18,
-                OppnaArenden = 2,
-                OlastaNotiser = 3,
-                NastaPass = "Mån 17/3",
-                NastaPassTid = "07:00-16:00"
-            };
-        }
-
-        GenerateTips();
-    }
-
-    private void GenerateTips()
-    {
-        if (_data.SemesterdagarKvar > 15)
-            _tips.Add(new(Severity.Info, $"Du har {_data.SemesterdagarKvar} semesterdagar kvar. Dags att planera semester?"));
-        if (_data.OppnaArenden > 0)
-            _tips.Add(new(Severity.Warning, $"Du har {_data.OppnaArenden} öppna ärenden som väntar."));
-        // Always show a positive tip
-        if (_tips.Count == 0)
-            _tips.Add(new(Severity.Success, "Allt ser bra ut! Inga ärenden väntar."));
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
     }
 
     private record TipData(Severity Severity, string Text);

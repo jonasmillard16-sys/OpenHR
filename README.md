@@ -45,7 +45,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Notiser (v1.5)** — in-app-notiser från DB via Notification-entity. Read/unread via MarkAsRead(). Testnotis skapar riktig DB-post. Ingen realtidspush. Seeddata.
 - **Dokumenthantering (v1.5)** — riktig filuppladdning via IFileStorageService + Document-metadata i DB. Kategori, anställd-koppling, storlek. Mallgenerering (read-only). Seeddata.
 - **Dashboard (v1.5)** — 5 KPI-kort helt från DB (headcount, LAS-alarm, vakanta positioner, godkännanden, bemanningsgrad). Bemanning per enhet från DB. Inga demo-fallbacks, ingen DemoDataModel. Sjukfrånvaro och händelselista borttagna (semantiskt ej möjliga utan ny entity).
-- **Autentisering** — rollbaserad med persistent session, SITHS/BankID-simulering (inte riktig eID)
+- **Autentisering (v2)** — rollbaserad med persistent session + EmployeeId-mappning. Vid login slås Employee upp via exakt namnmatchning mot DB. EmployeeId lagras i session och används av MinSida, Chef och Godkännanden. Demo-auth: 4 profiler (Anna Svensson/Anställd, Eva Nilsson/Chef, Karl Berg/HR, Admin). Admin har ingen Employee-koppling (EmployeeId=null). SITHS/BankID-simulering (inte riktig eID). Begränsning: namnbaserad mappning, inte en riktig identity-provider.
 
 ### Prototyp/mock
 UI med fungerande navigation och demo-data. Ingen backend-persistens:

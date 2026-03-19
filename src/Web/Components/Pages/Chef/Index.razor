@@ -117,7 +117,8 @@ else if (!_loading)
         finally { _loading = false; }
     }
 
-    private static readonly Guid _currentChefId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    [Inject] private RegionHR.Web.Services.AuthService Auth { get; set; } = default!;
+    private Guid _currentChefId => Auth.EmployeeId ?? Guid.Empty;
 
     private async Task Godkann(ApprovalItem item)
     {

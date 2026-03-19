@@ -53,8 +53,8 @@
     private int _vantar, _godkanda, _sjuk, _vab;
     private string? _error;
 
-    // TODO: Replace with actual authenticated user ID from JWT claims
-    private static readonly Guid _currentChefId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    [Inject] private RegionHR.Web.Services.AuthService Auth { get; set; } = default!;
+    private Guid _currentChefId => Auth.EmployeeId ?? Guid.Empty;
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,7 +1,9 @@
 @page "/minsida/arenden"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Services
+@using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
+@inject AuthService Auth
 
 <PageTitle>OpenHR - Mina pågående saker</PageTitle>
 
@@ -44,42 +46,28 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (Auth.EmployeeId == null) return;
         try
         {
             var cases = await SelfService.GetMyCasesAsync(
-                EmployeeId.From(Guid.Empty));
+                EmployeeId.From(Auth.EmployeeId.Value));
 
-            if (cases.Count > 0)
-            {
-                _arenden = cases.Select(c => new ArendeRad(
-                    c.Typ,
-                    c.Beskrivning,
-                    c.Status,
-                    c.Datum,
-                    c.Status switch
-                    {
-                        "Godkand" => Color.Success,
-                        "Avslutad" => Color.Success,
-                        "VantarGodkannande" => Color.Warning,
-                        "UnderBehandling" => Color.Info,
-                        "Avslagen" => Color.Error,
-                        "Makulerad" => Color.Error,
-                        _ => Color.Default
-                    }
-                )).ToList();
-                return;
-            }
+            _arenden = cases.Select(c => new ArendeRad(
+                c.Typ, c.Beskrivning, c.Status, c.Datum,
+                c.Status switch
+                {
+                    "Godkand" or "Avslutad" => Color.Success,
+                    "VantarGodkannande" => Color.Warning,
+                    "UnderBehandling" => Color.Info,
+                    "Avslagen" or "Makulerad" => Color.Error,
+                    _ => Color.Default
+                }
+            )).ToList();
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to demo data
+            System.Diagnostics.Debug.WriteLine($"MinaArenden: {ex.Message}");
         }
-
-        _arenden =
-        [
-            new("Semesteransökan", "Semester vecka 28-29", "Väntar på godkännande", "2026-03-10", Color.Warning),
-            new("Sjukfrånvaro", "Sjukanmälan 14-15 mars", "Godkänd", "2026-03-14", Color.Success),
-        ];
     }
 
     private record ArendeRad(string Typ, string Beskrivning, string Status, string Datum, Color StatusFarg);

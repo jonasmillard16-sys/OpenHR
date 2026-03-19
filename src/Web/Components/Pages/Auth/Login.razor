@@ -1,7 +1,10 @@
 @page "/login"
 @layout RegionHR.Web.Components.Layout.EmptyLayout
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
 @inject NavigationManager Nav
 @inject RegionHR.Web.Services.AuthService Auth
+@inject RegionHRDbContext Db
 
 <PageTitle>Logga in — OpenHR</PageTitle>
 
@@ -241,9 +244,12 @@
     private enum Step { ChooseMethod, BankID_OpenApp, BankID_EnterCode, BankID_Verifying, SITHS_Reading, SITHS_EnterPin, Verified }
     private enum EidMethod { BankID, SITHS }
 
+    // Demo-användare — namnen matchar exakt seedade Employee-poster.
+    // "Admin" har ingen Employee-koppling (EmployeeId = null vid login).
+    // Detta är en demo-auth-begränsning, inte en riktig identitetslösning.
     private static readonly Dictionary<string, string> _demoUsers = new()
     {
-        ["Sara Andersson"] = "Anställd",
+        ["Anna Svensson"] = "Anställd",
         ["Eva Nilsson"] = "Chef",
         ["Karl Berg"] = "HR",
         ["Admin"] = "Admin"
@@ -345,7 +351,23 @@
         StateHasChanged();
         await Task.Delay(400);
         var role = _demoUsers[_selectedUser];
-        await Auth.LoginAsync(_selectedUser, role);
+
+        // Exakt namnmatchning mot Employee-tabellen.
+        // Om ingen match: EmployeeId = null (t.ex. Admin).
+        Guid? employeeId = null;
+        try
+        {
+            var parts = _selectedUser.Split(' ', 2);
+            if (parts.Length == 2)
+            {
+                var employee = await Db.Employees
+                    .FirstOrDefaultAsync(e => e.Fornamn == parts[0] && e.Efternamn == parts[1]);
+                employeeId = employee?.Id.Value;
+            }
+        }
+        catch { /* DB unavailable — proceed without EmployeeId */ }
+
+        await Auth.LoginAsync(_selectedUser, role, employeeId);
         Nav.NavigateTo("/", forceLoad: false);
     }
 

@@ -4,16 +4,22 @@
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>OpenHR - Anställda</PageTitle>
+<PageTitle>OpenHR - Mitt team</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Anställda</MudText>
-<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Adminvy — visar alla anställda. Chefsspecifik filtrering kräver auth-koppling.
-</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Mitt team</MudText>
+@if (_enhetNamn != null)
+{
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@_enhetNamn</MudText>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Alla anställda (ingen enhetskoppling)</MudText>
+}
 
 @if (_loading)
 {
@@ -83,14 +89,32 @@ else
     private List<TeamMedlem> _team = [];
     private TeamMedlem? _expanderad;
     private bool _loading = true;
-    private string? _error;
+    private string? _error, _enhetNamn;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var employees = await Db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync();
             var idag = DateOnly.FromDateTime(DateTime.Today);
+            var allEmployees = await Db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync();
+
+            // Filter on chef's unit if auth provides EmployeeId
+            Guid? chefEnhetId = null;
+            if (Auth.EmployeeId.HasValue)
+            {
+                var chef = allEmployees.FirstOrDefault(e => e.Id.Value == Auth.EmployeeId.Value);
+                var chefAnst = chef?.AktivAnstallning(idag);
+                if (chefAnst != null)
+                {
+                    chefEnhetId = chefAnst.EnhetId.Value;
+                    var enhet = await Db.OrganizationUnits.FirstOrDefaultAsync(e => e.Id.Value == chefEnhetId.Value);
+                    _enhetNamn = enhet?.Namn;
+                }
+            }
+
+            var employees = chefEnhetId.HasValue
+                ? allEmployees.Where(e => e.AktivAnstallning(idag)?.EnhetId.Value == chefEnhetId.Value).ToList()
+                : allEmployees;
 
             // Aktiva frånvaroperioder idag
             var aktivFranvaro = await Db.LeaveRequests

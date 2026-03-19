@@ -1,7 +1,9 @@
 @page "/minsida/schema"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Web.Services
+@using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
+@inject AuthService Auth
 
 <PageTitle>OpenHR - Mitt schema</PageTitle>
 
@@ -53,46 +55,25 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (Auth.EmployeeId == null) return;
         try
         {
             var shifts = await SelfService.GetUpcomingShiftsAsync(
-                EmployeeId.From(Guid.Empty));
+                EmployeeId.From(Auth.EmployeeId.Value));
 
-            if (shifts.Count > 0)
-            {
-                _veckoschema = shifts.Select(s => new SchemaRad(
-                    s.DagNamn,
-                    s.PassTyp,
-                    $"{s.Start} - {s.Slut}",
-                    $"{(int)s.Rast.TotalMinutes} min",
-                    s.Timmar.ToString("0.##").Replace('.', ','),
-                    s.PassTyp switch
-                    {
-                        "Dag" => Color.Info,
-                        "Kvall" => Color.Warning,
-                        "Natt" => Color.Error,
-                        _ => Color.Default
-                    },
-                    false
-                )).ToList();
-                return;
-            }
+            _veckoschema = shifts.Select(s => new SchemaRad(
+                s.DagNamn, s.PassTyp,
+                $"{s.Start} - {s.Slut}",
+                $"{(int)s.Rast.TotalMinutes} min",
+                s.Timmar.ToString("0.##").Replace('.', ','),
+                s.PassTyp switch { "Dag" => Color.Info, "Kvall" => Color.Warning, "Natt" => Color.Error, _ => Color.Default },
+                false
+            )).ToList();
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to demo data
+            System.Diagnostics.Debug.WriteLine($"MittSchema: {ex.Message}");
         }
-
-        _veckoschema =
-        [
-            new("Måndag 17/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
-            new("Tisdag 18/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
-            new("Onsdag 19/3", "Kväll", "15:00 - 22:00", "30 min", "6,5", Color.Warning, false),
-            new("Torsdag 20/3", "Natt", "21:00 - 07:00", "45 min", "9,25", Color.Error, false),
-            new("Fredag 21/3", "", "", "", "", Color.Default, true),
-            new("Lördag 22/3", "", "", "", "", Color.Default, true),
-            new("Söndag 23/3", "Dag", "07:00 - 16:00", "60 min", "8,0", Color.Info, false),
-        ];
     }
 
     private record SchemaRad(string Dag, string PassTyp, string Tid, string Rast, string Timmar, Color ChipColor, bool ArLedig);
