@@ -79,14 +79,13 @@ public static class DependencyInjection
         services.AddScoped<UnitScopeService>();
         services.AddScoped<UnitAccessScopeService>();
 
-        // Notifications
+        // Notifications (EmailNotificationSender is the production MailKit impl)
         services.AddSingleton<EmailNotificationSender>();
         services.AddSingleton<SmsNotificationSender>();
-        services.AddSingleton<EmailSender>();
+        // EmailSender removed — use EmailNotificationSender instead
 
-        // File storage
+        // File storage (LocalFileStorageService implements IFileStorageService)
         services.AddSingleton<IFileStorageService>(new LocalFileStorageService());
-        services.AddSingleton<FileStorageService>();
 
         // GDPR
         services.AddScoped<RegisterutdragGenerator>();
