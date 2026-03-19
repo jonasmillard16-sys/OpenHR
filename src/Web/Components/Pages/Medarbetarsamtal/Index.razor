@@ -11,6 +11,11 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" Href="/medarbetarsamtal/ny">Nytt samtal</MudButton>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
         <tr>
@@ -62,6 +67,8 @@
 
     private void ValjSamtal(PerformanceReview r) => _valdSamtal = _valdSamtal == r ? null : r;
 
+    private string? _error;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -71,15 +78,7 @@
                 .Take(50)
                 .ToListAsync();
         }
-        catch
-        {
-            // Demo data fallback
-        }
-
-        if (_reviews.Count == 0)
-        {
-            // Keep demo data visible when DB is empty
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta medarbetarsamtal: {ex.Message}"; }
     }
 
     private static Color StatusFarg(ReviewStatus s) => s switch

@@ -11,6 +11,11 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" Href="/offboarding/ny">Nytt ärende</MudButton>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
         <tr>
@@ -58,6 +63,7 @@
 @code {
     private List<OffboardingCase> _cases = [];
     private OffboardingCase? _valdArende;
+    private string? _error;
 
     private void ValjArende(OffboardingCase c) => _valdArende = _valdArende == c ? null : c;
 
@@ -71,10 +77,7 @@
                 .Take(50)
                 .ToListAsync();
         }
-        catch
-        {
-            // Demo data fallback
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta offboarding-ärenden: {ex.Message}"; }
     }
 
     private static string AnledningText(AvslutAnledning a) => a switch

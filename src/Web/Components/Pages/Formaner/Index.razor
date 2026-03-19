@@ -11,6 +11,11 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny förmån</MudButton>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 @if (_showForm)
 {
     <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
@@ -94,6 +99,7 @@
     private List<Benefit> _benefits = [];
     private Benefit? _valdForman;
     private List<EmployeeBenefit> _employeeBenefits = [];
+    private string? _error;
 
     private void ValjForman(Benefit b) => _valdForman = _valdForman == b ? null : b;
 
@@ -112,10 +118,7 @@
                              (eb.Status == EnrollmentStatus.Aktiv || eb.Status == EnrollmentStatus.Ansokt))
                 .ToListAsync();
         }
-        catch
-        {
-            // Demo data fallback
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta förmåner: {ex.Message}"; }
     }
 
     private int AnmaldaCount(Guid benefitId) =>

@@ -14,6 +14,11 @@
     </MudStack>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
         <tr>
@@ -58,6 +63,7 @@
 @code {
     private List<Document> _documents = [];
     private Document? _valdDokument;
+    private string? _error;
 
     private void ValjDokument(Document d) => _valdDokument = _valdDokument == d ? null : d;
 
@@ -71,10 +77,7 @@
                 .Take(50)
                 .ToListAsync();
         }
-        catch
-        {
-            // Demo data fallback
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta dokument: {ex.Message}"; }
     }
 
     private static string KategoriText(DocumentCategory k) => k switch

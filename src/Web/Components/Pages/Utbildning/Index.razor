@@ -11,6 +11,11 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny utbildning</MudButton>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 @if (_showForm)
 {
     <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
@@ -91,6 +96,7 @@
     private List<Course> _courses = [];
     private Course? _valdKurs;
     private List<CourseEnrollment> _enrollments = [];
+    private string? _error;
 
     private void ValjKurs(Course c) => _valdKurs = _valdKurs == c ? null : c;
 
@@ -108,10 +114,7 @@
                 .Where(e => courseIds.Contains(e.CourseId))
                 .ToListAsync();
         }
-        catch
-        {
-            // Demo data fallback
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta utbildningar: {ex.Message}"; }
     }
 
     private int AnmaladeCount(Guid courseId) =>
