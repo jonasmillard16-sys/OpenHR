@@ -48,7 +48,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **Strategisk Workforce Planning** — what-if-scenarier, ingen beräkningsmotor
 - **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
 - **Benefits Enrollment** — se "Delvis implementerad" ovan
-- **Talangpool/Recruitment CRM** — kandidatpool, CV-parsning simulerad
+- **Talangpool** — se "Delvis implementerad" ovan
 - **Pulsundersökningar** — enkätverktyg, demo-resultat
 - **E-learning** — kurskatalog, inga riktiga SCORM-paket
 - **Medarbetarsamtal** — wizard med dokumentation, 360-feedback, ej persisterad

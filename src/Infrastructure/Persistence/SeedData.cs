@@ -345,6 +345,24 @@ public static class SeedData
             employees[3].Id.Value, cykel.Id, DateOnly.FromDateTime(DateTime.Today), 2000m, "Nytt barn — andrat pendlingsvanor");
         db.EmployeeBenefits.AddRange(valAnna, valErik, valKarl);
 
+        // === Talent pool candidates via domänens Skapa() ===
+        db.TalentPoolEntries.AddRange(
+            RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
+                "Lisa Ekstrom", "lisa.ekstrom@mail.se", "IVA, akutsjukvard",
+                "8 ars erfarenhet, intervjuad for SSK IVA men inte antagen. Mycket stark kandidat."),
+            RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
+                "Per Strand", "per.strand@mail.se", "Vardcentral, slutenvard",
+                "3 ars erfarenhet. Intresserad av framtida tjanster."),
+            RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
+                "Sofia Magnusson", "sofia.magnusson@mail.se", "Intensivvard, anestesi",
+                "Specialistsjukskoterska anestesi. Spontanansokande."),
+            RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
+                "Oscar Blom", "oscar.blom@mail.se", "Underskoterska, natt",
+                "2 ars erfarenhet nattjour. Soker heltid."),
+            RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
+                "Karin Ek", "karin.ek@mail.se", "Sjukskoterska, barnklinik",
+                "Nyexaminerad 2025. Praktik pa Sahlgrenska."));
+
         await db.SaveChangesAsync();
     }
 }
