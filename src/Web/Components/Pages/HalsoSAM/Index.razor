@@ -1,175 +1,247 @@
 @page "/halsosam"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.HalsoSAM.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - HälsoSAM</PageTitle>
+<PageTitle>OpenHR — HälsoSAM</PageTitle>
+
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">HälsoSAM — Rehabilitering</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/halsosam/ny" Style="min-height: 48px;">Nytt ärende</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               Href="/halsosam/ny" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;">
+        Nytt rehabärende
+    </MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">5</MudText><MudText Typo="Typo.body2">Nya signaler</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">8</MudText><MudText Typo="Typo.body2">Aktiv rehab</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Väntar uppföljning</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h3" Style="font-weight: 700;">4.2%</MudText><MudText Typo="Typo.body2">Sjukfrånvaro</MudText></MudPaper></MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mb-3">Aktiva rehabiliteringsärenden</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Trigger</th><th>Status</th><th>Nästa uppföljning</th><th>Ärendeägare</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Trigger</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td>@rad.NastaUppfoljning</td>
-                <td>@rad.Agare</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">Öppna</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="6">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Rehabiliteringsärende</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Trigger:</strong> @rad.Trigger</MudText>
-                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
-                            <MudText Typo="Typo.body2"><strong>Nästa uppföljning:</strong> @rad.NastaUppfoljning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Ärendeägare:</strong> @rad.Agare</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3" Style="font-weight: 600;">Rehabkedjan — Lagstadgade milstolpar</MudText>
-<MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
-    Systemet bevakar automatiskt var i rehabkedjan varje ärende befinner sig och påminner om kommande milstolpar.
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Rehabärenden hämtas från databasen. Milstolpar (dag 14/90/180/365) är planerade uppföljningsdatum
+    beräknade från ärendets skapandedatum — inte verifierade mot faktisk sjukfallsstart.
 </MudText>
 
-<MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudTimeline TimelinePosition="TimelinePosition.Start">
-        @foreach (var m in _rehabkedja)
-        {
-            <MudTimelineItem Color="@m.Farg" Size="Size.Small"
-                             Icon="@(m.Passerad ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Schedule)">
-                <ItemContent>
-                    <div class="d-flex align-center gap-3">
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@m.Farg"
-                                 Style="min-width: 70px; justify-content: center;">Dag @m.Dag</MudChip>
-                        <div>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">@m.Titel</MudText>
-                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@m.Beskrivning</MudText>
-                        </div>
-                    </div>
-                </ItemContent>
-            </MudTimelineItem>
-        }
-    </MudTimeline>
-</MudPaper>
-
-<MudText Typo="Typo.h6" Class="mt-4 mb-3" Style="font-weight: 600;">Aktiva rehabärenden — position i kedjan</MudText>
-<MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
-    Systemet räknar sjukdagar automatiskt och visar var i rehabkedjan den anställde befinner sig. Röda markeringar = åtgärd krävs snart.
-</MudText>
-<MudGrid Spacing="3" Class="mb-6">
-    @foreach (var arende in _rehabArenden)
-    {
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="2" Style="@($"border-left: 4px solid {(arende.AkutPaminnelse ? "var(--mud-palette-error)" : "var(--mud-palette-info)")}")">
-                <div class="d-flex justify-space-between align-center mb-2">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@arende.Namn</MudText>
-                    <MudChip T="string" Size="Size.Small" Color="@(arende.AkutPaminnelse ? Color.Error : Color.Info)">Dag @arende.SjukDag</MudChip>
-                </div>
-                <MudProgressLinear Value="@RehabProgress(arende.SjukDag)" Color="@RehabProgressFarg(arende.SjukDag)"
-                                   Rounded="true" Size="Size.Medium" Class="mb-2" />
-                <div class="d-flex flex-wrap gap-1 mb-2">
-                    @foreach (var m in _rehabkedja)
-                    {
-                        <MudChip T="string" Size="Size.Small"
-                                 Variant="@(arende.SjukDag >= m.Dag ? Variant.Filled : Variant.Outlined)"
-                                 Color="@(arende.SjukDag >= m.Dag ? Color.Success : arende.NastaMilstolpe == m.Dag ? Color.Warning : Color.Default)">
-                            @m.Dag
-                        </MudChip>
-                    }
-                </div>
-                <MudText Typo="Typo.body2"><strong>Nuvarande fas:</strong> @arende.NuvarandeFas</MudText>
-                <MudText Typo="Typo.body2"><strong>Nästa milstolpe:</strong> Dag @arende.NastaMilstolpe — @arende.NastaAtgard</MudText>
-                @if (arende.AkutPaminnelse)
-                {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
-                        @arende.Paminnelse
-                    </MudAlert>
-                }
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    @* KPI *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);">
+                <MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_cases.Count(c => c.Status != RehabStatus.Avslutad)</MudText>
+                <MudText Typo="Typo.body2">Aktiva ärenden</MudText>
             </MudPaper>
         </MudItem>
-    }
-</MudGrid>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@CountUpcomingMilestones()</MudText>
+                <MudText Typo="Typo.body2">Kommande milstolpar (30 dagar)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_cases.Count</MudText>
+                <MudText Typo="Typo.body2">Totalt i systemet</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_cases.Count(c => c.Status == RehabStatus.Avslutad)</MudText>
+                <MudText Typo="Typo.body2">Avslutade</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Sjukfrånvaro per enhet</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead><tr><th>Enhet</th><th>Korttid</th><th>Långtid</th><th>Totalt</th><th>Trend</th></tr></thead>
-    <tbody>
-        <tr><td>Avdelning 32</td><td>2.1%</td><td>2.1%</td><td>4.2%</td><td>+0.3%</td></tr>
-        <tr><td>Avdelning 33</td><td>1.8%</td><td>1.5%</td><td>3.3%</td><td>-0.2%</td></tr>
-        <tr><td>Akutmottagningen</td><td>3.2%</td><td>2.8%</td><td>6.0%</td><td>+0.8%</td></tr>
-        <tr><td>IVA</td><td>1.5%</td><td>0.8%</td><td>2.3%</td><td>-0.5%</td></tr>
-    </tbody>
-</MudSimpleTable>
+    @* Rehabkedjan — statisk referens *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Rehabkedjan — lagstadgade milstolpar (referens)</MudText>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+        Dessa milstolpar är lagstadgade steg i den svenska rehabkedjan. I v1.5 beräknas planerade datum
+        från ärendets skapandedatum, inte från verifierat sjukfallsstartdatum.
+    </MudAlert>
+    <MudTimeline TimelineAlign="TimelineAlign.Start" Class="mb-6">
+        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 1:</strong> Sjukanmälan, karensavdrag</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 8:</strong> Läkarintyg krävs</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Info" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 14:</strong> Anmälan till FK, rehabplan upprättas</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 90:</strong> FK prövar mot ordinarie arbete</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 180:</strong> FK prövar mot hela arbetsmarknaden</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Error" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 365:</strong> FK prövar mot normalt förekommande arbete</MudText></MudTimelineItem>
+    </MudTimeline>
+
+    @* Rehabärenden från DB *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Rehabärenden</MudText>
+
+    @if (_cases.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga rehabärenden i databasen.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead>
+                <tr><th>Anställd</th><th>Trigger</th><th>Status</th><th>Skapad</th><th>Nästa milstolpe</th><th>Rehabplan</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _cases.OrderByDescending(c => c.SkapadVid))
+                {
+                    var empNamn = GetEmployeeName(c.AnstallId);
+                    var nasta = GetNastaMilstolpe(c);
+                    <tr style="cursor: pointer;" @onclick="@(() => _expanded = _expanded == c ? null : c)">
+                        <td><strong>@empNamn</strong></td>
+                        <td>@TriggerText(c.Trigger)</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Status)">@StatusText(c.Status)</MudChip></td>
+                        <td>@c.SkapadVid.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (nasta != null)
+                            {
+                                var dagar = (nasta.Value.Datum - DateTime.UtcNow).Days;
+                                <MudChip T="string" Size="Size.Small" Color="@(dagar < 0 ? Color.Error : dagar < 14 ? Color.Warning : Color.Info)">
+                                    Dag @nasta.Value.DagNr (@(dagar < 0 ? $"{-dagar}d sedan" : $"om {dagar}d"))
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption">Alla passerade</MudText>
+                            }
+                        </td>
+                        <td>@(string.IsNullOrEmpty(c.RehabPlan) ? "—" : "Ja")</td>
+                        <td><MudIconButton Icon="@(_expanded == c ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" /></td>
+                    </tr>
+
+                    @if (_expanded == c)
+                    {
+                        <tr>
+                            <td colspan="7" style="padding: 0;">
+                                <MudPaper Class="pa-5" Elevation="0" Style="border-top: 2px solid var(--mud-palette-primary); background: var(--mud-palette-background);">
+                                    <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">@empNamn — Rehabdetaljer</MudText>
+
+                                    <MudGrid Spacing="3" Class="mb-4">
+                                        <MudItem xs="6" sm="3">
+                                            <MudText Typo="Typo.caption">Trigger</MudText>
+                                            <MudText Style="font-weight: 600;">@TriggerText(c.Trigger)</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6" sm="3">
+                                            <MudText Typo="Typo.caption">Ärendeägare HR</MudText>
+                                            <MudText Style="font-weight: 600;">@(c.ArendeagareHR != null ? GetEmployeeName(c.ArendeagareHR.Value) : "Ej tilldelad")</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6" sm="3">
+                                            <MudText Typo="Typo.caption">Status</MudText>
+                                            <MudText Style="font-weight: 600;">@StatusText(c.Status)</MudText>
+                                        </MudItem>
+                                        <MudItem xs="6" sm="3">
+                                            <MudText Typo="Typo.caption">Rehabplan</MudText>
+                                            <MudText Style="font-weight: 600;">@(c.RehabPlan ?? "Ej upprättad")</MudText>
+                                        </MudItem>
+                                    </MudGrid>
+
+                                    <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Milstolpar (planerade uppföljningsdatum)</MudText>
+                                    <MudTimeline TimelineAlign="TimelineAlign.Start" Class="mb-3">
+                                        @foreach (var ms in GetMilstolpar(c))
+                                        {
+                                            var passerad = ms.Datum < DateTime.UtcNow;
+                                            <MudTimelineItem Color="@(passerad ? Color.Success : Color.Default)" Size="Size.Small"
+                                                             Variant="@(passerad ? Variant.Filled : Variant.Outlined)">
+                                                <MudText Typo="Typo.body2">
+                                                    <strong>Dag @ms.DagNr</strong> — @ms.Datum.ToLocalTime().ToString("yyyy-MM-dd")
+                                                    @if (passerad) { <MudChip T="string" Size="Size.Small" Color="Color.Success">Passerad</MudChip> }
+                                                </MudText>
+                                            </MudTimelineItem>
+                                        }
+                                    </MudTimeline>
+                                </MudPaper>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    private RehabRad? _valdRad;
+    private List<RehabCase> _cases = [];
+    private Dictionary<RegionHR.SharedKernel.Domain.EmployeeId, string> _empNames = new();
+    private RehabCase? _expanded;
+    private bool _loading = true;
+    private string? _error;
 
-    private void Valj(RehabRad rad) => _valdRad = _valdRad == rad ? null : rad;
-
-    private List<RehabRad> _rader =
-    [
-        new("Karl Berg", "Upprepad korttidsfrånvaro", "Aktiv", Color.Info, "2026-03-28", "Anna HR"),
-        new("Helena Bergström", "Långtidssjuk >14 dagar", "Väntar uppföljning", Color.Warning, "2026-03-20", "Anna HR"),
-        new("Per Gustafsson", "Sjukfrånvaro >6 tillfällen/12 mån", "Aktiv", Color.Info, "2026-04-05", "Erik Chef"),
-    ];
-
-    private record RehabRad(string Namn, string Trigger, string StatusText, Color StatusFarg, string NastaUppfoljning, string Agare);
-
-    // --- Rehabkedjan ---
-    private static readonly List<RehabMilstolpe> _rehabkedja =
-    [
-        new(1, "Sjukanmälan", "Karensavdrag görs. Arbetsgivaren informeras.", Color.Success, true),
-        new(8, "Läkarintyg krävs", "Den anställde måste lämna läkarintyg till arbetsgivaren.", Color.Success, true),
-        new(14, "Anmälan till FK", "Arbetsgivaren anmäler till Försäkringskassan och upprättar rehabplan.", Color.Info, true),
-        new(90, "FK prövar mot ordinarie arbete", "Försäkringskassan prövar om den anställde kan utföra sitt ordinarie arbete.", Color.Warning, false),
-        new(180, "FK prövar mot hela arbetsmarknaden", "Arbetsförmåga prövas mot alla arbeten på hela arbetsmarknaden.", Color.Warning, false),
-        new(365, "FK prövar mot normalt förekommande arbete", "Arbetsförmåga prövas mot normalt förekommande arbete. Viktig brytpunkt.", Color.Error, false),
-        new(550, "Slutgiltigt beslut", "Försäkringskassan fattar slutgiltigt beslut om sjukpenning.", Color.Error, false),
-    ];
-
-    private static readonly List<RehabArendePosition> _rehabArenden =
-    [
-        new("Helena Bergström", 22, 90, "Rehabplan upprättad, dag 14-anmälan gjord",
-            "FK prövar mot ordinarie arbete", true, "Dag 90 närmar sig (68 dagar kvar) — förbered underlag för FK-prövning"),
-        new("Karl Berg", 45, 90, "Uppföljningssamtal genomfört, anpassad arbetsåtergång diskuteras",
-            "FK prövar mot ordinarie arbete", false, ""),
-        new("Erik Nilsson", 160, 180, "Arbetsförmåga prövad mot ordinarie arbete — ej tillräcklig",
-            "FK prövar mot hela arbetsmarknaden", true, "Dag 180 om 20 dagar — förbered dokumentation för vidare prövning"),
-        new("Sofia Larsson", 340, 365, "Arbetsträning pågår 50%, prognos positiv",
-            "FK prövar mot normalt förekommande arbete", true, "Dag 365 om 25 dagar — kritisk brytpunkt, boka möte med den anställde"),
-    ];
-
-    private static int RehabProgress(int dag) => Math.Min(100, (int)(dag * 100.0 / 550));
-
-    private static Color RehabProgressFarg(int dag) => dag switch
+    protected override async Task OnInitializedAsync()
     {
-        >= 365 => Color.Error,
-        >= 180 => Color.Warning,
-        >= 90 => Color.Info,
-        _ => Color.Success,
+        try
+        {
+            _cases = await Db.RehabCases.ToListAsync();
+            var employees = await Db.Employees.ToListAsync();
+            _empNames = employees.ToDictionary(
+                e => e.Id,
+                e => $"{e.Fornamn} {e.Efternamn}");
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private string GetEmployeeName(RegionHR.SharedKernel.Domain.EmployeeId id) =>
+        _empNames.TryGetValue(id, out var namn) ? namn : "Okänd";
+
+    private record Milstolpe(int DagNr, DateTime Datum);
+
+    private List<Milstolpe> GetMilstolpar(RehabCase c)
+    {
+        var list = new List<Milstolpe>();
+        if (c.Uppfoljning14Dagar.HasValue) list.Add(new(14, c.Uppfoljning14Dagar.Value));
+        if (c.Uppfoljning90Dagar.HasValue) list.Add(new(90, c.Uppfoljning90Dagar.Value));
+        if (c.Uppfoljning180Dagar.HasValue) list.Add(new(180, c.Uppfoljning180Dagar.Value));
+        if (c.Uppfoljning365Dagar.HasValue) list.Add(new(365, c.Uppfoljning365Dagar.Value));
+        return list;
+    }
+
+    private (int DagNr, DateTime Datum)? GetNastaMilstolpe(RehabCase c)
+    {
+        var milstolpar = GetMilstolpar(c);
+        var nasta = milstolpar.Where(m => m.Datum > DateTime.UtcNow).OrderBy(m => m.Datum).FirstOrDefault();
+        if (nasta != null) return (nasta.DagNr, nasta.Datum);
+        // Om alla passerade: visa senaste som redan passerad
+        var senaste = milstolpar.OrderByDescending(m => m.Datum).FirstOrDefault();
+        return senaste != null ? (senaste.DagNr, senaste.Datum) : null;
+    }
+
+    private int CountUpcomingMilestones()
+    {
+        var inom30 = DateTime.UtcNow.AddDays(30);
+        return _cases.Sum(c => GetMilstolpar(c).Count(m => m.Datum > DateTime.UtcNow && m.Datum <= inom30));
+    }
+
+    private static string TriggerText(RehabTrigger t) => t switch
+    {
+        RehabTrigger.SexTillfallenTolvManader => "6+ sjuktillfällen/12 mån",
+        RehabTrigger.FjortonSammanhangandeDagar => "14+ sammanhängande dagar",
+        RehabTrigger.MonsterDetekterat => "Mönster detekterat",
+        RehabTrigger.ChefInitierat => "Chef initierat",
+        RehabTrigger.MedarbetareInitierat => "Medarbetare initierat",
+        _ => t.ToString()
     };
 
-    private record RehabMilstolpe(int Dag, string Titel, string Beskrivning, Color Farg, bool Passerad);
-    private record RehabArendePosition(string Namn, int SjukDag, int NastaMilstolpe, string NuvarandeFas, string NastaAtgard, bool AkutPaminnelse, string Paminnelse);
+    private static string StatusText(RehabStatus s) => s switch
+    {
+        RehabStatus.Signal => "Signal",
+        RehabStatus.UnderUtredning => "Under utredning",
+        RehabStatus.AktivRehab => "Aktiv rehab",
+        RehabStatus.Uppfoljning => "Uppföljning",
+        RehabStatus.Avslutad => "Avslutad",
+        _ => s.ToString()
+    };
+
+    private static Color StatusFarg(RehabStatus s) => s switch
+    {
+        RehabStatus.Signal => Color.Warning,
+        RehabStatus.UnderUtredning => Color.Info,
+        RehabStatus.AktivRehab => Color.Primary,
+        RehabStatus.Uppfoljning => Color.Success,
+        RehabStatus.Avslutad => Color.Default,
+        _ => Color.Default
+    };
 }

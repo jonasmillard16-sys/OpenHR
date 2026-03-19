@@ -29,7 +29,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
 - **Rapporter** — Löneregister hämtar från DB, övriga 3 rapporter har realistiska beräkningar. CSV-export fungerar.
 - **Ledighetshantering** — wizard med ärendenummer, persisterar ej till DB
-- **HälsoSAM/Rehab** — rehabkedjan med lagstadgade milstolpar (dag 14/90/180/365), delvis DB-kopplad
+- **HälsoSAM/Rehab (v1.5)** — rehabärenden läses från DB (RehabCase). Milstolpar (dag 14/90/180/365) lagras i domänmodellen, beräknade från ärendets skapandedatum. Nästa milstolpe visas baserat på dagens datum. Begränsning: seeddata, milstolpar är planerade uppföljningsdatum — inte verifierad sjukfallsstart. SickLeaveNotification ej kopplad i v1.5.
 - **Godkännanden** — approve/reject med batch-operationer, lokal state
 - **Notiser** — InApp med batch-radera och undo, SignalR hub finns men pushar ej
 - **Dokumenthantering** — upload UI, mallgenerering, PDF-preview (text-baserad)
