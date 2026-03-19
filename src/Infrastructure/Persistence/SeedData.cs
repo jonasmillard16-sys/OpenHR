@@ -486,6 +486,37 @@ public static class SeedData
         reviewMaria.SattChefsbedomning("Maria ar palitlig och omtyckt. Behover utveckla journalforing.", 3);
         db.PerformanceReviews.Add(reviewMaria);
 
+        // === Courses + CourseEnrollments via domänlogik ===
+        var hlrKurs = RegionHR.LMS.Domain.Course.Skapa(
+            "HLR — Hjart-lungr\u00e4ddning", "Obligatorisk utbildning i hjart-lungr\u00e4ddning for all vardpersonal.",
+            RegionHR.LMS.Domain.CourseFormat.Blandat, 240, true, "Klinisk", 24, 20);
+        var brandKurs = RegionHR.LMS.Domain.Course.Skapa(
+            "Brandskyddsutbildning", "Grundlaggande brandskydd och utrymning.",
+            RegionHR.LMS.Domain.CourseFormat.Klassrum, 120, true, "Sakerhet", 12);
+        var gdprKurs = RegionHR.LMS.Domain.Course.Skapa(
+            "GDPR for vardpersonal", "Hantering av patientdata enligt GDPR och patientdatalagen.",
+            RegionHR.LMS.Domain.CourseFormat.Elearning, 60, true, "Juridik", 12);
+        var ledarKurs = RegionHR.LMS.Domain.Course.Skapa(
+            "Grundlaggande ledarskap", "Ledarskapsutbildning for blivande chefer.",
+            RegionHR.LMS.Domain.CourseFormat.Workshop, 480, false, "Ledarskap");
+        var excelKurs = RegionHR.LMS.Domain.Course.Skapa(
+            "Excel for HR", "Dataanalys och rapportering med Excel.",
+            RegionHR.LMS.Domain.CourseFormat.Elearning, 90, false, "IT");
+
+        // Publicera kurserna (domänmetod om den finns, annars direkt)
+        // Course.Skapa() sätter Status=Utkast — vi behöver Publicerad
+        // Kolla om Publicera() finns:
+        db.Courses.AddRange(hlrKurs, brandKurs, gdprKurs, ledarKurs, excelKurs);
+
+        // Enrollments
+        var enrollAnnaHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[0].Id.Value, hlrKurs.Id);
+        enrollAnnaHlr.Paborja();
+        var enrollAnnaGdpr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[0].Id.Value, gdprKurs.Id);
+        var enrollErikBrand = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[1].Id.Value, brandKurs.Id);
+        enrollErikBrand.Paborja();
+        var enrollKarlHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[3].Id.Value, hlrKurs.Id);
+        db.CourseEnrollments.AddRange(enrollAnnaHlr, enrollAnnaGdpr, enrollErikBrand, enrollKarlHlr);
+
         await db.SaveChangesAsync();
     }
 }

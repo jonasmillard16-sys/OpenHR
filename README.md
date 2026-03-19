@@ -50,7 +50,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **Benefits Enrollment** — se "Delvis implementerad" ovan
 - **Talangpool** — se "Delvis implementerad" ovan
 - **Pulsundersökningar** — enkätverktyg, demo-resultat
-- **E-learning** — kurskatalog, inga riktiga SCORM-paket
+- **E-learning (v1.5)** — kurskatalog (Course) + kursanmälningar (CourseEnrollment) från DB. Anmälan via domänens Anmala(). Progress/status från modellen. Seeddata.
 - **Medarbetarsamtal (v1.5)** — PerformanceReview med domänlogik (Skapa, SattSjalvbedomning, SattChefsbedomning, Genomfor). Persisteras i DB. Seeddata i olika statusar.
 - **Förmåner** — friskvård, försäkringar, formulär utan DB-koppling
 

@@ -1,162 +1,197 @@
 @page "/utbildning/elearning"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.LMS.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - E-learning</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">E-learning</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Lägg till kurs</MudButton>
-</div>
+<PageTitle>OpenHR — E-learning</PageTitle>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_antalKurser</MudText>
-            <MudText Typo="Typo.body2">Tillgängliga kurser</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_genomforda</MudText>
-            <MudText Typo="Typo.body2">Genomförda (2026)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_pagaende</MudText>
-            <MudText Typo="Typo.body2">Pågående</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_genomsnittBetyg</MudText>
-            <MudText Typo="Typo.body2">Genomsnittligt kursbetyg</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">E-learning</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Kurskatalog och kursanmälningar från databasen. Adminvy.
+</MudText>
 
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    E-learning-kurser synkroniseras med externa LMS-plattformar.
-    Genomförda kurser registreras automatiskt i medarbetarens kompetensregister.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Kurskatalog</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Kurs</th>
-            <th>Kategori</th>
-            <th>Plattform</th>
-            <th>Längd</th>
-            <th>Obligatorisk</th>
-            <th>Genomförandegrad</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var kurs in _kurser)
-        {
-            <tr>
-                <td><strong>@kurs.Namn</strong></td>
-                <td>@kurs.Kategori</td>
-                <td>@kurs.Plattform</td>
-                <td>@kurs.Langd</td>
-                <td>
-                    @if (kurs.Obligatorisk)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Obligatorisk</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Frivillig</MudChip>
-                    }
-                </td>
-                <td>
-                    <MudProgressLinear Value="@kurs.GenomforandeProcent" Color="@(kurs.GenomforandeProcent >= 80 ? Color.Success : Color.Warning)" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@kurs.GenomforandeProcent %</MudText>
-                </td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Href="@kurs.Lank" Target="_blank">Öppna</MudButton></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Integrerade plattformar</MudText>
-<MudGrid Spacing="3">
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Ping Pong (LMS)</MudText>
-            <MudText Typo="Typo.body2">Regionens primära LMS för obligatoriska utbildningar</MudText>
-            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">Ansluten</MudChip>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">LinkedIn Learning</MudText>
-            <MudText Typo="Typo.body2">Kompletterande kurser inom ledarskap och IT</MudText>
-            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">Ansluten</MudChip>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Socialstyrelsen</MudText>
-            <MudText Typo="Typo.body2">Obligatoriska vårdutbildningar och legitimationsförnyelse</MudText>
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="mt-2">Delvis ansluten</MudChip>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_visaNyDialog)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Lägg till kurs</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyKurs" Label="Kursnamn" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyKategori" Label="Kategori" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyLangd" Label="Längd (timmar)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="LaggTillKurs">Skapa</MudButton>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-@if (_skapad != null)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_courses.Count</MudText>
+                <MudText Typo="Typo.body2">Kurser</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_enrollments.Count</MudText>
+                <MudText Typo="Typo.body2">Anmälningar</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_courses.Count(c => c.ArObligatorisk)</MudText>
+                <MudText Typo="Typo.body2">Obligatoriska</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_enrollments.Count(e => e.Progress == EnrollmentProgress.Genomford)</MudText>
+                <MudText Typo="Typo.body2">Genomförda</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Ny anmälan *@
+    @if (_showEnroll)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Ny kursanmälan</MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_enrollAnstallId" Label="Anställd" Variant="Variant.Outlined">
+                        @foreach (var e in _employees)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_enrollCourseId" Label="Kurs" Variant="Variant.Outlined">
+                        @foreach (var c in _courses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)c.Id)">@c.Namn (@c.Format)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SparaAnmalan">Anmäl</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* Kurskatalog *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Kurskatalog</MudText>
+    @if (_courses.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga kurser i databasen.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Kurs</th><th>Format</th><th>Längd</th><th>Obligatorisk</th><th>Kategori</th><th>Anmälda</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var c in _courses)
+                {
+                    var antalAnmalda = _enrollments.Count(e => e.CourseId == c.Id);
+                    <tr>
+                        <td><strong>@c.Namn</strong><br /><MudText Typo="Typo.caption">@c.Beskrivning</MudText></td>
+                        <td><MudChip T="string" Size="Size.Small">@c.Format</MudChip></td>
+                        <td>@c.LangdMinuter min</td>
+                        <td>@(c.ArObligatorisk ? "Ja" : "Nej")</td>
+                        <td>@(c.Kategori ?? "—")</td>
+                        <td>@antalAnmalda</td>
+                        <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                       OnClick="@(() => { _enrollCourseId = c.Id; _showEnroll = true; })">Anmäl</MudButton></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* Anmälningar *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Kursanmälningar</MudText>
+    @if (_enrollments.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga kursanmälningar.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Kurs</th><th>Progress</th><th>Anmäld</th><th>Påbörjad</th><th>Genomförd</th></tr></thead>
+            <tbody>
+                @foreach (var e in _enrollments.OrderByDescending(e => e.AnmalanVid))
+                {
+                    <tr>
+                        <td><strong>@GetEmployeeName(e.AnstallId)</strong></td>
+                        <td>@GetCourseName(e.CourseId)</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@ProgressColor(e.Progress)">@ProgressText(e.Progress)</MudChip></td>
+                        <td>@e.AnmalanVid.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@(e.PaborjadVid?.ToLocalTime().ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@(e.GenomfordVid?.ToLocalTime().ToString("yyyy-MM-dd") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyKurs = "", _nyKategori = "", _nyLangd = "";
+    private List<Course> _courses = [];
+    private List<CourseEnrollment> _enrollments = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _showEnroll;
+    private string? _error, _success;
+    private Guid? _enrollAnstallId, _enrollCourseId;
 
-    private void LaggTillKurs()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyKurs)) return;
-        _skapad = $"Kurs {_nyKurs} tillagd. Synlig för alla anställda.";
-        _nyKurs = ""; _nyKategori = ""; _nyLangd = ""; _visaNyDialog = false;
-    }
-    private int _antalKurser = 24;
-    private int _genomforda = 847;
-    private int _pagaende = 132;
-    private string _genomsnittBetyg = "4.2 / 5";
-
-    private List<ElearningKurs> _kurser = [];
-
-    protected override void OnInitialized()
-    {
-        _kurser =
-        [
-            new("HLR – grundutbildning", "Patientsäkerhet", "Ping Pong", "2 timmar", true, 94, "#"),
-            new("Brandskydd – årlig repetition", "Säkerhet", "Ping Pong", "1 timme", true, 88, "#"),
-            new("GDPR för vårdpersonal", "Juridik", "Ping Pong", "1.5 timmar", true, 82, "#"),
-            new("Hygienrutiner i vården", "Patientsäkerhet", "Ping Pong", "1 timme", true, 91, "#"),
-            new("Ledarskap i förändring", "Ledarskap", "LinkedIn Learning", "4 timmar", false, 45, "#"),
-            new("Coachande ledarskap", "Ledarskap", "LinkedIn Learning", "3 timmar", false, 38, "#"),
-            new("Excel för löneadministratörer", "IT", "LinkedIn Learning", "2 timmar", false, 52, "#"),
-            new("Arbetsmiljö – SAM", "Arbetsmiljö", "Ping Pong", "2 timmar", true, 76, "#"),
-            new("Läkemedelshantering", "Patientsäkerhet", "Socialstyrelsen", "3 timmar", true, 85, "#"),
-            new("Informationssäkerhet", "IT", "Ping Pong", "1 timme", true, 79, "#"),
-        ];
+        try
+        {
+            _courses = await Db.Courses.ToListAsync();
+            _enrollments = await Db.CourseEnrollments.ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record ElearningKurs(string Namn, string Kategori, string Plattform, string Langd, bool Obligatorisk, int GenomforandeProcent, string Lank);
+    private async Task SparaAnmalan()
+    {
+        if (_enrollAnstallId == null || _enrollCourseId == null) return;
+        var enrollment = CourseEnrollment.Anmala(_enrollAnstallId.Value, _enrollCourseId.Value);
+        Db.CourseEnrollments.Add(enrollment);
+        await Db.SaveChangesAsync();
+        _enrollments.Add(enrollment);
+        _showEnroll = false;
+        _success = $"{GetEmployeeName(_enrollAnstallId.Value)} anmäld till {GetCourseName(_enrollCourseId.Value)}.";
+    }
+
+    private string GetEmployeeName(Guid id)
+    {
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+    }
+
+    private string GetCourseName(Guid id) => _courses.FirstOrDefault(c => c.Id == id)?.Namn ?? "Okänd";
+
+    private static Color ProgressColor(EnrollmentProgress p) => p switch
+    {
+        EnrollmentProgress.Genomford => Color.Success,
+        EnrollmentProgress.Paborjad => Color.Warning,
+        EnrollmentProgress.Anmalad => Color.Info,
+        EnrollmentProgress.Underkand => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string ProgressText(EnrollmentProgress p) => p switch
+    {
+        EnrollmentProgress.Anmalad => "Anmäld",
+        EnrollmentProgress.Paborjad => "Påbörjad",
+        EnrollmentProgress.Genomford => "Genomförd",
+        EnrollmentProgress.Underkand => "Underkänd",
+        EnrollmentProgress.Avbruten => "Avbruten",
+        _ => p.ToString()
+    };
 }
