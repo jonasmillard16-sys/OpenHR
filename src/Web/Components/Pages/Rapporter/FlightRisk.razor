@@ -1,205 +1,187 @@
 @page "/rapporter/flight-risk"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Analytics
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject FlightRiskService RiskService
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Uppsägningsrisk (Prediktiv analys)</PageTitle>
+<PageTitle>OpenHR — Uppsägningsrisk</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Uppsägningsrisk (Prediktiv analys)</MudText>
-<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
-    Systemet beräknar uppsägningsrisk baserat på historiska mönster och föreslår förebyggande åtgärder.
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Uppsägningsrisk</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Regelbaserad heuristik (v1) — beräknad från anställningsdata i realtid. Inte en prediktiv AI-modell.
 </MudText>
 
-@* ======================== DASHBOARD KPI ======================== *@
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="12" md="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);">
-            <MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_employees.Count(e => e.RiskNiva == "Hög")</MudText>
-            <MudText Typo="Typo.body2">Hög risk</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);">
-            <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_employees.Count(e => e.RiskNiva == "Medel")</MudText>
-            <MudText Typo="Typo.body2">Medel risk</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);">
-            <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_employees.Count(e => e.RiskNiva == "Låg")</MudText>
-            <MudText Typo="Typo.body2">Låg risk</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);">
-            <MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@($"{_employees.Average(e => e.RiskScore):0}")</MudText>
-            <MudText Typo="Typo.body2">Genomsnittlig riskpoäng</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@* ======================== RISKFÖRDELNING DIAGRAM ======================== *@
-<MudPaper Class="pa-6 mb-6" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-2" Style="vertical-align: middle;" />
-        Riskfördelning i organisationen
-    </MudText>
-
-    <MudGrid Spacing="3">
-        <MudItem xs="12" md="4">
-            <MudChart T="double" ChartType="ChartType.Donut" ChartSeries="@_chartSeries" ChartLabels="@_chartLabels"
-                      ChartOptions="@_chartOptions" Width="100%" Height="250px" />
+@if (_loading)
+{
+    <div style="text-align: center; padding: 3rem;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        <MudText Typo="Typo.body1" Class="mt-3">Beräknar riskpoäng från personaldata...</MudText>
+    </div>
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_results.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Inga anställda med aktiv anställning hittades i databasen.
+    </MudAlert>
+}
+else
+{
+    @* KPI-kort *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);">
+                <MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_results.Count(r => r.Niva == FlightRiskNiva.Hog)</MudText>
+                <MudText Typo="Typo.body2">Hög risk (51+)</MudText>
+            </MudPaper>
         </MudItem>
-        <MudItem xs="12" md="8">
-            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Riskfaktorer — så beräknar systemet</MudText>
-            <MudSimpleTable Dense="true" Hover="true">
-                <thead><tr><th>Faktor</th><th>Vikt</th><th>Beskrivning</th></tr></thead>
-                <tbody>
-                    <tr><td>Tid sedan senaste löneökning</td><td>25%</td><td>Över 18 mån utan löneökning = hög risk</td></tr>
-                    <tr><td>Sjukfrånvaromönster</td><td>20%</td><td>Ökande trend senaste 6 mån = förhöjd risk</td></tr>
-                    <tr><td>Anställningstid (tenure)</td><td>20%</td><td>2-3 år = högriskperiod för uppsägning</td></tr>
-                    <tr><td>Senaste medarbetarsamtal</td><td>20%</td><td>Betyg under 3/5 = missnöjesindikator</td></tr>
-                    <tr><td>Marknadslöneläge</td><td>15%</td><td>Löneläge under marknad = ökad lockelse av extern arbetsgivare</td></tr>
-                </tbody>
-            </MudSimpleTable>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_results.Count(r => r.Niva == FlightRiskNiva.Medel)</MudText>
+                <MudText Typo="Typo.body2">Medel risk (31-50)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_results.Count(r => r.Niva == FlightRiskNiva.Lag)</MudText>
+                <MudText Typo="Typo.body2">Låg risk (0-30)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_results.Count</MudText>
+                <MudText Typo="Typo.body2">Analyserade</MudText>
+            </MudPaper>
         </MudItem>
     </MudGrid>
-</MudPaper>
 
-@* ======================== MEDARBETARTABELL ======================== *@
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
-    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" Style="vertical-align: middle;" />
-    Detaljerad riskanalys per medarbetare
-</MudText>
+    @* Metodik *@
+    <MudAlert Severity="Severity.Info" Class="mb-4" Variant="Variant.Text" Dense="true">
+        <strong>Beräkningsmetod (v1):</strong> Regelbaserad poäng 0-70 från 4 signaler:
+        Tenure 2-4 år (+25), Tidsbegränsad anställning (+20), Bristyrke-heuristik (+15), Deltid &lt;75% (+10).
+        Bristyrke identifieras via enkel textmatchning på befattningstitel — inte en kvalificerad klassificering.
+    </MudAlert>
 
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Namn</th>
-            <th>Enhet</th>
-            <th>Riskpoäng</th>
-            <th>Risknivå</th>
-            <th>Riskfaktorer</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var emp in _employees.OrderByDescending(e => e.RiskScore))
-        {
+    @* Resultattabell *@
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
             <tr>
-                <td><strong>@emp.Namn</strong></td>
-                <td>@emp.Enhet</td>
-                <td>
-                    <MudProgressLinear Color="@RiskColor(emp.RiskNiva)" Value="@emp.RiskScore" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@emp.RiskScore/100</MudText>
-                </td>
-                <td><MudChip T="string" Size="Size.Small" Color="@RiskColor(emp.RiskNiva)">@emp.RiskNiva</MudChip></td>
-                <td>
-                    @foreach (var factor in emp.Riskfaktorer)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">@factor</MudChip>
-                    }
-                </td>
-                <td>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                               OnClick="@(() => ToggleActions(emp))">Åtgärder</MudButton>
-                </td>
+                <th>Anställd</th>
+                <th>Befattning</th>
+                <th>Form</th>
+                <th>Tenure</th>
+                <th>Lön</th>
+                <th>Poäng</th>
+                <th>Nivå</th>
+                <th></th>
             </tr>
-            @if (_selectedEmployee == emp)
+        </thead>
+        <tbody>
+            @foreach (var r in _results)
             {
-                <tr>
-                    <td colspan="6">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">
-                                Systemets rekommenderade åtgärder för @emp.Namn
-                            </MudText>
-                            @foreach (var action in emp.Atgarder)
-                            {
-                                <MudAlert Severity="@ActionSeverity(action)" Dense="true" Class="mb-2" Icon="@ActionIcon(action)">
-                                    @action
-                                </MudAlert>
-                            }
-                            <MudButton Size="Size.Small" Variant="Variant.Text"
-                                       OnClick="@(() => _selectedEmployee = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
+                <tr style="cursor: pointer;" @onclick="@(() => _expanded = _expanded == r ? null : r)">
+                    <td><strong>@r.Namn</strong></td>
+                    <td>@r.Befattning</td>
+                    <td>@r.Anstallningsform</td>
+                    <td>@r.TenureAr år</td>
+                    <td>@r.Manadslon.ToString("N0") kr</td>
+                    <td><strong>@r.Poang</strong> / @r.MaxPoang</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@NivaFarg(r.Niva)">
+                            @NivaText(r.Niva)
+                        </MudChip>
+                    </td>
+                    <td>
+                        <MudIconButton Icon="@(_expanded == r ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                       Size="Size.Small" />
                     </td>
                 </tr>
+                @if (_expanded == r)
+                {
+                    <tr>
+                        <td colspan="8" style="padding: 0;">
+                            <MudPaper Class="pa-5" Elevation="0" Style="border-top: 2px solid var(--mud-palette-primary); background: var(--mud-palette-background);">
+                                <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">
+                                    Riskfaktorer för @r.Namn
+                                </MudText>
+                                @if (r.Faktorer.Count == 0)
+                                {
+                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                                        Inga riskfaktorer identifierade — poäng 0.
+                                    </MudText>
+                                }
+                                else
+                                {
+                                    <MudSimpleTable Dense="true" Elevation="1">
+                                        <thead>
+                                            <tr><th>Signal</th><th>Poäng</th><th>Beskrivning</th><th>Datakälla</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var f in r.Faktorer)
+                                            {
+                                                <tr>
+                                                    <td><strong>@f.Signal</strong></td>
+                                                    <td>+@f.Poang</td>
+                                                    <td>@f.Beskrivning</td>
+                                                    <td><code>@f.Datakalla</code></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </MudSimpleTable>
+                                }
+                            </MudPaper>
+                        </td>
+                    </tr>
+                }
             }
-        }
-    </tbody>
-</MudSimpleTable>
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
-    private RiskEmployee? _selectedEmployee;
+    private List<FlightRiskResult> _results = [];
+    private FlightRiskResult? _expanded;
+    private bool _loading = true;
+    private string? _error;
 
-    private void ToggleActions(RiskEmployee emp)
+    protected override async Task OnInitializedAsync()
     {
-        _selectedEmployee = _selectedEmployee == emp ? null : emp;
+        try
+        {
+            var employees = await Db.Employees
+                .Include(e => e.Anstallningar)
+                .ToListAsync();
+
+            _results = RiskService.BeraknaForAlla(employees);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte hämta personaldata: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
-    private static Color RiskColor(string level) => level switch
+    private static Color NivaFarg(FlightRiskNiva niva) => niva switch
     {
-        "Hög" => Color.Error,
-        "Medel" => Color.Warning,
-        "Låg" => Color.Success,
+        FlightRiskNiva.Hog => Color.Error,
+        FlightRiskNiva.Medel => Color.Warning,
+        FlightRiskNiva.Lag => Color.Success,
         _ => Color.Default
     };
 
-    private static Severity ActionSeverity(string action) => action switch
+    private static string NivaText(FlightRiskNiva niva) => niva switch
     {
-        _ when action.Contains("lönesamtal") => Severity.Error,
-        _ when action.Contains("utvecklingsmöjlighet") || action.Contains("utbildning") => Severity.Warning,
-        _ when action.Contains("karriärsamtal") || action.Contains("mentorskap") => Severity.Info,
-        _ => Severity.Normal
+        FlightRiskNiva.Hog => "Hög",
+        FlightRiskNiva.Medel => "Medel",
+        FlightRiskNiva.Lag => "Låg",
+        _ => "—"
     };
-
-    private static string ActionIcon(string action) => action switch
-    {
-        _ when action.Contains("lönesamtal") => Icons.Material.Filled.AttachMoney,
-        _ when action.Contains("utvecklingsmöjlighet") || action.Contains("utbildning") => Icons.Material.Filled.School,
-        _ when action.Contains("karriärsamtal") || action.Contains("mentorskap") => Icons.Material.Filled.RecordVoiceOver,
-        _ when action.Contains("arbetsbelastning") => Icons.Material.Filled.Balance,
-        _ => Icons.Material.Filled.Lightbulb
-    };
-
-    // ---- Chart data ----
-    private readonly List<ChartSeries<double>> _chartSeries = [new ChartSeries<double> { Name = "Riskfördelning", Data = new ChartData<double>(new double[] { 3, 3, 4 }) }];
-    private readonly string[] _chartLabels = ["Hög risk", "Medel risk", "Låg risk"];
-    private readonly ChartOptions _chartOptions = new() { ChartPalette = ["#f44336", "#ff9800", "#4caf50"] };
-
-    // ---- Demo employees ----
-    private readonly List<RiskEmployee> _employees =
-    [
-        new("Maria Lindqvist", "Akutmottagningen", 82, "Hög",
-            ["24 mån utan löneökning", "Ökande sjukfrånvaro"],
-            ["Boka lönesamtal inom 2 veckor", "Erbjud utvecklingsmöjlighet", "Planera karriärsamtal"]),
-        new("Johan Eriksson", "Medicinavdelningen", 78, "Hög",
-            ["Tenure 2.5 år (högriskperiod)", "Lågt samtalsbetyg (2/5)"],
-            ["Boka lönesamtal inom 2 veckor", "Erbjud mentorskap", "Diskutera karriärmål"]),
-        new("Sara Nyström", "Kirurgen", 71, "Hög",
-            ["Löneläge 8% under marknad", "Tenure 2 år"],
-            ["Boka lönesamtal inom 2 veckor", "Erbjud utbildning i specialistområde"]),
-        new("Anders Pettersson", "IVA", 58, "Medel",
-            ["Ökande sjukfrånvaro", "Senaste samtalsbetyg 3/5"],
-            ["Boka uppföljningssamtal", "Se över arbetsbelastning", "Erbjud utvecklingsmöjlighet"]),
-        new("Karin Olsson", "Stab", 52, "Medel",
-            ["18 mån utan löneökning"],
-            ["Planera löneöversyn", "Erbjud utvecklingsmöjlighet"]),
-        new("Erik Johansson", "Akutmottagningen", 48, "Medel",
-            ["Tenure 2.8 år (högriskperiod)"],
-            ["Planera karriärsamtal", "Erbjud nytt ansvarsområde"]),
-        new("Anna Svensson", "Medicinavdelningen", 32, "Låg",
-            ["Senaste samtalsbetyg 3.5/5"],
-            ["Fortsätt regelbundna uppföljningar"]),
-        new("Lisa Holm", "Kirurgen", 25, "Låg",
-            ["Stabil — inga riskfaktorer identifierade"],
-            ["Inga åtgärder krävs — bra läge"]),
-        new("Per Bergström", "IVA", 18, "Låg",
-            ["Nyanställd (6 mån) — hög engagemangsfas"],
-            ["Säkerställ bra introduktion", "Boka 6-månadersuppföljning"]),
-        new("Helena Forsberg", "Stab", 12, "Låg",
-            ["Stabil — lång anställningstid, nöjd"],
-            ["Inga åtgärder krävs — bra läge"]),
-    ];
-
-    private record RiskEmployee(string Namn, string Enhet, int RiskScore, string RiskNiva,
-        string[] Riskfaktorer, string[] Atgarder);
 }

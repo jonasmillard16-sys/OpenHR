@@ -109,6 +109,9 @@ public static class DependencyInjection
         // Schema optimization
         services.AddSingleton<SchemaOptimizer>();
 
+        // Analytics
+        services.AddScoped<Analytics.FlightRiskService>();
+
         // Background services
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();

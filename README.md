@@ -2,47 +2,55 @@
 
 **Open-source HR-system för svenska regioner och kommuner.**
 
-OpenHR är ett komplett personalhanteringssystem byggt för att ersätta HEROMA och andra proprietära HR-system inom svensk offentlig sektor. Systemet är byggt med öppen källkod (AGPL-3.0) och följer svensk arbetsrätt, kollektivavtal och GDPR.
+OpenHR är ett personalhanteringssystem byggt för att ersätta HEROMA och andra proprietära HR-system inom svensk offentlig sektor. Systemet är byggt med öppen källkod (AGPL-3.0) och följer svensk arbetsrätt, kollektivavtal och GDPR.
 
-## Funktioner
+## Funktionsstatus
 
-### Personalhantering
-- Personalregister med anställningar, befattningar och organisationsträd
-- LAS-uppföljning med automatisk ackumulering och konverteringsflöde
-- Kompetensregister med gap-analys per roll
-- Successionsplanering
+### Production-ready
+Dessa funktioner har riktig backend-logik, beräkningar och/eller databaslagring:
 
-### Lön & Ersättning
-- Svensk löneberäkning (kommunalskatt, statlig skatt, arbetsgivaravgift)
-- Kollektivavtal AB/HOK (OB-tillägg, övertid, viloRegler)
-- Löneöversyn och lönekartering (diskrimineringslagen)
-- Integrationer: AGI-XML (Skatteverket), pain.001 (Nordea)
+- **Personalregister** — anställda, organisationsträd, anställningar (PostgreSQL)
+- **Svensk löneberäkning** — SwedishTaxCalculator: kommunalskatt, statlig skatt, arbetsgivaravgift
+- **Kollektivavtal AB/HOK** — KollektivavtalEngine: OB-tillägg, viloregler, övertid, semester per ålder
+- **Traktamentsberäkning** — TraktamentsCalculator: inrikes/utrikes enligt Skatteverkets regler
+- **LAS-uppföljning** — konverteringsflöde med fullständig konsekvensåterkoppling
+- **EF Core + PostgreSQL** — migrationer, seed data (10 anställda, 6 enheter), value converters
+- **Autentisering** — rollbaserad (Admin/HR/Chef/Anställd), persistent session, SITHS/BankID-simulering
+- **PDF-generering** — lönespec, tjänstgöringsintyg, anställningsavtal (text-baserad, QuestPDF-redo)
+- **Integrationsformat** — AGI-XML (Skatteverket), pain.001 (Nordea)
+- **Schemaoptimering** — SchemaOptimizer med round-robin och balansindex
+- **Health checks** — /health endpoint, request logging middleware
+- **Säkerhet** — CSP headers, rate limiting, X-Frame-Options
 
-### Schema & Tid
-- Schemaplanering med optimeringsalgoritm
-- Instämpling och tidrapportering
-- ATL-efterlevnad (Arbetstidslagen)
+### Delvis implementerade
+Dessa har fungerande UI och viss backend-logik men använder delvis demo-data:
 
-### Ledighet & Frånvaro
-- Semester, VAB, föräldraledighet, tjänstledighet
-- Sjukanmälan med automatisk FK-anmälan dag 15
-- Interaktiv månadskalender
+- **Rekrytering** — pipeline med 22 ansökande och statusflöde, men inte kopplad till DB fullt
+- **Rapporter** — 4 rapporter med realistisk data (Löneregister hämtar från DB), CSV-export fungerar
+- **Ledighetshantering** — wizard med ärendenummer, men persisterar ej till DB
+- **HälsoSAM/Rehab** — rehabkedjan med lagstadgade milstolpar (dag 14/90/180/365), delvis DB-kopplad
+- **Medarbetarsamtal** — wizard med dokumentation, 360-feedback UI, ej persisterad
+- **Godkännanden** — approve/reject med batch-operationer, lokal state
+- **Notiser** — InApp med batch-radera och undo, SignalR hub finns men pushar ej
+- **Förmåner (grund)** — friskvård, försäkringsöversikt, formulär fungerar
+- **Dokumenthantering** — upload UI, mallgenerering, PDF-preview
+- **Dashboard** — KPI:er beräknade från modell, klickbara kort
 
-### Rekrytering
-- Vakanser med ansökningspipeline
-- Onboarding och offboarding workflows
-- Intern jobbmarknad
+### Delvis implementerad (riktig backend, begränsad data)
+- **Uppsägningsrisk (Flight Risk v1)** — regelbaserad heuristik, beräknad från riktig personaldata (tenure, anställningsform, befattning, sysselsättningsgrad). Inte prediktiv AI. Begränsningar: ingen sjukfrånvaro, lönehistorik eller samtalsdata.
 
-### Self-service
-- Min sida (schema, lön, ledighet, profil)
-- AI-assistent med personliga svar och åtgärdsknappar
-- Godkännandeflöden
+### Prototyp/mock (UI utan riktig backend)
+Dessa sidor existerar med fungerande navigation och demo-data men saknar backend-persistens:
 
-### Administration
-- GDPR-efterlevnad (registerutdrag, anonymisering)
-- Granskningslogg med ändringshistorik per anställd
-- Pulsundersökningar, peer recognition
-- Dokumenthantering med mallgenerering
+- **Medarbetarresor (Journeys)** — 5 journeys med checklistor, ingen domänmodell/DB
+- **Skills/Karriär marketplace** — skills-katalog, karriärvägar, matchning, ingen DB
+- **Arbetsmiljö SAM** — tillbud, skyddsronder, riskmatris, ingen DB
+- **Strategisk Workforce Planning** — what-if-scenarier, Build/Borrow/Buy, ingen beräkningsmotor
+- **AD/SCIM Provisionering** — dashboard med simulerad synk, ingen extern integration
+- **Benefits Enrollment** — livshändelser, open enrollment, ej kopplad till DB
+- **Talangpool/Recruitment CRM** — kandidatpool, CV-parsning simulerad, ej kopplad till DB
+- **Pulsundersökningar** — enkätverktyg, resultat är demo-data
+- **E-learning** — kurskatalog, inga riktiga SCORM-paket
 
 ## Tech Stack
 
@@ -52,7 +60,7 @@ OpenHR är ett komplett personalhanteringssystem byggt för att ersätta HEROMA 
 | Frontend | Blazor Server, MudBlazor 9.1 |
 | Databas | PostgreSQL 17 |
 | Arkitektur | Modular Monolith (25 moduler) |
-| Tema | Nordic Refined (light/dark) |
+| Tema | Nordic Refined (light/dark mode) |
 | Auth | SITHS/BankID (simulerad), rollbaserad |
 | CI/CD | GitHub Actions |
 | Container | Docker Compose |
@@ -84,13 +92,8 @@ dotnet run --project src/Web/RegionHR.Web.csproj
 ## Utveckling
 
 ```bash
-# Bygga
-dotnet build RegionHR.sln
-
-# Testa (482+ tester)
-dotnet test RegionHR.sln
-
-# Köra
+dotnet build RegionHR.sln       # 0 errors
+dotnet test RegionHR.sln        # 494+ tester
 dotnet run --project src/Web/RegionHR.Web.csproj
 ```
 
@@ -98,16 +101,18 @@ dotnet run --project src/Web/RegionHR.Web.csproj
 
 ```
 src/
-├── SharedKernel/          # Domänprimitiver
+├── SharedKernel/          # Domänprimitiver (Personnummer, Money, EmployeeId)
 ├── Modules/               # 25 domänmoduler
-│   ├── Core/              # Personalregister
-│   ├── Payroll/           # Löneberäkning
-│   ├── Scheduling/        # Schema
-│   ├── CaseManagement/    # Ärenden
-│   ├── LAS/               # LAS-uppföljning
-│   └── ...
-├── Infrastructure/        # EF Core, export, integrationer
-├── Web/                   # Blazor Server (96 sidor)
+│   ├── Core/              # Personalregister, organisation
+│   ├── Payroll/           # Löneberäkning, skatt
+│   ├── Scheduling/        # Schema, instämpling
+│   ├── CaseManagement/    # Ärenden, MBL
+│   ├── LAS/               # LAS-ackumulering
+│   ├── HalsoSAM/          # Rehabilitering
+│   ├── Recruitment/       # Vakanser, ansökningar
+│   └── ...                # 18 moduler till
+├── Infrastructure/        # EF Core, export, beräkningsmotorer, integrationer
+├── Web/                   # Blazor Server (106 sidor)
 ├── Api/                   # REST API
 └── DesignSystem/          # Komponentbibliotek
 ```
