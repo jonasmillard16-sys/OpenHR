@@ -1,103 +1,131 @@
 @page "/medarbetarsamtal/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Performance.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
 
-<PageTitle>OpenHR - Nytt medarbetarsamtal</PageTitle>
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/medarbetarsamtal" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+<PageTitle>OpenHR — Nytt medarbetarsamtal</PageTitle>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd gäller samtalet?</MudText>
-            <MudStack Spacing="2">
-                @foreach (var namn in new[] { "Anna Svensson", "Karl Berg", "Lisa Holm", "Maria Lindgren" })
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _valdAnstalld = namn; _step = 1; })">@namn</MudButton>
-                }
-            </MudStack>
-            break;
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/medarbetarsamtal" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Självbedömning — @_valdAnstalld</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Hur bedömer den anställde sig själv? (1 = behöver utvecklas, 5 = utmärkt)</MudText>
-            @foreach (var omrade in _omraden)
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Nytt medarbetarsamtal</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Skapar ett nytt medarbetarsamtal via PerformanceReview.Skapa() och sparar i databasen.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_created != null)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Medarbetarsamtal skapat</MudText>
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+            <tbody>
+                <tr><td><strong>Anställd</strong></td><td>@GetName(_created.AnstallId)</td></tr>
+                <tr><td><strong>Chef</strong></td><td>@GetName(_created.ChefId)</td></tr>
+                <tr><td><strong>År</strong></td><td>@_created.Ar</td></tr>
+                <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">@_created.Status</MudChip></td></tr>
+            </tbody>
+        </MudSimpleTable>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/medarbetarsamtal">Tillbaka till översikt</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Reset">Skapa ytterligare</MudButton>
+        </div>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid?" @bind-Value="_chefId" Label="Chef / Bedömare" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="int" @bind-Value="_ar" Label="År" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                   Style="min-height: 48px;" OnClick="Skapa"
+                   Disabled="@(_anstallId == null || _chefId == null || _saving)">
+            @if (_saving)
             {
-                <MudPaper Class="pa-3 mb-2" Elevation="1">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@omrade</MudText>
-                    <MudRating @bind-SelectedValue="_sjalvbedomningar[omrade]" MaxValue="5" Color="Color.Primary" Size="Size.Large" />
-                </MudPaper>
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 2)">Nästa — Chefsbedömning</MudButton>
-            break;
-
-        case 2:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Chefsbedömning — @_valdAnstalld</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Hur bedömer du som chef den anställdes prestation?</MudText>
-            @foreach (var omrade in _omraden)
-            {
-                <MudPaper Class="pa-3 mb-2" Elevation="1">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@omrade</MudText>
-                    <MudRating @bind-SelectedValue="_chefsbedomningar[omrade]" MaxValue="5" Color="Color.Warning" Size="Size.Large" />
-                </MudPaper>
-            }
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 3)">Nästa — Målsättning</MudButton>
-            break;
-
-        case 3:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Målsättning för nästa period</MudText>
-            <MudTextField @bind-Value="_mal1" Label="Mål 1" Variant="Variant.Outlined" Class="mb-3" Placeholder="T.ex. Genomföra HLR-utbildning" />
-            <MudTextField @bind-Value="_mal2" Label="Mål 2" Variant="Variant.Outlined" Class="mb-3" Placeholder="T.ex. Handleda ny medarbetare" />
-            <MudTextField @bind-Value="_mal3" Label="Mål 3 (valfritt)" Variant="Variant.Outlined" Class="mb-3" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 4)">Slutför medarbetarsamtal</MudButton>
-            break;
-
-        case 4:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Medarbetarsamtal klart</MudText>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Sammanfattning</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td><strong>Anställd</strong></td><td>@_valdAnstalld</td></tr>
-                            <tr><td><strong>Samtalstyp</strong></td><td>Årligt medarbetarsamtal</td></tr>
-                            <tr><td><strong>Datum</strong></td><td>@DateTime.Now.ToString("yyyy-MM-dd")</td></tr>
-                            <tr><td><strong>Dokumentation</strong></td><td>Komplett — självbedömning + chefsbedömning + mål</td></tr>
-                            <tr><td><strong>Uppsatta mål</strong></td><td>@AntalMal() st</td></tr>
-                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-                    Dokumentet sparas i personalakten. Både chef och medarbetare kan se det under "Medarbetarsamtal".
-                </MudAlert>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/medarbetarsamtal" Style="min-height: 56px;">
-                    Tillbaka till medarbetarsamtal
-                </MudButton>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+            Skapa medarbetarsamtal
+        </MudButton>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Anställd", "Självbedömning", "Chefsbedömning", "Målsättning", "Klart!"];
-    private int _step;
-    private string _valdAnstalld = "";
-    private string _mal1 = "", _mal2 = "", _mal3 = "";
-    private string _arendenummer = "";
-    private readonly string[] _omraden = ["Yrkeskompetens", "Samarbete", "Kommunikation", "Ansvarstagande", "Utveckling"];
-    private readonly Dictionary<string, int> _sjalvbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
-    private readonly Dictionary<string, int> _chefsbedomningar = new() { ["Yrkeskompetens"] = 0, ["Samarbete"] = 0, ["Kommunikation"] = 0, ["Ansvarstagande"] = 0, ["Utveckling"] = 0 };
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private PerformanceReview? _created;
+    private Guid? _anstallId, _chefId;
+    private int _ar = DateTime.Today.Year;
+    private bool _loading = true, _saving;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _arendenummer = $"MBS-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+        try
+        {
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private int AntalMal() => new[] { _mal1, _mal2, _mal3 }.Count(m => !string.IsNullOrWhiteSpace(m));
+    private async Task Skapa()
+    {
+        if (_anstallId == null || _chefId == null) return;
+        _saving = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var review = PerformanceReview.Skapa(_anstallId.Value, _chefId.Value, _ar);
+            Db.PerformanceReviews.Add(review);
+            await Db.SaveChangesAsync();
+            _created = review;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa samtal: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private void Reset()
+    {
+        _created = null;
+        _anstallId = null;
+        _chefId = null;
+        _ar = DateTime.Today.Year;
+    }
+
+    private string GetName(Guid id)
+    {
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+    }
 }

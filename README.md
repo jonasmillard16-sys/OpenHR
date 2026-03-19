@@ -51,7 +51,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **Talangpool** — se "Delvis implementerad" ovan
 - **Pulsundersökningar** — enkätverktyg, demo-resultat
 - **E-learning** — kurskatalog, inga riktiga SCORM-paket
-- **Medarbetarsamtal** — wizard med dokumentation, 360-feedback, ej persisterad
+- **Medarbetarsamtal (v1.5)** — PerformanceReview med domänlogik (Skapa, SattSjalvbedomning, SattChefsbedomning, Genomfor). Persisteras i DB. Seeddata i olika statusar.
 - **Förmåner** — friskvård, försäkringar, formulär utan DB-koppling
 
 ## Tech Stack

@@ -458,6 +458,34 @@ public static class SeedData
         kompKarl.SkickaIn();
         db.LeaveRequests.Add(kompKarl);
 
+        // === PerformanceReviews via domänens Skapa() ===
+        // Anna Svensson — genomfört samtal (alla steg)
+        var reviewAnna = RegionHR.Performance.Domain.PerformanceReview.Skapa(
+            employees[0].Id.Value, employees[7].Id.Value, 2026); // Chef: Anders Olsson
+        reviewAnna.SattSjalvbedomning("Jag har utvecklats inom saravard och tagit mer ansvar i teamet.");
+        reviewAnna.SattChefsbedomning("Anna visar gott engagemang och tar initiativ. Utveckling inom ledarskap rekommenderas.", 4);
+        reviewAnna.SattMalsattning("Genomga ledarskapsutbildning HT 2026, ta ansvar for handledning av ny personal.");
+        reviewAnna.Genomfor();
+        db.PerformanceReviews.Add(reviewAnna);
+
+        // Erik Johansson — sjalvbedomning klar, vantar pa chefens bedomning
+        var reviewErik = RegionHR.Performance.Domain.PerformanceReview.Skapa(
+            employees[1].Id.Value, employees[7].Id.Value, 2026);
+        reviewErik.SattSjalvbedomning("Har hanterat hog arbetsbelastning pa akuten. Onskar mer tid for forskning.");
+        db.PerformanceReviews.Add(reviewErik);
+
+        // Karl Berg — planerat, ej paborjat
+        var reviewKarl = RegionHR.Performance.Domain.PerformanceReview.Skapa(
+            employees[3].Id.Value, employees[7].Id.Value, 2026);
+        db.PerformanceReviews.Add(reviewKarl);
+
+        // Maria Lindgren — chefsbedomning klar, ej genomfort annu
+        var reviewMaria = RegionHR.Performance.Domain.PerformanceReview.Skapa(
+            employees[2].Id.Value, employees[7].Id.Value, 2026);
+        reviewMaria.SattSjalvbedomning("Trivs pa avdelningen. Vill lara mer om dokumentation.");
+        reviewMaria.SattChefsbedomning("Maria ar palitlig och omtyckt. Behover utveckla journalforing.", 3);
+        db.PerformanceReviews.Add(reviewMaria);
+
         await db.SaveChangesAsync();
     }
 }
