@@ -27,6 +27,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Identitetshantering (v1)** — lokal provisioneringslogg (ProvisioningEvent) och regelkonfiguration (ProvisioningRule) i DB. ProvisioningService beräknar åtgärder baserat på regler. LocalRecordingProvider registrerar i DB utan externa anrop. Ingen SCIM/AD/Entra-integration.
 - **Arbetsmiljö SAM (v1)** — tillbud, skyddsronder, riskbedömningar i DB med CRUD. RiskVärde beräknas on-the-fly. Seeddata.
 - **Medarbetarresor (Journeys v1)** — JourneyTemplate + JourneyInstance med owned step-entities. Steg kopieras som snapshot. Persisterad progress. Seeddata.
+- **Förmånsval (v1)** — förmånskatalog (Benefit) + anställds val (EmployeeBenefit) i DB. Registrering via domänens Anmala(), godkännande via Godkann(). Inte full open enrollment. Seeddata.
 - **HälsoSAM/Rehab (v1.5)** — rehabärenden från DB. Milstolpar från lagrade uppföljningsdatum. Seeddata.
 - **Arbetsmiljö SAM (v1)** — tillbud (Incident), skyddsronder (SafetyRound), riskbedömningar (RiskAssessment) i DB. CRUD via formulär. RiskVärde beräknas on-the-fly (Sannolikhet × Konsekvens), lagras ej. EnhetId är logisk koppling (inget FK). Seeddata.
 - **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
@@ -46,7 +47,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **Arbetsmiljö SAM** — se "Delvis implementerad" ovan
 - **Strategisk Workforce Planning** — what-if-scenarier, ingen beräkningsmotor
 - **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
-- **Benefits Enrollment** — livshändelser, open enrollment, ej kopplad till DB
+- **Benefits Enrollment** — se "Delvis implementerad" ovan
 - **Talangpool/Recruitment CRM** — kandidatpool, CV-parsning simulerad
 - **Pulsundersökningar** — enkätverktyg, demo-resultat
 - **E-learning** — kurskatalog, inga riktiga SCORM-paket

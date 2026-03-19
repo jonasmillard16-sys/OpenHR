@@ -1,443 +1,221 @@
 @page "/formaner/enrollment"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@inject ISnackbar Snackbar
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Förmånsval & Livshändelser</PageTitle>
+<PageTitle>OpenHR — Förmånsval</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Förmånsval & Livshändelser</MudText>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmånsval</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showForm = !_showForm)">Registrera val</MudButton>
+</div>
 
-@* === LIVSHÄNDELSER === *@
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
-    <MudIcon Icon="@Icons.Material.Filled.Autorenew" Class="mr-1" Style="vertical-align: middle;" />
-    Livshändelser
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Förmånskatalog och anställdas förmånsval. Adminvy — data hämtas från databasen.
+    Inte full open enrollment-orkestrering.
 </MudText>
 
-<MudAlert Severity="Severity.Info" Class="mb-4" Variant="Variant.Text" Icon="@Icons.Material.Filled.Psychology">
-    Systemet bevakar automatiskt livshändelser som påverkar förmåner och anställningsvillkor. När en händelse upptäcks
-    beräknas konsekvenserna och du får förslag på åtgärder.
-</MudAlert>
-
-@if (_livHandelser.Any(h => h.Status == "Väntar bekräftelse"))
+@if (_loading)
 {
-    <MudAlert Severity="Severity.Warning" Class="mb-4">
-        @(_livHandelser.Count(h => h.Status == "Väntar bekräftelse")) livshändelse(r) kräver din bekräftelse.
-    </MudAlert>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Händelse</th>
-            <th>Datum</th>
-            <th>Påverkar</th>
-            <th>Status</th>
-            <th>Åtgärd</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var h in _livHandelser)
-        {
-            <tr>
-                <td>
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@h.Ikon" Color="@h.IkonFarg" Size="Size.Small" />
-                        <div>
-                            <strong>@h.Namn</strong>
-                            <br />
-                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@h.Beskrivning</MudText>
-                        </div>
-                    </div>
-                </td>
-                <td>@h.Datum</td>
-                <td>@h.Paverkar</td>
-                <td>
-                    <MudChip T="string" Size="Size.Small" Color="@StatusFarg(h.Status)">@h.Status</MudChip>
-                </td>
-                <td>
-                    @if (h.Status == "Automatiskt uppdaterat")
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
-                        <MudText Typo="Typo.body2" Style="display: inline; vertical-align: middle; margin-left: 4px;">Klart</MudText>
-                    }
-                    else if (h.Status == "Väntar bekräftelse")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                   OnClick="@(() => BekraftaHandelse(h))">Bekräfta</MudButton>
-                    }
-                    else if (h.Status == "Planeras")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning"
-                                   OnClick="@(() => StartaOffboarding(h))">Starta offboarding</MudButton>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@* === SYSTEMUPPTÄCKTA INSIKTER === *@
-<MudPaper Class="pa-4 mb-6" Elevation="1" Style="border-left: 4px solid var(--mud-palette-info);">
-    <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.TipsAndUpdates" Class="mr-1" Style="vertical-align: middle;" />
-        Systemet har upptäckt
-    </MudText>
-    <MudList T="string" Dense="true">
-        <MudListItem Icon="@Icons.Material.Filled.Cake" IconColor="Color.Primary">
-            Du har fyllt 40 — din semester ökar till 31 dagar
-        </MudListItem>
-        <MudListItem Icon="@Icons.Material.Filled.ChildCare" IconColor="Color.Success">
-            Nytt barn registrerat — föräldraförsäkring aktiverad
-        </MudListItem>
-        <MudListItem Icon="@Icons.Material.Filled.Favorite" IconColor="Color.Error">
-            Gift — uppdatera efterlevandeförmån
-        </MudListItem>
-    </MudList>
-</MudPaper>
-
-<MudDivider Class="my-6" />
-
-@* === FÖRMÅNSVAL (OPEN ENROLLMENT) === *@
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
-    <MudIcon Icon="@Icons.Material.Filled.HowToVote" Class="mr-1" Style="vertical-align: middle;" />
-    Förmånsval (Open Enrollment)
-</MudText>
-
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Valperiod</MudText>
-            <MudText Typo="Typo.h6" Style="font-weight: 700;">1 nov — 30 nov 2026</MudText>
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    @* Registrera nytt val *@
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Registrera förmånsval</MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined">
+                        @foreach (var e in _employees)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formBenefitId" Label="Förmån" Variant="Variant.Outlined">
+                        @foreach (var b in _benefits.Where(b => b.ArAktiv))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)b.Id)">@b.Namn (@b.Kategori)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="_formBelopp" Label="Belopp (kr)" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_formLivshandelse" Label="Livshändelse (valfritt)" Variant="Variant.Outlined"
+                                  Placeholder="T.ex. Nytt barn, Fyllt 40, Gift" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SparaVal">Registrera</MudButton>
         </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Status</MudText>
-            <MudChip T="string" Color="@(_enrollmentStatus == "Stängd" ? Color.Default : _enrollmentStatus == "Öppen" ? Color.Success : Color.Info)"
-                     Size="Size.Large">
-                @_enrollmentStatus
-            </MudChip>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Har gjort val</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">142 / 238</MudText>
-            <MudProgressLinear Value="59.7" Color="Color.Primary" Class="mt-2" />
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+    }
 
-<MudPaper Class="pa-6 mb-4" Elevation="2">
-    <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Tillgängliga förmåner att välja</MudText>
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
 
-    <MudGrid Spacing="3">
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="1" Style="border-left: 3px solid var(--mud-palette-success);">
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Friskvårdsbidrag</MudText>
-                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">5 000 kr/år — skattefritt</MudText>
-                    </div>
-                    <MudCheckBox @bind-Value="_friskvard" Color="Color.Success" />
-                </div>
+    @* KPI *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_benefits.Count(b => b.ArAktiv)</MudText>
+                <MudText Typo="Typo.body2">Aktiva förmåner</MudText>
             </MudPaper>
         </MudItem>
-
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="1" Style="border-left: 3px solid var(--mud-palette-info);">
-                <div>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Cykelförmån (bruttolöneavdrag)</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">0–3 000 kr/mån</MudText>
-                </div>
-                <MudSlider @bind-Value="_cykelBelopp" Min="0" Max="3000" Step="250" Color="Color.Info" Class="mt-2">
-                    @_cykelBelopp kr/mån
-                </MudSlider>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_selections.Count</MudText>
+                <MudText Typo="Typo.body2">Registrerade val</MudText>
             </MudPaper>
         </MudItem>
-
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="1" Style="border-left: 3px solid var(--mud-palette-warning);">
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Extra sjukvårdsförsäkring</MudText>
-                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Snabbare vård via försäkring</MudText>
-                    </div>
-                    <MudSwitch @bind-Value="_sjukvardsForsakring" Color="Color.Warning" />
-                </div>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_selections.Count(s => s.Status == EnrollmentStatus.Aktiv)</MudText>
+                <MudText Typo="Typo.body2">Aktiva val</MudText>
             </MudPaper>
         </MudItem>
-
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="1" Style="border-left: 3px solid var(--mud-palette-primary);">
-                <div>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Flex-poäng att fördela</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">1 200 poäng tillgängliga</MudText>
-                </div>
-                <MudSlider @bind-Value="_flexPoang" Min="0" Max="1200" Step="100" Color="Color.Primary" Class="mt-2">
-                    @_flexPoang poäng fördelade
-                </MudSlider>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_selections.Count(s => s.Status == EnrollmentStatus.Ansokt)</MudText>
+                <MudText Typo="Typo.body2">Väntar godkännande</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    <MudDivider Class="my-4" />
-
-    <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Sammanställning — totalt förmånsvärde</MudText>
-        <MudSimpleTable Dense="true" Elevation="0" Style="background: transparent;">
-            <tbody>
-                <tr>
-                    <td>Friskvårdsbidrag</td>
-                    <td style="text-align: right;">@(_friskvard ? "5 000 kr/år" : "—")</td>
-                </tr>
-                <tr>
-                    <td>Cykelförmån</td>
-                    <td style="text-align: right;">@(_cykelBelopp > 0 ? $"{_cykelBelopp:N0} kr/mån ({_cykelBelopp * 12:N0} kr/år)" : "—")</td>
-                </tr>
-                <tr>
-                    <td>Extra sjukvårdsförsäkring</td>
-                    <td style="text-align: right;">@(_sjukvardsForsakring ? "3 600 kr/år" : "—")</td>
-                </tr>
-                <tr>
-                    <td>Flex-poäng</td>
-                    <td style="text-align: right;">@(_flexPoang > 0 ? $"{_flexPoang} poäng" : "—")</td>
-                </tr>
-                <tr style="font-weight: 700; border-top: 2px solid var(--mud-palette-lines-default);">
-                    <td><strong>Totalt förmånsvärde</strong></td>
-                    <td style="text-align: right;"><strong>@TotalFormansvarde() kr/år</strong></td>
-                </tr>
-            </tbody>
-        </MudSimpleTable>
-    </MudPaper>
-
-    <div class="d-flex gap-2 mt-4">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
-                   StartIcon="@Icons.Material.Filled.Save" OnClick="SparaVal">
-            Spara val
-        </MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" Style="min-height: 48px;">
-            Återställ
-        </MudButton>
-    </div>
-</MudPaper>
-
-@if (_sparatVal)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparatVal = false)">
-        Förmånsval sparade! Totalt förmånsvärde: @TotalFormansvarde() kr/år.
-    </MudAlert>
-}
-
-<MudDivider Class="my-6" />
-
-@* === FÖRMÅNSÖVERSIKT PER ANSTÄLLD === *@
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
-    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Class="mr-1" Style="vertical-align: middle;" />
-    Förmånsöversikt per anställd
-</MudText>
-
-<MudTextField @bind-Value="_sokAnst" Label="Sök anställd..." Variant="Variant.Outlined" Class="mb-4"
-              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Friskvård</th>
-            <th>Cykel</th>
-            <th>Sjukförs.</th>
-            <th>Flex</th>
-            <th>Pension (AKAP-KR)</th>
-            <th>Semester</th>
-            <th>Totalt värde</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var a in FilteredAnstalldFormaner)
-        {
-            <tr style="cursor: pointer;" @onclick="@(() => ValjAnst(a))">
-                <td><strong>@a.Namn</strong><br /><MudText Typo="Typo.caption">@a.Enhet</MudText></td>
-                <td>
-                    @if (a.Friskvard)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
-                    }
-                </td>
-                <td>@(a.CykelKrMan > 0 ? $"{a.CykelKrMan:N0} kr" : "—")</td>
-                <td>
-                    @if (a.SjukForsakring)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
-                    }
-                </td>
-                <td>@(a.FlexPoang > 0 ? $"{a.FlexPoang} p" : "—")</td>
-                <td>@a.PensionProcent %</td>
-                <td>@a.Semester dagar</td>
-                <td><strong>@a.TotaltVarde kr/år</strong></td>
-            </tr>
-            @if (_valdAnst == a)
+    @* Förmånskatalog *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Förmånskatalog</MudText>
+    <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+        <thead><tr><th>Förmån</th><th>Kategori</th><th>Max belopp</th><th>Arbetsgivarandel</th><th>Skattepliktig</th><th>Status</th></tr></thead>
+        <tbody>
+            @foreach (var b in _benefits)
             {
                 <tr>
-                    <td colspan="8">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-3"><strong>@a.Namn — Förmånsdetaljer</strong></MudText>
-                            <MudGrid Spacing="2">
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Friskvårdsbidrag</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@(a.Friskvard ? "5 000 kr/år" : "Ej vald")</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Cykelförmån</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@(a.CykelKrMan > 0 ? $"{a.CykelKrMan:N0} kr/mån" : "Ej vald")</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Sjukvårdsförsäkring</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@(a.SjukForsakring ? "Ja" : "Nej")</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Flex-poäng</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@(a.FlexPoang > 0 ? $"{a.FlexPoang} p" : "Ej fördelade")</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Pension (AKAP-KR)</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@a.PensionProcent % av lön</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Semester</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@a.Semester dagar/år</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Totalt förmånsvärde</MudText>
-                                    <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 700;">@a.TotaltVarde kr/år</MudText>
-                                </MudItem>
-                            </MudGrid>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdAnst = null)" Class="mt-3">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
+                    <td><strong>@b.Namn</strong><br /><MudText Typo="Typo.caption">@b.Beskrivning</MudText></td>
+                    <td><MudChip T="string" Size="Size.Small">@b.Kategori</MudChip></td>
+                    <td>@(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</td>
+                    <td>@b.ArbetsgivarAndel%</td>
+                    <td>@(b.ArSkattepliktig ? "Ja" : "Nej")</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@(b.ArAktiv ? Color.Success : Color.Default)">@(b.ArAktiv ? "Aktiv" : "Inaktiv")</MudChip></td>
                 </tr>
             }
-        }
-    </tbody>
-</MudSimpleTable>
+        </tbody>
+    </MudSimpleTable>
+
+    @* Anställdas val *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Anställdas förmånsval</MudText>
+    @if (_selections.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga förmånsval registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Förmån</th><th>Belopp</th><th>Start</th><th>Livshändelse</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in _selections.OrderByDescending(s => s.SkapadVid))
+                {
+                    <tr>
+                        <td><strong>@GetEmployeeName(s.AnstallId)</strong></td>
+                        <td>@GetBenefitName(s.BenefitId)</td>
+                        <td>@(s.ValtBelopp > 0 ? $"{s.ValtBelopp:N0} kr" : "—")</td>
+                        <td>@s.StartDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@(s.LivshandardAnledning ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(s.Status)">@StatusText(s.Status)</MudChip></td>
+                        <td>
+                            @if (s.Status == EnrollmentStatus.Ansokt)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                           OnClick="@(async () => await GodkannVal(s))">Godkänn</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    // Livshändelser
-    private List<LivHandelse> _livHandelser = [];
+    private List<Benefit> _benefits = [];
+    private List<EmployeeBenefit> _selections = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _showForm;
+    private string? _error, _success;
+    private Guid? _formAnstallId, _formBenefitId;
+    private decimal _formBelopp;
+    private string _formLivshandelse = "";
 
-    // Enrollment
-    private string _enrollmentStatus = "Stängd";
-    private bool _friskvard = true;
-    private decimal _cykelBelopp = 0;
-    private bool _sjukvardsForsakring;
-    private decimal _flexPoang = 0;
-    private bool _sparatVal;
-
-    // Anställd förmånsöversikt
-    private string _sokAnst = "";
-    private AnstalldFormaner? _valdAnst;
-    private List<AnstalldFormaner> _anstalldFormaner = [];
-
-    private List<AnstalldFormaner> FilteredAnstalldFormaner =>
-        string.IsNullOrWhiteSpace(_sokAnst)
-            ? _anstalldFormaner
-            : _anstalldFormaner.Where(a =>
-                a.Namn.Contains(_sokAnst, StringComparison.OrdinalIgnoreCase) ||
-                a.Enhet.Contains(_sokAnst, StringComparison.OrdinalIgnoreCase)).ToList();
-
-    private void ValjAnst(AnstalldFormaner a) => _valdAnst = _valdAnst == a ? null : a;
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _livHandelser =
-        [
-            new("Anna Svensson — Fyllt 40", "Åldersbaserad förmånsändring", "2026-03-15",
-                "Semester +6 dagar", "Automatiskt uppdaterat",
-                Icons.Material.Filled.Cake, Color.Primary),
-            new("Karl Berg — Nytt barn", "Föräldraledighet och försäkring", "2026-02-20",
-                "Föräldraförmån", "Väntar bekräftelse",
-                Icons.Material.Filled.ChildCare, Color.Success),
-            new("Eva Nilsson — Pension 65", "Pensionsavgång planeras", "2026-12-01",
-                "AKAP-KR, slutlön", "Planeras",
-                Icons.Material.Filled.ElderlyWoman, Color.Warning),
-            new("Lisa Holm — Gift", "Civilståndsändring", "2026-03-01",
-                "Efterlevandeförmån", "Väntar bekräftelse",
-                Icons.Material.Filled.Favorite, Color.Error),
-            new("Per Strand — 50 år", "Åldersbaserad förmånsändring", "2026-01-10",
-                "Semester +1 dag (32 dagar)", "Automatiskt uppdaterat",
-                Icons.Material.Filled.Cake, Color.Primary),
-        ];
-
-        _anstalldFormaner =
-        [
-            new("Anna Svensson", "Kardiologi", true, 1500, true, 800, 4.5m, 31, "68 900"),
-            new("Karl Berg", "Ortopedi", true, 0, false, 0, 4.5m, 25, "38 600"),
-            new("Erik Johansson", "Akutmottagningen", true, 2000, true, 600, 4.5m, 25, "62 200"),
-            new("Lisa Holm", "HR-avdelningen", true, 0, false, 1200, 4.5m, 28, "42 800"),
-            new("Per Gustafsson", "IT-drift", false, 3000, true, 400, 4.5m, 32, "78 200"),
-            new("Sara Karlsson", "Vårdcentral Centrum", true, 0, false, 0, 4.5m, 25, "36 400"),
-            new("Maria Lindström", "Kirurgi", true, 1000, true, 1000, 4.5m, 28, "58 600"),
-            new("Jonas Eriksson", "Barnmottagningen", true, 0, false, 200, 4.5m, 25, "39 200"),
-            new("Eva Nilsson", "Akutmottagningen", true, 0, true, 0, 6.0m, 31, "52 800"),
-            new("Anders Ek", "Avdelning 32", true, 2500, false, 800, 4.5m, 25, "64 100"),
-        ];
+        try
+        {
+            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ToListAsync();
+            _selections = await Db.EmployeeBenefits.ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private string TotalFormansvarde()
+    private async Task SparaVal()
     {
-        decimal total = 0;
-        if (_friskvard) total += 5000;
-        total += _cykelBelopp * 12;
-        if (_sjukvardsForsakring) total += 3600;
-        // Flex-poäng räknas separat
-        return total.ToString("N0");
+        if (_formAnstallId is null || _formBenefitId is null) return;
+        var val = EmployeeBenefit.Anmala(
+            _formAnstallId.Value, _formBenefitId.Value,
+            DateOnly.FromDateTime(DateTime.Today), _formBelopp,
+            string.IsNullOrWhiteSpace(_formLivshandelse) ? null : _formLivshandelse);
+        Db.EmployeeBenefits.Add(val);
+        await Db.SaveChangesAsync();
+        _selections.Add(val);
+        _showForm = false;
+        _success = $"Förmånsval registrerat för {GetEmployeeName(_formAnstallId.Value)}.";
+        _formBelopp = 0; _formLivshandelse = "";
     }
 
-    private void SparaVal()
+    private async Task GodkannVal(EmployeeBenefit val)
     {
-        _sparatVal = true;
-        Snackbar.Add($"Förmånsval sparade! Totalt: {TotalFormansvarde()} kr/år.", Severity.Success);
+        val.Godkann();
+        await Db.SaveChangesAsync();
     }
 
-    private void BekraftaHandelse(LivHandelse h)
+    private string GetEmployeeName(Guid id)
     {
-        h.Status = "Automatiskt uppdaterat";
-        Snackbar.Add($"Livshändelse bekräftad: {h.Namn}", Severity.Success);
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
     }
 
-    private void StartaOffboarding(LivHandelse h)
-    {
-        h.Status = "Offboarding startad";
-        Snackbar.Add($"Offboarding startad för {h.Namn}. Se /offboarding för detaljer.", Severity.Info);
-    }
+    private string GetBenefitName(Guid id) =>
+        _benefits.FirstOrDefault(b => b.Id == id)?.Namn ?? "Okänd";
 
-    private static Color StatusFarg(string s) => s switch
+    private static Color StatusFarg(EnrollmentStatus s) => s switch
     {
-        "Automatiskt uppdaterat" => Color.Success,
-        "Väntar bekräftelse" => Color.Warning,
-        "Planeras" => Color.Info,
-        "Offboarding startad" => Color.Primary,
+        EnrollmentStatus.Aktiv => Color.Success,
+        EnrollmentStatus.Ansokt => Color.Warning,
+        EnrollmentStatus.Nekad => Color.Error,
+        EnrollmentStatus.Avslutad => Color.Default,
         _ => Color.Default
     };
 
-    private class LivHandelse(string namn, string beskrivning, string datum, string paverkar, string status, string ikon, Color ikonFarg)
+    private static string StatusText(EnrollmentStatus s) => s switch
     {
-        public string Namn { get; set; } = namn;
-        public string Beskrivning { get; set; } = beskrivning;
-        public string Datum { get; set; } = datum;
-        public string Paverkar { get; set; } = paverkar;
-        public string Status { get; set; } = status;
-        public string Ikon { get; set; } = ikon;
-        public Color IkonFarg { get; set; } = ikonFarg;
-    }
-
-    private record AnstalldFormaner(string Namn, string Enhet, bool Friskvard, decimal CykelKrMan,
-        bool SjukForsakring, decimal FlexPoang, decimal PensionProcent, int Semester, string TotaltVarde);
+        EnrollmentStatus.Aktiv => "Aktiv",
+        EnrollmentStatus.Ansokt => "Ansökt",
+        EnrollmentStatus.Nekad => "Nekad",
+        EnrollmentStatus.Avslutad => "Avslutad",
+        _ => s.ToString()
+    };
 }

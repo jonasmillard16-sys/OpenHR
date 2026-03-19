@@ -316,6 +316,35 @@ public static class SeedData
             onboardingSara.MarkeraStegKlart(steg.Id, "Seed");
         db.JourneyInstances.Add(onboardingSara);
 
+        // === Benefits catalog + employee selections ===
+        var friskvard = RegionHR.Benefits.Domain.Benefit.Skapa(
+            "Friskvardsbidrag", "Bidrag for fysisk aktivitet (gym, simhall, massage)",
+            RegionHR.Benefits.Domain.BenefitCategory.Friskvard, 5000m, 100m, false);
+        var sjukforsakring = RegionHR.Benefits.Domain.Benefit.Skapa(
+            "Extra sjukvardsforsakring", "Privatvardsforsakring via Skandia",
+            RegionHR.Benefits.Domain.BenefitCategory.Sjukvard, 0m, 100m, false);
+        var cykel = RegionHR.Benefits.Domain.Benefit.Skapa(
+            "Cykelfoman", "Cykel via bruttoloneavdrag, max 3000 kr/man",
+            RegionHR.Benefits.Domain.BenefitCategory.Ovrigt, 3000m, 0m, true);
+        var pension = RegionHR.Benefits.Domain.Benefit.Skapa(
+            "AKAP-KR Pension", "Tjanstepension 6% under 7.5 IBB, 31.5% over",
+            RegionHR.Benefits.Domain.BenefitCategory.Pension, 0m, 100m, false);
+        var utbildning = RegionHR.Benefits.Domain.Benefit.Skapa(
+            "Kompetensutvecklingsbidrag", "Bidrag for arbetsrelaterad vidareutbildning",
+            RegionHR.Benefits.Domain.BenefitCategory.Utbildning, 15000m, 100m, false);
+        db.Benefits.AddRange(friskvard, sjukforsakring, cykel, pension, utbildning);
+
+        // Employee benefit selections via domänens Anmala()
+        var valAnna = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
+            employees[0].Id.Value, friskvard.Id, DateOnly.FromDateTime(DateTime.Today), 5000m);
+        valAnna.Godkann();
+        var valErik = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
+            employees[1].Id.Value, friskvard.Id, DateOnly.FromDateTime(DateTime.Today), 3500m);
+        valErik.Godkann();
+        var valKarl = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
+            employees[3].Id.Value, cykel.Id, DateOnly.FromDateTime(DateTime.Today), 2000m, "Nytt barn — andrat pendlingsvanor");
+        db.EmployeeBenefits.AddRange(valAnna, valErik, valKarl);
+
         await db.SaveChangesAsync();
     }
 }
