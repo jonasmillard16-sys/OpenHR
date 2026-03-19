@@ -37,7 +37,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Godkännanden (v1.5)** — väntande ärenden från DB (Case med owned CaseApproval). Godkänn via Case.Godkann(). Avslå via direkt property-set (domänmetod saknas). Seeddata.
 - **Notiser (v1.5)** — in-app-notiser från DB via Notification-entity. Read/unread via MarkAsRead(). Testnotis skapar riktig DB-post. Ingen realtidspush. Seeddata.
 - **Dokumenthantering (v1.5)** — riktig filuppladdning via IFileStorageService + Document-metadata i DB. Kategori, anställd-koppling, storlek. Mallgenerering (read-only). Seeddata.
-- **Dashboard** — KPI:er beräknade från modell, klickbara kort
+- **Dashboard (v1.5)** — 5 KPI-kort helt från DB (headcount, LAS-alarm, vakanta positioner, godkännanden, bemanningsgrad). Bemanning per enhet från DB. Inga demo-fallbacks, ingen DemoDataModel. Sjukfrånvaro och händelselista borttagna (semantiskt ej möjliga utan ny entity).
 - **Autentisering** — rollbaserad med persistent session, SITHS/BankID-simulering (inte riktig eID)
 
 ### Prototyp/mock

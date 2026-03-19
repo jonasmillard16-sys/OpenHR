@@ -2,8 +2,9 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.LAS.Domain
-@using RegionHR.Recruitment.Domain
-@using RegionHR.Leave.Domain
+@using RegionHR.Positions.Domain
+@using RegionHR.SharedKernel.Domain
+@using RegionHR.CaseManagement.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 @inject NavigationManager Nav
@@ -14,9 +15,7 @@
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Dashboard</MudText>
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                StartIcon="@Icons.Material.Filled.Tune"
-               OnClick="@(() => _showCustomize = !_showCustomize)">
-        Anpassa
-    </MudButton>
+               OnClick="@(() => _showCustomize = !_showCustomize)">Anpassa</MudButton>
 </div>
 
 @if (_showCustomize)
@@ -25,246 +24,144 @@
         <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Visa sektioner</MudText>
         <MudStack Row="true" Spacing="4">
             <MudCheckBox T="bool" @bind-Value="_showKpi" Label="KPI-kort" Color="Color.Primary" />
-            <MudCheckBox T="bool" @bind-Value="_showHandelser" Label="Senaste händelserna" Color="Color.Primary" />
             <MudCheckBox T="bool" @bind-Value="_showBemanning" Label="Bemanning per enhet" Color="Color.Primary" />
         </MudStack>
     </MudPaper>
 }
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 @if (_showKpi)
 {
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
-            <div class="d-flex justify-center align-center gap-1">
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="2">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
                 <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
-                <MudTooltip Text="Totalt antal aktiva anställda i personalregistret just nu">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">Anställda</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/halsosam"))">
-            <div class="d-flex justify-center align-center gap-1">
-                <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjukfranvaro%</MudText>
-                <MudTooltip Text="@($"Det betyder att ungefär {Math.Round(_sjukfranvaro * _headcount / 100)} av {_headcount} anställda i snitt är sjuka varje dag")">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/las"))">
-            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.body2">Anställda</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/las"))">
                 <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
-                <MudTooltip Text="@($"{_lasAlarm} vikarier/timanställda närmar sig LAS-gränsen för konvertering till tillsvidareanställning")">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">LAS-alarm</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/rekrytering/vakanser"))">
-            <div class="d-flex justify-center align-center gap-1">
-                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakanser</MudText>
-                <MudTooltip Text="@($"{_vakanser} publicerade vakanser som aktivt söker kandidater just nu")">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">Öppna vakanser</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/arenden"))">
-            <div class="d-flex justify-center align-center gap-1">
+                <MudText Typo="Typo.body2">LAS-alarm</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/positioner"))">
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakantaPositioner</MudText>
+                <MudText Typo="Typo.body2">Vakanta positioner</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/godkannanden"))">
                 <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
-                <MudTooltip Text="@($"{_godkannanden} ärenden (semester, frånvaro m.m.) väntar på chefsgodkännande")">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">Väntar godkännande</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="2">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/schema/bemanning"))">
-            <div class="d-flex justify-center align-center gap-1">
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
-                <MudTooltip Text="@($"{_bemanningsgrad}% av planerade tjänster är bemannade idag — {100 - _bemanningsgrad}% saknas")">
-                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
-                </MudTooltip>
-            </div>
-            <MudText Typo="Typo.body2">Bemanning idag</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+                <MudText Typo="Typo.body2">Väntar godkännande</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/rapporter/workforce-plan"))">
+                <MudText Typo="Typo.h4" Color="@(_bemanningsgrad >= 90 ? Color.Success : _bemanningsgrad >= 70 ? Color.Warning : Color.Error)" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
+                <MudText Typo="Typo.body2">Bemanningsgrad</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 }
 
-<MudGrid Spacing="4">
-@if (_showHandelser)
+@if (_showBemanning && _bemanningPerEnhet.Count > 0)
 {
-    <MudItem xs="12" md="7">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Senaste händelserna</MudText>
-            <MudStack Spacing="2">
-                @foreach (var h in _handelser)
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Bemanning per enhet</MudText>
+        <MudSimpleTable Dense="true">
+            <thead><tr><th>Enhet</th><th>Aktiva</th><th>Vakanta</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var e in _bemanningPerEnhet)
                 {
-                    <div class="d-flex gap-3 align-center">
-                        <MudText Typo="Typo.caption" Style="min-width: 50px; color: var(--mud-palette-text-secondary);">@h.Tid</MudText>
-                        <MudChip T="string" Size="Size.Small" Color="@h.Farg">@h.Typ</MudChip>
-                        <MudText Typo="Typo.body2">@h.Text</MudText>
-                    </div>
+                    var total = e.Aktiva + e.Vakanta;
+                    var grad = total > 0 ? (int)Math.Round(100.0 * e.Aktiva / total) : 0;
+                    <tr>
+                        <td>@e.Namn</td>
+                        <td>@e.Aktiva</td>
+                        <td>@e.Vakanta</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@(e.Vakanta == 0 ? Color.Success : e.Vakanta <= 1 ? Color.Warning : Color.Error)">
+                                @grad%
+                            </MudChip>
+                        </td>
+                    </tr>
                 }
-            </MudStack>
-        </MudPaper>
-    </MudItem>
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
 }
-
-@if (_showBemanning)
+else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
 {
-    <MudItem xs="12" md="5">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Bemanning per enhet</MudText>
-            <MudSimpleTable Dense="true">
-                <thead><tr><th>Enhet</th><th>Status</th></tr></thead>
-                <tbody>
-                    @foreach (var enhet in _bemanningPerEnhet)
-                    {
-                        <tr>
-                            <td>@enhet.Namn</td>
-                            <td>
-                                <MudChip T="string" Size="Size.Small" Color="@enhet.StatusColor">
-                                    @enhet.Bemannade/@enhet.Planerade
-                                </MudChip>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    </MudItem>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga positioner registrerade i databasen.</MudAlert>
 }
-</MudGrid>
 
 @code {
-    // --- Dashboard customization toggles ---
     private bool _showCustomize;
     private bool _showKpi = true;
-    private bool _showHandelser = true;
     private bool _showBemanning = true;
+    private bool _loading = true;
+    private string? _error;
 
-    // --- KPI variables (computed from demo model or DB) ---
     private int _headcount;
-    private decimal _sjukfranvaro;
     private int _lasAlarm;
-    private int _vakanser;
+    private int _vakantaPositioner;
     private int _godkannanden;
     private int _bemanningsgrad;
-
-    private List<Handelse> _handelser = [];
-    private List<EnhetBemanning> _bemanningPerEnhet = [];
-
-    // --- Demo data model used for fallback when DB is unavailable ---
-    private static readonly DemoDataModel _demo = new();
+    private List<EnhetBemanningVm> _bemanningPerEnhet = [];
 
     protected override async Task OnInitializedAsync()
     {
-        // Start from demo defaults (computed values)
-        _headcount = _demo.TotalAnstallda;
-        _sjukfranvaro = _demo.SjukfranvaroProcent;
-        _lasAlarm = _demo.LasAlarmCount;
-        _vakanser = _demo.OppnaVakanser;
-        _godkannanden = _demo.VantandeGodkannanden;
-        _bemanningPerEnhet = _demo.Enheter;
-
-        // Compute staffing rate from unit data
-        var totalPlanerade = _bemanningPerEnhet.Sum(e => e.Planerade);
-        var totalBemannade = _bemanningPerEnhet.Sum(e => e.Bemannade);
-        _bemanningsgrad = totalPlanerade > 0
-            ? (int)Math.Round(100.0 * totalBemannade / totalPlanerade)
-            : 0;
-
-        // Override with live DB data when available
         try
         {
-            _headcount = await Db.Employees.CountAsync();
-        }
-        catch { /* demo fallback */ }
+            var idag = DateOnly.FromDateTime(DateTime.Today);
 
-        try
-        {
+            // Headcount: anställda med aktiv anställning
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            _headcount = employees.Count(e => e.AktivAnstallning(idag) != null);
+
+            // LAS-alarm: LASAccumulation med status NaraGrans eller KritiskNara
             _lasAlarm = await Db.LASAccumulations
                 .CountAsync(l => l.Status == LASStatus.NaraGrans || l.Status == LASStatus.KritiskNara);
-        }
-        catch { /* demo fallback */ }
 
-        try
+            // Vakanta positioner
+            var positions = await Db.Positions_Table.ToListAsync();
+            _vakantaPositioner = positions.Count(p => p.Status == PositionStatus.Vakant);
+
+            // Väntande godkännanden (Case, inte LeaveRequest)
+            _godkannanden = await Db.Cases
+                .CountAsync(c => c.Status == CaseStatus.VantarGodkannande);
+
+            // Bemanningsgrad: aktiva / (aktiva + vakanta) positioner
+            var aktiva = positions.Count(p => p.Status == PositionStatus.Aktiv);
+            var vakanta = positions.Count(p => p.Status == PositionStatus.Vakant);
+            var total = aktiva + vakanta;
+            _bemanningsgrad = total > 0 ? (int)Math.Round(100.0 * aktiva / total) : 0;
+
+            // Bemanning per enhet
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+
+            _bemanningPerEnhet = positions
+                .GroupBy(p => p.EnhetId)
+                .Select(g => new EnhetBemanningVm(
+                    enhetNamn.TryGetValue(g.Key, out var namn) ? namn : "Okänd enhet",
+                    g.Count(p => p.Status == PositionStatus.Aktiv),
+                    g.Count(p => p.Status == PositionStatus.Vakant)))
+                .OrderByDescending(e => e.Vakanta)
+                .ToList();
+        }
+        catch (Exception ex)
         {
-            _vakanser = await Db.Vacancies
-                .CountAsync(v => v.Status == VacancyStatus.Publicerad);
+            _error = $"Kunde inte hämta dashboard-data: {ex.Message}";
         }
-        catch { /* demo fallback */ }
-
-        try
-        {
-            _godkannanden = await Db.LeaveRequests
-                .CountAsync(l => l.Status == LeaveRequestStatus.Inskickad);
-        }
-        catch { /* demo fallback */ }
-
-        // Recompute derived KPI: sjukfranvaro as percentage of headcount
-        _sjukfranvaro = _demo.ComputeSjukfranvaro(_headcount);
-
-        _handelser = [
-            new("09:14", "Sjuk", "Anna Svensson sjukanmälde sig", Color.Error),
-            new("09:02", "Lön", "Lönekörning mars startad", Color.Info),
-            new("08:45", "Rekryt.", "3 nya ansökningar till Sjuksköterska vakans", Color.Primary),
-            new("08:30", "Schema", "Aprilschemat publicerat för Avd 32", Color.Success),
-            new("08:15", "LAS", "Maria Lindgren nådde 348 dagar — åtgärd krävs", Color.Warning),
-            new("07:55", "Rehab", "Uppföljningsmöte bokat med Karl Berg", Color.Info),
-            new("07:30", "Godkänn", "Erik Johanssons semester godkänd av chef", Color.Success),
-        ];
+        finally { _loading = false; }
     }
 
-    private record Handelse(string Tid, string Typ, string Text, Color Farg);
-
-    private record EnhetBemanning(string Namn, int Bemannade, int Planerade)
-    {
-        public Color StatusColor => Bemannade == Planerade ? Color.Success
-            : Bemannade >= Planerade - 1 ? Color.Warning
-            : Color.Error;
-    }
-
-    /// <summary>Demo data model that provides realistic computed KPI defaults.</summary>
-    private class DemoDataModel
-    {
-        // Base workforce figures
-        public int TotalAnstallda { get; } = 5023;
-        private int SjukaDagligen { get; } = 211; // ~4.2% of 5023
-
-        // Computed KPIs
-        public decimal SjukfranvaroProcent => Math.Round(100m * SjukaDagligen / TotalAnstallda, 1);
-        public int LasAlarmCount { get; } = 14;
-        public int OppnaVakanser { get; } = 5;
-        public int VantandeGodkannanden { get; } = 11;
-
-        public List<EnhetBemanning> Enheter { get; } =
-        [
-            new("Avdelning 32", 8, 8),
-            new("Avdelning 33", 5, 6),
-            new("Akutmottagningen", 12, 12),
-            new("IVA", 7, 10),
-        ];
-
-        /// <summary>Compute sickness rate scaled to actual headcount.</summary>
-        public decimal ComputeSjukfranvaro(int headcount)
-        {
-            // Keep the same ratio: ~211 sick per 5023 employees
-            var scaledSick = (int)Math.Round((decimal)SjukaDagligen * headcount / TotalAnstallda);
-            return headcount > 0 ? Math.Round(100m * scaledSick / headcount, 1) : 0m;
-        }
-    }
+    private record EnhetBemanningVm(string Namn, int Aktiva, int Vakanta);
 }
