@@ -53,6 +53,27 @@ public sealed class RehabCase : AggregateRoot<Guid>
         };
     }
 
+    /// <summary>
+    /// Seed/test-factory som skapar ett rehabärende med ett givet startdatum.
+    /// Milstolpar beräknas konsekvent från startdatum, inte DateTime.UtcNow.
+    /// Inte avsedd att anropas från UI eller produktionskod.
+    /// </summary>
+    internal static RehabCase SkapaForSeed(EmployeeId anstallId, RehabTrigger trigger, DateTime skapadVid)
+    {
+        return new RehabCase
+        {
+            Id = Guid.NewGuid(),
+            AnstallId = anstallId,
+            Trigger = trigger,
+            Status = RehabStatus.Signal,
+            SkapadVid = skapadVid,
+            Uppfoljning14Dagar = skapadVid.AddDays(14),
+            Uppfoljning90Dagar = skapadVid.AddDays(90),
+            Uppfoljning180Dagar = skapadVid.AddDays(180),
+            Uppfoljning365Dagar = skapadVid.AddDays(365)
+        };
+    }
+
     public void TilldelaArendeagare(EmployeeId hrPerson)
     {
         ArendeagareHR = hrPerson;

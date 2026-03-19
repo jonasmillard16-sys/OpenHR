@@ -243,40 +243,26 @@ public static class SeedData
             Arbetsmiljo.RiskAssessment.Skapa("Medicinhantering", "Risk for felmedicinering vid markning", 2, 5,
                 "Dubbelsignering, barkodsystem", "Lakemedelsansvarig", DateOnly.FromDateTime(DateTime.Today.AddDays(90))));
 
-        // === RehabCase — skapade via domänens RehabCase.Skapa() ===
-        // Milstolpar (dag 14/90/180/365) beräknas automatiskt av Skapa() från SkapadVid.
+        // === RehabCase — skapade via domänens SkapaForSeed() ===
+        // Milstolpar beräknas konsekvent från givet startdatum av SkapaForSeed().
         // Detta representerar planerade uppföljningsdatum, inte verifierad sjukfallsstart.
 
-        // Karl Berg — upprepad korttidsfrånvaro, skapad ~45 dagar sedan
-        var rehabKarl = RehabCase.Skapa(employees[3].Id, RehabTrigger.SexTillfallenTolvManader);
-        // Manipulera SkapadVid för att simulera att ärendet startade tidigare
-        // (domänmodellen har private set, så vi använder reflection — ej produktionskod)
-        typeof(RehabCase).GetProperty("SkapadVid")!.SetValue(rehabKarl, DateTime.UtcNow.AddDays(-45));
-        typeof(RehabCase).GetProperty("Uppfoljning14Dagar")!.SetValue(rehabKarl, DateTime.UtcNow.AddDays(-45 + 14));
-        typeof(RehabCase).GetProperty("Uppfoljning90Dagar")!.SetValue(rehabKarl, DateTime.UtcNow.AddDays(-45 + 90));
-        typeof(RehabCase).GetProperty("Uppfoljning180Dagar")!.SetValue(rehabKarl, DateTime.UtcNow.AddDays(-45 + 180));
-        typeof(RehabCase).GetProperty("Uppfoljning365Dagar")!.SetValue(rehabKarl, DateTime.UtcNow.AddDays(-45 + 365));
+        // Karl Berg — upprepad korttidsfrånvaro, startade ~45 dagar sedan
+        var rehabKarl = RehabCase.SkapaForSeed(
+            employees[3].Id, RehabTrigger.SexTillfallenTolvManader, DateTime.UtcNow.AddDays(-45));
         rehabKarl.TilldelaArendeagare(employees[8].Id); // Eva Nilsson (HR)
         rehabKarl.SattRehabPlan("Uppfoljningssamtal varannan vecka, anpassad arbetsatergang diskuteras");
         db.RehabCases.Add(rehabKarl);
 
-        // Helena Bergstrom — långtidssjuk >14 dagar, skapad ~22 dagar sedan
-        var rehabHelena = RehabCase.Skapa(employees[6].Id, RehabTrigger.FjortonSammanhangandeDagar);
-        typeof(RehabCase).GetProperty("SkapadVid")!.SetValue(rehabHelena, DateTime.UtcNow.AddDays(-22));
-        typeof(RehabCase).GetProperty("Uppfoljning14Dagar")!.SetValue(rehabHelena, DateTime.UtcNow.AddDays(-22 + 14));
-        typeof(RehabCase).GetProperty("Uppfoljning90Dagar")!.SetValue(rehabHelena, DateTime.UtcNow.AddDays(-22 + 90));
-        typeof(RehabCase).GetProperty("Uppfoljning180Dagar")!.SetValue(rehabHelena, DateTime.UtcNow.AddDays(-22 + 180));
-        typeof(RehabCase).GetProperty("Uppfoljning365Dagar")!.SetValue(rehabHelena, DateTime.UtcNow.AddDays(-22 + 365));
+        // Helena Bergstrom — långtidssjuk >14 dagar, startade ~22 dagar sedan
+        var rehabHelena = RehabCase.SkapaForSeed(
+            employees[6].Id, RehabTrigger.FjortonSammanhangandeDagar, DateTime.UtcNow.AddDays(-22));
         rehabHelena.TilldelaArendeagare(employees[8].Id);
         db.RehabCases.Add(rehabHelena);
 
-        // Maria Lindgren — chef initierat, skapad ~160 dagar sedan (passerat dag 90)
-        var rehabMaria = RehabCase.Skapa(employees[2].Id, RehabTrigger.ChefInitierat);
-        typeof(RehabCase).GetProperty("SkapadVid")!.SetValue(rehabMaria, DateTime.UtcNow.AddDays(-160));
-        typeof(RehabCase).GetProperty("Uppfoljning14Dagar")!.SetValue(rehabMaria, DateTime.UtcNow.AddDays(-160 + 14));
-        typeof(RehabCase).GetProperty("Uppfoljning90Dagar")!.SetValue(rehabMaria, DateTime.UtcNow.AddDays(-160 + 90));
-        typeof(RehabCase).GetProperty("Uppfoljning180Dagar")!.SetValue(rehabMaria, DateTime.UtcNow.AddDays(-160 + 180));
-        typeof(RehabCase).GetProperty("Uppfoljning365Dagar")!.SetValue(rehabMaria, DateTime.UtcNow.AddDays(-160 + 365));
+        // Maria Lindgren — chef initierat, startade ~160 dagar sedan (passerat dag 90)
+        var rehabMaria = RehabCase.SkapaForSeed(
+            employees[2].Id, RehabTrigger.ChefInitierat, DateTime.UtcNow.AddDays(-160));
         rehabMaria.TilldelaArendeagare(employees[8].Id);
         rehabMaria.SattRehabPlan("Arbetsformagebedomning genomford, deltidsatergang 50%");
         db.RehabCases.Add(rehabMaria);
