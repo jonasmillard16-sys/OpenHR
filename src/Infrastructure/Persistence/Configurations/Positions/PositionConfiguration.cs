@@ -16,7 +16,9 @@ public class PositionConfiguration : IEntityTypeConfiguration<Position>
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(x => x.BudgeteradManadslon).HasColumnType("decimal(18,2)");
         builder.Property(x => x.Sysselsattningsgrad).HasColumnType("decimal(5,2)");
+        #pragma warning disable CS0618 // Legacy field, kept for DB schema compatibility
         builder.Property(x => x.KravdaKompetenser).HasColumnType("jsonb");
+        #pragma warning restore CS0618
         builder.HasIndex(x => x.EnhetId);
         builder.HasIndex(x => x.InnehavareAnstallId);
         builder.OwnsMany(x => x.Historik, historik =>

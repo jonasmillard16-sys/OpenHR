@@ -38,12 +38,12 @@ Dessa har fungerande UI och viss backend-logik men använder delvis demo-data:
 
 ### Delvis implementerad (riktig backend, begränsad data)
 - **Uppsägningsrisk (Flight Risk v1)** — regelbaserad heuristik, beräknad från riktig personaldata (tenure, anställningsform, befattning, sysselsättningsgrad). Inte prediktiv AI. Begränsningar: ingen sjukfrånvaro, lönehistorik eller samtalsdata.
+- **Skills/Kompetens (v1)** — normaliserad skills-katalog i DB (Skill, EmployeeSkill, PositionSkillRequirement). Gap-analys jämför anställds skills mot positionens kravprofil via riktig relation (Position.InnehavareAnstallId). Seeddata i DB — inte production-ready.
 
 ### Prototyp/mock (UI utan riktig backend)
 Dessa sidor existerar med fungerande navigation och demo-data men saknar backend-persistens:
 
 - **Medarbetarresor (Journeys)** — 5 journeys med checklistor, ingen domänmodell/DB
-- **Skills/Karriär marketplace** — skills-katalog, karriärvägar, matchning, ingen DB
 - **Arbetsmiljö SAM** — tillbud, skyddsronder, riskmatris, ingen DB
 - **Strategisk Workforce Planning** — what-if-scenarier, Build/Borrow/Buy, ingen beräkningsmotor
 - **AD/SCIM Provisionering** — dashboard med simulerad synk, ingen extern integration

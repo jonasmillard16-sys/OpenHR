@@ -111,6 +111,9 @@ public class RegionHRDbContext : DbContext
     // Competence (schema: competence)
     public DbSet<Certification> Certifications => Set<Certification>();
     public DbSet<MandatoryTraining> MandatoryTrainings => Set<MandatoryTraining>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<EmployeeSkill> EmployeeSkills => Set<EmployeeSkill>();
+    public DbSet<PositionSkillRequirement> PositionSkillRequirements => Set<PositionSkillRequirement>();
 
     // Benefits (schema: benefits)
     public DbSet<Benefit> Benefits => Set<Benefit>();

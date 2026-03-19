@@ -1,213 +1,141 @@
 @page "/karriar/min-utveckling"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Competence.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>OpenHR - Min utvecklingsplan</PageTitle>
+<PageTitle>OpenHR — Min utvecklingsplan</PageTitle>
 
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Min utvecklingsplan</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-               OnClick="SparaUtvecklingsplan">Spara plan</MudButton>
-</div>
-
-@if (_sparad)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">
-        Utvecklingsplanen har sparats!
-    </MudAlert>
-}
-
-<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
-    Systemet analyserar din kompetensprofil och rekommenderar nästa steg baserat på din karriärplan.
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Min utvecklingsplan</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Dina registrerade kompetenser och eventuella gap mot din positions kravprofil.
 </MudText>
 
-@* ======================== NUVARANDE KOMPETENSER ======================== *@
-<MudPaper Class="pa-6 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.Star" Class="mr-2" Style="vertical-align: middle;" />
-        Dina kompetenser
-    </MudText>
-    <MudChipSet T="string" Class="mb-3">
-        @foreach (var skill in _currentSkills)
-        {
-            <MudChip T="string" Color="@ProficiencyColor(skill.Niva)" Size="Size.Medium">
-                @skill.Namn (@skill.Niva/5)
-            </MudChip>
-        }
-    </MudChipSet>
-    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-        Nivå: 1=Grundläggande, 2=Utövare, 3=Kompetent, 4=Skicklig, 5=Expert
-    </MudText>
-</MudPaper>
-
-@* ======================== KARRIÄRMÅL ======================== *@
-<MudPaper Class="pa-6 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.Flag" Class="mr-2" Style="vertical-align: middle;" />
-        Karriärmål
-    </MudText>
-    <MudSelect T="string" @bind-Value="_careerGoal" Label="Välj ditt karriärmål" Variant="Variant.Outlined" Class="mb-3">
-        <MudSelectItem T="string" Value="@("Specialistsjuksköterska IVA")">Specialistsjuksköterska IVA</MudSelectItem>
-        <MudSelectItem T="string" Value="@("Teamledare")">Teamledare</MudSelectItem>
-        <MudSelectItem T="string" Value="@("Verksamhetschef")">Verksamhetschef</MudSelectItem>
-        <MudSelectItem T="string" Value="@("Projektledare")">Projektledare</MudSelectItem>
-        <MudSelectItem T="string" Value="@("Forskningssjuksköterska")">Forskningssjuksköterska</MudSelectItem>
-    </MudSelect>
-    <MudTextField @bind-Value="_customGoalNote" Label="Egna anteckningar om ditt mål" Variant="Variant.Outlined"
-                  Lines="2" Class="mb-2" />
-</MudPaper>
-
-@* ======================== REKOMMENDERADE KOMPETENSER ======================== *@
-<MudPaper Class="pa-6 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Class="mr-2" Style="vertical-align: middle;" />
-        Rekommenderade kompetenser
-    </MudText>
-    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-        Baserat på ditt mål "@_careerGoal" identifierar systemet följande kompetensgap.
-    </MudText>
-
-    @foreach (var rec in _recommendedSkills)
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_mySkills.Count == 0 && _gapItems.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Inga kompetenser registrerade för dig ännu.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Dina kompetenser</MudText>
+    @if (_mySkills.Count > 0)
     {
-        <MudPaper Class="pa-4 mb-3" Elevation="1" Style="background: var(--mud-palette-background-grey);">
-            <div class="d-flex justify-space-between align-center mb-2">
-                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@rec.Kompetens</MudText>
-                <MudChip T="string" Size="Size.Small" Color="@PriorityColor(rec.Prioritet)">@rec.Prioritet prioritet</MudChip>
-            </div>
-            <MudText Typo="Typo.body2" Class="mb-2">@rec.Beskrivning</MudText>
-
-            <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight: 600;">Tillgängliga kurser:</MudText>
-            <MudList T="string" Dense="true">
-                @foreach (var kurs in rec.Kurser)
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+            <thead><tr><th>Skill</th><th>Kategori</th><th>Din nivå</th></tr></thead>
+            <tbody>
+                @foreach (var ms in _mySkills)
                 {
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.School">
-                        <div class="d-flex justify-space-between align-center" style="width: 100%;">
-                            <span>@kurs.Namn — @kurs.Langd</span>
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@kurs.Format</MudChip>
-                        </div>
-                    </MudListItem>
+                    <tr>
+                        <td><strong>@ms.SkillNamn</strong></td>
+                        <td><MudChip T="string" Size="Size.Small">@ms.Kategori</MudChip></td>
+                        <td><MudRating ReadOnly="true" SelectedValue="@ms.Niva" MaxValue="5" Size="Size.Small" /></td>
+                    </tr>
                 }
-            </MudList>
-        </MudPaper>
+            </tbody>
+        </MudSimpleTable>
     }
-</MudPaper>
 
-@* ======================== TIDSLINJE ======================== *@
-<MudPaper Class="pa-6 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-        <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="mr-2" Style="vertical-align: middle;" />
-        Utvecklingstidslinje
-    </MudText>
-
-    <MudTimeline TimelinePosition="TimelinePosition.Start">
-        @foreach (var milestone in _milestones)
+    @if (_positionNamn != null)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Gap mot position: @_positionNamn</MudText>
+        @if (_gapItems.Count > 0)
         {
-            <MudTimelineItem Color="@(milestone.Klar ? Color.Success : Color.Default)" Variant="Variant.Filled"
-                             Size="Size.Small">
-                <ItemDot>
-                    @if (milestone.Klar)
+            <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+                <thead><tr><th>Skill</th><th>Krävd nivå</th><th>Din nivå</th><th>Gap</th></tr></thead>
+                <tbody>
+                    @foreach (var g in _gapItems)
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" />
+                        <tr>
+                            <td><strong>@g.SkillNamn</strong></td>
+                            <td><MudRating ReadOnly="true" SelectedValue="@g.KravdNiva" MaxValue="5" Size="Size.Small" /></td>
+                            <td><MudRating ReadOnly="true" SelectedValue="@g.DinNiva" MaxValue="5" Size="Size.Small" /></td>
+                            <td>
+                                @if (g.Gap > 0)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">-@g.Gap</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip>
+                                }
+                            </td>
+                        </tr>
                     }
-                </ItemDot>
-                <ItemContent>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@milestone.Titel</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@milestone.Period</MudText>
-                    <MudText Typo="Typo.body2">@milestone.Beskrivning</MudText>
-                    @if (milestone.Klar)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-1">Genomförd</MudChip>
-                    }
-                    else if (milestone.Pagar)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mt-1">Pågår</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mt-1">Planerad</MudChip>
-                    }
-                </ItemContent>
-            </MudTimelineItem>
+                </tbody>
+            </MudSimpleTable>
         }
-    </MudTimeline>
-
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">
-        Systemet beräknar att du kan nå ditt mål "@_careerGoal" inom ca 18 månader om du följer utvecklingsplanen.
-    </MudAlert>
-</MudPaper>
+        else
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Text">Inga gap — du uppfyller alla krav för din position.</MudAlert>
+        }
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+            Ingen position kopplad — gap-analys ej tillgänglig.
+        </MudAlert>
+    }
+}
 
 @code {
-    private bool _sparad;
-    private string _careerGoal = "Specialistsjuksköterska IVA";
-    private string _customGoalNote = "";
+    private List<MySkillVm> _mySkills = [];
+    private List<GapVm> _gapItems = [];
+    private string? _positionNamn;
+    private bool _loading = true;
+    private string? _error;
 
-    private void SparaUtvecklingsplan()
+    protected override async Task OnInitializedAsync()
     {
-        _sparad = true;
+        try
+        {
+            // Hämta första anställd som har skills (i produktion: inloggad användare)
+            var allSkills = await Db.Skills.ToListAsync();
+            var allEmpSkills = await Db.EmployeeSkills.ToListAsync();
+
+            // Hitta en anställd med skills att visa
+            var anstallId = allEmpSkills.Select(es => es.AnstallId).Distinct().FirstOrDefault();
+            if (anstallId == Guid.Empty) { _loading = false; return; }
+
+            var myEmpSkills = allEmpSkills.Where(es => es.AnstallId == anstallId).ToList();
+            _mySkills = myEmpSkills.Select(es =>
+            {
+                var skill = allSkills.FirstOrDefault(s => s.Id == es.SkillId);
+                return new MySkillVm(skill?.Namn ?? "?", skill?.Kategori.ToString() ?? "?", es.Niva);
+            }).OrderBy(s => s.SkillNamn).ToList();
+
+            // Hitta position via InnehavareAnstallId
+            var position = await Db.Positions_Table
+                .FirstOrDefaultAsync(p => p.InnehavareAnstallId == anstallId);
+
+            if (position != null)
+            {
+                _positionNamn = position.Titel;
+                var krav = await Db.PositionSkillRequirements
+                    .Where(r => r.PositionId == position.Id).ToListAsync();
+
+                _gapItems = krav.Select(k =>
+                {
+                    var skill = allSkills.FirstOrDefault(s => s.Id == k.SkillId);
+                    var empSkill = myEmpSkills.FirstOrDefault(es => es.SkillId == k.SkillId);
+                    var dinNiva = empSkill?.Niva ?? 0;
+                    return new GapVm(skill?.Namn ?? "?", k.MinNiva, dinNiva, Math.Max(0, k.MinNiva - dinNiva));
+                }).OrderByDescending(g => g.Gap).ToList();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private static Color ProficiencyColor(int level) => level switch
-    {
-        >= 4 => Color.Success,
-        3 => Color.Info,
-        2 => Color.Warning,
-        _ => Color.Default
-    };
-
-    private static Color PriorityColor(string priority) => priority switch
-    {
-        "Hög" => Color.Error,
-        "Medel" => Color.Warning,
-        _ => Color.Success
-    };
-
-    // ---- Demo data ----
-
-    private readonly List<CurrentSkill> _currentSkills =
-    [
-        new("HLR", 4),
-        new("Journalföring", 5),
-        new("Läkemedelshantering", 3),
-        new("Triage", 3),
-        new("Sårvård", 4),
-        new("IT-system (Cosmic/TakeCare)", 2),
-    ];
-
-    private readonly List<RecommendedSkill> _recommendedSkills =
-    [
-        new("Intensivvård", "Hög",
-            "Grundläggande kompetens som krävs för alla IVA-tjänster. Du saknar detta helt idag.",
-            [
-                new("IVA-grundkurs", "5 dagar", "Klassrum"),
-                new("Intensivvård — teori och praktik", "3 veckor", "Klinisk praktik"),
-                new("Hemodynamisk övervakning", "2 dagar", "E-learning + workshop"),
-            ]),
-        new("Anestesi", "Hög",
-            "Anestesikunskaper kompletterar din IVA-kompetens. Rekommenderas starkt.",
-            [
-                new("Anestesisjukvård — introduktion", "3 dagar", "Klassrum"),
-                new("Farmakologi inom anestesi", "2 dagar", "E-learning"),
-            ]),
-        new("Ledarskap", "Medel",
-            "Teamkoordinering och ledarskap stärker din profil för framtida chefsroller.",
-            [
-                new("Ledarskap i vården", "4 dagar", "Klassrum"),
-                new("Situationsanpassat ledarskap", "1 dag", "Workshop"),
-                new("Mentor/handledarprogrammet", "6 månader", "Mentorskap"),
-            ]),
-    ];
-
-    private readonly List<Milestone> _milestones =
-    [
-        new("HLR-certifiering förnyad", "Jan 2026", "Grundcertifiering godkänd med högsta betyg.", true, false),
-        new("Journalföring — expertcertifierad", "Mar 2026", "Nivå 5 uppnådd efter intern examination.", true, false),
-        new("IVA-grundkurs", "Apr-Maj 2026", "5-dagars klassrumskurs i intensivvård påbörjad.", false, true),
-        new("Klinisk praktik IVA", "Jun-Jul 2026", "3 veckors handledd praktik på IVA-avdelningen.", false, false),
-        new("Anestesi introduktionskurs", "Sep 2026", "Farmakologi och praktisk anestesisjukvård.", false, false),
-        new("Specialistsjuksköterska-ansökan", "Dec 2026", "Ansök till specialistutbildningen med fullständigt underlag.", false, false),
-    ];
-
-    private record CurrentSkill(string Namn, int Niva);
-    private record RecommendedSkill(string Kompetens, string Prioritet, string Beskrivning, CourseInfo[] Kurser);
-    private record CourseInfo(string Namn, string Langd, string Format);
-    private record Milestone(string Titel, string Period, string Beskrivning, bool Klar, bool Pagar);
+    private record MySkillVm(string SkillNamn, string Kategori, int Niva);
+    private record GapVm(string SkillNamn, int KravdNiva, int DinNiva, int Gap);
 }

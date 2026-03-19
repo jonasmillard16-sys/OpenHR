@@ -30,3 +30,38 @@ public class MandatoryTrainingConfiguration : IEntityTypeConfiguration<Mandatory
         builder.Property(x => x.Beskrivning).HasMaxLength(1000);
     }
 }
+
+public class SkillConfiguration : IEntityTypeConfiguration<Skill>
+{
+    public void Configure(EntityTypeBuilder<Skill> builder)
+    {
+        builder.ToTable("skills", "competence");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Namn).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Kategori).HasConversion<string>().HasMaxLength(30);
+        builder.Property(x => x.Beskrivning).HasMaxLength(1000);
+        builder.HasIndex(x => x.Namn).IsUnique();
+    }
+}
+
+public class EmployeeSkillConfiguration : IEntityTypeConfiguration<EmployeeSkill>
+{
+    public void Configure(EntityTypeBuilder<EmployeeSkill> builder)
+    {
+        builder.ToTable("employee_skills", "competence");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.AnstallId, x.SkillId }).IsUnique();
+        builder.Property(x => x.Niva).IsRequired();
+    }
+}
+
+public class PositionSkillRequirementConfiguration : IEntityTypeConfiguration<PositionSkillRequirement>
+{
+    public void Configure(EntityTypeBuilder<PositionSkillRequirement> builder)
+    {
+        builder.ToTable("position_skill_requirements", "competence");
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.PositionId, x.SkillId }).IsUnique();
+        builder.Property(x => x.MinNiva).IsRequired();
+    }
+}

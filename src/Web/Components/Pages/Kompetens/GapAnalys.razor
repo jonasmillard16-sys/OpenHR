@@ -1,260 +1,184 @@
 @page "/kompetens/gapanalys"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Competence.Domain
+@using RegionHR.Positions.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Kompetens Gap-analys</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Kompetens Gap-analys</MudText>
+<PageTitle>OpenHR — Gap-analys</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Kompetens gap-analys</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Visar krav kontra faktisk kompetens per befattning. Identifierar kritiska gap och föreslår åtgärder.
+    Jämför anställdas registrerade skills mot positionens kravprofil (PositionSkillRequirement).
+    Anställda utan kopplad position visas inte.
 </MudText>
 
-@* --- Role selector --- *@
-<MudSelect T="string" @bind-Value="_valdBefattning" Label="Välj befattning" Variant="Variant.Outlined"
-           Class="mb-4" Style="max-width: 400px;" AnchorOrigin="Origin.BottomCenter">
-    @foreach (var b in _befattningar)
-    {
-        <MudSelectItem Value="@b">@b</MudSelectItem>
-    }
-</MudSelect>
-
-@if (!string.IsNullOrEmpty(_valdBefattning) && _gapData.ContainsKey(_valdBefattning))
+@if (_loading)
 {
-    var data = _gapData[_valdBefattning];
-
-    @* --- KPI summary for selected role --- *@
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_gapResults.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Inga positioner med kravprofil och kopplad anställd hittades.</MudAlert>
+}
+else
+{
     <MudGrid Spacing="3" Class="mb-4">
-        <MudItem xs="3">
-            <MudPaper Class="pa-3 text-center" Elevation="1">
-                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@data.AntalAnstallda</MudText>
-                <MudText Typo="Typo.body2">Anställda med befattningen</MudText>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);">
+                <MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_gapResults.Count(r => r.HarGap)</MudText>
+                <MudText Typo="Typo.body2">Med gap</MudText>
             </MudPaper>
         </MudItem>
-        <MudItem xs="3">
-            <MudPaper Class="pa-3 text-center" Elevation="1">
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@data.Kompetenser.Count(k => k.Tacking >= 90)</MudText>
-                <MudText Typo="Typo.body2">Kompetenser &gt;90 % täckning</MudText>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_gapResults.Count(r => !r.HarGap)</MudText>
+                <MudText Typo="Typo.body2">Uppfyller alla krav</MudText>
             </MudPaper>
         </MudItem>
-        <MudItem xs="3">
-            <MudPaper Class="pa-3 text-center" Elevation="1">
-                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@data.Kompetenser.Count(k => k.Tacking >= 70 && k.Tacking < 90)</MudText>
-                <MudText Typo="Typo.body2">Kompetenser 70–90 %</MudText>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_gapResults.Count</MudText>
+                <MudText Typo="Typo.body2">Analyserade</MudText>
             </MudPaper>
         </MudItem>
-        <MudItem xs="3">
-            <MudPaper Class="pa-3 text-center" Elevation="1">
-                <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@data.Kompetenser.Count(k => k.Tacking < 70)</MudText>
-                <MudText Typo="Typo.body2">Kritiska gap (&lt;70 %)</MudText>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_totalGapCount</MudText>
+                <MudText Typo="Typo.body2">Totala gap</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    @* --- Suggestion cards for critical gaps --- *@
-    @foreach (var komp in data.Kompetenser.Where(k => k.Tacking < 70))
-    {
-        var saknas = data.AntalAnstallda - komp.AntalMed;
-        <OhrSuggestionCard
-            Title="@($"{saknas} {_valdBefattning.ToLower()} saknar {komp.Namn}")"
-            Explanation="@($"Täckningsgrad {komp.Tacking:0} % — under gränsvärdet 70 %. {komp.Atgardsforslag}")"
-            Level="OhrSuggestionCard.SuggestionLevel.Warning"
-            Actions="@(new Dictionary<string, string>
-            {
-                { "boka", "Boka utbildning" },
-                { "paminn", "Påminn anställda" }
-            })"
-            OnActionClicked="@HandleGapAction" />
-    }
-
-    @if (_gapActionMessage is not null)
-    {
-        <MudAlert Severity="@_gapActionSeverity" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _gapActionMessage = null)">@_gapActionMessage</MudAlert>
-    }
-
-    @* --- Competence gap table --- *@
-    <MudText Typo="Typo.h6" Class="mb-3">Kompetenskrav — @_valdBefattning</MudText>
-    <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <MudSimpleTable Hover="true" Elevation="2">
         <thead>
-            <tr>
-                <th>Kompetens</th>
-                <th>Typ</th>
-                <th>Krav</th>
-                <th>Har</th>
-                <th>Saknar</th>
-                <th>Täckning</th>
-                <th>Status</th>
-            </tr>
+            <tr><th>Anställd</th><th>Position</th><th>Krav</th><th>Uppfyllda</th><th>Gap</th><th>Täckningsgrad</th><th></th></tr>
         </thead>
         <tbody>
-            @foreach (var komp in data.Kompetenser.OrderBy(k => k.Tacking))
+            @foreach (var r in _gapResults)
             {
-                <tr>
-                    <td><strong>@komp.Namn</strong></td>
-                    <td>@komp.Typ</td>
-                    <td>@data.AntalAnstallda</td>
-                    <td>@komp.AntalMed</td>
-                    <td style="color: @(komp.Tacking < 70 ? "var(--mud-palette-error)" : "inherit");">@(data.AntalAnstallda - komp.AntalMed)</td>
+                <tr style="cursor: pointer;" @onclick="@(() => _expanded = _expanded == r ? null : r)">
+                    <td><strong>@r.AnstallNamn</strong></td>
+                    <td>@r.PositionTitel</td>
+                    <td>@r.AntalKrav</td>
+                    <td>@r.Uppfyllda</td>
                     <td>
-                        <MudProgressLinear Value="@komp.Tacking" Color="@TackningsColor(komp.Tacking)" Class="my-1" Style="min-width: 100px;" />
-                        <MudText Typo="Typo.caption">@komp.Tacking.ToString("0") %</MudText>
+                        @if (r.HarGap)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">@r.AntalGap gap</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">0</MudChip>
+                        }
                     </td>
                     <td>
-                        <MudChip T="string" Size="Size.Small" Color="@TackningsColor(komp.Tacking)">@TackningsStatus(komp.Tacking)</MudChip>
+                        <MudProgressLinear Value="@r.TackningsgradProcent" Color="@(r.TackningsgradProcent >= 100 ? Color.Success : r.TackningsgradProcent >= 70 ? Color.Warning : Color.Error)"
+                                           Style="min-width: 100px;" />
+                        <MudText Typo="Typo.caption">@r.TackningsgradProcent%</MudText>
                     </td>
+                    <td><MudIconButton Icon="@(_expanded == r ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Size="Size.Small" /></td>
                 </tr>
+                @if (_expanded == r)
+                {
+                    <tr>
+                        <td colspan="7" style="padding: 0;">
+                            <MudPaper Class="pa-4" Elevation="0" Style="border-top: 2px solid var(--mud-palette-primary); background: var(--mud-palette-background);">
+                                <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Detaljerad gap-analys: @r.AnstallNamn</MudText>
+                                <MudSimpleTable Dense="true" Elevation="1">
+                                    <thead><tr><th>Skill</th><th>Krävd nivå</th><th>Anställds nivå</th><th>Status</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var d in r.Detaljer)
+                                        {
+                                            <tr>
+                                                <td>@d.SkillNamn</td>
+                                                <td><MudRating ReadOnly="true" SelectedValue="@d.KravdNiva" MaxValue="5" Size="Size.Small" /></td>
+                                                <td><MudRating ReadOnly="true" SelectedValue="@d.DinNiva" MaxValue="5" Size="Size.Small" /></td>
+                                                <td>
+                                                    @if (d.DinNiva >= d.KravdNiva)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Uppfylld</MudChip>
+                                                    }
+                                                    else if (d.DinNiva == 0)
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Saknas</MudChip>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Nivå @d.DinNiva / @d.KravdNiva</MudChip>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </MudSimpleTable>
+                            </MudPaper>
+                        </td>
+                    </tr>
+                }
             }
         </tbody>
     </MudSimpleTable>
 }
-else if (!string.IsNullOrEmpty(_valdBefattning))
-{
-    <MudAlert Severity="Severity.Info" Class="mb-4">Ingen data tillgänglig för vald befattning.</MudAlert>
-}
-else
-{
-    <MudAlert Severity="Severity.Info" Class="mb-4">Välj en befattning ovan för att se gap-analysen.</MudAlert>
-}
-
-@* --- Overview across all roles --- *@
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Översikt — kritiska gap per befattning</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Befattning</th>
-            <th>Anställda</th>
-            <th>Kompetenskrav</th>
-            <th>Kritiska gap</th>
-            <th>Genomsnittlig täckning</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var kvp in _gapData.OrderByDescending(x => x.Value.Kompetenser.Count(k => k.Tacking < 70)))
-        {
-            var kritiska = kvp.Value.Kompetenser.Count(k => k.Tacking < 70);
-            var snittTackning = kvp.Value.Kompetenser.Average(k => k.Tacking);
-            <tr>
-                <td><strong>@kvp.Key</strong></td>
-                <td>@kvp.Value.AntalAnstallda</td>
-                <td>@kvp.Value.Kompetenser.Count</td>
-                <td>
-                    @if (kritiska > 0)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@kritiska gap</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Inga</MudChip>
-                    }
-                </td>
-                <td>
-                    <MudProgressLinear Value="@snittTackning" Color="@TackningsColor(snittTackning)" Class="my-1" Style="min-width: 100px;" />
-                    <MudText Typo="Typo.caption">@snittTackning.ToString("0") %</MudText>
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
 
 @code {
-    private string _valdBefattning = "";
-    private List<string> _befattningar = [];
-    private Dictionary<string, BefattningsGap> _gapData = new();
+    private List<GapResult> _gapResults = [];
+    private GapResult? _expanded;
+    private int _totalGapCount;
+    private bool _loading = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _gapData = new Dictionary<string, BefattningsGap>
+        try
         {
-            ["Sjuksköterska"] = new(217,
-            [
-                new("HLR", "Obligatorisk", 198, "Boka utbildningstillfälle — nästa kurs 15 april"),
-                new("Läkemedelshantering", "Obligatorisk", 210, "E-learning tillgänglig i utbildningsportalen"),
-                new("Brandskydd", "Obligatorisk", 195, "Årlig utbildning — boka via Utbildning"),
-                new("Hygienrutiner", "Obligatorisk", 214, ""),
-                new("Journalföring (Cambio)", "Verksamhetskritisk", 205, "Kontakta IT för behörighet"),
-                new("Smärtskattning", "Verksamhetskritisk", 180, "Klinisk handledning planeras"),
-                new("Triagebedömning", "Specialisering", 142, "Specialistkurs via Karolinska — anmäl senast 30 april"),
-                new("Palliativ vård", "Specialisering", 88, "Regionens utbildningsprogram startar hösten 2026"),
-            ]),
-            ["Undersköterska"] = new(170,
-            [
-                new("HLR", "Obligatorisk", 148, "3 utbildningstillfällen inplanerade i april"),
-                new("Förflyttningsteknik", "Obligatorisk", 162, ""),
-                new("Hygienrutiner", "Obligatorisk", 165, ""),
-                new("Brandskydd", "Obligatorisk", 155, "Årlig utbildning — boka via Utbildning"),
-                new("Demenskunskap", "Verksamhetskritisk", 130, "E-learning + praktisk workshop"),
-                new("Nutrition & matning", "Verksamhetskritisk", 145, ""),
-                new("Sårvård", "Specialisering", 98, "Klinisk kurs erbjuds via vårdavdelningen"),
-            ]),
-            ["Läkare"] = new(110,
-            [
-                new("HLR & A-HLR", "Obligatorisk", 108, ""),
-                new("Läkemedelsförskrivning", "Obligatorisk", 110, ""),
-                new("Strålskydd", "Obligatorisk", 102, "Årlig repetitionsutbildning"),
-                new("Journalföring (Cambio)", "Verksamhetskritisk", 107, ""),
-                new("Klinisk handledning", "Verksamhetskritisk", 78, "Handledarutbildning — nästa omgång september"),
-                new("Forskningsmetodik", "Specialisering", 55, "Samarbete med universitetet planeras"),
-            ]),
-            ["Enhetschef"] = new(50,
-            [
-                new("Arbetsrätt (LAS/MBL)", "Obligatorisk", 48, ""),
-                new("Arbetsmiljöansvar (SAM)", "Obligatorisk", 45, "Repetitionsutbildning i maj"),
-                new("Lönebildning", "Verksamhetskritisk", 42, "Workshop med HR i april"),
-                new("Svåra samtal", "Verksamhetskritisk", 38, "Extern konsult bokad — anmäl via HR"),
-                new("Budget & ekonomistyrning", "Verksamhetskritisk", 40, "Ekonomiavdelningen erbjuder grundkurs"),
-                new("Brandskydd — anläggningsansvarig", "Obligatorisk", 32, "Obligatorisk för alla chefer — boka nu"),
-            ]),
-        };
+            var skills = await Db.Skills.ToListAsync();
+            var empSkills = await Db.EmployeeSkills.ToListAsync();
+            var requirements = await Db.PositionSkillRequirements.ToListAsync();
+            var positions = await Db.Positions_Table
+                .Where(p => p.InnehavareAnstallId != null && p.Status == PositionStatus.Aktiv)
+                .ToListAsync();
+            var employees = await Db.Employees.ToListAsync();
 
-        _befattningar = _gapData.Keys.OrderBy(k => k).ToList();
+            foreach (var pos in positions)
+            {
+                var emp = employees.FirstOrDefault(e => e.Id.Value == pos.InnehavareAnstallId);
+                if (emp is null) continue;
 
-        if (_befattningar.Count > 0)
-            _valdBefattning = "Sjuksköterska";
-    }
+                var posKrav = requirements.Where(r => r.PositionId == pos.Id).ToList();
+                if (posKrav.Count == 0) continue;
 
-    private string? _gapActionMessage;
-    private Severity _gapActionSeverity = Severity.Info;
+                var empSkillsForPerson = empSkills.Where(es => es.AnstallId == emp.Id.Value).ToList();
 
-    private void HandleGapAction(string actionKey)
-    {
-        switch (actionKey)
-        {
-            case "boka":
-                _gapActionMessage = "Utbildningstillfälle har bokats. Inbjudningar skickas till berörda anställda.";
-                _gapActionSeverity = Severity.Success;
-                break;
-            case "paminn":
-                _gapActionMessage = "Påminnelse skickad till anställda som saknar kompetensen.";
-                _gapActionSeverity = Severity.Info;
-                break;
-            default:
-                _gapActionMessage = $"Åtgärd '{actionKey}' utförd.";
-                _gapActionSeverity = Severity.Info;
-                break;
+                var detaljer = posKrav.Select(k =>
+                {
+                    var skill = skills.FirstOrDefault(s => s.Id == k.SkillId);
+                    var es = empSkillsForPerson.FirstOrDefault(es => es.SkillId == k.SkillId);
+                    return new GapDetalj(skill?.Namn ?? "?", k.MinNiva, es?.Niva ?? 0);
+                }).OrderByDescending(d => Math.Max(0, d.KravdNiva - d.DinNiva)).ToList();
+
+                var uppfyllda = detaljer.Count(d => d.DinNiva >= d.KravdNiva);
+                var gap = detaljer.Count(d => d.DinNiva < d.KravdNiva);
+                var tackningsgrad = posKrav.Count > 0 ? (int)Math.Round((double)uppfyllda / posKrav.Count * 100) : 100;
+
+                _gapResults.Add(new GapResult(
+                    $"{emp.Fornamn} {emp.Efternamn}", pos.Titel,
+                    posKrav.Count, uppfyllda, gap, gap > 0, tackningsgrad, detaljer));
+            }
+
+            _gapResults = _gapResults.OrderByDescending(r => r.AntalGap).ToList();
+            _totalGapCount = _gapResults.Sum(r => r.AntalGap);
         }
+        catch (Exception ex) { _error = $"Kunde inte utföra gap-analys: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private static Color TackningsColor(double pct) => pct switch
-    {
-        >= 90 => Color.Success,
-        >= 70 => Color.Warning,
-        _ => Color.Error
-    };
-
-    private static string TackningsStatus(double pct) => pct switch
-    {
-        >= 90 => "Uppfyllt",
-        >= 70 => "Bevaka",
-        _ => "Kritiskt gap"
-    };
-
-    private record KompetensRad(string Namn, string Typ, int AntalMed, string Atgardsforslag)
-    {
-        public double Tacking { get; init; } = 0; // Set in constructor below
-    }
-
-    private record BefattningsGap(int AntalAnstallda, List<KompetensRad> RawKompetenser)
-    {
-        public List<KompetensRad> Kompetenser { get; } = RawKompetenser
-            .Select(k => k with { Tacking = AntalAnstallda > 0 ? (double)k.AntalMed / AntalAnstallda * 100 : 0 })
-            .ToList();
-    }
+    private record GapResult(string AnstallNamn, string PositionTitel, int AntalKrav,
+        int Uppfyllda, int AntalGap, bool HarGap, int TackningsgradProcent, List<GapDetalj> Detaljer);
+    private record GapDetalj(string SkillNamn, int KravdNiva, int DinNiva);
 }

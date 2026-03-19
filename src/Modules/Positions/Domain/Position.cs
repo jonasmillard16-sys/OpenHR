@@ -17,6 +17,11 @@ public class Position
     public DateTime SkapadVid { get; private set; }
     public DateTime? AvveckladVid { get; private set; }
     public List<PositionHistorik> Historik { get; private set; } = new();
+    /// <summary>
+    /// LEGACY: Fritextlista. Ersatt av PositionSkillRequirement för gap-analys.
+    /// Behålls för bakåtkompatibilitet men används inte i ny funktionalitet.
+    /// </summary>
+    [Obsolete("Använd PositionSkillRequirement istället")]
     public List<string> KravdaKompetenser { get; private set; } = new();
 
     private Position() { }
@@ -53,5 +58,11 @@ public class Position
     public void Avveckla() { Status = PositionStatus.Avvecklad; AvveckladVid = DateTime.UtcNow; }
     public void SattEftertrardare(Guid anstallId) { EftertradarePlanerad = anstallId; }
     public void UppdateraBudget(decimal nyManadslon) { BudgeteradManadslon = nyManadslon; }
-    public void LaggTillKompetenskrav(string kompetens) { if (!KravdaKompetenser.Contains(kompetens)) KravdaKompetenser.Add(kompetens); }
+    [Obsolete("Använd PositionSkillRequirement istället")]
+    public void LaggTillKompetenskrav(string kompetens)
+    {
+        #pragma warning disable CS0618
+        if (!KravdaKompetenser.Contains(kompetens)) KravdaKompetenser.Add(kompetens);
+        #pragma warning restore CS0618
+    }
 }

@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RegionHR.Core.Domain;
+using RegionHR.Competence.Domain;
+using RegionHR.Positions.Domain;
 using RegionHR.SharedKernel.Domain;
 
 namespace RegionHR.Infrastructure.Persistence;
@@ -10,7 +12,7 @@ public static class SeedData
     {
         if (await db.Employees.AnyAsync()) return; // Already seeded
 
-        // Organization units
+        // === Organization units ===
         var region = OrganizationUnit.Skapa(
             "Region Vastra Gotaland", OrganizationUnitType.Region,
             "10000", DateOnly.FromDateTime(DateTime.Today.AddYears(-20)));
@@ -42,8 +44,7 @@ public static class SeedData
 
         db.OrganizationUnits.AddRange(region, sjukhus, avd32, avd33, akuten, iva);
 
-        // Employees (10 realistic Swedish employees) with employments
-        // Personnummer with valid Luhn check digits
+        // === Employees ===
         var seedEmployees = new (string Fornamn, string Efternamn, string Pnr, string Befattning, OrganizationId Enhet, Money Lon)[]
         {
             ("Anna", "Svensson", "198503152383", "Sjukskoterska", avd32.Id, Money.SEK(34500m)),
@@ -58,31 +59,123 @@ public static class SeedData
             ("Per", "Andersson", "198705232466", "Underskoterska", iva.Id, Money.SEK(28200m)),
         };
 
+        var employees = new List<Employee>();
         foreach (var (fornamn, efternamn, pnr, befattning, enhetId, lon) in seedEmployees)
         {
-            var employee = Employee.Skapa(
-                Personnummer.CreateValidated(pnr),
-                fornamn,
-                efternamn);
-
+            var employee = Employee.Skapa(Personnummer.CreateValidated(pnr), fornamn, efternamn);
             employee.UppdateraKontaktuppgifter(
                 $"{fornamn.ToLower()}.{efternamn.ToLower()}@regionvg.se",
                 $"070-{Random.Shared.Next(100, 999)} {Random.Shared.Next(10, 99)} {Random.Shared.Next(10, 99)}",
                 null);
-
             var startdatum = DateOnly.FromDateTime(DateTime.Today.AddYears(-Random.Shared.Next(1, 15)));
-
             var employment = employee.LaggTillAnstallning(
-                enhetId,
-                EmploymentType.Tillsvidare,
-                CollectiveAgreementType.AB,
-                lon,
-                Percentage.FullTime,
-                startdatum);
+                enhetId, EmploymentType.Tillsvidare, CollectiveAgreementType.AB,
+                lon, Percentage.FullTime, startdatum);
             employment.SattBefattning(befattning);
-
             db.Employees.Add(employee);
+            employees.Add(employee);
         }
+
+        // === Skills (normaliserad katalog) ===
+        var hlr = Skill.Skapa("HLR", SkillCategory.Klinisk, "Hjart-lungr\u00e4ddning");
+        var triage = Skill.Skapa("Triage", SkillCategory.Klinisk, "Prioritering av patienter");
+        var lakemedel = Skill.Skapa("Lakemedelshantering", SkillCategory.Klinisk, "Administration och kontroll av lakemedel");
+        var journal = Skill.Skapa("Journalforing", SkillCategory.Klinisk, "Dokumentation i patientjournal");
+        var saravard = Skill.Skapa("Saravard", SkillCategory.Klinisk, "Omlaggning och savard");
+        var ventilator = Skill.Skapa("Ventilatorvard", SkillCategory.Klinisk, "Hantering av respirator/ventilator");
+        var ledarskap = Skill.Skapa("Ledarskap", SkillCategory.Ledarskap, "Arbetsledning och teamledning");
+        var projektledning = Skill.Skapa("Projektledning", SkillCategory.Ledarskap, "Planering och genomforande av projekt");
+        var excel = Skill.Skapa("Excel/Statistik", SkillCategory.Teknisk, "Dataanalys och rapportering");
+        var it = Skill.Skapa("IT-system", SkillCategory.Teknisk, "Hantering av verksamhetssystem");
+        var kommunikation = Skill.Skapa("Kommunikation", SkillCategory.Administration, "Muntlig och skriftlig kommunikation");
+        var arbetsratt = Skill.Skapa("Arbetsratt", SkillCategory.Administration, "Kunskap om LAS, MBL, AML");
+
+        db.Skills.AddRange(hlr, triage, lakemedel, journal, saravard, ventilator,
+            ledarskap, projektledning, excel, it, kommunikation, arbetsratt);
+
+        // === Positions (kopplade till anstallda via InnehavareAnstallId) ===
+        var posSsk32 = Position.Skapa(avd32.Id.Value, "Sjukskoterska Avd 32", 34500, 100);
+        posSsk32.Tillsatt(employees[0].Id.Value); // Anna Svensson
+        var posLakAkut = Position.Skapa(akuten.Id.Value, "Lakare Akutmottagningen", 62000, 100);
+        posLakAkut.Tillsatt(employees[1].Id.Value); // Erik Johansson
+        var posUsk33 = Position.Skapa(avd33.Id.Value, "Underskoterska Avd 33", 27800, 100);
+        posUsk33.Tillsatt(employees[2].Id.Value); // Maria Lindgren
+        var posSskIva = Position.Skapa(iva.Id.Value, "Sjukskoterska IVA", 35200, 100);
+        posSskIva.Tillsatt(employees[3].Id.Value); // Karl Berg
+        var posVc = Position.Skapa(sjukhus.Id.Value, "Verksamhetschef", 52000, 100);
+        posVc.Tillsatt(employees[7].Id.Value); // Anders Olsson
+
+        db.Positions_Table.AddRange(posSsk32, posLakAkut, posUsk33, posSskIva, posVc);
+
+        // === PositionSkillRequirements (kravprofiler per position) ===
+        // Sjukskoterska Avd 32: HLR 3, Lakemedel 4, Journal 3, Saravard 3
+        db.PositionSkillRequirements.AddRange(
+            PositionSkillRequirement.Skapa(posSsk32.Id, hlr.Id, 3),
+            PositionSkillRequirement.Skapa(posSsk32.Id, lakemedel.Id, 4),
+            PositionSkillRequirement.Skapa(posSsk32.Id, journal.Id, 3),
+            PositionSkillRequirement.Skapa(posSsk32.Id, saravard.Id, 3));
+
+        // Lakare Akutmottagningen: HLR 5, Triage 5, Lakemedel 5, Journal 4
+        db.PositionSkillRequirements.AddRange(
+            PositionSkillRequirement.Skapa(posLakAkut.Id, hlr.Id, 5),
+            PositionSkillRequirement.Skapa(posLakAkut.Id, triage.Id, 5),
+            PositionSkillRequirement.Skapa(posLakAkut.Id, lakemedel.Id, 5),
+            PositionSkillRequirement.Skapa(posLakAkut.Id, journal.Id, 4));
+
+        // Underskoterska Avd 33: HLR 2, Saravard 3, Journal 2
+        db.PositionSkillRequirements.AddRange(
+            PositionSkillRequirement.Skapa(posUsk33.Id, hlr.Id, 2),
+            PositionSkillRequirement.Skapa(posUsk33.Id, saravard.Id, 3),
+            PositionSkillRequirement.Skapa(posUsk33.Id, journal.Id, 2));
+
+        // Sjukskoterska IVA: HLR 5, Ventilator 4, Lakemedel 5, Journal 4
+        db.PositionSkillRequirements.AddRange(
+            PositionSkillRequirement.Skapa(posSskIva.Id, hlr.Id, 5),
+            PositionSkillRequirement.Skapa(posSskIva.Id, ventilator.Id, 4),
+            PositionSkillRequirement.Skapa(posSskIva.Id, lakemedel.Id, 5),
+            PositionSkillRequirement.Skapa(posSskIva.Id, journal.Id, 4));
+
+        // Verksamhetschef: Ledarskap 5, Kommunikation 4, Arbetsratt 3, Excel 3
+        db.PositionSkillRequirements.AddRange(
+            PositionSkillRequirement.Skapa(posVc.Id, ledarskap.Id, 5),
+            PositionSkillRequirement.Skapa(posVc.Id, kommunikation.Id, 4),
+            PositionSkillRequirement.Skapa(posVc.Id, arbetsratt.Id, 3),
+            PositionSkillRequirement.Skapa(posVc.Id, excel.Id, 3));
+
+        // === EmployeeSkills (vad de anstallda faktiskt kan) ===
+        // Anna Svensson (SSK Avd32): HLR 4, Lakemedel 3, Journal 4, Saravard 4
+        db.EmployeeSkills.AddRange(
+            EmployeeSkill.Skapa(employees[0].Id.Value, hlr.Id, 4),
+            EmployeeSkill.Skapa(employees[0].Id.Value, lakemedel.Id, 3),
+            EmployeeSkill.Skapa(employees[0].Id.Value, journal.Id, 4),
+            EmployeeSkill.Skapa(employees[0].Id.Value, saravard.Id, 4));
+
+        // Erik Johansson (Lakare Akut): HLR 5, Triage 4, Lakemedel 5, Journal 3
+        db.EmployeeSkills.AddRange(
+            EmployeeSkill.Skapa(employees[1].Id.Value, hlr.Id, 5),
+            EmployeeSkill.Skapa(employees[1].Id.Value, triage.Id, 4),
+            EmployeeSkill.Skapa(employees[1].Id.Value, lakemedel.Id, 5),
+            EmployeeSkill.Skapa(employees[1].Id.Value, journal.Id, 3));
+
+        // Maria Lindgren (USK Avd33): HLR 2, Saravard 2, Journal 2
+        db.EmployeeSkills.AddRange(
+            EmployeeSkill.Skapa(employees[2].Id.Value, hlr.Id, 2),
+            EmployeeSkill.Skapa(employees[2].Id.Value, saravard.Id, 2),
+            EmployeeSkill.Skapa(employees[2].Id.Value, journal.Id, 2));
+
+        // Karl Berg (SSK IVA): HLR 5, Ventilator 3, Lakemedel 4, Journal 3
+        db.EmployeeSkills.AddRange(
+            EmployeeSkill.Skapa(employees[3].Id.Value, hlr.Id, 5),
+            EmployeeSkill.Skapa(employees[3].Id.Value, ventilator.Id, 3),
+            EmployeeSkill.Skapa(employees[3].Id.Value, lakemedel.Id, 4),
+            EmployeeSkill.Skapa(employees[3].Id.Value, journal.Id, 3));
+
+        // Anders Olsson (VC): Ledarskap 4, Kommunikation 4, Arbetsratt 2, Excel 3
+        db.EmployeeSkills.AddRange(
+            EmployeeSkill.Skapa(employees[7].Id.Value, ledarskap.Id, 4),
+            EmployeeSkill.Skapa(employees[7].Id.Value, kommunikation.Id, 4),
+            EmployeeSkill.Skapa(employees[7].Id.Value, arbetsratt.Id, 2),
+            EmployeeSkill.Skapa(employees[7].Id.Value, excel.Id, 3));
 
         await db.SaveChangesAsync();
     }
