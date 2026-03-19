@@ -200,6 +200,48 @@ public static class SeedData
                 Provisioning.ProvisioningAktion.SparraPasserkort,
                 "Sparra passerkort vid avslut"));
 
+        // === Arbetsmiljo: incidents, safety rounds, risk assessments ===
+        db.Incidents.AddRange(
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-12), "Anna Svensson", avd32.Id.Value,
+                "Korridoren vid rum 4", "Halkolycka pa vatt golv efter stadning", Arbetsmiljo.IncidentAllvarlighetsgrad.Medel,
+                Arbetsmiljo.IncidentTyp.Tillbud, "Battre skyltning vid vatgolv"),
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-8), "Karl Berg", iva.Id.Value,
+                "IVA sal 2", "Nalsticka vid blodprovstagning", Arbetsmiljo.IncidentAllvarlighetsgrad.Hog,
+                Arbetsmiljo.IncidentTyp.Arbetsskada, "Genomgang av stickskadeprevention"),
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-5), "Maria Lindgren", avd33.Id.Value,
+                "Personalrum", "Ergonomisk brist — for laga arbetsstolar", Arbetsmiljo.IncidentAllvarlighetsgrad.Lag,
+                Arbetsmiljo.IncidentTyp.Tillbud, "Bestall nya stolar"),
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-3), "Erik Johansson", akuten.Id.Value,
+                "Akutens vantrum", "Hotfull patient mot personal", Arbetsmiljo.IncidentAllvarlighetsgrad.Kritisk,
+                Arbetsmiljo.IncidentTyp.Tillbud, "Genomgang av hot- och valdpolicy"),
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-1), "Helena Bergstrom", avd33.Id.Value,
+                "Medicinforraadet", "Felmarkerad medicinburk", Arbetsmiljo.IncidentAllvarlighetsgrad.Hog,
+                Arbetsmiljo.IncidentTyp.Tillbud, "Kontroll av alla medicinforrrad"));
+
+        db.SafetyRounds.AddRange(
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-30), avd32.Id.Value,
+                "Anna Svensson, Skyddsombud Lars Ek", 3, Arbetsmiljo.SafetyRoundStatus.Genomford,
+                "Brister: belysning korridor, handtag toalett, ventilation rum 6"),
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-15), iva.Id.Value,
+                "Karl Berg, Skyddsombud Eva Lind", 1, Arbetsmiljo.SafetyRoundStatus.Genomford,
+                "Brist: nododusch saknar skylt"),
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(14), akuten.Id.Value,
+                "Erik Johansson, Skyddsombud Maria Ek", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null),
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(30), avd33.Id.Value,
+                "Helena Bergstrom, Skyddsombud Per Lund", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null));
+
+        db.RiskAssessments.AddRange(
+            Arbetsmiljo.RiskAssessment.Skapa("Halkolyckor", "Risk for halkolyckor pa nystadade golv", 3, 2,
+                "Installera anti-halkskyltning", "Facilitetsansvarig", DateOnly.FromDateTime(DateTime.Today.AddDays(30))),
+            Arbetsmiljo.RiskAssessment.Skapa("Stickskador", "Risk for nalsticka vid blodprov och injektioner", 2, 4,
+                "Obligatorisk utbildning i sakra injektionstekniker", "Vardchef", DateOnly.FromDateTime(DateTime.Today.AddDays(60))),
+            Arbetsmiljo.RiskAssessment.Skapa("Hot och vald", "Risk for hotfulla patienter pa akuten", 3, 5,
+                "Utbildning i bemotande, overfallslarm, kamerapolicy", "Verksamhetschef", DateOnly.FromDateTime(DateTime.Today.AddDays(14))),
+            Arbetsmiljo.RiskAssessment.Skapa("Ergonomi", "Risk for belastningsskador vid tunga lyft", 4, 3,
+                "Lyfthjalpmedel, ergonomiutbildning", "Arbetsmiljosamordnare", DateOnly.FromDateTime(DateTime.Today.AddDays(45))),
+            Arbetsmiljo.RiskAssessment.Skapa("Medicinhantering", "Risk for felmedicinering vid markning", 2, 5,
+                "Dubbelsignering, barkodsystem", "Lakemedelsansvarig", DateOnly.FromDateTime(DateTime.Today.AddDays(90))));
+
         await db.SaveChangesAsync();
     }
 }

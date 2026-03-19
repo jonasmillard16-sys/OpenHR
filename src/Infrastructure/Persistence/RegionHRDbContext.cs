@@ -26,6 +26,7 @@ using RegionHR.Analytics.Domain;
 using RegionHR.Configuration.Domain;
 using RegionHR.Infrastructure.Authorization;
 using RegionHR.Infrastructure.Provisioning;
+using RegionHR.Infrastructure.Arbetsmiljo;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -146,6 +147,11 @@ public class RegionHRDbContext : DbContext
     // Authorization (schema: authorization)
     public DbSet<FieldPermission> FieldPermissions => Set<FieldPermission>();
     public DbSet<DelegatedAccess> DelegatedAccesses => Set<DelegatedAccess>();
+
+    // Arbetsmiljo (schema: arbetsmiljo)
+    public DbSet<Incident> Incidents => Set<Incident>();
+    public DbSet<SafetyRound> SafetyRounds => Set<SafetyRound>();
+    public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
 
     // Provisioning (schema: provisioning)
     public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
