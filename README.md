@@ -25,6 +25,9 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Uppsägningsrisk (Flight Risk v1)** — regelbaserad heuristik, beräknad från riktig personaldata via FlightRiskService. 4 signaler: tenure, anställningsform, bristyrke (heuristik), deltid. Inte prediktiv AI. Begränsning: seeddata i DB.
 - **Skills/Kompetens (v1)** — normaliserad skills-katalog (Skill, EmployeeSkill, PositionSkillRequirement) med riktig EF-migration. Gap-analys via Position.InnehavareAnstallId → PositionSkillRequirement. Begränsning: seeddata, inget registrerings-UI.
 - **Identitetshantering (v1)** — lokal provisioneringslogg (ProvisioningEvent) och regelkonfiguration (ProvisioningRule) i DB. ProvisioningService beräknar åtgärder baserat på regler. LocalRecordingProvider registrerar i DB utan externa anrop. Ingen SCIM/AD/Entra-integration.
+- **Arbetsmiljö SAM (v1)** — tillbud, skyddsronder, riskbedömningar i DB med CRUD. RiskVärde beräknas on-the-fly. Seeddata.
+- **Medarbetarresor (Journeys v1)** — JourneyTemplate + JourneyInstance med owned step-entities. Steg kopieras som snapshot. Persisterad progress. Seeddata.
+- **HälsoSAM/Rehab (v1.5)** — rehabärenden från DB. Milstolpar från lagrade uppföljningsdatum. Seeddata.
 - **Arbetsmiljö SAM (v1)** — tillbud (Incident), skyddsronder (SafetyRound), riskbedömningar (RiskAssessment) i DB. CRUD via formulär. RiskVärde beräknas on-the-fly (Sannolikhet × Konsekvens), lagras ej. EnhetId är logisk koppling (inget FK). Seeddata.
 - **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
 - **Rapporter** — Löneregister hämtar från DB, övriga 3 rapporter har realistiska beräkningar. CSV-export fungerar.
