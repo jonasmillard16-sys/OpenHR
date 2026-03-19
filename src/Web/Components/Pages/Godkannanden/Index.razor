@@ -53,12 +53,10 @@ else
                     <td>@(pendingApproval != null ? GetEmployeeName(pendingApproval.GodkannareId) : "—")</td>
                     <td>@c.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
                     <td>
-                        <div class="d-flex gap-1">
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                       OnClick="@(async () => await GodkannCase(c))">Godkänn</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
-                                       OnClick="@(async () => await AvslaCase(c))">Avslå</MudButton>
-                        </div>
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   OnClick="@(async () => await GodkannCase(c))">Godkänn</MudButton>
+                        @* Avslå borttaget i v1.5 — domänmetod Case.Avsla() saknas.
+                           Att kringgå med reflection är inte acceptabelt i runtime. *@
                     </td>
                 </tr>
             }
@@ -104,19 +102,6 @@ else
         Snackbar.Add($"Ärende godkänt: {c.Beskrivning}", MudBlazor.Severity.Success);
     }
 
-    private async Task AvslaCase(Case c)
-    {
-        var approval = c.Godkannanden.LastOrDefault(g => g.Status == ApprovalStatus.Vantar);
-        if (approval == null) return;
-
-        // Ingen domänmetod Case.Avsla() finns — sätter status direkt.
-        // CaseApproval har public set. Begränsning redovisad.
-        approval.Status = ApprovalStatus.Avslagen;
-        approval.BeslutVid = DateTime.UtcNow;
-        approval.Kommentar = "Avslagen via godkännanden-vy";
-        c.GetType().GetProperty("Status")!.SetValue(c, CaseStatus.Avslagen);
-        await Db.SaveChangesAsync();
-        _pending.Remove(c);
-        Snackbar.Add($"Ärende avslaget: {c.Beskrivning}", MudBlazor.Severity.Warning);
-    }
+    // Avslå borttaget i v1.5 — Case.Avsla() domänmetod saknas.
+    // Tilläggs när domänmodellen utökas med riktig avslagslogik.
 }
