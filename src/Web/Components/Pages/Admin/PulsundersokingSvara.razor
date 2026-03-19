@@ -1,0 +1,114 @@
+@page "/admin/pulsundersokning/svara/{SurveyId:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Pulse.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR — Svara på pulsundersökning</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/admin/pulsundersokning" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_survey == null)
+{
+    <MudAlert Severity="Severity.Warning">Enkäten hittades inte.</MudAlert>
+}
+else if (_survey.Status != PulseSurveyStatus.Oppnad)
+{
+    <MudAlert Severity="Severity.Warning">Denna enkät är inte öppen för svar.</MudAlert>
+}
+else if (_submitted)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Tack för ditt svar!</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">Ditt anonyma svar har sparats.</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/admin/pulsundersokning">Tillbaka till översikt</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">@_survey.Titel</MudText>
+    @if (_survey.Beskrivning != null)
+    {
+        <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@_survey.Beskrivning</MudText>
+    }
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+        Ditt svar är helt anonymt. Systemet lagrar inte vem som svarat.
+    </MudAlert>
+
+    <MudPaper Class="pa-5" Elevation="2">
+        @foreach (var fraga in _survey.Fragor.OrderBy(f => f.Ordning))
+        {
+            var idx = fraga.Ordning - 1;
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">@fraga.Ordning. @fraga.Text</MudText>
+            <MudRating @bind-SelectedValue="_svar[idx]" MaxValue="5" Size="Size.Large" Class="mb-4" />
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+                   OnClick="SkickaSvar"
+                   Disabled="@(_svar.Any(v => v == 0) || _saving)">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Skicka svar
+        </MudButton>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid SurveyId { get; set; }
+
+    private PulseSurvey? _survey;
+    private int[] _svar = [];
+    private bool _loading = true, _saving, _submitted;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _survey = await Db.PulseSurveys
+                .FirstOrDefaultAsync(s => s.Id == SurveyId);
+
+            if (_survey?.Fragor.Count > 0)
+            {
+                _svar = new int[_survey.Fragor.Count];
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta enkät: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkickaSvar()
+    {
+        if (_survey == null || _svar.Any(v => v == 0)) return;
+        _saving = true; _error = null;
+
+        try
+        {
+            var response = PulseSurveyResponse.Skapa(_survey.Id);
+            var fragor = _survey.Fragor.OrderBy(f => f.Ordning).ToList();
+            for (var i = 0; i < fragor.Count; i++)
+            {
+                response.LaggTillSvar(fragor[i].Id, _svar[i]);
+            }
+
+            Db.PulseSurveyResponses.Add(response);
+            await Db.SaveChangesAsync();
+            _submitted = true;
+        }
+        catch (Exception ex) { _error = $"Kunde inte spara svar: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+}

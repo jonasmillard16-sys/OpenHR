@@ -46,6 +46,7 @@
     <ProjectReference Include="..\Modules\Competence\RegionHR.Competence.csproj" />
     <ProjectReference Include="..\Modules\Benefits\RegionHR.Benefits.csproj" />
     <ProjectReference Include="..\Modules\LMS\RegionHR.LMS.csproj" />
+    <ProjectReference Include="..\Modules\Pulse\RegionHR.Pulse.csproj" />
     <ProjectReference Include="..\Modules\Positions\RegionHR.Positions.csproj" />
     <ProjectReference Include="..\Modules\Offboarding\RegionHR.Offboarding.csproj" />
     <ProjectReference Include="..\Modules\Analytics\RegionHR.Analytics.csproj" />

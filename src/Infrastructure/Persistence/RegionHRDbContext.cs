@@ -132,6 +132,10 @@ public class RegionHRDbContext : DbContext
     public DbSet<Position> Positions_Table => Set<Position>();
     public DbSet<HeadcountPlan> HeadcountPlans => Set<HeadcountPlan>();
 
+    // Pulse (schema: pulse)
+    public DbSet<RegionHR.Pulse.Domain.PulseSurvey> PulseSurveys => Set<RegionHR.Pulse.Domain.PulseSurvey>();
+    public DbSet<RegionHR.Pulse.Domain.PulseSurveyResponse> PulseSurveyResponses => Set<RegionHR.Pulse.Domain.PulseSurveyResponse>();
+
     // Offboarding (schema: offboarding)
     public DbSet<OffboardingCase> OffboardingCases => Set<OffboardingCase>();
 

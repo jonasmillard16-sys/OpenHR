@@ -671,6 +671,41 @@ public static class SeedData
         var enrollKarlHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[3].Id.Value, hlrKurs.Id);
         db.CourseEnrollments.AddRange(enrollAnnaHlr, enrollAnnaGdpr, enrollErikBrand, enrollKarlHlr);
 
+        // === Pulsundersökningar via domänens Skapa() ===
+        // 1. Stängd enkät med frågor + responses (för resultatvy)
+        var pulsMars = RegionHR.Pulse.Domain.PulseSurvey.Skapa(
+            "Pulsundersokning mars 2026", "Manadsvis pulsmating av arbetsmiljo och trivsel.", "Admin");
+        pulsMars.LaggTillFraga("Hur trivs du pa jobbet just nu?", 1);
+        pulsMars.LaggTillFraga("Kanner du att din arbetsbelastning ar rimlig?", 2);
+        pulsMars.LaggTillFraga("Har du tillgang till det stod du behover fran din chef?", 3);
+        pulsMars.LaggTillFraga("Kanner du dig delaktig i beslut som paverkar ditt arbete?", 4);
+        pulsMars.LaggTillFraga("Skulle du rekommendera din arbetsplats till en van?", 5);
+        pulsMars.Oppna();
+        pulsMars.Stang();
+
+        // 3 anonyma svar
+        var svar1 = RegionHR.Pulse.Domain.PulseSurveyResponse.Skapa(pulsMars.Id);
+        foreach (var f in pulsMars.Fragor)
+            svar1.LaggTillSvar(f.Id, f.Ordning <= 2 ? 4 : 3);
+        var svar2 = RegionHR.Pulse.Domain.PulseSurveyResponse.Skapa(pulsMars.Id);
+        foreach (var f in pulsMars.Fragor)
+            svar2.LaggTillSvar(f.Id, f.Ordning <= 3 ? 5 : 4);
+        var svar3 = RegionHR.Pulse.Domain.PulseSurveyResponse.Skapa(pulsMars.Id);
+        foreach (var f in pulsMars.Fragor)
+            svar3.LaggTillSvar(f.Id, f.Ordning == 1 ? 3 : 2);
+
+        db.PulseSurveys.Add(pulsMars);
+        db.PulseSurveyResponses.AddRange(svar1, svar2, svar3);
+
+        // 2. Öppen enkät utan responses (för svarsflöde)
+        var pulsApril = RegionHR.Pulse.Domain.PulseSurvey.Skapa(
+            "Pulsundersokning april 2026", "Uppfoljning efter organisationsforandring.", "Admin");
+        pulsApril.LaggTillFraga("Hur upplever du forandringarna pa din arbetsplats?", 1);
+        pulsApril.LaggTillFraga("Har du fatt tillracklig information om forandringarna?", 2);
+        pulsApril.LaggTillFraga("Kanner du dig trygg i din anstallning?", 3);
+        pulsApril.Oppna();
+        db.PulseSurveys.Add(pulsApril);
+
         await db.SaveChangesAsync();
     }
 }
