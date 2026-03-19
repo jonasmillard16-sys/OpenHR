@@ -1,177 +1,189 @@
 @page "/dokument/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Documents.Domain
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Storage
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject IFileStorageService Storage
 @inject NavigationManager Nav
 
-<PageTitle>OpenHR - Ladda upp dokument</PageTitle>
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/dokument" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+<PageTitle>OpenHR — Ladda upp dokument</PageTitle>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken typ av dokument?</MudText>
-            <MudStack Spacing="3">
-                @foreach (var typ in _dokumentTyper)
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/dokument" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Ladda upp dokument</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Filen sparas lokalt via FileStorageService. Metadata persisteras i databasen (Document-entity).
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@if (_uploaded != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _uploaded = null)">
+        @_uploaded
+    </MudAlert>
+}
+
+<MudPaper Class="pa-5" Elevation="2">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" @bind-Value="_anstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                @foreach (var e in _employees)
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _typ = typ.Item2; _step = 1; })">
-                        @typ.Item1 @typ.Item2
-                    </MudButton>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
                 }
-            </MudStack>
-            break;
-
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd?</MudText>
-            <MudTextField @bind-Value="_sokterm" Label="Sök namn" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
-            <MudStack Spacing="2">
-                @foreach (var namn in new[] { "Anna Svensson", "Karl Berg", "Lisa Holm" })
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="DocumentCategory" @bind-Value="_kategori" Label="Kategori" Variant="Variant.Outlined">
+                @foreach (var k in Enum.GetValues<DocumentCategory>())
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 48px;" OnClick="@(() => { _anstalld = namn; _step = 2; })">@namn</MudButton>
+                    <MudSelectItem Value="@k">@k</MudSelectItem>
                 }
-            </MudStack>
-            break;
-
-        case 2:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Ladda upp filer</MudText>
-            <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".pdf,.doc,.docx,.jpg,.png,.xlsx" MaximumFileCount="10" OnFilesChanged="OnFilesSelected">
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_beskrivning" Label="Beskrivning (valfritt)" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudFileUpload T="IBrowserFile" Accept=".pdf,.doc,.docx,.jpg,.png,.xlsx,.txt" OnFilesChanged="OnFileSelected">
                 <CustomContent>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 64px; font-size: 1.25rem;" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="@context.OpenFilePickerAsync">
-                        Välj filer att ladda upp
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.CloudUpload"
+                               OnClick="@context.OpenFilePickerAsync">
+                        Välj fil
                     </MudButton>
                 </CustomContent>
             </MudFileUpload>
-
-            @if (_valdaFiler.Count > 0)
+            @if (_selectedFile != null)
             {
-                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2" Style="font-weight: 600;">Valda filer (@_valdaFiler.Count st)</MudText>
-                <MudSimpleTable Dense="true" Hover="true" Elevation="1">
-                    <thead>
-                        <tr>
-                            <th>Filnamn</th>
-                            <th>Storlek</th>
-                            <th>Typ</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var f in _valdaFiler)
-                        {
-                            <tr>
-                                <td><MudIcon Icon="@GetFileIcon(f.Name)" Size="Size.Small" Class="mr-1" />@f.Name</td>
-                                <td>@FormatSize(f.Size)</td>
-                                <td>@f.ContentType</td>
-                                <td><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => TaBortFil(f))" /></td>
-                            </tr>
-                        }
-                    </tbody>
-                </MudSimpleTable>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-3" OnClick="LaddaUpp">
-                    Ladda upp @_valdaFiler.Count fil(er)
-                </MudButton>
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    <strong>Vald fil:</strong> @_selectedFile.Name (@FormatSize(_selectedFile.Size)) — @_selectedFile.ContentType
+                </MudText>
             }
-            break;
+        </MudItem>
+    </MudGrid>
 
-        case 3:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Dokument uppladdade!</MudText>
-                <MudText Typo="Typo.body1" Class="mb-2" Style="text-align: center;">@_typ — @_anstalld</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+               Style="min-height: 48px;" OnClick="LaddaUpp" Disabled="@(_uploading || _selectedFile == null || _anstallId == null)">
+        @if (_uploading)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+        }
+        Ladda upp
+    </MudButton>
+</MudPaper>
 
-                <MudPaper Class="pa-4 mb-4 mt-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Uppladdade filer</MudText>
-                    <MudSimpleTable Dense="true" Hover="true">
-                        <thead>
-                            <tr>
-                                <th>Filnamn</th>
-                                <th>Storlek</th>
-                                <th>Uppladdad</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var f in _uppladdadeFiler)
-                            {
-                                <tr>
-                                    <td><MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" Class="mr-1" />@f.Namn</td>
-                                    <td>@f.Storlek</td>
-                                    <td>@f.Datum</td>
-                                    <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Uppladdat</MudChip></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <div class="d-flex gap-2 justify-center">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/dokument" Style="min-height: 48px;">Tillbaka till dokument</MudButton>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" OnClick="LaddaUppFler" Style="min-height: 48px;">Ladda upp fler</MudButton>
-                </div>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+@* Senast uppladdade dokument *@
+@if (_recentDocs.Count > 0)
+{
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3" Style="font-weight: 600;">Senast uppladdade</MudText>
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Fil</th><th>Anställd</th><th>Kategori</th><th>Storlek</th><th>Uppladdad</th></tr></thead>
+        <tbody>
+            @foreach (var d in _recentDocs.OrderByDescending(d => d.UppladdadVid).Take(10))
+            {
+                <tr>
+                    <td><strong>@d.FileName</strong></td>
+                    <td>@GetEmployeeName(d.AnstallId)</td>
+                    <td><MudChip T="string" Size="Size.Small">@d.Kategori</MudChip></td>
+                    <td>@FormatSize(d.FileSizeBytes)</td>
+                    <td>@d.UppladdadVid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
-    private readonly List<string> _steps = ["Typ", "Anställd", "Filer", "Klart!"];
-    private readonly (string, string)[] _dokumentTyper =
-    [
-        ("", "Anställningskontrakt"),
-        ("", "Läkarintyg"),
-        ("", "Certifikat/intyg"),
-        ("", "Övrigt")
-    ];
-    private int _step;
-    private string _typ = "", _anstalld = "", _sokterm = "";
-    private List<IBrowserFile> _valdaFiler = [];
-    private List<UppladdadFil> _uppladdadeFiler = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private List<Document> _recentDocs = [];
+    private IBrowserFile? _selectedFile;
+    private Guid? _anstallId;
+    private DocumentCategory _kategori = DocumentCategory.Ovrigt;
+    private string _beskrivning = "";
+    private string? _error, _uploaded;
+    private bool _loading = true, _uploading;
 
-    private void OnFilesSelected(InputFileChangeEventArgs e)
+    protected override async Task OnInitializedAsync()
     {
-        foreach (var file in e.GetMultipleFiles(10))
+        try
         {
-            if (!_valdaFiler.Any(f => f.Name == file.Name))
-            {
-                _valdaFiler.Add(file);
-            }
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _recentDocs = await Db.Documents.OrderByDescending(d => d.UppladdadVid).Take(10).ToListAsync();
         }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private void TaBortFil(IBrowserFile file)
+    private void OnFileSelected(InputFileChangeEventArgs e)
     {
-        _valdaFiler.Remove(file);
+        _selectedFile = e.File;
     }
 
-    private void LaddaUpp()
+    private async Task LaddaUpp()
     {
-        _uppladdadeFiler = _valdaFiler.Select(f => new UppladdadFil(
-            f.Name,
-            FormatSize(f.Size),
-            DateTime.Now.ToString("yyyy-MM-dd HH:mm")
-        )).ToList();
-        _step = 3;
+        if (_selectedFile == null || _anstallId == null) return;
+        _uploading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Spara fil via IFileStorageService
+            using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+            var storagePath = await Storage.UploadAsync(
+                _kategori.ToString().ToLower(),
+                _selectedFile.Name,
+                stream);
+
+            // 2. Skapa Document-metadata via domänens Skapa()
+            var doc = Document.Skapa(
+                _anstallId.Value,
+                _kategori,
+                _selectedFile.Name,
+                storagePath,
+                _selectedFile.Size,
+                _selectedFile.ContentType,
+                "Admin", // uppladdadAv — auth saknar EmployeeId-koppling
+                beskrivning: string.IsNullOrWhiteSpace(_beskrivning) ? null : _beskrivning);
+
+            // 3. Persistera i DB
+            Db.Documents.Add(doc);
+            await Db.SaveChangesAsync();
+
+            _recentDocs.Insert(0, doc);
+            _uploaded = $"Dokument \"{_selectedFile.Name}\" uppladdat och sparat. Lagringsväg: {storagePath}";
+            _selectedFile = null;
+            _beskrivning = "";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Uppladdning misslyckades: {ex.Message}";
+        }
+        finally { _uploading = false; }
     }
 
-    private void LaddaUppFler()
+    private string GetEmployeeName(Guid id)
     {
-        _valdaFiler = [];
-        _uppladdadeFiler = [];
-        _step = 2;
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
     }
 
-    private static string FormatSize(long bytes) =>
-        bytes < 1024 ? $"{bytes} B" :
-        bytes < 1024 * 1024 ? $"{bytes / 1024} KB" :
-        $"{bytes / 1024 / 1024:F1} MB";
-
-    private static string GetFileIcon(string name) => name.ToLower() switch
+    private static string FormatSize(long bytes)
     {
-        var n when n.EndsWith(".pdf") => Icons.Material.Filled.PictureAsPdf,
-        var n when n.EndsWith(".jpg") || n.EndsWith(".png") => Icons.Material.Filled.Image,
-        var n when n.EndsWith(".xlsx") || n.EndsWith(".xls") => Icons.Material.Filled.TableChart,
-        _ => Icons.Material.Filled.InsertDriveFile
-    };
-
-    private record UppladdadFil(string Namn, string Storlek, string Datum);
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F1} MB";
+    }
 }
