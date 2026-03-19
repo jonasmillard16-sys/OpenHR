@@ -125,21 +125,23 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
             var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
             _headcount = employees.Count(e => e.AktivAnstallning(idag) != null);
 
-            // LAS-alarm: LASAccumulation med status NaraGrans eller KritiskNara
+            // LAS-alarm
             _lasAlarm = await Db.LASAccumulations
                 .CountAsync(l => l.Status == LASStatus.NaraGrans || l.Status == LASStatus.KritiskNara);
 
-            // Vakanta positioner
+            // Positioner — en fråga, gruppera status i minnet
             var positions = await Db.Positions_Table.ToListAsync();
-            _vakantaPositioner = positions.Count(p => p.Status == PositionStatus.Vakant);
+            var statusCounts = positions.GroupBy(p => p.Status)
+                .ToDictionary(g => g.Key, g => g.Count());
+            var aktiva = statusCounts.GetValueOrDefault(PositionStatus.Aktiv);
+            var vakanta = statusCounts.GetValueOrDefault(PositionStatus.Vakant);
+            _vakantaPositioner = vakanta;
 
-            // Väntande godkännanden (Case, inte LeaveRequest)
+            // Väntande godkännanden
             _godkannanden = await Db.Cases
                 .CountAsync(c => c.Status == CaseStatus.VantarGodkannande);
 
-            // Bemanningsgrad: aktiva / (aktiva + vakanta) positioner
-            var aktiva = positions.Count(p => p.Status == PositionStatus.Aktiv);
-            var vakanta = positions.Count(p => p.Status == PositionStatus.Vakant);
+            // Bemanningsgrad
             var total = aktiva + vakanta;
             _bemanningsgrad = total > 0 ? (int)Math.Round(100.0 * aktiva / total) : 0;
 

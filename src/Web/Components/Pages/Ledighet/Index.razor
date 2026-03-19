@@ -11,6 +11,11 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/ledighet/ny" Style="min-height: 48px;">Ny ansökan</MudButton>
 </div>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 <MudGrid Spacing="3" Class="mb-4">
     <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
     <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_godkanda</MudText><MudText Typo="Typo.body2">Godkända (denna månad)</MudText></MudPaper></MudItem>
@@ -46,6 +51,7 @@
 @code {
     private List<LedighetRad> _rader = [];
     private int _vantar, _godkanda, _sjuk, _vab;
+    private string? _error;
 
     // TODO: Replace with actual authenticated user ID from JWT claims
     private static readonly Guid _currentChefId = Guid.Parse("00000000-0000-0000-0000-000000000001");
@@ -59,53 +65,39 @@
                 .Take(50)
                 .ToListAsync();
 
-            if (requests.Count > 0)
-            {
-                // Resolve employee names
-                var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
-                var employees = await Db.Employees
-                    .Where(e => anstallIds.Contains(e.Id.Value))
-                    .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
+            // Resolve employee names
+            var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id.Value))
+                .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
 
-                _rader = requests.Select(r => new LedighetRad(
-                    r.Id,
-                    employees.GetValueOrDefault(r.AnstallId, "Okänd"),
-                    MapTyp(r.Typ),
-                    $"{r.FranDatum:d/M} - {r.TillDatum:d/M}",
-                    r.AntalDagar.ToString(),
-                    MapStatusText(r.Status),
-                    MapStatusColor(r.Status),
-                    r.Status == LeaveRequestStatus.Inskickad
-                )).ToList();
+            _rader = requests.Select(r => new LedighetRad(
+                r.Id,
+                employees.GetValueOrDefault(r.AnstallId, "Okänd"),
+                MapTyp(r.Typ),
+                $"{r.FranDatum:d/M} - {r.TillDatum:d/M}",
+                r.AntalDagar.ToString(),
+                MapStatusText(r.Status),
+                MapStatusColor(r.Status),
+                r.Status == LeaveRequestStatus.Inskickad
+            )).ToList();
 
-                // Summary counts from DB
-                var now = DateTime.Today;
-                _vantar = requests.Count(r => r.Status == LeaveRequestStatus.Inskickad);
-                _godkanda = requests.Count(r => r.Status == LeaveRequestStatus.Godkand
-                    && r.FranDatum.Month == now.Month && r.FranDatum.Year == now.Year);
-                _sjuk = requests.Count(r => r.Typ == LeaveType.Sjukfranvaro
-                    && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand)
-                    && r.TillDatum >= DateOnly.FromDateTime(now));
-                _vab = requests.Count(r => r.Typ == LeaveType.VAB
-                    && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand)
-                    && r.TillDatum >= DateOnly.FromDateTime(now));
-                return;
-            }
+            // Summary counts
+            var now = DateTime.Today;
+            _vantar = requests.Count(r => r.Status == LeaveRequestStatus.Inskickad);
+            _godkanda = requests.Count(r => r.Status == LeaveRequestStatus.Godkand
+                && r.FranDatum.Month == now.Month && r.FranDatum.Year == now.Year);
+            _sjuk = requests.Count(r => r.Typ == LeaveType.Sjukfranvaro
+                && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand)
+                && r.TillDatum >= DateOnly.FromDateTime(now));
+            _vab = requests.Count(r => r.Typ == LeaveType.VAB
+                && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand)
+                && r.TillDatum >= DateOnly.FromDateTime(now));
         }
-        catch
+        catch (Exception ex)
         {
-            // Fall through to demo data
+            _error = $"Kunde inte hämta ledighetsdata: {ex.Message}";
         }
-
-        // Demo data fallback
-        _vantar = 6; _godkanda = 23; _sjuk = 4; _vab = 2;
-        _rader =
-        [
-            new(Guid.Empty, "Anna Svensson", "Semester", "21-25 mars", "5", "Väntar", Color.Warning, true),
-            new(Guid.Empty, "Karl Berg", "Sjukfrånvaro", "14 mars \u2192", "3+", "Sjuk", Color.Error, false),
-            new(Guid.Empty, "Erik Johansson", "Semester", "17-21 mars", "5", "Godkänd", Color.Success, false),
-            new(Guid.Empty, "Per Gustafsson", "VAB", "17-18 mars", "2", "Rapporterad", Color.Info, false),
-        ];
     }
 
     private async Task Godkann(LedighetRad row)
@@ -113,23 +105,22 @@
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
-            req?.Godkann(_currentChefId, null);
+            if (req == null) return;
+            req.Godkann(_currentChefId, null);
             await Db.SaveChangesAsync();
-        }
-        catch
-        {
-            // Swallow for demo fallback items
-        }
 
-        // Update row in UI
-        var idx = _rader.IndexOf(row);
-        if (idx >= 0)
-        {
-            _rader[idx] = row with { StatusText = "Godkänd", StatusFarg = Color.Success, KanGodkannas = false };
-            _vantar = Math.Max(0, _vantar - 1);
-            _godkanda++;
+            var idx = _rader.IndexOf(row);
+            if (idx >= 0)
+            {
+                _rader[idx] = row with { StatusText = "Godkänd", StatusFarg = Color.Success, KanGodkannas = false };
+                _vantar = Math.Max(0, _vantar - 1);
+                _godkanda++;
+            }
         }
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte godkänna: {ex.Message}";
+        }
     }
 
     private async Task Neka(LedighetRad row)
@@ -137,21 +128,21 @@
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
-            req?.Avvisa(_currentChefId, "Nekad av chef");
+            if (req == null) return;
+            req.Avvisa(_currentChefId, "Nekad av chef");
             await Db.SaveChangesAsync();
-        }
-        catch
-        {
-            // Swallow for demo fallback items
-        }
 
-        var idx = _rader.IndexOf(row);
-        if (idx >= 0)
-        {
-            _rader[idx] = row with { StatusText = "Avslagen", StatusFarg = Color.Error, KanGodkannas = false };
-            _vantar = Math.Max(0, _vantar - 1);
+            var idx = _rader.IndexOf(row);
+            if (idx >= 0)
+            {
+                _rader[idx] = row with { StatusText = "Avslagen", StatusFarg = Color.Error, KanGodkannas = false };
+                _vantar = Math.Max(0, _vantar - 1);
+            }
         }
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte avslå: {ex.Message}";
+        }
     }
 
     private static string MapTyp(LeaveType typ) => typ switch

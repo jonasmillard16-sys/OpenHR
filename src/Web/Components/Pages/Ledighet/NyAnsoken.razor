@@ -101,6 +101,7 @@ else
 
 @code {
     private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private Dictionary<Guid, VacationBalance> _balansPerAnstall = [];
     private LeaveRequest? _created;
     private VacationBalance? _balans;
     private Guid? _anstallId;
@@ -115,6 +116,11 @@ else
         try
         {
             _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var year = DateTime.Today.Year;
+            var balances = await Db.VacationBalances
+                .Where(b => b.Ar == year)
+                .ToListAsync();
+            _balansPerAnstall = balances.ToDictionary(b => b.AnstallId);
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -150,20 +156,16 @@ else
         finally { _saving = false; }
     }
 
-    // Ladda saldo när anställd väljs
+    // Uppdatera saldo när anställd väljs
     private Guid? _lastAnstallId;
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (_anstallId != null && _anstallId != _lastAnstallId)
         {
             _lastAnstallId = _anstallId;
-            try
-            {
-                _balans = await Db.VacationBalances
-                    .FirstOrDefaultAsync(b => b.AnstallId == _anstallId.Value && b.Ar == DateTime.Today.Year);
-                StateHasChanged();
-            }
-            catch { }
+            _balansPerAnstall.TryGetValue(_anstallId.Value, out var b);
+            _balans = b;
+            StateHasChanged();
         }
     }
 

@@ -94,7 +94,7 @@ else
             <tbody>
                 @foreach (var c in _courses)
                 {
-                    var antalAnmalda = _enrollments.Count(e => e.CourseId == c.Id);
+                    var antalAnmalda = _enrollCountByCourse.GetValueOrDefault(c.Id);
                     <tr>
                         <td><strong>@c.Namn</strong><br /><MudText Typo="Typo.caption">@c.Beskrivning</MudText></td>
                         <td><MudChip T="string" Size="Size.Small">@c.Format</MudChip></td>
@@ -141,6 +141,7 @@ else
     private List<Course> _courses = [];
     private List<CourseEnrollment> _enrollments = [];
     private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private Dictionary<Guid, int> _enrollCountByCourse = [];
     private bool _loading = true, _showEnroll;
     private string? _error, _success;
     private Guid? _enrollAnstallId, _enrollCourseId;
@@ -152,10 +153,15 @@ else
             _courses = await Db.Courses.ToListAsync();
             _enrollments = await Db.CourseEnrollments.ToListAsync();
             _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            RebuildEnrollCounts();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
     }
+
+    private void RebuildEnrollCounts() =>
+        _enrollCountByCourse = _enrollments.GroupBy(e => e.CourseId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
     private async Task SparaAnmalan()
     {
@@ -164,6 +170,7 @@ else
         Db.CourseEnrollments.Add(enrollment);
         await Db.SaveChangesAsync();
         _enrollments.Add(enrollment);
+        RebuildEnrollCounts();
         _showEnroll = false;
         _success = $"{GetEmployeeName(_enrollAnstallId.Value)} anmäld till {GetCourseName(_enrollCourseId.Value)}.";
     }
