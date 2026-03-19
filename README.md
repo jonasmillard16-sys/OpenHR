@@ -35,7 +35,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Ledighetshantering** — wizard med ärendenummer, persisterar ej till DB
 - **HälsoSAM/Rehab (v1.5)** — rehabärenden läses från DB (RehabCase). Milstolpar (dag 14/90/180/365) lagras i domänmodellen, beräknade från ärendets skapandedatum. Nästa milstolpe visas baserat på dagens datum. Begränsning: seeddata, milstolpar är planerade uppföljningsdatum — inte verifierad sjukfallsstart. SickLeaveNotification ej kopplad i v1.5.
 - **Godkännanden** — approve/reject med batch-operationer, lokal state
-- **Notiser** — InApp med batch-radera och undo, SignalR hub finns men pushar ej
+- **Notiser (v1.5)** — in-app-notiser från DB via Notification-entity. Read/unread via MarkAsRead(). Testnotis skapar riktig DB-post. Ingen realtidspush. Seeddata.
 - **Dokumenthantering (v1.5)** — riktig filuppladdning via IFileStorageService + Document-metadata i DB. Kategori, anställd-koppling, storlek. Mallgenerering (read-only). Seeddata.
 - **Dashboard** — KPI:er beräknade från modell, klickbara kort
 - **Autentisering** — rollbaserad med persistent session, SITHS/BankID-simulering (inte riktig eID)

@@ -374,6 +374,31 @@ public static class SeedData
         hcIva.UppdateraFaktiskt(7, 7.0m, 2_671_200m);
         db.HeadcountPlans.AddRange(hcAvd32, hcAvd33, hcAkuten, hcIva);
 
+        // === Notifications via domänens Create() ===
+        // UserId sätts till anställds Id.Value. Auth saknar EmployeeId-mapping
+        // så i v1.5 matchar detta inte säkert inloggad användare.
+        db.Notifications.AddRange(
+            RegionHR.Notifications.Domain.Notification.Create(
+                employees[0].Id.Value, "Ledighetsansokan godkand",
+                "Din semester 14-18 juli har godkants av chef.",
+                RegionHR.Notifications.Domain.NotificationType.Info, actionUrl: "/ledighet"),
+            RegionHR.Notifications.Domain.Notification.Create(
+                employees[0].Id.Value, "Nytt lonebesked",
+                "Lonebeskedet for mars 2026 finns tillgangligt.",
+                RegionHR.Notifications.Domain.NotificationType.Info, actionUrl: "/minsida/lon"),
+            RegionHR.Notifications.Domain.Notification.Create(
+                employees[3].Id.Value, "Certifiering gar ut snart",
+                "Din sjukskoterska-legitimation gar ut om 45 dagar.",
+                RegionHR.Notifications.Domain.NotificationType.Warning, actionUrl: "/kompetens"),
+            RegionHR.Notifications.Domain.Notification.Create(
+                employees[1].Id.Value, "Schemaandring",
+                "Ditt schema for vecka 13 har uppdaterats.",
+                RegionHR.Notifications.Domain.NotificationType.Info, actionUrl: "/minsida/schema"),
+            RegionHR.Notifications.Domain.Notification.Create(
+                employees[7].Id.Value, "Medarbetarsamtal bokat",
+                "Arligt medarbetarsamtal inbokat 25 mars kl. 10:00.",
+                RegionHR.Notifications.Domain.NotificationType.Action, actionUrl: "/medarbetarsamtal"));
+
         await db.SaveChangesAsync();
     }
 }
