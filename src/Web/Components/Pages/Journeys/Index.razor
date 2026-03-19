@@ -1,107 +1,140 @@
 @page "/journeys"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Journeys
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Medarbetarresor</PageTitle>
+<PageTitle>OpenHR — Medarbetarresor</PageTitle>
+
 <div class="d-flex justify-space-between align-center mb-4">
-    <div>
-        <MudText Typo="Typo.h4" Style="font-weight: 700;">Medarbetarresor</MudText>
-        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Systemet guidar steg för steg genom hela processen — ingen förkunskap krävs</MudText>
-    </div>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Medarbetarresor</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showCreate = !_showCreate)">Starta ny journey</MudButton>
 </div>
 
-<MudGrid Spacing="4">
-    @foreach (var j in _journeys)
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    @if (_showCreate)
     {
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="3" Style="cursor: pointer; height: 100%; transition: transform 0.2s, box-shadow 0.2s;"
-                     Class="journey-card" @onclick="@(() => Nav.NavigateTo($"/journeys/{j.Id}"))">
-                <MudCardContent Class="pa-6">
-                    <div class="d-flex align-center gap-3 mb-4">
-                        <MudAvatar Color="@j.Farg" Size="Size.Large" Variant="Variant.Filled">
-                            <MudIcon Icon="@j.Ikon" />
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.h6" Style="font-weight: 700;">@j.Titel</MudText>
-                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@j.AntalSteg steg &bull; @j.UppskattadTid</MudText>
-                        </div>
-                    </div>
-                    <MudText Typo="Typo.body2" Class="mb-4" Style="min-height: 48px;">@j.Beskrivning</MudText>
-                    <MudDivider Class="mb-3" />
-                    <div class="d-flex justify-space-between align-center">
-                        <div class="d-flex gap-2">
-                            @foreach (var a in j.Ansvariga)
-                            {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@a</MudChip>
-                            }
-                        </div>
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary" />
-                    </div>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Starta ny medarbetarresa</MudText>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_createTemplateId" Label="Välj mall" Variant="Variant.Outlined">
+                        @foreach (var t in _templates)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)t.Id)">@t.Namn (@t.Steg.Count steg)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_createAnstallId" Label="Välj anställd" Variant="Variant.Outlined">
+                        @foreach (var e in _employees)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_createStart" Label="Startdatum" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaInstans">Starta</MudButton>
+        </MudPaper>
     }
-</MudGrid>
 
-<MudText Typo="Typo.h6" Class="mt-8 mb-3" Style="font-weight: 600;">Aktiva resor</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Journey</th>
-            <th>Startdatum</th>
-            <th>Framsteg</th>
-            <th>Nästa steg</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var a in _aktiva)
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Aktiva journeys (@_instances.Count(i => i.Status != JourneyInstanceStatus.Slutford))</MudText>
+    @if (_instances.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga journeys har startats.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Anställd</th><th>Mall</th><th>Start</th><th>Progress</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var i in _instances.OrderByDescending(i => i.Startdatum))
+                {
+                    <tr>
+                        <td><strong>@i.AnstallNamn</strong></td>
+                        <td>@i.MallNamn</td>
+                        <td>@i.Startdatum.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>
+                            <MudProgressLinear Value="@i.Progress" Color="@(i.Progress >= 100 ? Color.Success : Color.Primary)" Style="min-width: 80px;" />
+                            <MudText Typo="Typo.caption">@i.Progress%</MudText>
+                        </td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@(i.Status == JourneyInstanceStatus.Slutford ? Color.Success : Color.Info)">@i.Status</MudChip></td>
+                        <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Href="@($"/journeys/{i.Id}")">Öppna</MudButton></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Mallar (@_templates.Count)</MudText>
+    <MudGrid Spacing="3">
+        @foreach (var t in _templates)
         {
-            <tr>
-                <td><strong>@a.Anstalld</strong></td>
-                <td>@a.Journey</td>
-                <td>@a.Startdatum</td>
-                <td style="min-width: 180px;">
-                    <MudProgressLinear Value="@a.Procent" Color="@(a.Procent >= 80 ? Color.Success : a.Procent >= 40 ? Color.Info : Color.Warning)" Rounded="true" Size="Size.Medium" />
-                    <MudText Typo="Typo.caption">@a.Procent% klart</MudText>
-                </td>
-                <td><MudText Typo="Typo.body2">@a.NastaSteg</MudText></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/journeys/{a.JourneyId}")">Visa</MudButton></td>
-            </tr>
+            <MudItem xs="12" sm="6">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@t.Namn</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@(t.Beskrivning ?? "—")</MudText>
+                    <MudChip T="string" Size="Size.Small" Class="mt-2">@t.Steg.Count steg</MudChip>
+                </MudPaper>
+            </MudItem>
         }
-    </tbody>
-</MudSimpleTable>
-
-@inject NavigationManager Nav
+    </MudGrid>
+}
 
 @code {
-    private List<JourneyDefinition> _journeys =
-    [
-        new("onboarding", "Ny medarbetare", "Komplett onboarding: från konton till provanställningens slut. Systemet skapar uppgifter för IT, chef, HR och mentor automatiskt.",
-            Icons.Material.Filled.PersonAdd, Color.Primary, 12, "~2 veckor", ["HR", "Chef", "IT", "Mentor"]),
+    private List<JourneyTemplate> _templates = [];
+    private List<JourneyInstance> _instances = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _showCreate;
+    private string? _error, _success;
+    private Guid? _createTemplateId, _createAnstallId;
+    private DateTime? _createStart = DateTime.Today;
 
-        new("ny-chef", "Ny chef", "Chefens första 90 dagar. Stöd med ledarskapsintro, arbetsrätt, delegering och teamövertagande.",
-            Icons.Material.Filled.SupervisorAccount, Color.Secondary, 8, "90 dagar", ["HR", "Chef", "Ledning"]),
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _templates = await Db.JourneyTemplates.Include("Steg").ToListAsync();
+            _instances = await Db.JourneyInstances.Include("Steg").ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
 
-        new("foraldraledig", "Föräldraledig", "Hela föräldraledighetscykeln: planering, under ledigheten, och återgång. Systemet bevakar FK-anmälan och vikariat.",
-            Icons.Material.Filled.ChildCare, Color.Success, 6, "Variabel", ["HR", "Chef", "Anställd"]),
+    private async Task SkapaInstans()
+    {
+        if (_createTemplateId is null || _createAnstallId is null) return;
+        var mall = _templates.FirstOrDefault(t => t.Id == _createTemplateId);
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == _createAnstallId);
+        if (mall is null || emp is null) return;
 
-        new("sjukfranvaro-lang", "Sjukfrånvaro > 14 dagar", "Rehabkedjan steg för steg. Systemet bevakar dag 14, dag 90, dag 180, dag 365 och påminner om åtgärder.",
-            Icons.Material.Filled.LocalHospital, Color.Warning, 5, "Variabel", ["HR", "Chef", "FK"]),
-
-        new("avslut", "Avslut", "Komplett offboarding: från uppsägning till sista arbetsdag. Säkerställer att konton stängs, utrustning returneras och slutlön utbetalas.",
-            Icons.Material.Filled.ExitToApp, Color.Error, 7, "~1 månad", ["HR", "Chef", "IT"]),
-    ];
-
-    private List<AktivJourney> _aktiva =
-    [
-        new("Sara Johansson", "Ny medarbetare", "onboarding", "2026-03-10", 42, "IT-genomgång (dag 2)"),
-        new("Erik Bergström", "Ny medarbetare", "onboarding", "2026-02-15", 83, "60-dagarssamtal"),
-        new("Maria Lindgren", "Föräldraledig", "foraldraledig", "2026-03-01", 33, "Vikariat tillsatt?"),
-        new("Karl Berg", "Sjukfrånvaro > 14 dagar", "sjukfranvaro-lang", "2026-02-20", 60, "FK prövar mot ordinarie arbete (dag 90)"),
-        new("Per Andersson", "Avslut", "avslut", "2026-03-05", 71, "Återlämna utrustning"),
-    ];
-
-    private record JourneyDefinition(string Id, string Titel, string Beskrivning, string Ikon, Color Farg, int AntalSteg, string UppskattadTid, string[] Ansvariga);
-    private record AktivJourney(string Anstalld, string Journey, string JourneyId, string Startdatum, int Procent, string NastaSteg);
+        var inst = JourneyInstance.SkapaFranMall(mall, emp.Id.Value,
+            $"{emp.Fornamn} {emp.Efternamn}", _createStart?.ToUniversalTime() ?? DateTime.UtcNow);
+        Db.JourneyInstances.Add(inst);
+        await Db.SaveChangesAsync();
+        _instances.Add(inst);
+        _showCreate = false;
+        _success = $"Journey \"{mall.Namn}\" startad för {emp.Fornamn} {emp.Efternamn}.";
+    }
 }

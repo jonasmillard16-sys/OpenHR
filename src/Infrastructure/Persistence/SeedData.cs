@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RegionHR.Core.Domain;
 using RegionHR.Competence.Domain;
 using RegionHR.HalsoSAM.Domain;
+using RegionHR.Infrastructure.Journeys;
 using RegionHR.Positions.Domain;
 using RegionHR.SharedKernel.Domain;
 
@@ -266,6 +267,54 @@ public static class SeedData
         rehabMaria.TilldelaArendeagare(employees[8].Id);
         rehabMaria.SattRehabPlan("Arbetsformagebedomning genomford, deltidsatergang 50%");
         db.RehabCases.Add(rehabMaria);
+
+        // === Journey templates + instances ===
+        var onboardingMall = JourneyTemplate.Skapa("Ny medarbetare", JourneyKategori.Onboarding,
+            "Onboarding-process for nyanstallda — 12 steg over 90 dagar");
+        onboardingMall.LaggTillSteg("Skapa konton", "AD-konto, e-post, systembehorigheter", "IT", -5);
+        onboardingMall.LaggTillSteg("Bestall utrustning", "Dator, telefon, passerkort", "IT", -3);
+        onboardingMall.LaggTillSteg("Forbered arbetsplats", "Skrivbord, nyckel, introduktionsmaterial", "Chef", -2);
+        onboardingMall.LaggTillSteg("Valkomstmote", "Introduktion till teamet och verksamheten", "Chef", 1);
+        onboardingMall.LaggTillSteg("HR-introduktion", "Avtal, policyer, friskvard, lon", "HR", 1);
+        onboardingMall.LaggTillSteg("IT-genomgang", "Inloggning, system, support", "IT", 2);
+        onboardingMall.LaggTillSteg("Sakerhetsutbildning", "Obligatorisk brandskydd och HLR", "System", 3);
+        onboardingMall.LaggTillSteg("Forsta uppfoljning", "Hur gar det? Fragor?", "Chef", 5);
+        onboardingMall.LaggTillSteg("Mentor check-in", "Fragor och stod fran mentor", "Mentor", 14);
+        onboardingMall.LaggTillSteg("30-dagarssamtal", "Formell uppfoljning med chef", "Chef", 30);
+        onboardingMall.LaggTillSteg("60-dagarssamtal", "Utvecklingsplan och feedback", "Chef", 60);
+        onboardingMall.LaggTillSteg("Provanstallning avslutas", "Utvardering och beslut", "HR", 90);
+        db.JourneyTemplates.Add(onboardingMall);
+
+        var avslutMall = JourneyTemplate.Skapa("Avslut", JourneyKategori.Avslut,
+            "Offboarding-process vid anstallningens slut");
+        avslutMall.LaggTillSteg("Kunskapsoverforing", "Dokumentera och overlat arbetsuppgifter", "Chef", -14);
+        avslutMall.LaggTillSteg("Aterlamnning utrustning", "Dator, telefon, nycklar, passerkort", "Chef", -2);
+        avslutMall.LaggTillSteg("Stang IT-behorigheter", "AD, e-post, VPN, system", "IT", 0);
+        avslutMall.LaggTillSteg("Slutlon beraknad", "Semester, komptid, overtid", "HR", 0);
+        avslutMall.LaggTillSteg("Tjanstgoringsintyg", "Utfarda och signera", "HR", 0);
+        avslutMall.LaggTillSteg("Arbetsgivarintyg AF", "Utfarda for Arbetsformedlingen", "HR", 0);
+        avslutMall.LaggTillSteg("Exit-samtal", "Avslutande samtal med chef", "Chef", -1);
+        avslutMall.LaggTillSteg("GDPR-gallringsplan", "Upprata plan for dataradering", "HR", 5);
+        db.JourneyTemplates.Add(avslutMall);
+
+        // Journey instances — skapade via SkapaFranMall() for korrekt snapshot
+        var onboardingAnna = JourneyInstance.SkapaFranMall(
+            onboardingMall, employees[0].Id.Value,
+            $"{employees[0].Fornamn} {employees[0].Efternamn}",
+            DateTime.UtcNow.AddDays(-10));
+        // Markera de forsta 5 stegen som klara (simulerar pagar ande onboarding)
+        foreach (var steg in onboardingAnna.Steg.Take(5))
+            onboardingAnna.MarkeraStegKlart(steg.Id, "Seed");
+        db.JourneyInstances.Add(onboardingAnna);
+
+        var onboardingSara = JourneyInstance.SkapaFranMall(
+            onboardingMall, employees[4].Id.Value,
+            $"{employees[4].Fornamn} {employees[4].Efternamn}",
+            DateTime.UtcNow.AddDays(-3));
+        // Markera forsta 2 stegen
+        foreach (var steg in onboardingSara.Steg.Take(2))
+            onboardingSara.MarkeraStegKlart(steg.Id, "Seed");
+        db.JourneyInstances.Add(onboardingSara);
 
         await db.SaveChangesAsync();
     }

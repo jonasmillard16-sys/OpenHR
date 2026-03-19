@@ -39,7 +39,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 ### Prototyp/mock
 UI med fungerande navigation och demo-data. Ingen backend-persistens:
 
-- **Medarbetarresor (Journeys)** — 5 journey-typer med checklistor, ingen domänmodell/DB
+- **Medarbetarresor (Journeys)** — se "Delvis implementerad" ovan
 - **Arbetsmiljö SAM** — se "Delvis implementerad" ovan
 - **Strategisk Workforce Planning** — what-if-scenarier, ingen beräkningsmotor
 - **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.

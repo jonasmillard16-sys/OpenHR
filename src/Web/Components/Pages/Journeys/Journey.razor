@@ -1,261 +1,119 @@
-@page "/journeys/{JourneyId}"
+@page "/journeys/{InstanceId:guid}"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@inject NavigationManager Nav
+@using RegionHR.Infrastructure.Journeys
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - @(_journey?.Titel ?? "Medarbetarresa")</PageTitle>
+<PageTitle>OpenHR — Journey</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/journeys" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary"
-           Href="/journeys" Class="mb-3">Tillbaka till medarbetarresor</MudButton>
-
-@if (_journey is not null)
+@if (_loading)
 {
-    <div class="d-flex justify-space-between align-center mb-4">
-        <div class="d-flex align-center gap-3">
-            <MudAvatar Color="@_journey.Farg" Size="Size.Large" Variant="Variant.Filled">
-                <MudIcon Icon="@_journey.Ikon" />
-            </MudAvatar>
-            <div>
-                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_journey.Titel</MudText>
-                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@_journey.Beskrivning</MudText>
-            </div>
-        </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.PlayArrow" Style="min-height: 48px;"
-                   OnClick="@(() => _showStartDialog = true)">
-            Starta journey för anställd
-        </MudButton>
-    </div>
-
-    @if (_showStartDialog)
-    {
-        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-            <div class="d-flex justify-space-between align-center mb-3">
-                <MudText Typo="Typo.h6" Style="font-weight: 600;">Starta @_journey.Titel</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showStartDialog = false)" />
-            </div>
-            <MudText Typo="Typo.body2" Class="mb-3">Välj anställd att starta denna journey för. Systemet skapar automatiskt alla uppgifter och tilldelar ansvariga.</MudText>
-            <MudSelect T="string" @bind-Value="_selectedEmployee" Label="Välj anställd" Variant="Variant.Outlined" Class="mb-3">
-                <MudSelectItem Value="@("Sara Johansson")">Sara Johansson — Sjuksköterska</MudSelectItem>
-                <MudSelectItem Value="@("Erik Bergström")">Erik Bergström — Systemutvecklare</MudSelectItem>
-                <MudSelectItem Value="@("Maria Lindgren")">Maria Lindgren — Undersköterska</MudSelectItem>
-                <MudSelectItem Value="@("Anders Nilsson")">Anders Nilsson — Läkare</MudSelectItem>
-                <MudSelectItem Value="@("Fatima Al-Hassan")">Fatima Al-Hassan — Undersköterska</MudSelectItem>
-            </MudSelect>
-            <MudDatePicker @bind-Date="_startDate" Label="Startdatum" Variant="Variant.Outlined" Class="mb-3" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       Style="min-height: 48px;" OnClick="StartaJourney"
-                       Disabled="@(string.IsNullOrEmpty(_selectedEmployee))">
-                Starta
-            </MudButton>
-        </MudPaper>
-    }
-
-    @if (_journeyStarted)
-    {
-        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _journeyStarted = false)">
-            Journey startad för @_selectedEmployee! Alla @_steg.Count uppgifter har skapats och ansvariga har notifierats.
-        </MudAlert>
-    }
-
-    <MudPaper Class="pa-4 mb-6" Elevation="2">
-        <div class="d-flex justify-space-between align-center mb-2">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Framsteg</MudText>
-            <MudText Typo="Typo.body2" Style="font-weight: 600;">@KlaraSteg / @_steg.Count steg klara (@Procent%)</MudText>
-        </div>
-        <MudProgressLinear Value="@Procent" Color="@(Procent >= 80 ? Color.Success : Procent >= 40 ? Color.Info : Color.Warning)"
-                           Rounded="true" Size="Size.Large" />
-    </MudPaper>
-
-    <MudTimeline TimelinePosition="TimelinePosition.Start">
-        @foreach (var steg in _steg)
-        {
-            <MudTimelineItem Color="@StegFarg(steg)" Size="Size.Medium"
-                             Icon="@(steg.Status == StegStatus.Klar ? Icons.Material.Filled.CheckCircle : steg.Status == StegStatus.Pagar ? Icons.Material.Filled.PlayCircle : Icons.Material.Filled.RadioButtonUnchecked)">
-                <ItemContent>
-                    <MudPaper Class="pa-4 mb-2" Elevation="@(steg.Status == StegStatus.Pagar ? 3 : 1)"
-                              Style="@(steg.Status == StegStatus.Pagar ? "border-left: 4px solid var(--mud-palette-primary);" : "")">
-                        <div class="d-flex justify-space-between align-center">
-                            <div class="d-flex align-center gap-3">
-                                <MudCheckBox T="bool" Value="@(steg.Status == StegStatus.Klar)"
-                                             ValueChanged="@((bool v) => TogglaSteg(steg, v))"
-                                             Color="Color.Success" />
-                                <div>
-                                    <MudText Typo="Typo.subtitle1" Style="@(steg.Status == StegStatus.Klar ? "text-decoration: line-through; opacity: 0.7;" : "font-weight: 600;")">
-                                        @steg.Titel
-                                    </MudText>
-                                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@steg.Beskrivning</MudText>
-                                </div>
-                            </div>
-                            <div class="d-flex align-center gap-2">
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@AnsvarigFarg(steg.Ansvarig)">@steg.Ansvarig</MudChip>
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@StegStatusFarg(steg.Status)">@StegStatusText(steg.Status)</MudChip>
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); min-width: 60px;">@steg.Dag</MudText>
-                            </div>
-                        </div>
-                    </MudPaper>
-                </ItemContent>
-            </MudTimelineItem>
-        }
-    </MudTimeline>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_instance == null)
+{
+    <MudAlert Severity="Severity.Error">Journey hittades inte.</MudAlert>
 }
 else
 {
-    <MudAlert Severity="Severity.Warning">Journey hittades inte.</MudAlert>
+    <MudText Typo="Typo.h4" Class="mb-1" Style="font-weight: 700;">@_instance.MallNamn</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+        @_instance.AnstallNamn — startad @_instance.Startdatum.ToLocalTime().ToString("yyyy-MM-dd")
+    </MudText>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_instance.Progress%</MudText>
+                <MudText Typo="Typo.body2">Progress</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_instance.Steg.Count(s => s.Klar) / @_instance.Steg.Count</MudText>
+                <MudText Typo="Typo.body2">Steg klara</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_instance.Status</MudText>
+                <MudText Typo="Typo.body2">Status</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudProgressLinear Value="@_instance.Progress" Color="@(_instance.Progress >= 100 ? Color.Success : Color.Primary)"
+                       Class="mb-4" Style="height: 8px; border-radius: 4px;" />
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr><th style="width: 40px;"></th><th>Steg</th><th>Beskrivning</th><th>Ansvarig</th><th>Planerad</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var steg in _instance.Steg.OrderBy(s => s.Ordning))
+            {
+                var deadline = _instance.Startdatum.AddDays(steg.DagOffset);
+                var forsenad = !steg.Klar && deadline < DateTime.UtcNow;
+                <tr>
+                    <td>
+                        <MudCheckBox T="bool" Value="@steg.Klar" Disabled="@steg.Klar"
+                                     ValueChanged="@(async (v) => { if (v) await MarkeraKlar(steg.Id); })"
+                                     Color="Color.Success" />
+                    </td>
+                    <td><strong style="@(steg.Klar ? "text-decoration: line-through; opacity: 0.6;" : "")">@steg.Ordning. @steg.Titel</strong></td>
+                    <td style="@(steg.Klar ? "opacity: 0.6;" : "")">@steg.Beskrivning</td>
+                    <td><MudChip T="string" Size="Size.Small">@steg.AnsvarigRoll</MudChip></td>
+                    <td>
+                        <MudText Typo="Typo.body2" Style="@(forsenad ? "color: var(--mud-palette-error); font-weight: 600;" : "")">
+                            Dag @steg.DagOffset (@deadline.ToLocalTime().ToString("yyyy-MM-dd"))
+                        </MudText>
+                    </td>
+                    <td>
+                        @if (steg.Klar)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
+                                Klar @(steg.KlarVid?.ToLocalTime().ToString("MM-dd"))
+                            </MudChip>
+                        }
+                        else if (forsenad)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Ej klar</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
 }
 
 @code {
-    [Parameter] public string JourneyId { get; set; } = "";
+    [Parameter] public Guid InstanceId { get; set; }
+    private JourneyInstance? _instance;
+    private bool _loading = true;
 
-    private JourneyDef? _journey;
-    private List<JourneySteg> _steg = [];
-    private bool _showStartDialog;
-    private bool _journeyStarted;
-    private string _selectedEmployee = "";
-    private DateTime? _startDate = DateTime.Today;
-
-    private int KlaraSteg => _steg.Count(s => s.Status == StegStatus.Klar);
-    private int Procent => _steg.Count == 0 ? 0 : (int)(100.0 * KlaraSteg / _steg.Count);
-
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
-        _journey = _allJourneys.FirstOrDefault(j => j.Id == JourneyId);
-        _steg = _journey is not null ? GetSteg(_journey.Id) : [];
+        try
+        {
+            _instance = await Db.JourneyInstances
+                .Include("Steg")
+                .FirstOrDefaultAsync(i => i.Id == InstanceId);
+        }
+        catch { }
+        finally { _loading = false; }
     }
 
-    private void TogglaSteg(JourneySteg steg, bool klar)
+    private async Task MarkeraKlar(Guid stegId)
     {
-        steg.Status = klar ? StegStatus.Klar : StegStatus.EjPaborjad;
-
-        // Auto-advance: set next uncompleted step to Pågår
-        var first = _steg.FirstOrDefault(s => s.Status == StegStatus.EjPaborjad);
-        foreach (var s in _steg.Where(s => s.Status == StegStatus.Pagar))
-            s.Status = StegStatus.EjPaborjad;
-        if (first is not null)
-            first.Status = StegStatus.Pagar;
+        if (_instance == null) return;
+        _instance.MarkeraStegKlart(stegId, "Admin");
+        await Db.SaveChangesAsync();
     }
-
-    private void StartaJourney()
-    {
-        _showStartDialog = false;
-        _journeyStarted = true;
-        // Reset steps to simulate a fresh start
-        foreach (var s in _steg)
-            s.Status = StegStatus.EjPaborjad;
-        if (_steg.Count > 0)
-            _steg[0].Status = StegStatus.Pagar;
-    }
-
-    private List<JourneySteg> GetSteg(string journeyId) => journeyId switch
-    {
-        "onboarding" =>
-        [
-            new("Skapa konton", "AD, e-post, systemåtkomst — systemet förbereder åtkomst", "IT", "Dag -5", StegStatus.Klar),
-            new("Beställ utrustning", "Dator, telefon, passerkort — beställs via IT-portalen", "IT", "Dag -3", StegStatus.Klar),
-            new("Förbered arbetsplats", "Skrivbord, nyckel, välkomstpaket på plats", "Chef", "Dag -2", StegStatus.Klar),
-            new("Välkomstmöte", "Introduktion till teamet, rundvandring, fika", "Chef", "Dag 1", StegStatus.Pagar),
-            new("HR-introduktion", "Avtal signeras, policyer genomgås, friskvårdsbidrag aktiveras", "HR", "Dag 1", StegStatus.EjPaborjad),
-            new("IT-genomgång", "Inloggning, system, VPN, support kontaktinfo", "IT", "Dag 2", StegStatus.EjPaborjad),
-            new("Säkerhetsutbildning", "Obligatorisk e-learning: brandskydd, informationssäkerhet", "System", "Dag 3", StegStatus.EjPaborjad),
-            new("Första uppföljning", "Hur går det? Behöver du något? Informell avstämning", "Chef", "Dag 5", StegStatus.EjPaborjad),
-            new("Mentor-check-in", "Utsedd mentor kontaktar — frågor och stöd", "Mentor", "Dag 14", StegStatus.EjPaborjad),
-            new("30-dagarssamtal", "Formell uppföljning: trivsel, arbetsuppgifter, feedback", "Chef", "Dag 30", StegStatus.EjPaborjad),
-            new("60-dagarssamtal", "Utvecklingsplan påbörjas, mål sätts", "Chef", "Dag 60", StegStatus.EjPaborjad),
-            new("Provanställning avslutas", "HR utvärderar, beslut om tillsvidare. Dokumenteras i systemet", "HR", "Dag 90", StegStatus.EjPaborjad),
-        ],
-        "ny-chef" =>
-        [
-            new("Ledarskapsintroduktion", "Genomgång av regionens ledarskapsmodell och värderingar", "HR", "Dag 1", StegStatus.Pagar),
-            new("Arbetsrättsutbildning", "LAS, MBL, AML, diskriminering — obligatorisk e-learning", "HR", "Dag 3", StegStatus.EjPaborjad),
-            new("Delegering av behörigheter", "Attesträtt, systemåtkomst, budgetansvar tilldelas", "IT", "Dag 5", StegStatus.EjPaborjad),
-            new("Möte med teamet", "Presentation, förväntningar, lyssnande", "Chef", "Dag 7", StegStatus.EjPaborjad),
-            new("Genomgång budget & bemanning", "Ekonomi, bemanningsplan, vakansläge", "Ledning", "Dag 14", StegStatus.EjPaborjad),
-            new("30-dagars avstämning", "Uppföljning med HR — hur går ledarskapet?", "HR", "Dag 30", StegStatus.EjPaborjad),
-            new("60-dagars avstämning", "Teamfeedback samlas in och diskuteras", "HR", "Dag 60", StegStatus.EjPaborjad),
-            new("90-dagars utvärdering", "Formell utvärdering av första kvartalet som chef", "Ledning", "Dag 90", StegStatus.EjPaborjad),
-        ],
-        "foraldraledig" =>
-        [
-            new("Planering med chef", "Diskutera tidsplan, vikariat, överlämning", "Chef", "3 mån före", StegStatus.Pagar),
-            new("Anmälan till FK", "Systemet hjälper med FK-anmälan och beräknar ersättning", "HR", "2 mån före", StegStatus.EjPaborjad),
-            new("Vikariat tillsatt", "Vikarie rekryterad och introduktion planerad", "Chef", "1 mån före", StegStatus.EjPaborjad),
-            new("Överlämning", "Arbetsuppgifter överlämnade, dokumentation klar", "Anställd", "Sista veckan", StegStatus.EjPaborjad),
-            new("Under ledigheten", "Löneutbetalning justerad, kontaktvägar dokumenterade", "HR", "Under", StegStatus.EjPaborjad),
-            new("Återgång", "Välkomstsamtal, uppdatering om förändringar, nytt schema", "Chef", "Återkomst", StegStatus.EjPaborjad),
-        ],
-        "sjukfranvaro-lang" =>
-        [
-            new("Dag 14 — FK-anmälan", "Arbetsgivaren anmäler till FK och upprättar rehabplan", "HR", "Dag 14", StegStatus.Pagar),
-            new("Rehabsamtal", "Första möte: orsak, arbetsförmåga, anpassningar", "Chef", "Dag 21", StegStatus.EjPaborjad),
-            new("Dag 90 — FK-prövning", "FK prövar arbetsförmåga mot ordinarie arbete", "HR", "Dag 90", StegStatus.EjPaborjad),
-            new("Dag 180 — Hela arbetsmarknaden", "FK prövar mot hela arbetsmarknaden", "HR", "Dag 180", StegStatus.EjPaborjad),
-            new("Uppföljning och plan", "Kontinuerlig uppföljning var 4:e vecka, anpassad arbetsåtergång", "Chef", "Löpande", StegStatus.EjPaborjad),
-        ],
-        "avslut" =>
-        [
-            new("Uppsägning mottagen", "Registreras i systemet, uppsägningstid beräknas", "HR", "Dag 1", StegStatus.Pagar),
-            new("Överlämningsplan", "Arbetsuppgifter identifieras och tilldelas kollega", "Chef", "Dag 3", StegStatus.EjPaborjad),
-            new("Avslutssamtal", "Varför slutar medarbetaren? Feedback för förbättring", "HR", "Dag 7", StegStatus.EjPaborjad),
-            new("Återlämna utrustning", "Dator, telefon, passerkort, nycklar", "IT", "Sista veckan", StegStatus.EjPaborjad),
-            new("Stäng konton", "AD, e-post, VPN, systemåtkomst inaktiveras", "IT", "Sista dagen", StegStatus.EjPaborjad),
-            new("Slutlön", "Semesterersättning, innestående övertid, slutlönespecifikation", "HR", "Sista dagen", StegStatus.EjPaborjad),
-            new("Tjänstgöringsintyg", "Automatiskt genererat — skickas till medarbetaren", "System", "Dag +1", StegStatus.EjPaborjad),
-        ],
-        _ => []
-    };
-
-    private static Color StegFarg(JourneySteg s) => s.Status switch
-    {
-        StegStatus.Klar => Color.Success,
-        StegStatus.Pagar => Color.Primary,
-        _ => Color.Default,
-    };
-
-    private static Color StegStatusFarg(StegStatus s) => s switch
-    {
-        StegStatus.Klar => Color.Success,
-        StegStatus.Pagar => Color.Info,
-        _ => Color.Default,
-    };
-
-    private static string StegStatusText(StegStatus s) => s switch
-    {
-        StegStatus.Klar => "Klar",
-        StegStatus.Pagar => "Pågår",
-        _ => "Ej påbörjad",
-    };
-
-    private static Color AnsvarigFarg(string ansvarig) => ansvarig switch
-    {
-        "HR" => Color.Primary,
-        "Chef" => Color.Warning,
-        "IT" => Color.Info,
-        "System" => Color.Secondary,
-        "Mentor" => Color.Success,
-        "Anställd" => Color.Default,
-        "Ledning" => Color.Error,
-        "FK" => Color.Warning,
-        _ => Color.Default,
-    };
-
-    private readonly List<JourneyDef> _allJourneys =
-    [
-        new("onboarding", "Ny medarbetare", "Komplett onboarding från konton till provanställningens slut", Icons.Material.Filled.PersonAdd, Color.Primary),
-        new("ny-chef", "Ny chef", "Chefens första 90 dagar", Icons.Material.Filled.SupervisorAccount, Color.Secondary),
-        new("foraldraledig", "Föräldraledig", "Före, under och efter föräldraledigheten", Icons.Material.Filled.ChildCare, Color.Success),
-        new("sjukfranvaro-lang", "Sjukfrånvaro > 14 dagar", "Rehabkedjan steg för steg", Icons.Material.Filled.LocalHospital, Color.Warning),
-        new("avslut", "Avslut", "Komplett offboarding", Icons.Material.Filled.ExitToApp, Color.Error),
-    ];
-
-    private record JourneyDef(string Id, string Titel, string Beskrivning, string Ikon, Color Farg);
-
-    private class JourneySteg(string titel, string beskrivning, string ansvarig, string dag, StegStatus status)
-    {
-        public string Titel { get; set; } = titel;
-        public string Beskrivning { get; set; } = beskrivning;
-        public string Ansvarig { get; set; } = ansvarig;
-        public string Dag { get; set; } = dag;
-        public StegStatus Status { get; set; } = status;
-    }
-
-    private enum StegStatus { EjPaborjad, Pagar, Klar }
 }

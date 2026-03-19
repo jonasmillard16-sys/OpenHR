@@ -27,6 +27,7 @@ using RegionHR.Configuration.Domain;
 using RegionHR.Infrastructure.Authorization;
 using RegionHR.Infrastructure.Provisioning;
 using RegionHR.Infrastructure.Arbetsmiljo;
+using RegionHR.Infrastructure.Journeys;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -152,6 +153,10 @@ public class RegionHRDbContext : DbContext
     public DbSet<Incident> Incidents => Set<Incident>();
     public DbSet<SafetyRound> SafetyRounds => Set<SafetyRound>();
     public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
+
+    // Journeys (schema: journeys) — only 2 DbSet, step entities are owned
+    public DbSet<JourneyTemplate> JourneyTemplates => Set<JourneyTemplate>();
+    public DbSet<JourneyInstance> JourneyInstances => Set<JourneyInstance>();
 
     // Provisioning (schema: provisioning)
     public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
