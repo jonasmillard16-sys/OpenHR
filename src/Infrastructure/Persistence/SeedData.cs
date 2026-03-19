@@ -177,6 +177,29 @@ public static class SeedData
             EmployeeSkill.Skapa(employees[7].Id.Value, arbetsratt.Id, 2),
             EmployeeSkill.Skapa(employees[7].Id.Value, excel.Id, 3));
 
+        // === Provisioning rules (default konfiguration) ===
+        db.ProvisioningRules.AddRange(
+            Provisioning.ProvisioningRule.Skapa(
+                Provisioning.ProvisioningTrigger.NyAnstallning,
+                "Active Directory",
+                Provisioning.ProvisioningAktion.SkapaKonto,
+                "Skapa AD-konto vid nyanstallning"),
+            Provisioning.ProvisioningRule.Skapa(
+                Provisioning.ProvisioningTrigger.NyAnstallning,
+                "E-post (Exchange)",
+                Provisioning.ProvisioningAktion.SkapaEpost,
+                "Skapa e-postlada vid nyanstallning"),
+            Provisioning.ProvisioningRule.Skapa(
+                Provisioning.ProvisioningTrigger.AvslutadAnstallning,
+                "Active Directory",
+                Provisioning.ProvisioningAktion.InaktiveraKonto,
+                "Inaktivera AD-konto vid avslut"),
+            Provisioning.ProvisioningRule.Skapa(
+                Provisioning.ProvisioningTrigger.AvslutadAnstallning,
+                "Passersystem",
+                Provisioning.ProvisioningAktion.SparraPasserkort,
+                "Sparra passerkort vid avslut"));
+
         await db.SaveChangesAsync();
     }
 }

@@ -24,6 +24,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 
 - **Uppsägningsrisk (Flight Risk v1)** — regelbaserad heuristik, beräknad från riktig personaldata via FlightRiskService. 4 signaler: tenure, anställningsform, bristyrke (heuristik), deltid. Inte prediktiv AI. Begränsning: seeddata i DB.
 - **Skills/Kompetens (v1)** — normaliserad skills-katalog (Skill, EmployeeSkill, PositionSkillRequirement) med riktig EF-migration. Gap-analys via Position.InnehavareAnstallId → PositionSkillRequirement. Begränsning: seeddata, inget registrerings-UI.
+- **Identitetshantering (v1)** — lokal provisioneringslogg (ProvisioningEvent) och regelkonfiguration (ProvisioningRule) i DB. ProvisioningService beräknar åtgärder baserat på regler. LocalRecordingProvider registrerar i DB utan externa anrop. Ingen SCIM/AD/Entra-integration.
 - **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
 - **Rapporter** — Löneregister hämtar från DB, övriga 3 rapporter har realistiska beräkningar. CSV-export fungerar.
 - **Ledighetshantering** — wizard med ärendenummer, persisterar ej till DB
@@ -40,7 +41,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **Medarbetarresor (Journeys)** — 5 journey-typer med checklistor, ingen domänmodell/DB
 - **Arbetsmiljö SAM** — tillbud, skyddsronder, riskmatris, ingen DB
 - **Strategisk Workforce Planning** — what-if-scenarier, ingen beräkningsmotor
-- **AD/SCIM Provisionering** — dashboard med simulerad synk, ingen extern integration
+- **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
 - **Benefits Enrollment** — livshändelser, open enrollment, ej kopplad till DB
 - **Talangpool/Recruitment CRM** — kandidatpool, CV-parsning simulerad
 - **Pulsundersökningar** — enkätverktyg, demo-resultat

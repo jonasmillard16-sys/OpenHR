@@ -25,6 +25,7 @@ using RegionHR.Offboarding.Domain;
 using RegionHR.Analytics.Domain;
 using RegionHR.Configuration.Domain;
 using RegionHR.Infrastructure.Authorization;
+using RegionHR.Infrastructure.Provisioning;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -145,6 +146,10 @@ public class RegionHRDbContext : DbContext
     // Authorization (schema: authorization)
     public DbSet<FieldPermission> FieldPermissions => Set<FieldPermission>();
     public DbSet<DelegatedAccess> DelegatedAccesses => Set<DelegatedAccess>();
+
+    // Provisioning (schema: provisioning)
+    public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
+    public DbSet<ProvisioningRule> ProvisioningRules => Set<ProvisioningRule>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

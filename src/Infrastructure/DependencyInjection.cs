@@ -112,6 +112,10 @@ public static class DependencyInjection
         // Analytics
         services.AddScoped<Analytics.FlightRiskService>();
 
+        // Provisioning (lokal registrering — inga externa anrop i v1)
+        services.AddScoped<Provisioning.IIdentityProvider, Provisioning.LocalRecordingProvider>();
+        services.AddScoped<Provisioning.ProvisioningService>();
+
         // Background services
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();
