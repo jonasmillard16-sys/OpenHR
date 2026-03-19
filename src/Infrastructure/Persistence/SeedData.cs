@@ -586,6 +586,32 @@ public static class SeedData
         runMars.MarkeraSomBeraknad();
         db.PayrollRuns.Add(runMars);
 
+        // === ScheduledShifts (idag, baserat på DateTime.Today) ===
+        var idagDatum = DateOnly.FromDateTime(DateTime.Today);
+        var schemaId = ScheduleId.New();
+        db.ScheduledShifts.AddRange(
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[0].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[2].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[4].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[6].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Kvall, PlaneradStart = new TimeOnly(15, 0), PlaneradSlut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagKvall },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[9].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Kvall, PlaneradStart = new TimeOnly(15, 0), PlaneradSlut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagKvall },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[3].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Natt, PlaneradStart = new TimeOnly(21, 0), PlaneradSlut = new TimeOnly(7, 0), Rast = TimeSpan.FromMinutes(45), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagNatt });
+
+        // === Certifications via domänens Skapa() ===
+        db.Certifications.AddRange(
+            RegionHR.Competence.Domain.Certification.Skapa(
+                employees[0].Id.Value, "HLR", RegionHR.Competence.Domain.CertificationType.ObligatoriskUtbildning,
+                "Svensk HLR-rad", DateOnly.FromDateTime(DateTime.Today.AddMonths(-6)),
+                DateOnly.FromDateTime(DateTime.Today.AddMonths(6)), obligatorisk: true),
+            RegionHR.Competence.Domain.Certification.Skapa(
+                employees[0].Id.Value, "Brandskydd", RegionHR.Competence.Domain.CertificationType.ObligatoriskUtbildning,
+                "MSB", DateOnly.FromDateTime(DateTime.Today.AddMonths(-4)),
+                DateOnly.FromDateTime(DateTime.Today.AddMonths(8)), obligatorisk: true),
+            RegionHR.Competence.Domain.Certification.Skapa(
+                employees[0].Id.Value, "Lakemedelshantering", RegionHR.Competence.Domain.CertificationType.Legitimation,
+                "Socialstyrelsen", DateOnly.FromDateTime(DateTime.Today.AddMonths(-18)),
+                DateOnly.FromDateTime(DateTime.Today.AddMonths(-3)), obligatorisk: true));
+
         // === PerformanceReviews via domänens Skapa() ===
         // Anna Svensson — genomfört samtal (alla steg)
         var reviewAnna = RegionHR.Performance.Domain.PerformanceReview.Skapa(

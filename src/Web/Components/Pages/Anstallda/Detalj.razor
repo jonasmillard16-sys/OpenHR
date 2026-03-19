@@ -2,6 +2,9 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using Microsoft.EntityFrameworkCore
 @using RegionHR.Payroll.Domain
+@using RegionHR.Leave.Domain
+@using RegionHR.Competence.Domain
+@using RegionHR.Audit.Domain
 @using RegionHR.SharedKernel.Domain
 @inject RegionHR.Web.Services.AnstallningService Service
 @inject RegionHR.Infrastructure.Persistence.RegionHRDbContext Db
@@ -130,18 +133,27 @@
 
         <MudTabPanel Text="Fr&#229;nvaro" Icon="@Icons.Material.Filled.EventBusy">
             <MudText Typo="Typo.h6" Class="mb-3">Fr&#229;nvarohistorik</MudText>
-            <MudSimpleTable Hover="true">
-                <thead>
-                    <tr><th>Datum</th><th>Typ</th><th>Dagar</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>2026-03-10</td><td>Sjukfr&#229;nvaro</td><td>2</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                    <tr><td>2026-02-14</td><td>VAB</td><td>1</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                    <tr><td>2026-01-20</td><td>Semester</td><td>5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                    <tr><td>2025-12-23</td><td>Semester</td><td>7</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                    <tr><td>2025-11-05</td><td>Sjukfr&#229;nvaro</td><td>3</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Avslutad</MudChip></td></tr>
-                </tbody>
-            </MudSimpleTable>
+            @if (_franvaro.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen fr&#229;nvaro registrerad.</MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead><tr><th>Period</th><th>Typ</th><th>Dagar</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var f in _franvaro)
+                        {
+                            <tr>
+                                <td>@f.FranDatum.ToString("yyyy-MM-dd") – @f.TillDatum.ToString("yyyy-MM-dd")</td>
+                                <td>@MapLeaveType(f.Typ)</td>
+                                <td>@f.AntalDagar</td>
+                                <td><MudChip T="string" Size="Size.Small" Color="@MapLeaveStatusColor(f.Status)">@MapLeaveStatus(f.Status)</MudChip></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
         <MudTabPanel Text="LAS" Icon="@Icons.Material.Filled.Warning">
@@ -153,53 +165,99 @@
         </MudTabPanel>
 
         <MudTabPanel Text="Kompetens" Icon="@Icons.Material.Filled.School">
-            <MudText Typo="Typo.h6" Class="mb-3">Certifieringar och utbildningar</MudText>
-            <MudSimpleTable Hover="true">
-                <thead>
-                    <tr><th>Certifiering</th><th>Utfärdad</th><th>Giltig t.o.m.</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>HLR — Hjärt-lungräddning</td><td>2025-09-15</td><td>2026-09-15</td></tr>
-                    <tr><td>Brandskydd</td><td>2025-11-01</td><td>2026-11-01</td></tr>
-                    <tr><td>Läkemedelshantering</td><td>2024-06-10</td><td>2026-06-10</td></tr>
-                </tbody>
-            </MudSimpleTable>
+            <MudText Typo="Typo.h6" Class="mb-3">Kompetenser</MudText>
+            @if (_kompetenser.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga kompetenser registrerade.</MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true" Class="mb-4">
+                    <thead><tr><th>Kompetens</th><th>Kategori</th><th>Niv&#229;</th></tr></thead>
+                    <tbody>
+                        @foreach (var k in _kompetenser)
+                        {
+                            <tr><td>@k.SkillNamn</td><td>@k.Kategori</td><td>@k.Niva / 5</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            <MudText Typo="Typo.h6" Class="mb-3">Certifieringar</MudText>
+            @if (_certifieringar.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga certifieringar registrerade.</MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead><tr><th>Certifiering</th><th>Utfärdare</th><th>Giltig fr&#229;n</th><th>Giltig t.o.m.</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in _certifieringar)
+                        {
+                            <tr>
+                                <td>@c.Namn</td>
+                                <td>@(c.Utfardare ?? "—")</td>
+                                <td>@(c.GiltigFran?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                <td>@(c.GiltigTill?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                <td><MudChip T="string" Size="Size.Small" Color="@CertStatusColor(c.Status)">@CertStatusText(c.Status)</MudChip></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
         <MudTabPanel Text="Dokument" Icon="@Icons.Material.Filled.Description">
             <MudText Typo="Typo.h6" Class="mb-3">Dokument i personalakten</MudText>
-            <MudSimpleTable Hover="true">
-                <thead>
-                    <tr><th>Dokument</th><th>Datum</th><th>Typ</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>Anställningsavtal</td><td>2019-08-01</td><td>Avtal</td></tr>
-                    <tr><td>L&#246;nerevision 2025</td><td>2025-06-01</td><td>Beslut</td></tr>
-                    <tr><td>Medarbetarsamtal 2025</td><td>2025-10-15</td><td>Samtalsprotokoll</td></tr>
-                    <tr><td>Sekretessf&#246;rbindelse</td><td>2019-08-01</td><td>Juridiskt</td></tr>
-                </tbody>
-            </MudSimpleTable>
+            @if (_dokument.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga dokument uppladdade f&#246;r denna anställd.</MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead><tr><th>Filnamn</th><th>Kategori</th><th>Uppladdad</th><th>Beskrivning</th></tr></thead>
+                    <tbody>
+                        @foreach (var d in _dokument)
+                        {
+                            <tr>
+                                <td>@d.FileName</td>
+                                <td>@d.Kategori</td>
+                                <td>@d.UppladdadVid.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@(d.Beskrivning ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
         <MudTabPanel Text="&#196;ndringshistorik" Icon="@Icons.Material.Filled.History">
             <MudText Typo="Typo.h6" Class="mb-3">&#196;ndringshistorik</MudText>
             <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-                Alla ändringar som r&#246;r denna anställd loggas automatiskt i granskningsloggen.
+                Visar direkta &#228;ndringar p&#229; denna anst&#228;lld fr&#229;n granskningsloggen.
             </MudText>
-            <MudTimeline TimelinePosition="TimelinePosition.Start">
-                @foreach (var entry in _auditEntries)
-                {
-                    <MudTimelineItem Color="@entry.Farg" Size="Size.Small" Icon="@entry.Ikon">
-                        <ItemContent>
-                            <MudPaper Class="pa-3 mb-1" Elevation="1">
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@entry.Tidpunkt</MudText>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@entry.Beskrivning</MudText>
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@entry.Anvandare</MudText>
-                            </MudPaper>
-                        </ItemContent>
-                    </MudTimelineItem>
-                }
-            </MudTimeline>
+            @if (_auditEntries.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga &#228;ndringar loggade f&#246;r denna anst&#228;lld.</MudAlert>
+            }
+            else
+            {
+                <MudTimeline TimelinePosition="TimelinePosition.Start">
+                    @foreach (var entry in _auditEntries)
+                    {
+                        <MudTimelineItem Color="@AuditColor(entry.Action)" Size="Size.Small">
+                            <ItemContent>
+                                <MudPaper Class="pa-3 mb-1" Elevation="1">
+                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@entry.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudText>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 500;">@AuditSummary(entry)</MudText>
+                                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@(entry.UserName ?? entry.UserId)</MudText>
+                                </MudPaper>
+                            </ItemContent>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
         </MudTabPanel>
     </MudTabs>
 }
@@ -217,6 +275,11 @@ else
     private RegionHR.Core.Domain.Employee? _emp;
     private bool _loading = true;
     private List<LonRad> _lonehistorik = [];
+    private List<LeaveRequest> _franvaro = [];
+    private List<KompetensRad> _kompetenser = [];
+    private List<Certification> _certifieringar = [];
+    private List<RegionHR.Documents.Domain.Document> _dokument = [];
+    private List<AuditEntry> _auditEntries = [];
     private Dictionary<OrganizationId, string> _enhetsNamn = new();
 
     private string GetEnhetsNamn(OrganizationId id) =>
@@ -231,19 +294,51 @@ else
             var enheter = await Db.OrganizationUnits.ToListAsync();
             _enhetsNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
 
-            // Lönehistorik från PayrollResult
-            var results = await Db.PayrollResults
+            // Lönehistorik
+            var payResults = await Db.PayrollResults
                 .Where(r => r.AnstallId == EmployeeId.From(Id))
-                .OrderByDescending(r => r.Year)
-                .ThenByDescending(r => r.Month)
-                .Take(12)
-                .ToListAsync();
+                .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
+                .Take(12).ToListAsync();
+            _lonehistorik = payResults.Select(r => new LonRad(
+                $"{r.Year}-{r.Month:D2}", r.Brutto.Amount, r.Skatt.Amount, r.Netto.Amount,
+                r.OBTillagg.Amount, r.Overtidstillagg.Amount)).ToList();
 
-            _lonehistorik = results.Select(r => new LonRad(
-                $"{r.Year}-{r.Month:D2}",
-                r.Brutto.Amount, r.Skatt.Amount, r.Netto.Amount,
-                r.OBTillagg.Amount, r.Overtidstillagg.Amount
-            )).ToList();
+            // Frånvaro
+            _franvaro = await Db.LeaveRequests
+                .Where(r => r.AnstallId == Id)
+                .OrderByDescending(r => r.FranDatum)
+                .Take(20).ToListAsync();
+
+            // Kompetenser (EmployeeSkill + Skill name)
+            var empSkills = await Db.EmployeeSkills
+                .Where(es => es.AnstallId == Id).ToListAsync();
+            if (empSkills.Count > 0)
+            {
+                var skillIds = empSkills.Select(es => es.SkillId).Distinct().ToList();
+                var skills = await Db.Skills
+                    .Where(s => skillIds.Contains(s.Id)).ToListAsync();
+                var skillNames = skills.ToDictionary(s => s.Id, s => (s.Namn, s.Kategori.ToString()));
+                _kompetenser = empSkills.Select(es =>
+                {
+                    skillNames.TryGetValue(es.SkillId, out var info);
+                    return new KompetensRad(info.Namn ?? "Okänd", info.Item2 ?? "—", es.Niva);
+                }).OrderByDescending(k => k.Niva).ToList();
+            }
+
+            // Certifieringar
+            _certifieringar = await Db.Certifications
+                .Where(c => c.AnstallId == Id).ToListAsync();
+
+            // Dokument
+            _dokument = await Db.Documents
+                .Where(d => d.AnstallId == Id)
+                .OrderByDescending(d => d.UppladdadVid).ToListAsync();
+
+            // Ändringshistorik (direkta Employee-ändringar)
+            _auditEntries = await Db.AuditEntries
+                .Where(e => e.EntityType == "Employee" && e.EntityId == Id.ToString())
+                .OrderByDescending(e => e.Timestamp)
+                .Take(20).ToListAsync();
         }
         catch (Exception ex)
         {
@@ -253,17 +348,69 @@ else
     }
 
     private record LonRad(string Period, decimal Brutto, decimal Skatt, decimal Netto, decimal OB, decimal Overtid);
+    private record KompetensRad(string SkillNamn, string Kategori, int Niva);
 
-    private record AuditEntryVm(string Tidpunkt, string Anvandare, string Beskrivning, Color Farg, string Ikon);
-
-    // Audit trail demo data
-    private List<AuditEntryVm> _auditEntries = new()
+    private static string MapLeaveType(LeaveType t) => t switch
     {
-        new AuditEntryVm("2026-03-18 09:15", "Sara Andersson (HR)", "Ändrade befattning: Undersköterska \u2192 Sjuksköterska", Color.Warning, Icons.Material.Filled.SwapHoriz),
-        new AuditEntryVm("2026-03-15 14:30", "System", "Lönerevision genomförd, ny lön 34 500 kr", Color.Info, Icons.Material.Filled.Payments),
-        new AuditEntryVm("2026-03-10 08:00", "Eva Nilsson (Chef)", "Godkände semesteransökan 15\u201319 april", Color.Success, Icons.Material.Filled.EventAvailable),
-        new AuditEntryVm("2026-02-01 10:00", "Sara Andersson (HR)", "Uppdaterade kontaktuppgifter", Color.Warning, Icons.Material.Filled.Edit),
-        new AuditEntryVm("2026-01-15 13:45", "System", "Certifiering HLR förnyad, giltig till 2026-09-15", Color.Info, Icons.Material.Filled.Verified),
-        new AuditEntryVm("2026-01-15 09:00", "System", "Anställd skapad i systemet", Color.Primary, Icons.Material.Filled.PersonAdd),
+        LeaveType.Semester => "Semester",
+        LeaveType.Sjukfranvaro => "Sjukfrånvaro",
+        LeaveType.Foraldraledighet => "Föräldraledighet",
+        LeaveType.VAB => "VAB",
+        LeaveType.Tjanstledighet => "Tjänstledighet",
+        LeaveType.Komptid => "Komptid",
+        LeaveType.Utbildning => "Utbildning",
+        _ => t.ToString()
+    };
+
+    private static string MapLeaveStatus(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Utkast => "Utkast",
+        LeaveRequestStatus.Inskickad => "Inskickad",
+        LeaveRequestStatus.Godkand => "Godkänd",
+        LeaveRequestStatus.Avslagen => "Avslagen",
+        LeaveRequestStatus.Aterkallad => "Återkallad",
+        _ => s.ToString()
+    };
+
+    private static Color MapLeaveStatusColor(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Godkand => Color.Success,
+        LeaveRequestStatus.Inskickad => Color.Warning,
+        LeaveRequestStatus.Avslagen => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color CertStatusColor(CertificationStatus s) => s switch
+    {
+        CertificationStatus.Giltig => Color.Success,
+        CertificationStatus.UtgarSnart => Color.Warning,
+        CertificationStatus.Utgangen => Color.Error,
+        CertificationStatus.Saknas => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string CertStatusText(CertificationStatus s) => s switch
+    {
+        CertificationStatus.Giltig => "Giltig",
+        CertificationStatus.UtgarSnart => "Utgår snart",
+        CertificationStatus.Utgangen => "Utgången",
+        CertificationStatus.Saknas => "Saknas",
+        _ => s.ToString()
+    };
+
+    private static Color AuditColor(AuditAction a) => a switch
+    {
+        AuditAction.Create => Color.Primary,
+        AuditAction.Update => Color.Warning,
+        AuditAction.Delete => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string AuditSummary(AuditEntry e) => e.Action switch
+    {
+        AuditAction.Create => "Anställd skapad i systemet",
+        AuditAction.Update => e.NewValues is not null ? $"Uppdaterad: {(e.NewValues.Length > 80 ? e.NewValues[..80] + "..." : e.NewValues)}" : "Uppgifter uppdaterade",
+        AuditAction.Delete => "Post borttagen",
+        _ => ""
     };
 }

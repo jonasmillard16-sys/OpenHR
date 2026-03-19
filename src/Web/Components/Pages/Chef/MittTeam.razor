@@ -1,93 +1,145 @@
 @page "/chef/team"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Leave.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Mitt team</PageTitle>
+<PageTitle>OpenHR - Anställda</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Mitt team</MudText>
-<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Avdelning 32 — @_team.Count anställda
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Anställda</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Adminvy — visar alla anställda. Chefsspecifik filtrering kräver auth-koppling.
 </MudText>
 
-<MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
-    <thead>
-        <tr>
-            <th>Namn</th>
-            <th>Befattning</th>
-            <th>Tjänstegrad</th>
-            <th>Status idag</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var person in _team)
-        {
-            <tr style="cursor: pointer;" @onclick="@(() => ToggleDetalj(person))">
-                <td><strong>@person.Namn</strong></td>
-                <td>@person.Befattning</td>
-                <td>@person.Tjanstegrad</td>
-                <td>
-                    <MudChip T="string" Size="Size.Small" Color="@person.StatusFarg">@person.Status</MudChip>
-                </td>
-            </tr>
-            @if (_expanderad == person)
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_team.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga anställda registrerade.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.body1" Class="mb-4">@_team.Count anställda</MudText>
+    <MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
+        <thead><tr><th>Namn</th><th>Befattning</th><th>Tjänstegrad</th><th>Frånvarostatus</th><th>Semesterdagar kvar</th></tr></thead>
+        <tbody>
+            @foreach (var person in _team)
             {
-                <tr>
-                    <td colspan="4">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudGrid Spacing="2">
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption"><strong>Telefon</strong></MudText>
-                                    <MudText Typo="Typo.body2">@person.Telefon</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption"><strong>E-post</strong></MudText>
-                                    <MudText Typo="Typo.body2">@person.Epost</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption"><strong>Schema idag</strong></MudText>
-                                    <MudText Typo="Typo.body2">@person.Schema</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption"><strong>Semesterdagar kvar</strong></MudText>
-                                    <MudText Typo="Typo.body2">@person.SemesterdagarKvar dagar</MudText>
-                                </MudItem>
-                            </MudGrid>
-                        </MudPaper>
+                <tr style="cursor: pointer;" @onclick="@(() => _expanderad = _expanderad == person ? null : person)">
+                    <td><strong>@person.Namn</strong></td>
+                    <td>@person.Befattning</td>
+                    <td>@person.Tjanstegrad</td>
+                    <td>
+                        @if (person.AktivFranvaro != null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@person.FranvaroFarg">@person.AktivFranvaro</MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">—</MudText>
+                        }
                     </td>
+                    <td>@(person.SemesterKvar.HasValue ? $"{person.SemesterKvar} dagar" : "—")</td>
                 </tr>
+                @if (_expanderad == person)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.caption"><strong>Telefon</strong></MudText>
+                                        <MudText Typo="Typo.body2">@(person.Telefon ?? "—")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.caption"><strong>E-post</strong></MudText>
+                                        <MudText Typo="Typo.body2">@(person.Epost ?? "—")</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6" md="3">
+                                        <MudText Typo="Typo.caption"><strong>Enhet</strong></MudText>
+                                        <MudText Typo="Typo.body2">@person.Enhet</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
+                        </td>
+                    </tr>
+                }
             }
-        }
-    </tbody>
-</MudSimpleTable>
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
     private List<TeamMedlem> _team = [];
     private TeamMedlem? _expanderad;
+    private bool _loading = true;
+    private string? _error;
 
-    private void ToggleDetalj(TeamMedlem person) => _expanderad = _expanderad == person ? null : person;
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _team =
-        [
-            new("Anna Svensson", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 01", "anna.svensson@region.se", "07:00–15:30", 18),
-            new("Karl Berg", "Sjuksköterska", "100%", "Sjuk", Color.Error, "070-123 45 02", "karl.berg@region.se", "—", 22),
-            new("Lisa Holm", "Undersköterska", "75%", "Arbetar", Color.Success, "070-123 45 03", "lisa.holm@region.se", "08:00–14:00", 15),
-            new("Erik Johansson", "Sjuksköterska", "100%", "Semester", Color.Info, "070-123 45 04", "erik.johansson@region.se", "—", 8),
-            new("Maria Lindgren", "Undersköterska", "100%", "Arbetar", Color.Success, "070-123 45 05", "maria.lindgren@region.se", "07:00–15:30", 20),
-            new("Johan Nilsson", "Läkare", "50%", "Arbetar", Color.Success, "070-123 45 06", "johan.nilsson@region.se", "08:00–12:00", 25),
-            new("Sara Karlsson", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 07", "sara.karlsson@region.se", "07:00–15:30", 12),
-            new("Anders Olsson", "Undersköterska", "100%", "Nattpass", Color.Warning, "070-123 45 08", "anders.olsson@region.se", "21:00–07:00", 17),
-            new("Karin Eriksson", "Sjuksköterska", "80%", "Arbetar", Color.Success, "070-123 45 09", "karin.eriksson@region.se", "07:00–14:30", 14),
-            new("Per Gustafsson", "Undersköterska", "100%", "Ledig", Color.Default, "070-123 45 10", "per.gustafsson@region.se", "—", 10),
-            new("Helena Bergström", "Sjuksköterska", "100%", "Arbetar", Color.Success, "070-123 45 11", "helena.bergstrom@region.se", "07:00–15:30", 19),
-            new("Magnus Pettersson", "Undersköterska", "75%", "Arbetar", Color.Success, "070-123 45 12", "magnus.pettersson@region.se", "08:00–14:00", 16),
-        ];
+        try
+        {
+            var employees = await Db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync();
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+
+            // Aktiva frånvaroperioder idag
+            var aktivFranvaro = await Db.LeaveRequests
+                .Where(r => r.FranDatum <= idag && r.TillDatum >= idag
+                    && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
+                .ToListAsync();
+            var franvaroPerAnstall = aktivFranvaro.ToDictionary(r => r.AnstallId, r => r.Typ);
+
+            // Semestersaldo
+            var balances = await Db.VacationBalances.Where(b => b.Ar == idag.Year).ToListAsync();
+            var balansPerAnstall = balances.ToDictionary(b => b.AnstallId, b => b.TillgangligaDagar);
+
+            // Enhetnamn
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+
+            _team = employees.Select(e =>
+            {
+                var aktiv = e.AktivAnstallning(idag);
+                franvaroPerAnstall.TryGetValue(e.Id.Value, out var franTyp);
+                balansPerAnstall.TryGetValue(e.Id.Value, out var semester);
+
+                return new TeamMedlem(
+                    $"{e.Fornamn} {e.Efternamn}",
+                    aktiv?.Befattningstitel ?? "—",
+                    aktiv != null ? $"{aktiv.Sysselsattningsgrad.Value}%" : "—",
+                    franvaroPerAnstall.ContainsKey(e.Id.Value) ? MapTyp(franTyp) : null,
+                    franvaroPerAnstall.ContainsKey(e.Id.Value) ? MapColor(franTyp) : Color.Default,
+                    semester > 0 ? semester : (int?)null,
+                    e.Telefon, e.Epost,
+                    aktiv != null ? enhetNamn.GetValueOrDefault(aktiv.EnhetId.Value, "—") : "—"
+                );
+            }).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta personaldata: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string Status, Color StatusFarg, string Telefon, string Epost, string Schema, int SemesterdagarKvar);
+    private static string MapTyp(LeaveType t) => t switch
+    {
+        LeaveType.Semester => "Semester", LeaveType.Sjukfranvaro => "Sjukfrånvaro",
+        LeaveType.VAB => "VAB", LeaveType.Foraldraledighet => "Föräldraledighet",
+        LeaveType.Tjanstledighet => "Tjänstledighet", _ => t.ToString()
+    };
+    private static Color MapColor(LeaveType t) => t switch
+    {
+        LeaveType.Sjukfranvaro => Color.Error, LeaveType.Semester => Color.Info,
+        LeaveType.VAB => Color.Warning, _ => Color.Default
+    };
+
+    private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string? AktivFranvaro, Color FranvaroFarg, int? SemesterKvar, string? Telefon, string? Epost, string Enhet);
 }

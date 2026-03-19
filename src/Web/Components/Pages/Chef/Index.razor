@@ -3,45 +3,35 @@
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
-@using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Chefsportal</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Hej Erik!</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Chefsportal</MudText>
 
-@* === APPROVAL QUEUE (top priority — always visible) === *@
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@* === APPROVAL QUEUE === *@
 @if (_approvals.Count > 0)
 {
     <MudPaper Class="pa-4 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-            Saker som väntar på dig
-        </MudText>
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Väntande godkännanden (@_approvals.Count)</MudText>
         <MudStack Spacing="2">
             @foreach (var item in _approvals)
             {
                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                     <div class="d-flex justify-space-between align-center flex-wrap gap-2">
                         <div>
-                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
-                                @item.PersonNamn — @item.Beskrivning
-                            </MudText>
-                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
-                                @item.Detalj
-                            </MudText>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@item.PersonNamn — @item.Beskrivning</MudText>
+                            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@item.Detalj</MudText>
                         </div>
                         <div class="d-flex gap-2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Success"
-                                       Size="Size.Medium" Style="min-height: 44px;"
-                                       OnClick="@(() => Godkann(item))">
-                                Godkänn
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Error"
-                                       Size="Size.Medium" Style="min-height: 44px;"
-                                       OnClick="@(() => Neka(item))">
-                                Nej
-                            </MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Godkann(item))">Godkänn</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Neka(item))">Nej</MudButton>
                         </div>
                     </div>
                 </MudPaper>
@@ -49,120 +39,84 @@
         </MudStack>
     </MudPaper>
 }
-else
+else if (!_loading)
 {
-    <MudAlert Severity="Severity.Success" Variant="Variant.Text" Class="mb-6">
-        Allt klart! Inget väntar på ditt beslut just nu.
-    </MudAlert>
+    <MudAlert Severity="Severity.Success" Variant="Variant.Text" Class="mb-6">Allt klart! Inget väntar på beslut just nu.</MudAlert>
 }
 
-@* === 4 OVERVIEW CARDS === *@
+@* === OVERVIEW CARDS === *@
 <MudGrid Spacing="4">
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F465")"
-                    Title="Mitt team"
-                    Description="Se vilka som jobbar hos dig"
-                    BadgeValue="@($"{_teamAntal} anställda")"
-                    Href="/chef/team" />
+        <OhrBigCard Icon="@("\U0001F465")" Title="Anställda" Description="Se alla anställda"
+                    BadgeValue="@($"{_teamAntal} anställda")" Href="/chef/team" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F7E2")"
-                    Title="Bemanning idag"
-                    Description="Se vem som är här idag"
-                    BadgeValue="@($"{_bemannadIdag} av {_teamAntal}")"
+        <OhrBigCard Icon="@("\U0001F7E2")" Title="Bemanning idag" Description="Se schemalagda pass"
                     Href="/chef/bemanning" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F4C5")"
-                    Title="Schema"
-                    Description="Se och ändra schemat"
-                    Href="/schema" />
+        <OhrBigCard Icon="@("\U0001F4C5")" Title="Schema" Description="Se och ändra schemat" Href="/schema" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F4CA")"
-                    Title="Frånvaro"
-                    Description="Se vem som är borta"
-                    Href="/chef/franvarokalender" />
+        <OhrBigCard Icon="@("\U0001F4CA")" Title="Frånvaro" Description="Se vem som är borta"
+                    BadgeValue="@($"{_franvaroIdag} frånvarande")" Href="/chef/franvarokalender" />
     </MudItem>
 </MudGrid>
 
-@* === MIN SIDA SECTION (chef is also an employee) === *@
 <MudDivider Class="my-6" />
 <MudText Typo="Typo.h6" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Min sida</MudText>
 <MudGrid Spacing="4">
-    <MudItem xs="12" sm="4">
-        <OhrBigCard Icon="@("\U0001F4C5")" Title="Mitt schema" Description="Se när du jobbar" Href="/minsida/schema" />
-    </MudItem>
-    <MudItem xs="12" sm="4">
-        <OhrBigCard Icon="@("\U0001F4B0")" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" />
-    </MudItem>
-    <MudItem xs="12" sm="4">
-        <OhrBigCard Icon="@("\U0001F464")" Title="Om mig" Description="Min adress och uppgifter" Href="/minsida/profil" />
-    </MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F4C5")" Title="Mitt schema" Description="Se när du jobbar" Href="/minsida/schema" /></MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F4B0")" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" /></MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F464")" Title="Om mig" Description="Min adress och uppgifter" Href="/minsida/profil" /></MudItem>
 </MudGrid>
 
 @code {
     private List<ApprovalItem> _approvals = [];
-    private int _teamAntal = 12;
-    private int _bemannadIdag = 10;
+    private int _teamAntal, _franvaroIdag;
+    private bool _loading = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Load pending leave requests
+            // Pending leave requests
             var pendingLeave = await Db.LeaveRequests
                 .Where(r => r.Status == LeaveRequestStatus.Inskickad)
-                .OrderBy(r => r.SkapadVid)
-                .Take(20)
-                .ToListAsync();
+                .OrderBy(r => r.SkapadVid).Take(20).ToListAsync();
 
-            foreach (var r in pendingLeave)
+            if (pendingLeave.Count > 0)
             {
-                _approvals.Add(new ApprovalItem
+                var anstallIds = pendingLeave.Select(r => r.AnstallId).Distinct().ToList();
+                var employees = await Db.Employees
+                    .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+                var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+                foreach (var r in pendingLeave)
                 {
-                    Id = r.Id,
-                    Typ = "Ledighet",
-                    PersonNamn = "Anställd", // TODO: resolve name from employee
-                    Beskrivning = $"{r.Typ} {r.FranDatum:d/M} - {r.TillDatum:d/M}",
-                    Detalj = $"{r.AntalDagar} dagar",
-                    EntityType = "LeaveRequest"
-                });
+                    _approvals.Add(new ApprovalItem
+                    {
+                        Id = r.Id,
+                        PersonNamn = names.GetValueOrDefault(r.AnstallId, "Okänd"),
+                        Beskrivning = $"{MapTyp(r.Typ)} {r.FranDatum:d/M} – {r.TillDatum:d/M}",
+                        Detalj = $"{r.AntalDagar} dagar",
+                        EntityType = "LeaveRequest"
+                    });
+                }
             }
 
-            // Load pending timesheets
-            var pendingTs = await Db.Timesheets
-                .Where(t => t.Status == TimesheetStatus.Inskickad)
-                .OrderBy(t => t.SkapadVid)
-                .Take(20)
-                .ToListAsync();
-
-            foreach (var t in pendingTs)
-            {
-                _approvals.Add(new ApprovalItem
-                {
-                    Id = t.Id,
-                    Typ = "Tidrapport",
-                    PersonNamn = "Anställd",
-                    Beskrivning = $"Tidrapport {t.Ar}-{t.Manad:D2}",
-                    Detalj = $"{t.FaktiskaTimmar:F1}h arbetade",
-                    EntityType = "Timesheet"
-                });
-            }
+            // KPIs
+            _teamAntal = await Db.Employees.CountAsync();
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            _franvaroIdag = await Db.LeaveRequests
+                .CountAsync(r => r.FranDatum <= idag && r.TillDatum >= idag
+                    && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand));
         }
-        catch
-        {
-            // Demo data fallback
-            _approvals =
-            [
-                new() { PersonNamn = "Anna Svensson", Beskrivning = "Semester 21-25 mars", Detalj = "5 dagar", Typ = "Ledighet", EntityType = "LeaveRequest" },
-                new() { PersonNamn = "Karl Berg", Beskrivning = "Sjukanmälan", Detalj = "Sedan 14 mars", Typ = "Sjukfrånvaro", EntityType = "SickLeave" },
-                new() { PersonNamn = "Lisa Holm", Beskrivning = "Tidrapport mars", Detalj = "168h arbetade", Typ = "Tidrapport", EntityType = "Timesheet" },
-            ];
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    // TODO: Replace with actual authenticated user ID from JWT claims
     private static readonly Guid _currentChefId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     private async Task Godkann(ApprovalItem item)
@@ -172,21 +126,13 @@ else
             if (item.EntityType == "LeaveRequest")
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
-                req?.Godkann(_currentChefId, null);
+                if (req == null) return;
+                req.Godkann(_currentChefId, null);
+                await Db.SaveChangesAsync();
             }
-            else if (item.EntityType == "Timesheet")
-            {
-                var ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == item.Id);
-                ts?.Godkann(_currentChefId);
-            }
-            await Db.SaveChangesAsync();
+            _approvals.Remove(item);
         }
-        catch
-        {
-            // Swallow for demo fallback items that have no DB entity
-        }
-        _approvals.Remove(item);
-        StateHasChanged();
+        catch (Exception ex) { _error = $"Kunde inte godkänna: {ex.Message}"; }
     }
 
     private async Task Neka(ApprovalItem item)
@@ -196,27 +142,25 @@ else
             if (item.EntityType == "LeaveRequest")
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
-                req?.Avvisa(_currentChefId, "Nekad av chef");
+                if (req == null) return;
+                req.Avvisa(_currentChefId, "Nekad av chef");
+                await Db.SaveChangesAsync();
             }
-            else if (item.EntityType == "Timesheet")
-            {
-                var ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == item.Id);
-                ts?.Avvisa(_currentChefId, "Nekad av chef");
-            }
-            await Db.SaveChangesAsync();
+            _approvals.Remove(item);
         }
-        catch
-        {
-            // Swallow for demo fallback items that have no DB entity
-        }
-        _approvals.Remove(item);
-        StateHasChanged();
+        catch (Exception ex) { _error = $"Kunde inte avslå: {ex.Message}"; }
     }
+
+    private static string MapTyp(LeaveType t) => t switch
+    {
+        LeaveType.Semester => "Semester", LeaveType.Sjukfranvaro => "Sjukfrånvaro",
+        LeaveType.VAB => "VAB", LeaveType.Foraldraledighet => "Föräldraledighet",
+        LeaveType.Tjanstledighet => "Tjänstledighet", _ => t.ToString()
+    };
 
     private class ApprovalItem
     {
         public Guid Id { get; set; }
-        public string Typ { get; set; } = "";
         public string PersonNamn { get; set; } = "";
         public string Beskrivning { get; set; } = "";
         public string Detalj { get; set; } = "";

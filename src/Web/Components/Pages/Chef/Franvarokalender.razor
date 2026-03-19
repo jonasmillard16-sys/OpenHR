@@ -1,87 +1,111 @@
 @page "/chef/franvarokalender"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Leave.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Frånvarokalender</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+           Color="Color.Primary" Href="/chef" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Frånvaro denna vecka</MudText>
 
-@if (_franvaro.Count == 0)
+@if (_loading)
 {
-    <MudAlert Severity="Severity.Success" Variant="Variant.Text">
-        Ingen frånvaro rapporterad denna vecka.
-    </MudAlert>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
 else
 {
-    <MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
-        <thead>
-            <tr>
-                <th>Namn</th>
-                <th>Typ</th>
-                <th>Period</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var f in _franvaro)
-            {
-                <tr>
-                    <td><strong>@f.Namn</strong></td>
-                    <td>@f.Typ</td>
-                    <td>@f.Period</td>
-                    <td><MudChip T="string" Size="Size.Small" Color="@f.StatusFarg">@f.Status</MudChip></td>
-                </tr>
-            }
-        </tbody>
-    </MudSimpleTable>
-}
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Sammanfattning</MudText>
-<MudGrid Spacing="3">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">2</MudText>
-            <MudText Typo="Typo.body2">Sjukfrånvaro</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">1</MudText>
-            <MudText Typo="Typo.body2">Semester</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">1</MudText>
-            <MudText Typo="Typo.body2">VAB</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Style="font-weight: 700;">0</MudText>
-            <MudText Typo="Typo.body2">Tjänstledighet</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@code {
-    private List<FranvaroRad> _franvaro = [];
-
-    protected override void OnInitialized()
+    @if (_rader.Count == 0)
     {
-        _franvaro =
-        [
-            new("Karl Berg", "Sjukfrånvaro", "14 mars - pågående", "Sjuk dag 3", Color.Error),
-            new("Erik Johansson", "Semester", "17-21 mars", "Godkänd", Color.Info),
-            new("Per Gustafsson", "VAB", "17-18 mars", "Rapporterad", Color.Warning),
-            new("Anna Svensson", "Sjukfrånvaro", "16 mars", "Sjuk dag 1", Color.Error),
-        ];
+        <MudAlert Severity="Severity.Success" Variant="Variant.Text">Ingen frånvaro registrerad denna vecka.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Style="font-size: 1.125rem;">
+            <thead><tr><th>Namn</th><th>Typ</th><th>Period</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var f in _rader)
+                {
+                    <tr>
+                        <td><strong>@f.Namn</strong></td>
+                        <td>@f.TypText</td>
+                        <td>@f.FranDatum.ToString("d/M") – @f.TillDatum.ToString("d/M")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@f.StatusFarg">@f.StatusText</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
     }
 
-    private record FranvaroRad(string Namn, string Typ, string Period, string Status, Color StatusFarg);
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Sammanfattning</MudText>
+    <MudGrid Spacing="3">
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjuk</MudText><MudText Typo="Typo.body2">Sjukfrånvaro</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_semester</MudText><MudText Typo="Typo.body2">Semester</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vab</MudText><MudText Typo="Typo.body2">VAB</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_ovrig</MudText><MudText Typo="Typo.body2">Övrigt</MudText></MudPaper></MudItem>
+    </MudGrid>
+}
+
+@code {
+    private List<FranvaroRad> _rader = [];
+    private int _sjuk, _semester, _vab, _ovrig;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var monday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
+            var friday = monday.AddDays(4);
+
+            var requests = await Db.LeaveRequests
+                .Where(r => r.TillDatum >= monday && r.FranDatum <= friday
+                    && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
+                .ToListAsync();
+
+            var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = requests.Select(r => new FranvaroRad(
+                names.GetValueOrDefault(r.AnstallId, "Okänd"),
+                MapTyp(r.Typ), r.FranDatum, r.TillDatum,
+                MapStatus(r.Status), MapStatusColor(r.Status)
+            )).OrderBy(r => r.FranDatum).ToList();
+
+            _sjuk = requests.Count(r => r.Typ == LeaveType.Sjukfranvaro);
+            _semester = requests.Count(r => r.Typ == LeaveType.Semester);
+            _vab = requests.Count(r => r.Typ == LeaveType.VAB);
+            _ovrig = requests.Count(r => r.Typ != LeaveType.Sjukfranvaro && r.Typ != LeaveType.Semester && r.Typ != LeaveType.VAB);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta frånvarodata: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string MapTyp(LeaveType t) => t switch
+    {
+        LeaveType.Semester => "Semester", LeaveType.Sjukfranvaro => "Sjukfrånvaro",
+        LeaveType.VAB => "VAB", LeaveType.Foraldraledighet => "Föräldraledighet",
+        LeaveType.Tjanstledighet => "Tjänstledighet", _ => t.ToString()
+    };
+    private static string MapStatus(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Inskickad => "Inskickad", LeaveRequestStatus.Godkand => "Godkänd", _ => s.ToString()
+    };
+    private static Color MapStatusColor(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Godkand => Color.Success, LeaveRequestStatus.Inskickad => Color.Warning, _ => Color.Default
+    };
+
+    private record FranvaroRad(string Namn, string TypText, DateOnly FranDatum, DateOnly TillDatum, string StatusText, Color StatusFarg);
 }
