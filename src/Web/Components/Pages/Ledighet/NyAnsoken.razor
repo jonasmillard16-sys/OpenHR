@@ -1,88 +1,198 @@
 @page "/ledighet/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Leave.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
 
-<PageTitle>OpenHR - Ny ledighetsansökan</PageTitle>
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+<PageTitle>OpenHR — Ny ledighetsansökan</PageTitle>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken typ av ledighet?</MudText>
-            <MudStack Spacing="3">
-                @foreach (var typ in _typer)
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Ny ledighetsansökan</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Ansökan sparas i databasen via LeaveRequest.Skapa() + SkickaIn().
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_created != null)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Ansökan inskickad</MudText>
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+            <tbody>
+                <tr><td><strong>Anställd</strong></td><td>@GetEmployeeName(_created.AnstallId)</td></tr>
+                <tr><td><strong>Typ</strong></td><td>@_created.Typ</td></tr>
+                <tr><td><strong>Från</strong></td><td>@_created.FranDatum.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>Till</strong></td><td>@_created.TillDatum.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>Arbetsdagar</strong></td><td>@_created.AntalDagar</td></tr>
+                <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">@_created.Status</MudChip></td></tr>
+                @if (_created.Beskrivning != null)
                 {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px; font-size: 1.125rem;" OnClick="@(() => { _typ = typ.Name; _step = 1; })">
-                        @typ.Icon @typ.Name
-                    </MudButton>
+                    <tr><td><strong>Beskrivning</strong></td><td>@_created.Beskrivning</td></tr>
                 }
-            </MudStack>
-            break;
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilka dagar?</MudText>
-            <MudDateRangePicker Label="Välj period" @bind-DateRange="_dateRange" Class="mb-4" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 2)" Disabled="@(_dateRange?.Start == null)">
-                Nästa
-            </MudButton>
-            break;
-        case 2:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Klart!</MudText>
+            </tbody>
+        </MudSimpleTable>
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/ledighet">Tillbaka till översikt</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Reset">Skapa ytterligare</MudButton>
+        </div>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _employees)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="LeaveType" @bind-Value="_typ" Label="Ledighetstyp" Variant="Variant.Outlined">
+                    @foreach (var t in Enum.GetValues<LeaveType>())
+                    {
+                        <MudSelectItem Value="@t">@TypText(t)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_franDatum" Label="Från" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_tillDatum" Label="Till" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_beskrivning" Label="Beskrivning (valfritt)" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
 
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Sammanfattning</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td><strong>Ledighetstyp</strong></td><td>@_typ</td></tr>
-                            <tr><td><strong>Från</strong></td><td>@(_dateRange?.Start?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
-                            <tr><td><strong>Till</strong></td><td>@(_dateRange?.End?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
-                            <tr><td><strong>Antal dagar</strong></td><td>@AntalDagar()</td></tr>
-                            <tr><td><strong>Godkännare (chef)</strong></td><td>Eva Nilsson</td></tr>
-                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
+        @if (_anstallId != null && _balans != null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3" Variant="Variant.Text" Dense="true">
+                Semestersaldo @_balans.Ar: @_balans.TillgangligaDagar dagar tillgängliga
+                (tilldelning @_balans.Tilldelning, uttagna @_balans.UttagnaDagar, sparade @_balans.SparadeDagar)
+            </MudAlert>
+        }
 
-                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-                    Din chef har fått en notis om din ansökan.
-                </MudAlert>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/ledighet" Style="min-height: 56px;">
-                    Tillbaka till ledighetsöversikt
-                </MudButton>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                   Style="min-height: 48px;" OnClick="Skapa"
+                   Disabled="@(_anstallId == null || _franDatum == null || _tillDatum == null || _saving)">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Skicka in ansökan
+        </MudButton>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Typ", "Period", "Klart!"];
-    private int _step;
-    private string _typ = "";
-    private MudBlazor.DateRange? _dateRange;
-    private string _arendenummer = "";
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private LeaveRequest? _created;
+    private VacationBalance? _balans;
+    private Guid? _anstallId;
+    private LeaveType _typ = LeaveType.Semester;
+    private DateTime? _franDatum, _tillDatum;
+    private string _beskrivning = "";
+    private bool _loading = true, _saving;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _arendenummer = $"LED-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+        try
+        {
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private int AntalDagar()
+    private async Task Skapa()
     {
-        if (_dateRange?.Start == null || _dateRange?.End == null) return 0;
-        return (int)(_dateRange.End.Value - _dateRange.Start.Value).TotalDays + 1;
+        if (_anstallId == null || _franDatum == null || _tillDatum == null) return;
+        _saving = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var from = DateOnly.FromDateTime(_franDatum.Value);
+            var to = DateOnly.FromDateTime(_tillDatum.Value);
+
+            // 1. Skapa via domänens factory
+            var request = LeaveRequest.Skapa(
+                _anstallId.Value, _typ, from, to,
+                string.IsNullOrWhiteSpace(_beskrivning) ? null : _beskrivning);
+
+            // 2. Skicka in (Utkast → Inskickad)
+            request.SkickaIn();
+
+            // 3. Persistera
+            Db.LeaveRequests.Add(request);
+            await Db.SaveChangesAsync();
+
+            _created = request;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa ansökan: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private record LeaveType(string Icon, string Name);
-    private static readonly LeaveType[] _typer =
-    [
-        new("\U0001F334", "Semester"),
-        new("\U0001F476", "Föräldraledighet"),
-        new("\U0001F3E0", "VAB"),
-        new("\U0001F4DA", "Tjänstledighet"),
-        new("\u23F0", "Komptid")
-    ];
+    // Ladda saldo när anställd väljs
+    private Guid? _lastAnstallId;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_anstallId != null && _anstallId != _lastAnstallId)
+        {
+            _lastAnstallId = _anstallId;
+            try
+            {
+                _balans = await Db.VacationBalances
+                    .FirstOrDefaultAsync(b => b.AnstallId == _anstallId.Value && b.Ar == DateTime.Today.Year);
+                StateHasChanged();
+            }
+            catch { }
+        }
+    }
+
+    private void Reset()
+    {
+        _created = null;
+        _anstallId = null;
+        _franDatum = null;
+        _tillDatum = null;
+        _beskrivning = "";
+        _balans = null;
+        _lastAnstallId = null;
+    }
+
+    private string GetEmployeeName(Guid id)
+    {
+        var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+    }
+
+    private static string TypText(LeaveType t) => t switch
+    {
+        LeaveType.Semester => "Semester",
+        LeaveType.Sjukfranvaro => "Sjukfrånvaro",
+        LeaveType.Foraldraledighet => "Föräldraledighet",
+        LeaveType.VAB => "VAB",
+        LeaveType.Tjanstledighet => "Tjänstledighet",
+        LeaveType.Komptid => "Komptid",
+        LeaveType.Utbildning => "Utbildning",
+        _ => t.ToString()
+    };
 }

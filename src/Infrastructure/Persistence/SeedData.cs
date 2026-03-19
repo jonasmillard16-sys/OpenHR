@@ -424,6 +424,40 @@ public static class SeedData
         tjledCase.SkickaForGodkannande("HR-godkannande", employees[8].Id); // Eva Nilsson (HR)
         db.Cases.Add(tjledCase);
 
+        // === LeaveRequests + VacationBalances via domänlogik ===
+        // VacationBalance per anställd för 2026
+        db.VacationBalances.AddRange(
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[0].Id.Value, 2026, 41), // Anna, 41 → 31 dagar
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[1].Id.Value, 2026, 48), // Erik, 48 → 31
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[2].Id.Value, 2026, 36), // Maria, 36 → 25
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[3].Id.Value, 2026, 44)); // Karl, 44 → 31
+
+        // LeaveRequests i olika statusar
+        var semAnna = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[0].Id.Value, RegionHR.Leave.Domain.LeaveType.Semester,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(40)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(54)),
+            "Sommarsemester v28-v30");
+        semAnna.SkickaIn();
+        db.LeaveRequests.Add(semAnna);
+
+        var semErik = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.Semester,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(20)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(24)),
+            "Sportlov med familjen");
+        semErik.SkickaIn();
+        semErik.Godkann(employees[7].Id.Value, "Godkant");
+        db.LeaveRequests.Add(semErik);
+
+        var kompKarl = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[3].Id.Value, RegionHR.Leave.Domain.LeaveType.Komptid,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
+            "Kompdag for jourtjanst");
+        kompKarl.SkickaIn();
+        db.LeaveRequests.Add(kompKarl);
+
         await db.SaveChangesAsync();
     }
 }

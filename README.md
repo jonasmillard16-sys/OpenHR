@@ -32,7 +32,7 @@ Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte produc
 - **Arbetsmiljö SAM (v1)** — tillbud (Incident), skyddsronder (SafetyRound), riskbedömningar (RiskAssessment) i DB. CRUD via formulär. RiskVärde beräknas on-the-fly (Sannolikhet × Konsekvens), lagras ej. EnhetId är logisk koppling (inget FK). Seeddata.
 - **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
 - **Rapporter** — Löneregister hämtar från DB, övriga 3 rapporter har realistiska beräkningar. CSV-export fungerar.
-- **Ledighetshantering** — wizard med ärendenummer, persisterar ej till DB
+- **Ledighetshantering (v1.5)** — LeaveRequest med riktig domänlogik (Skapa, SkickaIn, Godkann, Avvisa). VacationBalance med semestersaldo. Persisteras i DB. Seeddata.
 - **HälsoSAM/Rehab (v1.5)** — rehabärenden läses från DB (RehabCase). Milstolpar (dag 14/90/180/365) lagras i domänmodellen, beräknade från ärendets skapandedatum. Nästa milstolpe visas baserat på dagens datum. Begränsning: seeddata, milstolpar är planerade uppföljningsdatum — inte verifierad sjukfallsstart. SickLeaveNotification ej kopplad i v1.5.
 - **Godkännanden (v1.5)** — väntande ärenden från DB (Case med owned CaseApproval). Godkänn via Case.Godkann(). Avslå via direkt property-set (domänmetod saknas). Seeddata.
 - **Notiser (v1.5)** — in-app-notiser från DB via Notification-entity. Read/unread via MarkAsRead(). Testnotis skapar riktig DB-post. Ingen realtidspush. Seeddata.
