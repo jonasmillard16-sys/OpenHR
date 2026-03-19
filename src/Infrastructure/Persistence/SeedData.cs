@@ -458,6 +458,44 @@ public static class SeedData
         kompKarl.SkickaIn();
         db.LeaveRequests.Add(kompKarl);
 
+        // Föräldraledighet — Maria Lindgren, godkänd
+        var flMaria = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[2].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-30)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(150)),
+            "Foraldraledighet 6 manader");
+        flMaria.SkickaIn();
+        flMaria.Godkann(employees[7].Id.Value, "Godkant");
+        db.LeaveRequests.Add(flMaria);
+
+        // Föräldraledighet — Erik Johansson, inskickad
+        var flErik = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(60)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(120)),
+            "Foraldraledighet hosten");
+        flErik.SkickaIn();
+        db.LeaveRequests.Add(flErik);
+
+        // VAB — Karl Berg, godkänd
+        var vabKarl = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[3].Id.Value, RegionHR.Leave.Domain.LeaveType.VAB,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-7)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(-6)),
+            "Barn sjukt i feber");
+        vabKarl.SkickaIn();
+        vabKarl.Godkann(employees[7].Id.Value, "Godkant");
+        db.LeaveRequests.Add(vabKarl);
+
+        // VAB — Anna Svensson, inskickad (pågående)
+        var vabAnna = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[0].Id.Value, RegionHR.Leave.Domain.LeaveType.VAB,
+            DateOnly.FromDateTime(DateTime.Today),
+            DateOnly.FromDateTime(DateTime.Today),
+            "VAB magsjuka");
+        vabAnna.SkickaIn();
+        db.LeaveRequests.Add(vabAnna);
+
         // === PerformanceReviews via domänens Skapa() ===
         // Anna Svensson — genomfört samtal (alla steg)
         var reviewAnna = RegionHR.Performance.Domain.PerformanceReview.Skapa(

@@ -1,13 +1,18 @@
 @page "/ledighet/foraldraledighet"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Leave.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Föräldraledighet</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Föräldraledighet</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny planering</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny ansökan</MudButton>
 </div>
 
-<MudText Typo="Typo.h6" Class="mb-3">480-dagarsöversikt</MudText>
+@* Statisk referensinformation om FK-regler — ej live-data *@
+<MudText Typo="Typo.h6" Class="mb-3">480-dagarsöversikt (Försäkringskassans regler)</MudText>
 <MudGrid Spacing="3" Class="mb-4">
     <MudItem xs="3">
         <MudPaper Class="pa-3 text-center" Elevation="1">
@@ -40,136 +45,196 @@
     195 dagar på sjukpenningnivå + 45 dagar på lägstanivå per förälder.
 </MudAlert>
 
-<MudText Typo="Typo.h6" Class="mb-3">Aktiva föräldraledigheter</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Barn</th>
-            <th>Period</th>
-            <th>Omfattning</th>
-            <th>Använda dagar</th>
-            <th>Kvar</th>
-            <th>FK-status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.BarnInfo</td>
-                <td>@rad.Period</td>
-                <td>@rad.Omfattning</td>
-                <td>@rad.AnvandaDagar</td>
-                <td>@rad.KvarDagar</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.FKStatusFarg">@rad.FKStatus</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Detaljer</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="8">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Föräldraledighet</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Barn:</strong> @rad.BarnInfo</MudText>
-                            <MudText Typo="Typo.body2"><strong>Period:</strong> @rad.Period</MudText>
-                            <MudText Typo="Typo.body2"><strong>Omfattning:</strong> @rad.Omfattning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Använda dagar:</strong> @rad.AnvandaDagar</MudText>
-                            <MudText Typo="Typo.body2"><strong>Kvar:</strong> @rad.KvarDagar</MudText>
-                            <MudText Typo="Typo.body2"><strong>FK-status:</strong> @rad.FKStatus</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Fördelning sjukpenningnivå vs lägstanivå</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Nivå</th>
-            <th>Dagar per förälder</th>
-            <th>Totalt per barn</th>
-            <th>Ersättning</th>
-            <th>Överlåtbart</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>Sjukpenningnivå</strong></td>
-            <td>195</td>
-            <td>390</td>
-            <td>Ca 80% av SGI (max 1 116 kr/dag)</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">105 dagar</MudChip></td>
-        </tr>
-        <tr>
-            <td><strong>Lägstanivå</strong></td>
-            <td>45</td>
-            <td>90</td>
-            <td>180 kr/dag</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">45 dagar</MudChip></td>
-        </tr>
-        <tr>
-            <td><strong>Reserverade (ej överlåtbara)</strong></td>
-            <td>90</td>
-            <td>180</td>
-            <td>Sjukpenningnivå</td>
-            <td><MudChip T="string" Size="Size.Small" Color="Color.Error">0 dagar</MudChip></td>
-        </tr>
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny föräldraledighetplanering</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyAnst" Label="Anställd" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyStart" Label="Startdatum" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nySlut" Label="Slutdatum" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaPlanering">Skapa</MudButton>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-@if (_skapad != null)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @* Ny ansökan *@
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny föräldraledighetansökan</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                        @foreach (var e in _employees)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_formFran" Label="Från" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_formTill" Label="Till" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_formBeskrivning" Label="Beskrivning (valfritt)" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                       OnClick="SkapaAnsolan"
+                       Disabled="@(_formAnstallId == null || _formFran == null || _formTill == null || _saving)">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Skicka in ansökan
+            </MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* Registrerade föräldraledigheter *@
+    <MudText Typo="Typo.h6" Class="mb-3">Registrerade föräldraledigheter</MudText>
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga föräldraledigheter registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Anställd</th><th>Period</th><th>Dagar</th><th>Status</th><th>Beskrivning</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td>@r.FranDatum.ToString("yyyy-MM-dd") – @r.TillDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@r.AntalDagar</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(r.Status)">@StatusText(r.Status)</MudChip></td>
+                        <td>@(r.Beskrivning ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* Statisk referens: fördelning sjukpenningnivå vs lägstanivå *@
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Fördelning sjukpenningnivå vs lägstanivå (FK-regler)</MudText>
+    <MudSimpleTable Hover="true" Elevation="1">
+        <thead><tr><th>Nivå</th><th>Dagar per förälder</th><th>Totalt per barn</th><th>Ersättning</th><th>Överlåtbart</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><strong>Sjukpenningnivå</strong></td>
+                <td>195</td>
+                <td>390</td>
+                <td>Ca 80% av SGI (max 1 116 kr/dag)</td>
+                <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">105 dagar</MudChip></td>
+            </tr>
+            <tr>
+                <td><strong>Lägstanivå</strong></td>
+                <td>45</td>
+                <td>90</td>
+                <td>180 kr/dag</td>
+                <td><MudChip T="string" Size="Size.Small" Color="Color.Warning">45 dagar</MudChip></td>
+            </tr>
+            <tr>
+                <td><strong>Reserverade (ej överlåtbara)</strong></td>
+                <td>90</td>
+                <td>180</td>
+                <td>Sjukpenningnivå</td>
+                <td><MudChip T="string" Size="Size.Small" Color="Color.Error">0 dagar</MudChip></td>
+            </tr>
+        </tbody>
+    </MudSimpleTable>
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyAnst = "", _nyStart = "", _nySlut = "";
+    private List<ForaldraRad> _rader = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
 
-    private void SkapaPlanering()
+    // Formulärfält
+    private Guid? _formAnstallId;
+    private DateTime? _formFran, _formTill;
+    private string _formBeskrivning = "";
+
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
-        _skapad = $"Föräldraledighet planerad för {_nyAnst} ({_nyStart} till {_nySlut}). Ansökan skickas till FK.";
-        _nyAnst = ""; _nyStart = ""; _nySlut = ""; _visaNyDialog = false;
+        try
+        {
+            var requests = await Db.LeaveRequests
+                .Where(r => r.Typ == LeaveType.Foraldraledighet)
+                .OrderByDescending(r => r.SkapadVid)
+                .ToListAsync();
+
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = requests.Select(r => new ForaldraRad(
+                names.GetValueOrDefault(r.AnstallId, "Okänd"),
+                r.FranDatum, r.TillDatum, r.AntalDagar, r.Status, r.Beskrivning
+            )).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
-    private ForaldraledighetRad? _valdRad;
 
-    private void ValjRad(ForaldraledighetRad rad) => _valdRad = _valdRad == rad ? null : rad;
-
-    private List<ForaldraledighetRad> _rader = [];
-
-    protected override void OnInitialized()
+    private async Task SkapaAnsolan()
     {
-        _rader =
-        [
-            new("Maria Lindström", "Elsa, f. 2025-09-12", "2025-10-01 – 2026-06-30", "100%", "168", "72", "Godkänd", Color.Success),
-            new("Jonas Eriksson", "Elsa, f. 2025-09-12", "2026-07-01 – 2026-12-31", "100%", "0", "240", "Planerad", Color.Info),
-            new("Sara Karlsson", "Alma, f. 2025-11-20", "2026-01-15 – 2026-09-15", "75%", "46", "194", "Godkänd", Color.Success),
-            new("Erik Johansson", "Leo, f. 2024-06-01", "2026-03-01 – 2026-04-30", "50%", "12", "198", "Rapporterad", Color.Warning),
-            new("Anna Svensson", "Nils, f. 2025-12-05", "2026-02-01 – 2026-08-31", "100%", "33", "207", "Godkänd", Color.Success),
-        ];
+        if (_formAnstallId == null || _formFran == null || _formTill == null) return;
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            var from = DateOnly.FromDateTime(_formFran.Value);
+            var to = DateOnly.FromDateTime(_formTill.Value);
+
+            var request = LeaveRequest.Skapa(
+                _formAnstallId.Value, LeaveType.Foraldraledighet, from, to,
+                string.IsNullOrWhiteSpace(_formBeskrivning) ? null : _formBeskrivning);
+            request.SkickaIn();
+
+            Db.LeaveRequests.Add(request);
+            await Db.SaveChangesAsync();
+
+            var emp = _employees.FirstOrDefault(e => e.Id.Value == _formAnstallId.Value);
+            var namn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+
+            _rader.Insert(0, new ForaldraRad(namn, from, to, request.AntalDagar, request.Status, request.Beskrivning));
+            _showForm = false;
+            _success = $"Föräldraledighetansökan inskickad för {namn}.";
+            _formAnstallId = null; _formFran = null; _formTill = null; _formBeskrivning = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa ansökan: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private record ForaldraledighetRad(string Namn, string BarnInfo, string Period, string Omfattning, string AnvandaDagar, string KvarDagar, string FKStatus, Color FKStatusFarg);
+    private static Color StatusColor(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Godkand => Color.Success,
+        LeaveRequestStatus.Inskickad => Color.Warning,
+        LeaveRequestStatus.Avslagen => Color.Error,
+        LeaveRequestStatus.Aterkallad => Color.Default,
+        _ => Color.Info
+    };
+
+    private static string StatusText(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Utkast => "Utkast",
+        LeaveRequestStatus.Inskickad => "Inskickad",
+        LeaveRequestStatus.Godkand => "Godkänd",
+        LeaveRequestStatus.Avslagen => "Avslagen",
+        LeaveRequestStatus.Aterkallad => "Återkallad",
+        _ => s.ToString()
+    };
+
+    private record ForaldraRad(string Namn, DateOnly FranDatum, DateOnly TillDatum, int AntalDagar, LeaveRequestStatus Status, string? Beskrivning);
 }

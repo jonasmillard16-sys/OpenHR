@@ -1,167 +1,263 @@
 @page "/ledighet/vab"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Leave.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - VAB</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">VAB – Vård av barn</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Rapportera VAB</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Rapportera VAB</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_aktivaVab</MudText>
-            <MudText Typo="Typo.body2">Aktiva VAB idag</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_rapporterade</MudText>
-            <MudText Typo="Typo.body2">Rapporterade till FK</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_ejRapporterade</MudText>
-            <MudText Typo="Typo.body2">Ej rapporterade till FK</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_totalaDagar</MudText>
-            <MudText Typo="Typo.body2">Dagar totalt (YTD)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@if (!_loading)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_aktiva</MudText>
+                <MudText Typo="Typo.body2">Aktiva VAB-perioder</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_antalYtd</MudText>
+                <MudText Typo="Typo.body2">VAB-ansökningar (YTD)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_totalaDagarYtd</MudText>
+                <MudText Typo="Typo.body2">Dagar totalt (YTD)</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
 
 <MudAlert Severity="Severity.Info" Class="mb-4">
     VAB-dagar ska rapporteras till Försäkringskassan inom 7 dagar. Barn under 12 år ger rätt till tillfällig föräldrapenning.
     Max 120 dagar per barn och år.
 </MudAlert>
 
-<MudText Typo="Typo.h6" Class="mb-3">Rapporterade VAB-dagar</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Barn</th>
-            <th>Datum</th>
-            <th>Antal dagar</th>
-            <th>Orsak</th>
-            <th>FK-rapporterad</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Barn</td>
-                <td>@rad.Datum</td>
-                <td>@rad.AntalDagar</td>
-                <td>@rad.Orsak</td>
-                <td>
-                    @if (rad.FKRapporterad)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Nej</MudChip>
-                    }
-                </td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">VAB per anställd (YTD)</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Antal VAB-tillfällen</th>
-            <th>Totalt dagar</th>
-            <th>Senaste VAB</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var s in _sammanstallning)
-        {
-            <tr>
-                <td><strong>@s.Namn</strong></td>
-                <td>@s.AntalTillfallen</td>
-                <td>@s.TotaltDagar</td>
-                <td>@s.SenasteVab</td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Rapportera VAB</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyAnst" Label="Anställd" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyBarn" Label="Barnets namn" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyDatum" Label="Datum" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="RapporteraVAB">Skapa</MudButton>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-@if (_skapad != null)
+else
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    @* Ny VAB-rapport *@
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Rapportera VAB</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                        @foreach (var e in _employees)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_formFran" Label="Från" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_formTill" Label="Till" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_formBeskrivning" Label="Beskrivning (valfritt)" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                       OnClick="SkapaVab"
+                       Disabled="@(_formAnstallId == null || _formFran == null || _formTill == null || _saving)">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Skicka in VAB-rapport
+            </MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* VAB-lista *@
+    <MudText Typo="Typo.h6" Class="mb-3">Registrerade VAB-perioder</MudText>
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga VAB-perioder registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Anställd</th><th>Period</th><th>Dagar</th><th>Status</th><th>Beskrivning</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td>@r.FranDatum.ToString("yyyy-MM-dd") – @r.TillDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@r.AntalDagar</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(r.Status)">@StatusText(r.Status)</MudChip></td>
+                        <td>@(r.Beskrivning ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* YTD-sammanställning per anställd *@
+    @if (_sammanstallning.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mt-6 mb-3">VAB per anställd (YTD)</MudText>
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Anställd</th><th>Antal tillfällen</th><th>Totalt dagar</th><th>Senaste VAB</th></tr></thead>
+            <tbody>
+                @foreach (var s in _sammanstallning)
+                {
+                    <tr>
+                        <td><strong>@s.Namn</strong></td>
+                        <td>@s.AntalTillfallen</td>
+                        <td>@s.TotaltDagar</td>
+                        <td>@s.SenasteVab.ToString("yyyy-MM-dd")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyAnst = "", _nyBarn = "", _nyDatum = "";
-
-    private void RapporteraVAB()
-    {
-        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
-        _skapad = $"VAB rapporterad för {_nyAnst} ({_nyDatum}). Ersättning hanteras av Försäkringskassan.";
-        _nyAnst = ""; _nyBarn = ""; _nyDatum = ""; _visaNyDialog = false;
-    }
-    private int _aktivaVab = 3;
-    private int _rapporterade = 28;
-    private int _ejRapporterade = 2;
-    private int _totalaDagar = 47;
-
     private List<VabRad> _rader = [];
     private List<VabSammanstallning> _sammanstallning = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
+    private int _aktiva, _antalYtd, _totalaDagarYtd;
 
-    protected override void OnInitialized()
+    // Formulärfält
+    private Guid? _formAnstallId;
+    private DateTime? _formFran, _formTill;
+    private string _formBeskrivning = "";
+
+    protected override async Task OnInitializedAsync()
     {
-        _rader =
-        [
-            new("Per Gustafsson", "Ella, 4 år", "2026-03-17", "1", "Feber", false, "Aktiv", Color.Warning),
-            new("Anna Svensson", "Nils, 3 mån", "2026-03-17", "1", "Magsjuka", false, "Aktiv", Color.Warning),
-            new("Lisa Holm", "Oscar, 7 år", "2026-03-17", "1", "Förkylning", true, "Aktiv", Color.Warning),
-            new("Karl Berg", "Maja, 5 år", "2026-03-14 – 2026-03-15", "2", "Vattkoppor", true, "Avslutad", Color.Success),
-            new("Erik Johansson", "Leo, 2 år", "2026-03-10 – 2026-03-12", "3", "Öroninflammation", true, "Avslutad", Color.Success),
-            new("Sara Karlsson", "Alma, 4 mån", "2026-03-06", "1", "Hög feber", true, "Avslutad", Color.Success),
-            new("Maria Lindström", "Elsa, 6 mån", "2026-03-03 – 2026-03-04", "2", "Magsjuka", true, "Avslutad", Color.Success),
-        ];
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var arStart = new DateOnly(idag.Year, 1, 1);
 
-        _sammanstallning =
-        [
-            new("Erik Johansson", "4", "8", "2026-03-12"),
-            new("Karl Berg", "3", "6", "2026-03-15"),
-            new("Per Gustafsson", "3", "5", "2026-03-17"),
-            new("Anna Svensson", "2", "4", "2026-03-17"),
-            new("Lisa Holm", "2", "3", "2026-03-17"),
-            new("Sara Karlsson", "1", "1", "2026-03-06"),
-            new("Maria Lindström", "1", "2", "2026-03-04"),
-        ];
+            var requests = await Db.LeaveRequests
+                .Where(r => r.Typ == LeaveType.VAB)
+                .OrderByDescending(r => r.SkapadVid)
+                .ToListAsync();
+
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = requests.Select(r => new VabRad(
+                r.AnstallId,
+                names.GetValueOrDefault(r.AnstallId, "Okänd"),
+                r.FranDatum, r.TillDatum, r.AntalDagar, r.Status, r.Beskrivning
+            )).ToList();
+
+            // KPI:er beräknade från DB
+            var ytdRequests = requests.Where(r => r.FranDatum >= arStart).ToList();
+            _aktiva = requests.Count(r =>
+                (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand)
+                && r.TillDatum >= idag);
+            _antalYtd = ytdRequests.Count;
+            _totalaDagarYtd = ytdRequests.Sum(r => r.AntalDagar);
+
+            // YTD-sammanställning per anställd
+            _sammanstallning = ytdRequests
+                .GroupBy(r => r.AnstallId)
+                .Select(g => new VabSammanstallning(
+                    names.GetValueOrDefault(g.Key, "Okänd"),
+                    g.Count(),
+                    g.Sum(r => r.AntalDagar),
+                    g.Max(r => r.FranDatum)))
+                .OrderByDescending(s => s.TotaltDagar)
+                .ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta VAB-data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record VabRad(string Namn, string Barn, string Datum, string AntalDagar, string Orsak, bool FKRapporterad, string StatusText, Color StatusFarg);
-    private record VabSammanstallning(string Namn, string AntalTillfallen, string TotaltDagar, string SenasteVab);
+    private async Task SkapaVab()
+    {
+        if (_formAnstallId == null || _formFran == null || _formTill == null) return;
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            var from = DateOnly.FromDateTime(_formFran.Value);
+            var to = DateOnly.FromDateTime(_formTill.Value);
+
+            var request = LeaveRequest.Skapa(
+                _formAnstallId.Value, LeaveType.VAB, from, to,
+                string.IsNullOrWhiteSpace(_formBeskrivning) ? null : _formBeskrivning);
+            request.SkickaIn();
+
+            Db.LeaveRequests.Add(request);
+            await Db.SaveChangesAsync();
+
+            var emp = _employees.FirstOrDefault(e => e.Id.Value == _formAnstallId.Value);
+            var namn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+
+            _rader.Insert(0, new VabRad(_formAnstallId.Value, namn, from, to, request.AntalDagar, request.Status, request.Beskrivning));
+
+            // Uppdatera KPI:er
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            if (to >= idag) _aktiva++;
+            if (from >= new DateOnly(idag.Year, 1, 1))
+            {
+                _antalYtd++;
+                _totalaDagarYtd += request.AntalDagar;
+            }
+
+            _showForm = false;
+            _success = $"VAB rapporterad för {namn}.";
+            _formAnstallId = null; _formFran = null; _formTill = null; _formBeskrivning = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte rapportera VAB: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private static Color StatusColor(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Godkand => Color.Success,
+        LeaveRequestStatus.Inskickad => Color.Warning,
+        LeaveRequestStatus.Avslagen => Color.Error,
+        LeaveRequestStatus.Aterkallad => Color.Default,
+        _ => Color.Info
+    };
+
+    private static string StatusText(LeaveRequestStatus s) => s switch
+    {
+        LeaveRequestStatus.Utkast => "Utkast",
+        LeaveRequestStatus.Inskickad => "Inskickad",
+        LeaveRequestStatus.Godkand => "Godkänd",
+        LeaveRequestStatus.Avslagen => "Avslagen",
+        LeaveRequestStatus.Aterkallad => "Återkallad",
+        _ => s.ToString()
+    };
+
+    private record VabRad(Guid AnstallId, string Namn, DateOnly FranDatum, DateOnly TillDatum, int AntalDagar, LeaveRequestStatus Status, string? Beskrivning);
+    private record VabSammanstallning(string Namn, int AntalTillfallen, int TotaltDagar, DateOnly SenasteVab);
 }

@@ -8,24 +8,41 @@
 <PageTitle>OpenHR - Semestersaldon</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Semestersaldon @DateTime.Today.Year</MudText>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Tilldelning</th><th>Uttagna</th><th>Sparade</th><th>Tillgängliga</th></tr></thead>
-    <tbody>
-        @foreach (var row in _rader)
-        {
-            <tr>
-                <td><strong>@row.Namn</strong></td>
-                <td>@row.Tilldelning</td>
-                <td>@row.Uttagna</td>
-                <td>@row.Sparade</td>
-                <td><strong>@row.Tillgangliga</strong></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_rader.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga semestersaldon registrerade för @DateTime.Today.Year.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Anställd</th><th>Tilldelning</th><th>Uttagna</th><th>Sparade</th><th>Tillgängliga</th></tr></thead>
+        <tbody>
+            @foreach (var row in _rader)
+            {
+                <tr>
+                    <td><strong>@row.Namn</strong></td>
+                    <td>@row.Tilldelning</td>
+                    <td>@row.Uttagna</td>
+                    <td>@row.Sparade</td>
+                    <td><strong>@row.Tillgangliga</strong></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
     private List<SaldoRad> _rader = [];
+    private bool _loading = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,41 +50,26 @@
         {
             var balances = await Db.VacationBalances
                 .Where(b => b.Ar == DateTime.Today.Year)
-                .Take(100)
                 .ToListAsync();
 
-            if (balances.Count > 0)
-            {
-                // Resolve employee names
-                var anstallIds = balances.Select(b => b.AnstallId).Distinct().ToList();
-                var employees = await Db.Employees
-                    .Where(e => anstallIds.Contains(e.Id.Value))
-                    .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
+            var anstallIds = balances.Select(b => b.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id.Value))
+                .ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
-                _rader = balances.Select(b => new SaldoRad(
-                    employees.GetValueOrDefault(b.AnstallId, "Okänd"),
+            _rader = balances
+                .Select(b => new SaldoRad(
+                    names.GetValueOrDefault(b.AnstallId, "Okänd"),
                     b.Tilldelning,
                     b.UttagnaDagar,
                     b.SparadeDagar,
-                    b.TillgangligaDagar
-                )).ToList();
-                return;
-            }
+                    b.TillgangligaDagar))
+                .OrderBy(r => r.Namn)
+                .ToList();
         }
-        catch
-        {
-            // Fall through to demo data
-        }
-
-        // Demo data fallback
-        _rader =
-        [
-            new("Anna Svensson", 25, 7, 5, 23),
-            new("Karl Berg", 31, 10, 3, 24),
-            new("Lisa Holm", 25, 5, 0, 20),
-            new("Erik Johansson", 32, 15, 8, 25),
-            new("Maria Lindgren", 25, 3, 2, 24),
-        ];
+        catch (Exception ex) { _error = $"Kunde inte hämta semestersaldon: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
     private record SaldoRad(string Namn, int Tilldelning, int Uttagna, int Sparade, int Tillgangliga);
