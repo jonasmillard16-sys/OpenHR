@@ -2,6 +2,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Payroll.Domain
+@using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
@@ -16,25 +17,42 @@
     </MudButton>
 </div>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Period</th><th>Status</th><th>Anställda</th><th>Total brutto</th><th>Total netto</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var k in _korningar)
-        {
-            <tr>
-                <td><strong>@k.Period</strong></td>
-                <td><MudChip T="string" Size="Size.Small" Color="@k.StatusFarg">@k.Status</MudChip></td>
-                <td>@k.Antal</td>
-                <td>@k.Brutto</td>
-                <td>@k.Netto</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/lon/korning/{k.Id}")">Öppna</MudButton></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_korningar.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga lönekörningar registrerade.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Period</th><th>Status</th><th>Anställda</th><th>Total brutto</th><th>Total netto</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var k in _korningar)
+            {
+                <tr>
+                    <td><strong>@k.Period</strong></td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@k.StatusFarg">@k.Status</MudChip></td>
+                    <td>@k.Antal</td>
+                    <td>@k.Brutto</td>
+                    <td>@k.Netto</td>
+                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/lon/korning/{k.Id}")">Öppna</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
     private List<KorningRad> _korningar = [];
+    private bool _loading = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -46,32 +64,18 @@
                 .Take(20)
                 .ToListAsync();
 
-            if (runs.Count > 0)
-            {
-                _korningar = runs.Select(r => new KorningRad(
-                    r.Id.Value,
-                    r.Period,
-                    MapStatus(r.Status),
-                    r.AntalAnstallda,
-                    FormatMoney(r.TotalBrutto),
-                    FormatMoney(r.TotalNetto),
-                    MapStatusColor(r.Status)
-                )).ToList();
-                return;
-            }
+            _korningar = runs.Select(r => new KorningRad(
+                r.Id.Value,
+                r.Period,
+                MapStatus(r.Status),
+                r.AntalAnstallda,
+                FormatMoney(r.TotalBrutto),
+                FormatMoney(r.TotalNetto),
+                MapStatusColor(r.Status)
+            )).ToList();
         }
-        catch
-        {
-            // Fall through to demo data
-        }
-
-        // Demo data fallback
-        _korningar =
-        [
-            new(Guid.NewGuid(), "2026-03", "Beräknad", 5023, "158 432 100 kr", "110 902 470 kr", Color.Info),
-            new(Guid.NewGuid(), "2026-02", "Utbetald", 5019, "152 118 400 kr", "106 482 880 kr", Color.Success),
-            new(Guid.NewGuid(), "2026-01", "Utbetald", 5015, "151 890 200 kr", "106 323 140 kr", Color.Success),
-        ];
+        catch (Exception ex) { _error = $"Kunde inte hämta lönekörningar: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
     private static string FormatMoney(Money m) => $"{m.Amount:N0} kr";

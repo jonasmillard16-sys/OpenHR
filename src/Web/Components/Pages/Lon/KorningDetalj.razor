@@ -3,6 +3,7 @@
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Payroll.Domain
+@using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
@@ -11,55 +12,72 @@
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekörning @_rubrik</MudText>
-
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Total brutto</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_brutto</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Total skatt</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">@_skatt</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Total netto</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@_netto</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Anställda</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_antalAnstallda</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@* Anomaly alerts *@
-<MudText Typo="Typo.h6" Class="mb-3">@_anomalier.Count löner behöver din kontroll</MudText>
-@foreach (var a in _anomalier)
+@if (_loading)
 {
-    <OhrSuggestionCard Title="@($"{a.Namn} — {a.Belopp}")"
-                       Explanation="@a.Forklaring"
-                       Level="OhrSuggestionCard.SuggestionLevel.Warning"
-                       Actions="@(new Dictionary<string, string> { ["ok"] = "OK, stämmer", ["andra"] = "Ändra" })" />
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (!_found)
+{
+    <MudAlert Severity="Severity.Warning">Lönekörning hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekörning @_rubrik</MudText>
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">@_okLoner löner ser bra ut</MudText>
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.caption">Total brutto</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_brutto</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.caption">Total skatt</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-error);">@_skatt</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.caption">Total netto</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@_netto</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.caption">Anställda</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_antalAnstallda</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
-<MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
-           Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4">
-    Godkänn och skicka till utbetalning
-</MudButton>
+    @if (_anomalier.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3">@_anomalier.Count löner behöver din kontroll</MudText>
+        @foreach (var a in _anomalier)
+        {
+            <OhrSuggestionCard Title="@($"{a.Namn} — {a.Belopp}")"
+                               Explanation="@a.Forklaring"
+                               Level="OhrSuggestionCard.SuggestionLevel.Warning"
+                               Actions="@(new Dictionary<string, string> { ["ok"] = "OK, stämmer", ["andra"] = "Ändra" })" />
+        }
+    }
 
-<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-3">
-    Nästa steg: AGI-filen till Skatteverket skapas automatiskt den 12:e.
-</MudAlert>
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">@_okLoner löner ser bra ut</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
+               Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4">
+        Godkänn och skicka till utbetalning
+    </MudButton>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-3">
+        Nästa steg: AGI-filen till Skatteverket skapas automatiskt den 12:e.
+    </MudAlert>
+}
 
 @code {
     [Parameter] public Guid Id { get; set; }
@@ -71,6 +89,8 @@
     private string _antalAnstallda = "";
     private int _okLoner;
     private List<Anomali> _anomalier = [];
+    private bool _loading = true, _found;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,76 +100,62 @@
                 .Include(r => r.Resultat)
                 .FirstOrDefaultAsync(r => r.Id == PayrollRunId.From(Id));
 
-            if (run is not null)
+            if (run is null)
             {
-                _rubrik = FormatPeriod(run.Year, run.Month);
-                _brutto = FormatMoney(run.TotalBrutto);
-                _skatt = $"-{FormatMoney(run.TotalSkatt)}";
-                _netto = FormatMoney(run.TotalNetto);
-                _antalAnstallda = $"{run.AntalAnstallda:N0}";
-
-                // Build anomalies from results with significant deviation
-                if (run.Resultat.Count > 0)
-                {
-                    var avgBrutto = run.TotalBrutto.Amount / Math.Max(run.AntalAnstallda, 1);
-                    var threshold = avgBrutto * 0.10m; // 10% deviation
-
-                    // Resolve employee names for anomalous results
-                    var anomalousResults = run.Resultat
-                        .Where(r => Math.Abs(r.Brutto.Amount - avgBrutto) > threshold)
-                        .Take(10)
-                        .ToList();
-
-                    if (anomalousResults.Count > 0)
-                    {
-                        var anstallIds = anomalousResults.Select(r => r.AnstallId.Value).Distinct().ToList();
-                        var employees = await Db.Employees
-                            .Where(e => anstallIds.Contains(e.Id.Value))
-                            .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
-
-                        foreach (var r in anomalousResults)
-                        {
-                            var namn = employees.GetValueOrDefault(r.AnstallId.Value, "Okänd");
-                            var diff = r.Brutto.Amount - avgBrutto;
-                            var pct = avgBrutto > 0 ? Math.Abs(diff / avgBrutto * 100) : 0;
-                            var direction = diff > 0 ? "+" : "";
-
-                            _anomalier.Add(new Anomali(
-                                namn,
-                                $"{r.Brutto.Amount:N0} kr (snitt {avgBrutto:N0} kr, {direction}{pct:F0}%)",
-                                SummarizeDeviations(r, avgBrutto)
-                            ));
-                        }
-                    }
-
-                    _okLoner = run.AntalAnstallda - _anomalier.Count;
-                }
-                else
-                {
-                    _okLoner = run.AntalAnstallda;
-                }
+                _found = false;
+                _loading = false;
                 return;
             }
-        }
-        catch
-        {
-            // Fall through to demo data
-        }
 
-        // Demo data fallback
-        _rubrik = "Mars 2026";
-        _brutto = "158 432 100 kr";
-        _skatt = "-47 529 630 kr";
-        _netto = "110 902 470 kr";
-        _antalAnstallda = "5 023";
-        _okLoner = 5019;
-        _anomalier =
-        [
-            new("Anna Svensson", "32 400 kr (normalt 28 500 kr, +14%)", "3 nattpass extra + OB storhelg påsk = +3 900 kr"),
-            new("Karl Berg", "0 kr (normalt 28 500 kr)", "Hel sjukfrånvaro sedan 1 mars — sjuklön beräknad separat"),
-            new("Lisa Holm", "24 200 kr (normalt 21 375 kr, +13%)", "Övertid 18h x 180% = +2 825 kr"),
-            new("Per Gustafsson", "15 100 kr (normalt 28 500 kr, -47%)", "Tjänstledighet 50% sedan 15 mars"),
-        ];
+            _found = true;
+            _rubrik = FormatPeriod(run.Year, run.Month);
+            _brutto = FormatMoney(run.TotalBrutto);
+            _skatt = $"-{FormatMoney(run.TotalSkatt)}";
+            _netto = FormatMoney(run.TotalNetto);
+            _antalAnstallda = $"{run.AntalAnstallda:N0}";
+
+            if (run.Resultat.Count > 0)
+            {
+                var avgBrutto = run.TotalBrutto.Amount / Math.Max(run.AntalAnstallda, 1);
+                var threshold = avgBrutto * 0.10m;
+
+                var anomalousResults = run.Resultat
+                    .Where(r => Math.Abs(r.Brutto.Amount - avgBrutto) > threshold)
+                    .Take(10)
+                    .ToList();
+
+                if (anomalousResults.Count > 0)
+                {
+                    var anstallIds = anomalousResults.Select(r => r.AnstallId.Value).Distinct().ToList();
+                    var employees = await Db.Employees
+                        .Where(e => anstallIds.Contains(e.Id.Value))
+                        .ToListAsync();
+                    var empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+                    foreach (var r in anomalousResults)
+                    {
+                        var namn = empNames.GetValueOrDefault(r.AnstallId.Value, "Okänd");
+                        var diff = r.Brutto.Amount - avgBrutto;
+                        var pct = avgBrutto > 0 ? Math.Abs(diff / avgBrutto * 100) : 0;
+                        var direction = diff > 0 ? "+" : "";
+
+                        _anomalier.Add(new Anomali(
+                            namn,
+                            $"{r.Brutto.Amount:N0} kr (snitt {avgBrutto:N0} kr, {direction}{pct:F0}%)",
+                            SummarizeDeviations(r)
+                        ));
+                    }
+                }
+
+                _okLoner = run.AntalAnstallda - _anomalier.Count;
+            }
+            else
+            {
+                _okLoner = run.AntalAnstallda;
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta lönekörning: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
     private static string FormatMoney(Money m) => $"{m.Amount:N0} kr";
@@ -161,7 +167,7 @@
         return $"{monthNames[month]} {year}";
     }
 
-    private static string SummarizeDeviations(PayrollResult r, decimal avg)
+    private static string SummarizeDeviations(PayrollResult r)
     {
         var parts = new List<string>();
         if (r.OBTillagg.Amount > 0) parts.Add($"OB-tillägg {r.OBTillagg.Amount:N0} kr");

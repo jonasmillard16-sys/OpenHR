@@ -62,6 +62,7 @@ public static class SeedData
         };
 
         var employees = new List<Employee>();
+        var employments = new List<RegionHR.Core.Domain.Employment>();
         foreach (var (fornamn, efternamn, pnr, befattning, enhetId, lon) in seedEmployees)
         {
             var employee = Employee.Skapa(Personnummer.CreateValidated(pnr), fornamn, efternamn);
@@ -76,6 +77,7 @@ public static class SeedData
             employment.SattBefattning(befattning);
             db.Employees.Add(employee);
             employees.Add(employee);
+            employments.Add(employment);
         }
 
         // === Skills (normaliserad katalog) ===
@@ -495,6 +497,64 @@ public static class SeedData
             "VAB magsjuka");
         vabAnna.SkickaIn();
         db.LeaveRequests.Add(vabAnna);
+
+        // === PayrollRuns + PayrollResults via domänlogik ===
+        // Februari 2026 — utbetald körning
+        var runFeb = RegionHR.Payroll.Domain.PayrollRun.Skapa(2026, 2, "System");
+        runFeb.Paborja();
+        for (var i = 0; i < 4; i++)
+        {
+            var emp = employees[i];
+            var empl = employments[i];
+            var lon = seedEmployees[i].Lon;
+            var result = RegionHR.Payroll.Domain.PayrollResult.Skapa(
+                runFeb.Id, emp.Id, empl.Id, 2026, 2,
+                lon, 100m, RegionHR.SharedKernel.Domain.CollectiveAgreementType.AB);
+            result.Brutto = lon;
+            result.Skatt = Money.SEK(Math.Round(lon.Amount * 0.30m, 0));
+            result.Netto = Money.SEK(lon.Amount - Math.Round(lon.Amount * 0.30m, 0));
+            result.Arbetsgivaravgifter = Money.SEK(Math.Round(lon.Amount * 0.3142m, 0));
+            result.ArbetsgivaravgiftSats = 31.42m;
+            runFeb.LaggTillResultat(result);
+        }
+        runFeb.MarkeraSomBeraknad();
+        runFeb.Godkann("Eva Nilsson");
+        runFeb.MarkeraSomUtbetald();
+        db.PayrollRuns.Add(runFeb);
+
+        // Mars 2026 — beräknad körning (med OB-tillägg på Anna)
+        var runMars = RegionHR.Payroll.Domain.PayrollRun.Skapa(2026, 3, "System");
+        runMars.Paborja();
+        for (var i = 0; i < 4; i++)
+        {
+            var emp = employees[i];
+            var empl = employments[i];
+            var lon = seedEmployees[i].Lon;
+            var result = RegionHR.Payroll.Domain.PayrollResult.Skapa(
+                runMars.Id, emp.Id, empl.Id, 2026, 3,
+                lon, 100m, RegionHR.SharedKernel.Domain.CollectiveAgreementType.AB);
+            var brutto = lon.Amount;
+            // Anna Svensson (i=0): 3 nattpass OB
+            if (i == 0)
+            {
+                result.OBTillagg = Money.SEK(3 * 113m); // natt-OB 113 kr/h * 3
+                brutto += result.OBTillagg.Amount;
+            }
+            // Erik Johansson (i=1): övertid
+            if (i == 1)
+            {
+                result.Overtidstillagg = Money.SEK(8 * 62000m / 165m * 1.8m); // 8h övertid
+                brutto += result.Overtidstillagg.Amount;
+            }
+            result.Brutto = Money.SEK(Math.Round(brutto, 0));
+            result.Skatt = Money.SEK(Math.Round(brutto * 0.30m, 0));
+            result.Netto = Money.SEK(Math.Round(brutto * 0.70m, 0));
+            result.Arbetsgivaravgifter = Money.SEK(Math.Round(brutto * 0.3142m, 0));
+            result.ArbetsgivaravgiftSats = 31.42m;
+            runMars.LaggTillResultat(result);
+        }
+        runMars.MarkeraSomBeraknad();
+        db.PayrollRuns.Add(runMars);
 
         // === PerformanceReviews via domänens Skapa() ===
         // Anna Svensson — genomfört samtal (alla steg)

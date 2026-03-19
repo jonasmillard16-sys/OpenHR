@@ -1,6 +1,8 @@
 @page "/anstallda/{Id:guid}"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using Microsoft.EntityFrameworkCore
+@using RegionHR.Payroll.Domain
+@using RegionHR.SharedKernel.Domain
 @inject RegionHR.Web.Services.AnstallningService Service
 @inject RegionHR.Infrastructure.Persistence.RegionHRDbContext Db
 @inject NavigationManager Nav
@@ -99,23 +101,31 @@
         </MudTabPanel>
 
         <MudTabPanel Text="L&#246;n" Icon="@Icons.Material.Filled.Payments">
-            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">L&#246;nehistorik hämtas fr&#229;n l&#246;nek&#246;rningar.</MudText>
-            <MudSimpleTable Hover="true" Class="mt-3">
-                <thead>
-                    <tr><th>Period</th><th>Brutto</th><th>Skatt</th><th>Netto</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var l in _lonehistorik)
-                    {
-                        <tr>
-                            <td>@l.Period</td>
-                            <td>@l.Brutto</td>
-                            <td>@l.Skatt</td>
-                            <td><strong>@l.Netto</strong></td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
+            @if (_lonehistorik.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen l&#246;nehistorik fr&#229;n l&#246;nek&#246;rningar.</MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead>
+                        <tr><th>Period</th><th>Brutto</th><th>Skatt</th><th>Netto</th><th>OB</th><th>&#214;vertid</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in _lonehistorik)
+                        {
+                            <tr>
+                                <td>@l.Period</td>
+                                <td>@($"{l.Brutto:N0} kr")</td>
+                                <td>@($"-{l.Skatt:N0} kr")</td>
+                                <td><strong>@($"{l.Netto:N0} kr")</strong></td>
+                                <td>@(l.OB > 0 ? $"{l.OB:N0} kr" : "—")</td>
+                                <td>@(l.Overtid > 0 ? $"{l.Overtid:N0} kr" : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
         <MudTabPanel Text="Fr&#229;nvaro" Icon="@Icons.Material.Filled.EventBusy">
@@ -207,38 +217,42 @@ else
     private RegionHR.Core.Domain.Employee? _emp;
     private bool _loading = true;
     private List<LonRad> _lonehistorik = [];
-    private Dictionary<RegionHR.SharedKernel.Domain.OrganizationId, string> _enhetsNamn = new();
+    private Dictionary<OrganizationId, string> _enhetsNamn = new();
 
-    private string GetEnhetsNamn(RegionHR.SharedKernel.Domain.OrganizationId id) =>
+    private string GetEnhetsNamn(OrganizationId id) =>
         _enhetsNamn.TryGetValue(id, out var namn) ? namn : "—";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _emp = await Service.HamtaAsync(RegionHR.SharedKernel.Domain.EmployeeId.From(Id));
+            _emp = await Service.HamtaAsync(EmployeeId.From(Id));
 
-            // Load org unit names for display
-            try
-            {
-                var enheter = await Db.OrganizationUnits.ToListAsync();
-                _enhetsNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
-            }
-            catch { }
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            _enhetsNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
 
-            // Demo salary history — will be replaced by real payroll data
-            _lonehistorik =
-            [
-                new("2026-03", "32 400 kr", "-8 650 kr", "27 650 kr"),
-                new("2026-02", "28 500 kr", "-7 600 kr", "21 420 kr"),
-                new("2026-01", "28 500 kr", "-7 600 kr", "21 420 kr"),
-            ];
+            // Lönehistorik från PayrollResult
+            var results = await Db.PayrollResults
+                .Where(r => r.AnstallId == EmployeeId.From(Id))
+                .OrderByDescending(r => r.Year)
+                .ThenByDescending(r => r.Month)
+                .Take(12)
+                .ToListAsync();
+
+            _lonehistorik = results.Select(r => new LonRad(
+                $"{r.Year}-{r.Month:D2}",
+                r.Brutto.Amount, r.Skatt.Amount, r.Netto.Amount,
+                r.OBTillagg.Amount, r.Overtidstillagg.Amount
+            )).ToList();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Detalj load error: {ex.Message}");
+        }
         _loading = false;
     }
 
-    private record LonRad(string Period, string Brutto, string Skatt, string Netto);
+    private record LonRad(string Period, decimal Brutto, decimal Skatt, decimal Netto, decimal OB, decimal Overtid);
 
     private record AuditEntryVm(string Tidpunkt, string Anvandare, string Beskrivning, Color Farg, string Ikon);
 
