@@ -399,6 +399,31 @@ public static class SeedData
                 "Arligt medarbetarsamtal inbokat 25 mars kl. 10:00.",
                 RegionHR.Notifications.Domain.NotificationType.Action, actionUrl: "/medarbetarsamtal"));
 
+        // === Cases with pending approvals via domänlogik ===
+        var semesterCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(
+            employees[0].Id, RegionHR.SharedKernel.Domain.AbsenceType.Semester,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(34)),
+            "Semester vecka 20");
+        semesterCase.SkickaForGodkannande("Chefsgodkannande", employees[7].Id); // Anders Olsson (VC)
+        db.Cases.Add(semesterCase);
+
+        var vabCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(
+            employees[3].Id, RegionHR.SharedKernel.Domain.AbsenceType.VAB,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(3)),
+            "VAB - barn sjukt");
+        vabCase.SkickaForGodkannande("Chefsgodkannande", employees[7].Id);
+        db.Cases.Add(vabCase);
+
+        var tjledCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(
+            employees[6].Id, RegionHR.SharedKernel.Domain.AbsenceType.Tjanstledighet,
+            DateOnly.FromDateTime(DateTime.Today.AddDays(60)),
+            DateOnly.FromDateTime(DateTime.Today.AddDays(120)),
+            "Studieledighet HT 2026");
+        tjledCase.SkickaForGodkannande("HR-godkannande", employees[8].Id); // Eva Nilsson (HR)
+        db.Cases.Add(tjledCase);
+
         await db.SaveChangesAsync();
     }
 }
