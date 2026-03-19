@@ -109,7 +109,13 @@ public static class SeedData
         var posVc = Position.Skapa(sjukhus.Id.Value, "Verksamhetschef", 52000, 100);
         posVc.Tillsatt(employees[7].Id.Value); // Anders Olsson
 
-        db.Positions_Table.AddRange(posSsk32, posLakAkut, posUsk33, posSskIva, posVc);
+        // Vakant position
+        var posUskAkut = Position.Skapa(akuten.Id.Value, "Underskoterska Akutmottagningen", 27500, 75);
+        // Frusen position
+        var posItSjukhus = Position.Skapa(sjukhus.Id.Value, "IT-tekniker", 38000, 100);
+        posItSjukhus.Frys();
+
+        db.Positions_Table.AddRange(posSsk32, posLakAkut, posUsk33, posSskIva, posVc, posUskAkut, posItSjukhus);
 
         // === PositionSkillRequirements (kravprofiler per position) ===
         // Sjukskoterska Avd 32: HLR 3, Lakemedel 4, Journal 3, Saravard 3
@@ -400,6 +406,30 @@ public static class SeedData
                 employees[7].Id.Value, "Medarbetarsamtal bokat",
                 "Arligt medarbetarsamtal inbokat 25 mars kl. 10:00.",
                 RegionHR.Notifications.Domain.NotificationType.Action, actionUrl: "/medarbetarsamtal"));
+
+        // === AuditEntries via domänens Create() ===
+        db.AuditEntries.AddRange(
+            RegionHR.Audit.Domain.AuditEntry.Create(
+                "Employee", employees[0].Id.Value.ToString(), RegionHR.Audit.Domain.AuditAction.Create,
+                null, "{\"Fornamn\":\"Anna\",\"Efternamn\":\"Svensson\"}", "System", "System", null),
+            RegionHR.Audit.Domain.AuditEntry.Create(
+                "Employee", employees[0].Id.Value.ToString(), RegionHR.Audit.Domain.AuditAction.Update,
+                "{\"Befattning\":\"Underskoterska\"}", "{\"Befattning\":\"Sjukskoterska\"}", employees[8].Id.Value.ToString(), "Eva Nilsson (HR)", null),
+            RegionHR.Audit.Domain.AuditEntry.Create(
+                "PayrollRun", Guid.NewGuid().ToString(), RegionHR.Audit.Domain.AuditAction.Create,
+                null, "{\"Period\":\"2026-02\",\"Status\":\"Beraknad\"}", "System", "System", null),
+            RegionHR.Audit.Domain.AuditEntry.Create(
+                "LeaveRequest", Guid.NewGuid().ToString(), RegionHR.Audit.Domain.AuditAction.Create,
+                null, "{\"Typ\":\"Semester\",\"FranDatum\":\"2026-07\"}", employees[0].Id.Value.ToString(), "Anna Svensson", null),
+            RegionHR.Audit.Domain.AuditEntry.Create(
+                "Position", posSsk32.Id.ToString(), RegionHR.Audit.Domain.AuditAction.Update,
+                "{\"Status\":\"Vakant\"}", "{\"Status\":\"Aktiv\"}", employees[8].Id.Value.ToString(), "Eva Nilsson (HR)", null));
+
+        // === DataSubjectRequests via domänens Skapa() ===
+        var dsrRegisterutdrag = RegionHR.GDPR.Domain.DataSubjectRequest.Skapa(employees[4].Id.Value, RegionHR.GDPR.Domain.RequestType.Registerutdrag);
+        dsrRegisterutdrag.Tilldela(employees[8].Id.Value.ToString()); // Eva Nilsson (HR)
+        var dsrRadering = RegionHR.GDPR.Domain.DataSubjectRequest.Skapa(employees[5].Id.Value, RegionHR.GDPR.Domain.RequestType.Radering);
+        db.DataSubjectRequests.AddRange(dsrRegisterutdrag, dsrRadering);
 
         // === Cases with pending approvals via domänlogik ===
         var semesterCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(

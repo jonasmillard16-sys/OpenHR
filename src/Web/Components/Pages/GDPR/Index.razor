@@ -2,74 +2,87 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.GDPR.Domain
+@using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - GDPR</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">GDPR-efterlevnad</MudText>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_expiredCount</MudText><MudText Typo="Typo.body2">Utgångna deadlines</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_pendingCount</MudText><MudText Typo="Typo.body2">Väntande DSR</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@_anonymizationCount</MudText><MudText Typo="Typo.body2">Anonymiseringskö</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_compliancePercent%</MudText><MudText Typo="Typo.body2">Retention efterlevnad</MudText></MudPaper></MudItem>
-</MudGrid>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">@_expiredCount</MudText><MudText Typo="Typo.body2">Försenade DSR</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_pendingCount</MudText><MudText Typo="Typo.body2">Väntande DSR</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_compliancePercent%</MudText><MudText Typo="Typo.body2">DSR-efterlevnad</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudText Typo="Typo.h6" Class="mb-3">Registrerades begäran (DSR)</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">Registrerades begäran (DSR)</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-3"
-           StartIcon="@Icons.Material.Filled.Description"
-           OnClick="GenereraRegisterutdrag">
-    Generera registerutdrag
-</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mb-3"
+               StartIcon="@Icons.Material.Filled.Description"
+               OnClick="GenereraRegisterutdrag">
+        Generera registerutdrag
+    </MudButton>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Typ</th><th>Anställd-ID</th><th>Inkom</th><th>Deadline</th><th>Status</th></tr></thead>
-    <tbody>
-        @foreach (var req in _requests)
-        {
-            <tr>
-                <td>@FormatTyp(req.Typ)</td>
-                <td><strong>@req.AnstallId.ToString()[..8]...</strong></td>
-                <td>@req.Mottagen.ToString("yyyy-MM-dd")</td>
-                <td>@req.Deadline.ToString("yyyy-MM-dd")</td>
-                <td>
-                    @if (req.ArForsenad)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip>
-                    }
-                    else
-                    {
-                        @switch (req.Status)
-                        {
-                            case RequestStatus.Mottagen:
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info">Ny</MudChip>
-                                break;
-                            case RequestStatus.UnderBehandling:
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip>
-                                break;
-                            case RequestStatus.Klar:
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip>
-                                break;
-                            case RequestStatus.Avslagen:
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">Avslagen</MudChip>
-                                break;
-                        }
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+    @if (_requests.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga DSR-begäran registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Typ</th><th>Anställd-ID</th><th>Inkom</th><th>Deadline</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var req in _requests)
+                {
+                    <tr>
+                        <td>@FormatTyp(req.Typ)</td>
+                        <td><strong>@req.AnstallId.ToString()[..8]...</strong></td>
+                        <td>@req.Mottagen.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@req.Deadline.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (req.ArForsenad)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip>
+                            }
+                            else
+                            {
+                                @switch (req.Status)
+                                {
+                                    case RequestStatus.Mottagen:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">Ny</MudChip>
+                                        break;
+                                    case RequestStatus.UnderBehandling:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pågår</MudChip>
+                                        break;
+                                    case RequestStatus.Klar:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip>
+                                        break;
+                                    case RequestStatus.Avslagen:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Avslagen</MudChip>
+                                        break;
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Anonymiseringskö</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead><tr><th>Anställd</th><th>Avslutat datum</th><th>Retentionsperiod utgår</th><th>Status</th></tr></thead>
-    <tbody>
-        <tr><td>F.d. anställd #1042</td><td>2024-03-15</td><td>2026-03-15</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Redo för anonymisering</MudChip></td></tr>
-        <tr><td>F.d. anställd #1038</td><td>2024-02-28</td><td>2026-02-28</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Försenad</MudChip></td></tr>
-        <tr><td>F.d. anställd #1055</td><td>2024-04-01</td><td>2026-04-01</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Schemalagd</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
+    @* Anonymiseringskö — ingen entity stödjer detta ännu *@
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Anonymiseringskö</MudText>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga poster i anonymiseringskö. Automatisk anonymisering kräver retentions-entity (ej implementerad).</MudAlert>
+}
 
 @if (_showRegisterutdrag)
 {
@@ -83,7 +96,7 @@
             {
                 <MudPaper Class="pa-4" Elevation="1">
                     <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 700;">Registerutdrag</MudText>
-                    <MudText Typo="Typo.body2">@_registerutdragResult</MudText>
+                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@_registerutdragResult</MudText>
                 </MudPaper>
             }
         </DialogContent>
@@ -95,13 +108,10 @@
 }
 
 @code {
-    [Inject] private RegionHRDbContext? Db { get; set; }
-
-    private List<DataSubjectRequest> _requests = new();
-    private int _expiredCount;
-    private int _pendingCount;
-    private int _anonymizationCount = 12;
-    private int _compliancePercent = 94;
+    private List<DataSubjectRequest> _requests = [];
+    private int _expiredCount, _pendingCount, _compliancePercent;
+    private bool _loading = true;
+    private string? _error;
 
     private bool _showRegisterutdrag;
     private string _registerutdragAnstallId = "";
@@ -111,31 +121,22 @@
     {
         try
         {
-            if (Db is not null)
+            _requests = await Db.DataSubjectRequests
+                .OrderByDescending(r => r.Mottagen)
+                .Take(50)
+                .ToListAsync();
+
+            _expiredCount = _requests.Count(r => r.ArForsenad);
+            _pendingCount = _requests.Count(r => r.Status == RequestStatus.Mottagen || r.Status == RequestStatus.UnderBehandling);
+
+            if (_requests.Count > 0)
             {
-                _requests = await Db.DataSubjectRequests
-                    .OrderByDescending(r => r.Mottagen)
-                    .Take(50)
-                    .ToListAsync();
-
-                _expiredCount = _requests.Count(r => r.ArForsenad);
-                _pendingCount = _requests.Count(r => r.Status == RequestStatus.Mottagen || r.Status == RequestStatus.UnderBehandling);
-
-                if (_requests.Count > 0)
-                {
-                    var completed = _requests.Count(r => r.Status == RequestStatus.Klar);
-                    _compliancePercent = _requests.Count > 0 ? (int)((double)completed / _requests.Count * 100) : 94;
-                }
+                var completed = _requests.Count(r => r.Status == RequestStatus.Klar);
+                _compliancePercent = (int)((double)completed / _requests.Count * 100);
             }
         }
-        catch
-        {
-            // Demo fallback
-            _expiredCount = 2;
-            _pendingCount = 5;
-            _anonymizationCount = 12;
-            _compliancePercent = 94;
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta GDPR-data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
     private void GenereraRegisterutdrag()
@@ -147,34 +148,42 @@
 
     private async Task HamtaRegisterutdrag()
     {
-        if (!Guid.TryParse(_registerutdragAnstallId, out var anstallId) || Db is null)
+        if (!Guid.TryParse(_registerutdragAnstallId, out var anstallId))
         {
             _registerutdragResult = "Ogiltigt anställd-ID. Ange ett giltigt GUID.";
             return;
         }
 
-        var employee = await Db.Employees
-            .FirstOrDefaultAsync(e => e.Id == new EmployeeId(anstallId));
-
-        if (employee is null)
+        try
         {
-            _registerutdragResult = "Ingen anställd hittades med angivet ID.";
-            return;
+            var employee = await Db.Employees
+                .Include(e => e.Anstallningar)
+                .FirstOrDefaultAsync(e => e.Id == EmployeeId.From(anstallId));
+
+            if (employee is null)
+            {
+                _registerutdragResult = "Ingen anställd hittades med angivet ID.";
+                return;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Namn: {employee.Fornamn} {employee.Efternamn}");
+            sb.AppendLine($"Personnummer: {employee.Personnummer}");
+            sb.AppendLine($"E-post: {employee.Epost ?? "Ej registrerad"}");
+            sb.AppendLine($"Telefon: {employee.Telefon ?? "Ej registrerad"}");
+            sb.AppendLine($"Kommun: {employee.Kommun ?? "Ej registrerad"}");
+
+            if (employee.Adress is not null)
+                sb.AppendLine($"Adress: {employee.Adress.Gatuadress}, {employee.Adress.Postnummer} {employee.Adress.Ort}");
+
+            sb.AppendLine($"Antal anställningar: {employee.Anstallningar.Count}");
+
+            _registerutdragResult = sb.ToString();
         }
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"Namn: {employee.Fornamn} {employee.Efternamn}");
-        sb.AppendLine($"Personnummer: {employee.Personnummer}");
-        sb.AppendLine($"E-post: {employee.Epost ?? "Ej registrerad"}");
-        sb.AppendLine($"Telefon: {employee.Telefon ?? "Ej registrerad"}");
-        sb.AppendLine($"Kommun: {employee.Kommun ?? "Ej registrerad"}");
-
-        if (employee.Adress is not null)
-            sb.AppendLine($"Adress: {employee.Adress.Gatuadress}, {employee.Adress.Postnummer} {employee.Adress.Ort}");
-
-        sb.AppendLine($"Antal anställningar: {employee.Anstallningar.Count}");
-
-        _registerutdragResult = sb.ToString();
+        catch (Exception ex)
+        {
+            _registerutdragResult = $"Kunde inte hämta data: {ex.Message}";
+        }
     }
 
     private static string FormatTyp(RequestType typ) => typ switch

@@ -1,5 +1,10 @@
 @page "/positioner"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Positions.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Positioner</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -7,94 +12,177 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny position</MudButton>
 </div>
 
-@if (_showForm)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny position</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
-        </div>
-        <MudTextField @bind-Value="_newBefattning" Label="Befattning" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newAvdelning" Label="Avdelning" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newSysselsattning" Label="Sysselsättningsgrad" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                   Style="min-height: 48px;" OnClick="SkapaPosition">Skapa</MudButton>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-
-@if (_skapad)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Position skapad!</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_rader.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_rader.Count(r => r.Status == PositionStatus.Aktiv)</MudText><MudText Typo="Typo.body2">Tillsatta</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rader.Count(r => r.Status == PositionStatus.Vakant)</MudText><MudText Typo="Typo.body2">Vakanta</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_rader.Count(r => r.Status == PositionStatus.Frysta)</MudText><MudText Typo="Typo.body2">Frusna</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Befattning</th>
-            <th>Avdelning</th>
-            <th>Anställd</th>
-            <th>Sysselsättning</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td>@rad.Befattning</td>
-                <td>@rad.Avdelning</td>
-                <td>@rad.Anstalld</td>
-                <td>@rad.Sysselsattning</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">Visa</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="6">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Befattning — @rad.Avdelning</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Anställd:</strong> @rad.Anstalld</MudText>
-                            <MudText Typo="Typo.body2"><strong>Sysselsättning:</strong> @rad.Sysselsattning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-@code {
-    private bool _showForm;
-    private bool _skapad;
-    private string _newBefattning = "";
-    private string _newAvdelning = "";
-    private string _newSysselsattning = "";
-
-    private void SkapaPosition()
+    @if (_showForm)
     {
-        _showForm = false;
-        _skapad = true;
-        _newBefattning = "";
-        _newAvdelning = "";
-        _newSysselsattning = "";
+        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny position</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_formTitel" Label="Befattningstitel" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_formEnhetId" Label="Enhet" Variant="Variant.Outlined" Required="true">
+                        @foreach (var e in _enheter)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Namn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="_formBudget" Label="Budgeterad månadslön (kr)" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="_formSysselsattning" Label="Sysselsättningsgrad (%)" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-3"
+                       Style="min-height: 48px;" OnClick="SkapaPosition"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formTitel) || _formEnhetId == null || _saving)">
+                @if (_saving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Skapa
+            </MudButton>
+        </MudPaper>
     }
 
-    private PositionRad? _valdRad;
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
 
-    private void Valj(PositionRad rad) => _valdRad = _valdRad == rad ? null : rad;
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga positioner registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Befattning</th><th>Enhet</th><th>Anställd</th><th>Sysselsättning</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.Titel</strong></td>
+                        <td>@r.Enhet</td>
+                        <td>@r.Anstalld</td>
+                        <td>@($"{r.Sysselsattningsgrad:F0}%")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(r.Status)">@StatusText(r.Status)</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
-    private List<PositionRad> _rader =
-    [
-        new("Sjuksköterska", "Akutmottagningen", "Anna Svensson", "100%", "Tillsatt", Color.Success),
-        new("Överläkare", "Medicinkliniken", "Erik Johansson", "100%", "Tillsatt", Color.Success),
-        new("Undersköterska", "Vårdavdelning 3B", "—", "75%", "Vakant", Color.Warning),
-        new("Röntgensjuksköterska", "Röntgen", "—", "100%", "Vakant", Color.Warning),
-        new("IT-tekniker", "IT-avdelningen", "—", "100%", "Frusen", Color.Default),
-    ];
+@code {
+    private List<PositionRad> _rader = [];
+    private List<RegionHR.Core.Domain.OrganizationUnit> _enheter = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
 
-    private record PositionRad(string Befattning, string Avdelning, string Anstalld, string Sysselsattning, string StatusText, Color StatusFarg);
+    // Formulärfält
+    private string _formTitel = "";
+    private Guid? _formEnhetId;
+    private decimal _formBudget = 30000m;
+    private decimal _formSysselsattning = 100m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var positions = await Db.Positions_Table.ToListAsync();
+            _enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+
+            var innehavarIds = positions
+                .Where(p => p.InnehavareAnstallId.HasValue)
+                .Select(p => p.InnehavareAnstallId!.Value)
+                .Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => innehavarIds.Contains(e.Id.Value))
+                .ToListAsync();
+            var empNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = positions
+                .OrderBy(p => p.Status)
+                .ThenBy(p => p.Titel)
+                .Select(p => new PositionRad(
+                    p.Id,
+                    p.Titel,
+                    enhetNamn.GetValueOrDefault(p.EnhetId, "Okänd enhet"),
+                    p.InnehavareAnstallId.HasValue
+                        ? empNamn.GetValueOrDefault(p.InnehavareAnstallId.Value, "Okänd")
+                        : "—",
+                    p.Sysselsattningsgrad,
+                    p.Status
+                )).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta positioner: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaPosition()
+    {
+        if (string.IsNullOrWhiteSpace(_formTitel) || _formEnhetId == null) return;
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            var position = RegionHR.Positions.Domain.Position.Skapa(_formEnhetId.Value, _formTitel, _formBudget, _formSysselsattning);
+            Db.Positions_Table.Add(position);
+            await Db.SaveChangesAsync();
+
+            var enhetNamn = _enheter.FirstOrDefault(e => e.Id.Value == _formEnhetId.Value)?.Namn ?? "Okänd";
+            _rader.Add(new PositionRad(position.Id, position.Titel, enhetNamn, "—", position.Sysselsattningsgrad, position.Status));
+
+            _showForm = false;
+            _success = $"Position \"{_formTitel}\" skapad i {enhetNamn}.";
+            _formTitel = ""; _formEnhetId = null; _formBudget = 30000m; _formSysselsattning = 100m;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa position: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private static Color StatusColor(PositionStatus s) => s switch
+    {
+        PositionStatus.Aktiv => Color.Success,
+        PositionStatus.Vakant => Color.Warning,
+        PositionStatus.Frysta => Color.Default,
+        PositionStatus.Avvecklad => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string StatusText(PositionStatus s) => s switch
+    {
+        PositionStatus.Aktiv => "Tillsatt",
+        PositionStatus.Vakant => "Vakant",
+        PositionStatus.Frysta => "Frusen",
+        PositionStatus.Avvecklad => "Avvecklad",
+        _ => s.ToString()
+    };
+
+    private record PositionRad(Guid Id, string Titel, string Enhet, string Anstalld, decimal Sysselsattningsgrad, PositionStatus Status);
 }

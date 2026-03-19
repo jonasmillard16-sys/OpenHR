@@ -1,5 +1,10 @@
 @page "/arenden"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.CaseManagement.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Ärenden</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -7,18 +12,114 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/arenden/nytt" Style="min-height: 48px;">Nytt ärende</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">8</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">15</MudText><MudText Typo="Typo.body2">Under behandling</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">142</MudText><MudText Typo="Typo.body2">Avslutade (YTD)</MudText></MudPaper></MudItem>
-</MudGrid>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_underBehandling</MudText><MudText Typo="Typo.body2">Under behandling</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutadeYtd</MudText><MudText Typo="Typo.body2">Avslutade (YTD)</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>ID</th><th>Typ</th><th>Anställd</th><th>Status</th><th>Skapad</th><th></th></tr></thead>
-    <tbody>
-        <tr><td>#1042</td><td>Semester</td><td>Anna Svensson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td>2026-03-15</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="/arenden/1042">Öppna</MudButton></td></tr>
-        <tr><td>#1041</td><td>Sjukfrånvaro</td><td>Karl Berg</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Godkänd</MudChip></td><td>2026-03-14</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="/arenden/1041">Öppna</MudButton></td></tr>
-        <tr><td>#1040</td><td>Tjänstledighet</td><td>Per Gustafsson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Under behandling</MudChip></td><td>2026-03-13</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="/arenden/1040">Öppna</MudButton></td></tr>
-        <tr><td>#1039</td><td>Löneändring</td><td>Lisa Holm</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Väntar</MudChip></td><td>2026-03-12</td><td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="/arenden/1039">Öppna</MudButton></td></tr>
-    </tbody>
-</MudSimpleTable>
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga ärenden registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Typ</th><th>Anställd</th><th>Beskrivning</th><th>Status</th><th>Skapad</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><MudChip T="string" Size="Size.Small">@r.Typ</MudChip></td>
+                        <td><strong>@r.Anstalld</strong></td>
+                        <td>@r.Beskrivning</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@r.StatusFarg">@r.StatusText</MudChip></td>
+                        <td>@r.Skapad</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<ArendeRad> _rader = [];
+    private int _vantar, _underBehandling, _avslutadeYtd;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cases = await Db.Cases
+                .OrderByDescending(c => c.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+
+            var anstallIds = cases.Select(c => c.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id))
+                .ToListAsync();
+            var names = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = cases.Select(c => new ArendeRad(
+                MapTyp(c.Typ),
+                names.TryGetValue(c.AnstallId, out var n) ? n : "Okänd",
+                c.Beskrivning,
+                MapStatus(c.Status),
+                MapStatusColor(c.Status),
+                c.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")
+            )).ToList();
+
+            var idag = DateTime.UtcNow;
+            _vantar = cases.Count(c => c.Status == CaseStatus.VantarGodkannande);
+            _underBehandling = cases.Count(c => c.Status == CaseStatus.UnderBehandling);
+            _avslutadeYtd = cases.Count(c => c.Status == CaseStatus.Avslutad && c.CreatedAt.Year == idag.Year);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta ärenden: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string MapTyp(CaseType t) => t switch
+    {
+        CaseType.Franvaro => "Frånvaro",
+        CaseType.Anstallningsandring => "Anställningsändring",
+        CaseType.Lonandring => "Löneändring",
+        CaseType.Omplacering => "Omplacering",
+        CaseType.Rehabilitering => "Rehabilitering",
+        CaseType.LAS => "LAS",
+        _ => t.ToString()
+    };
+
+    private static string MapStatus(CaseStatus s) => s switch
+    {
+        CaseStatus.Oppnad => "Öppnad",
+        CaseStatus.UnderBehandling => "Under behandling",
+        CaseStatus.VantarGodkannande => "Väntar godkännande",
+        CaseStatus.Godkand => "Godkänd",
+        CaseStatus.Avslutad => "Avslutad",
+        _ => s.ToString()
+    };
+
+    private static Color MapStatusColor(CaseStatus s) => s switch
+    {
+        CaseStatus.VantarGodkannande => Color.Warning,
+        CaseStatus.UnderBehandling => Color.Info,
+        CaseStatus.Godkand => Color.Success,
+        CaseStatus.Avslutad => Color.Success,
+        _ => Color.Default
+    };
+
+    private record ArendeRad(string Typ, string Anstalld, string Beskrivning, string StatusText, Color StatusFarg, string Skapad);
+}
