@@ -1,5 +1,7 @@
 @page "/resor"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Payroll
+@inject TraktamentsCalculator TraktCalc
 
 <PageTitle>OpenHR - Resor och utlägg</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -53,6 +55,97 @@
     </tbody>
 </MudSimpleTable>
 
+<MudDivider Class="my-6" />
+
+@* ======================== BERÄKNA TRAKTAMENTE ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.Calculate" Class="mr-2" Style="vertical-align: middle;" />
+    Beräkna traktamente
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Systemet beräknar traktamente enligt Skatteverkets regler 2026. Ange resedatum så beräknas allt automatiskt.
+</MudText>
+
+<MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="3">
+            <MudDatePicker @bind-Date="_traktAvresa" Label="Avresedatum" Variant="Variant.Outlined"
+                           DateFormat="yyyy-MM-dd" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudDatePicker @bind-Date="_traktHemkomst" Label="Hemkomstdatum" Variant="Variant.Outlined"
+                           DateFormat="yyyy-MM-dd" Editable="true" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudSelect T="string" @bind-Value="_traktTyp" Label="Typ" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("Inrikes")">Inrikes</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Utrikes")">Utrikes</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        @if (_traktTyp == "Utrikes")
+        {
+            <MudItem xs="12" md="2">
+                <MudSelect T="string" @bind-Value="_traktLand" Label="Land" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("Norge")">Norge</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Danmark")">Danmark</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Finland")">Finland</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Tyskland")">Tyskland</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Frankrike")">Frankrike</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Storbritannien")">Storbritannien</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("USA")">USA</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Spanien")">Spanien</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Italien")">Italien</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        }
+        else
+        {
+            <MudItem xs="12" md="2">
+                <MudSelect T="bool" @bind-Value="_traktHotell" Label="Hotell" Variant="Variant.Outlined">
+                    <MudSelectItem T="bool" Value="true">Ja</MudSelectItem>
+                    <MudSelectItem T="bool" Value="false">Nej</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" md="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       Style="min-height: 48px; width: 100%;" OnClick="BeraknaTraktamente"
+                       StartIcon="@Icons.Material.Filled.Calculate">Beräkna</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_traktResultat is not null)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Beräkningsresultat</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3">@_traktResultat.Beskrivning</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="6" md="3">
+                <MudText Typo="Typo.caption">Antal dagar</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.AntalDagar</MudText>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudText Typo="Typo.caption">Dagtraktamente</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Dagtraktamente.ToString("N0") kr</MudText>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudText Typo="Typo.caption">Nattillägg</MudText>
+                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Natttillagg.ToString("N0") kr</MudText>
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudText Typo="Typo.caption">Totalt</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;">@_traktResultat.Totalt.ToString("N0") kr</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@if (_traktFel is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _traktFel = null)">@_traktFel</MudAlert>
+}
+
 @code {
     private bool _showForm;
     private bool _skapad;
@@ -91,6 +184,42 @@
             _rader[idx] = rad with { StatusText = "Godkänd", StatusFarg = Color.Success };
         }
         _meddelande = $"Resekrav för {rad.Namn} ({rad.Belopp}) godkänt.";
+    }
+
+    // ---- Traktamente ----
+    private DateTime? _traktAvresa = DateTime.Today;
+    private DateTime? _traktHemkomst = DateTime.Today.AddDays(2);
+    private string _traktTyp = "Inrikes";
+    private string _traktLand = "Norge";
+    private bool _traktHotell = false;
+    private TraktamentsBerakning? _traktResultat;
+    private string? _traktFel;
+
+    private void BeraknaTraktamente()
+    {
+        _traktFel = null;
+        _traktResultat = null;
+
+        if (_traktAvresa is null || _traktHemkomst is null)
+        {
+            _traktFel = "Ange både avresedatum och hemkomstdatum.";
+            return;
+        }
+
+        if (_traktHemkomst.Value <= _traktAvresa.Value)
+        {
+            _traktFel = "Hemkomstdatum måste vara efter avresedatum.";
+            return;
+        }
+
+        if (_traktTyp == "Inrikes")
+        {
+            _traktResultat = TraktCalc.BeraknaInrikes(_traktAvresa.Value, _traktHemkomst.Value, _traktHotell);
+        }
+        else
+        {
+            _traktResultat = TraktCalc.BeraknaUtrikes(_traktLand, _traktAvresa.Value, _traktHemkomst.Value);
+        }
     }
 
     private record ReseRad(string Namn, string Datum, string Belopp, string StatusText, Color StatusFarg);

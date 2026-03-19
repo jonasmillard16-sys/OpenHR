@@ -1,0 +1,234 @@
+@page "/admin/provisionering"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Identitetshantering (SCIM)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Identitetshantering (SCIM)</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Automatisk provisionering av konton vid anställning och avslut — systemet hanterar allt</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Sync" Style="min-height: 48px;"
+               OnClick="SynkaNu" Disabled="_syncing">
+        @if (_syncing)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            <text>Synkar...</text>
+        }
+        else
+        {
+            <text>Synka nu</text>
+        }
+    </MudButton>
+</div>
+
+@if (_synkKlar)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true"
+              CloseIconClicked="@(() => _synkKlar = false)">
+        Synkronisering slutförd! @_synkResultat
+    </MudAlert>
+}
+
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Anslutna system</MudText>
+<MudGrid Spacing="3" Class="mb-6">
+    @foreach (var sys in _system)
+    {
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="@($"border-left: 4px solid {(sys.Ansluten ? "var(--mud-palette-success)" : "var(--mud-palette-error)")}")">
+                <div class="d-flex justify-space-between align-center mb-2">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@sys.Ikon" Color="@(sys.Ansluten ? Color.Success : Color.Error)" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@sys.Namn</MudText>
+                    </div>
+                    <MudChip T="string" Size="Size.Small" Color="@(sys.Ansluten ? Color.Success : Color.Error)">@(sys.Ansluten ? "Ansluten" : "Ej ansluten")</MudChip>
+                </div>
+                <MudText Typo="Typo.body2"><strong>Synkade användare:</strong> @sys.SynkadeAnvandare</MudText>
+                <MudText Typo="Typo.body2"><strong>Senaste synk:</strong> @sys.SenasteSynk</MudText>
+                <MudText Typo="Typo.body2"><strong>Fel:</strong>
+                    @if (sys.Fel > 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error">@sys.Fel fel</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Inga fel</MudChip>
+                    }
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Senaste provisioneringar</MudText>
+<MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+    Systemet skapar och inaktiverar konton automatiskt baserat på anställningshändelser. Inget manuellt arbete krävs.
+</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Tidpunkt</th>
+            <th>Anställd</th>
+            <th>Händelse</th>
+            <th>Åtgärder</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var e in _events)
+        {
+            <tr>
+                <td>@e.Tidpunkt</td>
+                <td><strong>@e.Anstalld</strong></td>
+                <td><MudChip T="string" Size="Size.Small" Color="@EventTypFarg(e.Typ)">@e.Typ</MudChip></td>
+                <td>
+                    <MudStack Spacing="1">
+                        @foreach (var a in e.Atgarder)
+                        {
+                            <div class="d-flex align-center gap-1">
+                                <MudIcon Icon="@(a.Lyckad ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
+                                         Color="@(a.Lyckad ? Color.Success : Color.Error)" Size="Size.Small" />
+                                <MudText Typo="Typo.body2">@a.Beskrivning</MudText>
+                            </div>
+                        }
+                    </MudStack>
+                </td>
+                <td><MudChip T="string" Size="Size.Small" Color="@(e.Atgarder.All(a => a.Lyckad) ? Color.Success : Color.Warning)">@(e.Atgarder.All(a => a.Lyckad) ? "Slutförd" : "Delvis")</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Inställningar</MudText>
+<MudPaper Class="pa-6" Elevation="2">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6">
+            <div class="d-flex justify-space-between align-center mb-2">
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">Automatisk synkronisering</MudText>
+                <MudSwitch T="bool" @bind-Value="_autoSync" Color="Color.Primary" />
+            </div>
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                När aktiverat synkas konton automatiskt vid anställning, avslut och befattningsändring.
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="string" @bind-Value="_syncInterval" Label="Synkintervall" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("5 minuter")">Var 5:e minut</MudSelectItem>
+                <MudSelectItem Value="@("15 minuter")">Var 15:e minut</MudSelectItem>
+                <MudSelectItem Value="@("1 timme")">Varje timme</MudSelectItem>
+                <MudSelectItem Value="@("Dagligen")">Dagligen (kl 06:00)</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">Fältmappningar</MudText>
+    <MudSimpleTable Dense="true" Elevation="0">
+        <thead>
+            <tr>
+                <th>OpenHR-fält</th>
+                <th>AD/Entra ID</th>
+                <th>Google Workspace</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Förnamn</td><td>givenName</td><td>name.givenName</td></tr>
+            <tr><td>Efternamn</td><td>sn</td><td>name.familyName</td></tr>
+            <tr><td>E-post</td><td>mail</td><td>primaryEmail</td></tr>
+            <tr><td>Befattning</td><td>title</td><td>organizations[0].title</td></tr>
+            <tr><td>Enhet</td><td>department</td><td>organizations[0].department</td></tr>
+            <tr><td>Chef</td><td>manager</td><td>relations[type=manager]</td></tr>
+            <tr><td>Telefon</td><td>telephoneNumber</td><td>phones[type=work]</td></tr>
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+    private bool _syncing;
+    private bool _synkKlar;
+    private string _synkResultat = "";
+    private bool _autoSync = true;
+    private string _syncInterval = "15 minuter";
+
+    private async Task SynkaNu()
+    {
+        _syncing = true;
+        _synkKlar = false;
+        StateHasChanged();
+        await Task.Delay(2000); // Simulerad synk
+        _syncing = false;
+        _synkKlar = true;
+        _synkResultat = "3 användare synkade, 0 fel. Microsoft Entra ID, Google Workspace och Active Directory uppdaterade.";
+        foreach (var s in _system)
+            s.SenasteSynk = "Just nu";
+        StateHasChanged();
+    }
+
+    private List<AnslutetSystem> _system =
+    [
+        new("Microsoft Entra ID", Icons.Material.Filled.Cloud, true, 4892, "2026-03-19 08:45", 0),
+        new("Google Workspace", Icons.Material.Filled.Email, true, 4890, "2026-03-19 08:45", 2),
+        new("Active Directory", Icons.Material.Filled.Dns, true, 4892, "2026-03-19 08:30", 0),
+    ];
+
+    private List<ProvisioneringEvent> _events =
+    [
+        new("2026-03-19 09:14", "Anna Svensson", "Anställd",
+        [
+            new("AD-konto skapat (anna.svensson@region.se)", true),
+            new("E-postkonto skapat i Exchange Online", true),
+            new("Teams-licens tilldelad (E3)", true),
+            new("Passerkort beställt via Zenter", true),
+        ]),
+        new("2026-03-18 16:00", "Per Andersson", "Avslutad",
+        [
+            new("AD-konto inaktiverat", true),
+            new("E-postkonto konverterat till delad brevlåda", true),
+            new("Teams-licens återkallad", true),
+            new("Passerkort spärrat", true),
+            new("VPN-åtkomst borttagen", true),
+        ]),
+        new("2026-03-17 10:30", "Sara Johansson", "Befattningsändring",
+        [
+            new("AD-attribut uppdaterade (title, department)", true),
+            new("Google Workspace-profil uppdaterad", true),
+            new("Ny säkerhetsgrupp tilldelad", true),
+        ]),
+        new("2026-03-15 08:00", "Erik Bergström", "Anställd",
+        [
+            new("AD-konto skapat (erik.bergstrom@region.se)", true),
+            new("E-postkonto skapat", true),
+            new("Teams-licens tilldelad (E3)", true),
+            new("GitHub-konto skapat (SAML SSO)", false),
+        ]),
+        new("2026-03-14 15:45", "Maria Lindgren", "Föräldraledig",
+        [
+            new("AD-konto kvar men markerat som frånvarande", true),
+            new("Out-of-office aktiverat i Exchange", true),
+            new("Delegering till vikarie konfigurerad", true),
+        ]),
+    ];
+
+    private static Color EventTypFarg(string typ) => typ switch
+    {
+        "Anställd" => Color.Success,
+        "Avslutad" => Color.Error,
+        "Befattningsändring" => Color.Info,
+        "Föräldraledig" => Color.Warning,
+        _ => Color.Default,
+    };
+
+    private class AnslutetSystem(string namn, string ikon, bool ansluten, int synkadeAnvandare, string senasteSynk, int fel)
+    {
+        public string Namn { get; set; } = namn;
+        public string Ikon { get; set; } = ikon;
+        public bool Ansluten { get; set; } = ansluten;
+        public int SynkadeAnvandare { get; set; } = synkadeAnvandare;
+        public string SenasteSynk { get; set; } = senasteSynk;
+        public int Fel { get; set; } = fel;
+    }
+
+    private record ProvisioneringEvent(string Tidpunkt, string Anstalld, string Typ, List<ProvisioneringAtgard> Atgarder);
+    private record ProvisioneringAtgard(string Beskrivning, bool Lyckad);
+}

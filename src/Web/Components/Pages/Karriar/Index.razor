@@ -1,0 +1,274 @@
+@page "/karriar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Karriär & Kompetens</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Karriär & Kompetens</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Systemet matchar din kompetens med interna möjligheter och föreslår utvecklingsvägar.
+</MudText>
+
+@* ======================== SKILLS-KATALOG ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.School" Class="mr-2" Style="vertical-align: middle;" />
+    Skills-katalog
+</MudText>
+
+<MudTextField @bind-Value="_skillSearch" Label="Sök kompetens..." Variant="Variant.Outlined"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" Class="mb-4" />
+
+<MudChipSet T="string" Class="mb-4">
+    @foreach (var cat in _categories)
+    {
+        <MudChip T="string" Color="@(_selectedCategory == cat ? Color.Primary : Color.Default)"
+                 OnClick="@(() => ToggleCategory(cat))">@cat</MudChip>
+    }
+</MudChipSet>
+
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-8">
+    <thead>
+        <tr>
+            <th>Kompetens</th>
+            <th>Kategori</th>
+            <th>Antal anställda</th>
+            <th>Efterfrågan</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var skill in FilteredSkills)
+        {
+            <tr>
+                <td><strong>@skill.Namn</strong></td>
+                <td><MudChip T="string" Size="Size.Small" Color="@CategoryColor(skill.Kategori)">@skill.Kategori</MudChip></td>
+                <td>@skill.AntalAnstallda</td>
+                <td><MudChip T="string" Size="Size.Small" Color="@DemandColor(skill.Efterfragan)">@skill.Efterfragan</MudChip></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@* ======================== KARRIÄRVÄGAR ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-2" Style="vertical-align: middle;" />
+    Karriärvägar
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Systemet visar typiska karriärsteg inom vården med kompetenskrav och tidsramar.
+</MudText>
+
+<MudTimeline TimelineOrientation="TimelineOrientation.Horizontal" TimelinePosition="TimelinePosition.Top" Class="mb-4">
+    @foreach (var step in _careerSteps)
+    {
+        <MudTimelineItem Color="@(step == _selectedStep ? Color.Primary : Color.Default)" Variant="Variant.Filled">
+            <ItemContent>
+                <MudCard Elevation="@(step == _selectedStep ? 4 : 1)" Class="cursor-pointer" Style="min-width: 180px;"
+                         @onclick="@(() => _selectedStep = step)">
+                    <MudCardContent>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@step.Titel</MudText>
+                        <MudText Typo="Typo.caption">@step.Tidslinje</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </ItemContent>
+        </MudTimelineItem>
+    }
+</MudTimeline>
+
+@if (_selectedStep is not null)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">@_selectedStep.Titel</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2"><strong>Tidsram:</strong> @_selectedStep.Tidslinje</MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight: 600;">Kravkompetenser:</MudText>
+        <MudChipSet T="string" Class="mb-3">
+            @foreach (var skill in _selectedStep.KravKompetenser)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info">@skill</MudChip>
+            }
+        </MudChipSet>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight: 600;">Tillgänglig utbildning:</MudText>
+        <MudList T="string" Dense="true">
+            @foreach (var training in _selectedStep.Utbildningar)
+            {
+                <MudListItem T="string" Icon="@Icons.Material.Filled.MenuBook">@training</MudListItem>
+            }
+        </MudList>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                   StartIcon="@Icons.Material.Filled.PlaylistAdd" Href="/karriar/min-utveckling">
+            Skapa utvecklingsplan
+        </MudButton>
+    </MudPaper>
+}
+
+<MudDivider Class="my-6" />
+
+@* ======================== INTERN MOBILITET MARKETPLACE ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Class="mr-2" Style="vertical-align: middle;" />
+    Intern Mobilitet Marketplace
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Interna lediga tjänster som matchar mot din kompetensprofil. Systemet beräknar matchningsgrad automatiskt.
+</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    @foreach (var pos in _internPositions)
+    {
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.h6" Style="font-weight: 600;">@pos.Titel</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@MatchColor(pos.MatchProcent)">@pos.MatchProcent% match</MudChip>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mb-2"><strong>Enhet:</strong> @pos.Enhet</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Kravkompetenser:</MudText>
+                    <MudChipSet T="string" Class="mb-2">
+                        @foreach (var skill in pos.KravKompetenser)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@skill</MudChip>
+                        }
+                    </MudChipSet>
+                    <MudProgressLinear Color="@MatchColor(pos.MatchProcent)" Value="@pos.MatchProcent" Class="my-2" />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => VisaMatchning(pos))">
+                        Visa matchning
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+
+            @if (_selectedPosition == pos)
+            {
+                <MudPaper Class="pa-4 mt-2" Elevation="1" Style="background: var(--mud-palette-background-grey);">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Kompetensgap-analys</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-2">Matchning: <strong>@pos.MatchProcent%</strong></MudText>
+
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--mud-palette-success);">Kompetenser du har:</MudText>
+                    <MudChipSet T="string" Class="mb-2">
+                        @foreach (var s in pos.MatchadeKompetenser)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">@s</MudChip>
+                        }
+                    </MudChipSet>
+
+                    <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--mud-palette-error);">Kompetenser som saknas:</MudText>
+                    <MudChipSet T="string" Class="mb-2">
+                        @foreach (var s in pos.SaknadeKompetenser)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">@s</MudChip>
+                        }
+                    </MudChipSet>
+
+                    @if (pos.SaknadeKompetenser.Length > 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                            Systemet rekommenderar: Boka utbildning i @string.Join(", ", pos.SaknadeKompetenser) för att nå 100% matchning.
+                        </MudAlert>
+                    }
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _selectedPosition = null)" Class="mt-2">Stäng</MudButton>
+                </MudPaper>
+            }
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private string _skillSearch = "";
+    private string? _selectedCategory;
+    private CareerStep? _selectedStep;
+    private InternalPosition? _selectedPosition;
+
+    private readonly string[] _categories = ["Klinisk", "Teknisk", "Ledarskap", "Administration"];
+
+    private void ToggleCategory(string cat)
+    {
+        _selectedCategory = _selectedCategory == cat ? null : cat;
+    }
+
+    private IEnumerable<SkillEntry> FilteredSkills => _skills.Where(s =>
+        (string.IsNullOrEmpty(_skillSearch) || s.Namn.Contains(_skillSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (_selectedCategory is null || s.Kategori == _selectedCategory));
+
+    private void VisaMatchning(InternalPosition pos)
+    {
+        _selectedPosition = _selectedPosition == pos ? null : pos;
+    }
+
+    private static Color CategoryColor(string cat) => cat switch
+    {
+        "Klinisk" => Color.Error,
+        "Teknisk" => Color.Info,
+        "Ledarskap" => Color.Warning,
+        "Administration" => Color.Success,
+        _ => Color.Default
+    };
+
+    private static Color DemandColor(string demand) => demand switch
+    {
+        "Hög" => Color.Error,
+        "Medel" => Color.Warning,
+        "Låg" => Color.Success,
+        _ => Color.Default
+    };
+
+    private static Color MatchColor(int pct) => pct switch
+    {
+        >= 80 => Color.Success,
+        >= 60 => Color.Warning,
+        _ => Color.Error
+    };
+
+    // ---- Demo data ----
+
+    private readonly List<SkillEntry> _skills =
+    [
+        new("HLR", "Klinisk", 187, "Hög"),
+        new("Triage", "Klinisk", 64, "Hög"),
+        new("Läkemedelshantering", "Klinisk", 142, "Hög"),
+        new("Journalföring", "Klinisk", 312, "Medel"),
+        new("Sårvård", "Klinisk", 98, "Medel"),
+        new("Intensivvård", "Klinisk", 34, "Hög"),
+        new("Anestesi", "Klinisk", 28, "Hög"),
+        new("Ledarskap", "Ledarskap", 45, "Hög"),
+        new("Projektledning", "Ledarskap", 32, "Medel"),
+        new("Coaching & handledning", "Ledarskap", 22, "Medel"),
+        new("Förändringsledning", "Ledarskap", 18, "Hög"),
+        new("IT-system (Cosmic/TakeCare)", "Teknisk", 210, "Medel"),
+        new("Medicinsk teknik", "Teknisk", 56, "Hög"),
+        new("Dataanalys & statistik", "Teknisk", 14, "Medel"),
+        new("Löneadministration", "Administration", 12, "Låg"),
+        new("Personaladministration", "Administration", 24, "Medel"),
+        new("Upphandling", "Administration", 8, "Låg"),
+    ];
+
+    private readonly List<CareerStep> _careerSteps =
+    [
+        new("Undersköterska", "Startposition", ["HLR", "Sårvård", "Journalföring"], ["Omvårdnadsprogrammet", "HLR-certifiering"]),
+        new("Sjuksköterska", "3 år (sjuksköterskeutbildning)", ["Läkemedelshantering", "Triage", "HLR", "Journalföring"], ["Sjuksköterskeprogrammet (180 hp)", "Klinisk praktik"]),
+        new("Specialistsjuksköterska", "+1.5 år (specialistutbildning)", ["Intensivvård", "Anestesi", "Ledarskap"], ["Specialistsjuksköterskeprogrammet (60 hp)", "Klinisk tjänstgöring IVA"]),
+        new("Verksamhetschef", "+3-5 år (ledarskap)", ["Ledarskap", "Projektledning", "Förändringsledning", "Upphandling"], ["Chefsutbildning Region", "Ledarskapscoachning", "Hälso- och sjukvårdsadministration"]),
+    ];
+
+    private readonly List<InternalPosition> _internPositions =
+    [
+        new("Sjuksköterska IVA", "Intensivvårdsavdelningen", ["HLR", "Intensivvård", "Läkemedelshantering", "Journalföring"], 72,
+            ["HLR", "Läkemedelshantering", "Journalföring"], ["Intensivvård"]),
+        new("Teamledare Akuten", "Akutmottagningen", ["HLR", "Triage", "Ledarskap", "Journalföring"], 85,
+            ["HLR", "Triage", "Journalföring"], ["Ledarskap"]),
+        new("Projektledare Digitalisering", "Stab", ["Projektledning", "IT-system (Cosmic/TakeCare)", "Förändringsledning"], 55,
+            ["IT-system (Cosmic/TakeCare)"], ["Projektledning", "Förändringsledning"]),
+        new("Specialistsjuksköterska Anestesi", "Operationsavdelningen", ["Anestesi", "HLR", "Läkemedelshantering", "Intensivvård"], 65,
+            ["HLR", "Läkemedelshantering"], ["Anestesi", "Intensivvård"]),
+        new("Enhetschef Medicin", "Medicinavdelningen", ["Ledarskap", "Coaching & handledning", "Personaladministration", "Löneadministration"], 40,
+            ["Personaladministration"], ["Ledarskap", "Coaching & handledning", "Löneadministration"]),
+    ];
+
+    private record SkillEntry(string Namn, string Kategori, int AntalAnstallda, string Efterfragan);
+    private record CareerStep(string Titel, string Tidslinje, string[] KravKompetenser, string[] Utbildningar);
+    private record InternalPosition(string Titel, string Enhet, string[] KravKompetenser, int MatchProcent,
+        string[] MatchadeKompetenser, string[] SaknadeKompetenser);
+}

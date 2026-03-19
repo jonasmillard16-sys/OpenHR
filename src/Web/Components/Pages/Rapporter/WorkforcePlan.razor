@@ -1,0 +1,284 @@
+@page "/rapporter/workforce-plan"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Strategisk bemanningsplanering</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Strategisk bemanningsplanering</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Systemet simulerar bemanningsscenarier och beräknar kostnader, kompetensgap och tidslinjer automatiskt.
+</MudText>
+
+@* ======================== SCENARIO-VÄLJARE ======================== *@
+<MudPaper Class="pa-6 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+        <MudIcon Icon="@Icons.Material.Filled.Tune" Class="mr-2" Style="vertical-align: middle;" />
+        Scenariobyggare
+    </MudText>
+
+    <MudSelect T="string" @bind-Value="_selectedScenario" Label="Välj scenario" Variant="Variant.Outlined" Class="mb-4">
+        @foreach (var s in _scenarios)
+        {
+            <MudSelectItem T="string" Value="@s.Id">@s.Namn</MudSelectItem>
+        }
+    </MudSelect>
+
+    @{ var current = _scenarios.FirstOrDefault(s => s.Id == _selectedScenario); }
+    @if (current is not null)
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="1" Style="border-top: 4px solid var(--mud-palette-primary);">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@current.Headcount</MudText>
+                    <MudText Typo="Typo.body2">Antal anställda</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="1" Style="border-top: 4px solid var(--mud-palette-info);">
+                    <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@current.Budget</MudText>
+                    <MudText Typo="Typo.body2">Personalkostnad</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="1" Style="@($"border-top: 4px solid {(current.BudgetEffekt.StartsWith("+") ? "var(--mud-palette-error)" : current.BudgetEffekt.StartsWith("-") ? "var(--mud-palette-success)" : "var(--mud-palette-warning)")}")">
+                    <MudText Typo="Typo.h4" Style="@($"font-weight: 700; color: {(current.BudgetEffekt.StartsWith("+") ? "var(--mud-palette-error)" : current.BudgetEffekt.StartsWith("-") ? "var(--mud-palette-success)" : "var(--mud-palette-text-primary)")}")">@current.BudgetEffekt</MudText>
+                    <MudText Typo="Typo.body2">Budgeteffekt</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="1" Style="border-top: 4px solid var(--mud-palette-warning);">
+                    <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@current.Tidslinje</MudText>
+                    <MudText Typo="Typo.body2">Tidslinje</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @if (current.Kompetensgap.Length > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3">
+                <strong>Kompetensgap:</strong> @string.Join(", ", current.Kompetensgap)
+            </MudAlert>
+        }
+
+        @if (current.Ovrigt is not null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">@current.Ovrigt</MudAlert>
+        }
+    }
+</MudPaper>
+
+@* ======================== JÄMFÖRELSETABELL ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Class="mr-2" Style="vertical-align: middle;" />
+    Scenariojämförelse
+</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-8">
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            @foreach (var s in _scenarios)
+            {
+                <th>@s.Namn</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Antal anställda</strong></td>
+            @foreach (var s in _scenarios) { <td>@s.Headcount</td> }
+        </tr>
+        <tr>
+            <td><strong>Personalkostnad</strong></td>
+            @foreach (var s in _scenarios) { <td>@s.Budget</td> }
+        </tr>
+        <tr>
+            <td><strong>Budgeteffekt</strong></td>
+            @foreach (var s in _scenarios) { <td>@s.BudgetEffekt</td> }
+        </tr>
+        <tr>
+            <td><strong>Tidslinje</strong></td>
+            @foreach (var s in _scenarios) { <td>@s.Tidslinje</td> }
+        </tr>
+        <tr>
+            <td><strong>Kompetensgap</strong></td>
+            @foreach (var s in _scenarios) { <td>@(s.Kompetensgap.Length > 0 ? string.Join(", ", s.Kompetensgap) : "Inga")</td> }
+        </tr>
+        <tr>
+            <td><strong>Övrigt</strong></td>
+            @foreach (var s in _scenarios) { <td>@(s.Ovrigt ?? "—")</td> }
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+@* ======================== BUILD / BORROW / BUY ======================== *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
+    <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="mr-2" Style="vertical-align: middle;" />
+    Build / Borrow / Buy — Analys
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Systemet analyserar tre strategier för att täcka bemanningsbehovet i det valda scenariot.
+</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    @* BUILD *@
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2" Style="border-top: 4px solid var(--mud-palette-success); height: 100%;">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Success" Class="mb-2" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.School" Class="mr-1" Style="vertical-align: middle;" />
+                    Build — Utbilda internt
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@Bbb.BuildBeskrivning</MudText>
+
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>Kompetens</th><th>Antal</th><th>Tid</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Bbb.BuildRows)
+                        {
+                            <tr><td>@row.Kompetens</td><td>@row.Antal</td><td>@row.Tid</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">
+                    Kostnad: @Bbb.BuildKostnad — Lägst kostnad men längst tid.
+                </MudAlert>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* BORROW *@
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning); height: 100%;">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Warning" Class="mb-2" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccessTime" Class="mr-1" Style="vertical-align: middle;" />
+                    Borrow — Tillfällig bemanning
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@Bbb.BorrowBeskrivning</MudText>
+
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>Roll</th><th>Antal</th><th>Period</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Bbb.BorrowRows)
+                        {
+                            <tr><td>@row.Roll</td><td>@row.Antal</td><td>@row.Period</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                    Kostnad: @Bbb.BorrowKostnad — Snabb lösning men hög månadskostnad.
+                </MudAlert>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    @* BUY *@
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2" Style="border-top: 4px solid var(--mud-palette-error); height: 100%;">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Color="Color.Error" Class="mb-2" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-1" Style="vertical-align: middle;" />
+                    Buy — Rekrytera externt
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">@Bbb.BuyBeskrivning</MudText>
+
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>Befattning</th><th>Antal</th><th>Tid</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in Bbb.BuyRows)
+                        {
+                            <tr><td>@row.Befattning</td><td>@row.Antal</td><td>@row.Tid</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                    Kostnad: @Bbb.BuyKostnad — Permanent kapacitet men lång rekryteringstid.
+                </MudAlert>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    <strong>Systemets rekommendation:</strong> Kombinera Build + Buy. Utbilda 4 befintliga sjuksköterskor i intensivvård (6 mån) och rekrytera 8 specialister externt parallellt. Använd Borrow som brygga under uppstartsperioden.
+</MudAlert>
+
+@code {
+    private string _selectedScenario = "nulage";
+    private BuildBorrowBuyAnalysis Bbb => GetBuildBorrowBuy();
+
+    private readonly List<Scenario> _scenarios =
+    [
+        new("nulage", "Nuläge", "432", "285M kr", "Referens", "—",
+            [], null),
+        new("scenario1", "Scenario 1: Utöka IVA", "447", "293.1M kr", "+8.1M kr", "6 mån",
+            ["IVA-sjuksköterska (15 st)", "Anestesiolog (2 st)"],
+            "Kräver 15 nya IVA-sjuksköterskor. Rekryteringstid uppskattad till 6 månader. Tillgång på marknaden: begränsad."),
+        new("scenario2", "Scenario 2: Sammanslagning Avd 32+33", "424", "273M kr", "-12M kr", "9 mån",
+            ["Enhetschef med erfarenhet av stora team"],
+            "Slå ihop Avd 32 och 33. Minskar 8 tjänster. MBL-förhandling krävs. Besparingspotential 12M kr/år."),
+        new("scenario3", "Eget scenario", "432", "285M kr", "Ej beräknat", "—",
+            [], "Konfigurera ett eget scenario genom att ange parametrar nedan (kommande version)."),
+    ];
+
+    private BuildBorrowBuyAnalysis GetBuildBorrowBuy()
+    {
+        if (_selectedScenario == "scenario1")
+        {
+            return new(
+                "Utbilda befintliga sjuksköterskor till IVA-kompetens. 4 kandidater identifierade med hög potential.",
+                [new("Intensivvård", "4", "6 mån"), new("Hemodynamik", "4", "2 veckor"), new("Ventilatorvård", "4", "3 dagar")],
+                "~320 000 kr",
+                "Hyr in IVA-sjuksköterskor via bemanningsföretag under uppstartsfasen.",
+                [new("IVA-ssk (bemanning)", "6", "3-6 mån"), new("Nattsjuksköterska", "2", "3 mån")],
+                "~890 000 kr/mån",
+                "Rekrytera specialistsjuksköterskor och anestesiologer externt.",
+                [new("Specialistsjuksköterska IVA", "8", "4-6 mån"), new("Anestesiolog", "2", "6-9 mån"), new("Undersköterska IVA", "3", "2-3 mån")],
+                "~5.4M kr (rekrytering + introduktion)"
+            );
+        }
+
+        if (_selectedScenario == "scenario2")
+        {
+            return new(
+                "Vidareutbilda befintliga enhetschefer i ledarskap för större team.",
+                [new("Ledarskap stora team", "2", "3 mån"), new("Förändringsledning", "3", "2 veckor")],
+                "~85 000 kr",
+                "Tillfällig projektledare under sammanslagningen.",
+                [new("Projektledare (konsult)", "1", "6-9 mån")],
+                "~120 000 kr/mån",
+                "Rekrytera en erfaren enhetschef för det sammanslagna teamet.",
+                [new("Enhetschef", "1", "3-4 mån")],
+                "~180 000 kr (rekrytering + introduktion)"
+            );
+        }
+
+        // Nuläge / eget
+        return new(
+            "Inga utbildningsbehov identifierade i nuläget.",
+            [],
+            "0 kr",
+            "Ingen tillfällig bemanning krävs.",
+            [],
+            "0 kr",
+            "Inga rekryteringar planerade.",
+            [],
+            "0 kr"
+        );
+    }
+
+    private record Scenario(string Id, string Namn, string Headcount, string Budget, string BudgetEffekt,
+        string Tidslinje, string[] Kompetensgap, string? Ovrigt);
+
+    private record BuildRow(string Kompetens, string Antal, string Tid);
+    private record BorrowRow(string Roll, string Antal, string Period);
+    private record BuyRow(string Befattning, string Antal, string Tid);
+
+    private record BuildBorrowBuyAnalysis(
+        string BuildBeskrivning, BuildRow[] BuildRows, string BuildKostnad,
+        string BorrowBeskrivning, BorrowRow[] BorrowRows, string BorrowKostnad,
+        string BuyBeskrivning, BuyRow[] BuyRows, string BuyKostnad);
+}

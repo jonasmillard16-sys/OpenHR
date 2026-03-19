@@ -1,0 +1,107 @@
+@page "/journeys"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Medarbetarresor</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Medarbetarresor</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Systemet guidar steg för steg genom hela processen — ingen förkunskap krävs</MudText>
+    </div>
+</div>
+
+<MudGrid Spacing="4">
+    @foreach (var j in _journeys)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Elevation="3" Style="cursor: pointer; height: 100%; transition: transform 0.2s, box-shadow 0.2s;"
+                     Class="journey-card" @onclick="@(() => Nav.NavigateTo($"/journeys/{j.Id}"))">
+                <MudCardContent Class="pa-6">
+                    <div class="d-flex align-center gap-3 mb-4">
+                        <MudAvatar Color="@j.Farg" Size="Size.Large" Variant="Variant.Filled">
+                            <MudIcon Icon="@j.Ikon" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.h6" Style="font-weight: 700;">@j.Titel</MudText>
+                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@j.AntalSteg steg &bull; @j.UppskattadTid</MudText>
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mb-4" Style="min-height: 48px;">@j.Beskrivning</MudText>
+                    <MudDivider Class="mb-3" />
+                    <div class="d-flex justify-space-between align-center">
+                        <div class="d-flex gap-2">
+                            @foreach (var a in j.Ansvariga)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@a</MudChip>
+                            }
+                        </div>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary" />
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+<MudText Typo="Typo.h6" Class="mt-8 mb-3" Style="font-weight: 600;">Aktiva resor</MudText>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead>
+        <tr>
+            <th>Anställd</th>
+            <th>Journey</th>
+            <th>Startdatum</th>
+            <th>Framsteg</th>
+            <th>Nästa steg</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in _aktiva)
+        {
+            <tr>
+                <td><strong>@a.Anstalld</strong></td>
+                <td>@a.Journey</td>
+                <td>@a.Startdatum</td>
+                <td style="min-width: 180px;">
+                    <MudProgressLinear Value="@a.Procent" Color="@(a.Procent >= 80 ? Color.Success : a.Procent >= 40 ? Color.Info : Color.Warning)" Rounded="true" Size="Size.Medium" />
+                    <MudText Typo="Typo.caption">@a.Procent% klart</MudText>
+                </td>
+                <td><MudText Typo="Typo.body2">@a.NastaSteg</MudText></td>
+                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/journeys/{a.JourneyId}")">Visa</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@inject NavigationManager Nav
+
+@code {
+    private List<JourneyDefinition> _journeys =
+    [
+        new("onboarding", "Ny medarbetare", "Komplett onboarding: från konton till provanställningens slut. Systemet skapar uppgifter för IT, chef, HR och mentor automatiskt.",
+            Icons.Material.Filled.PersonAdd, Color.Primary, 12, "~2 veckor", ["HR", "Chef", "IT", "Mentor"]),
+
+        new("ny-chef", "Ny chef", "Chefens första 90 dagar. Stöd med ledarskapsintro, arbetsrätt, delegering och teamövertagande.",
+            Icons.Material.Filled.SupervisorAccount, Color.Secondary, 8, "90 dagar", ["HR", "Chef", "Ledning"]),
+
+        new("foraldraledig", "Föräldraledig", "Hela föräldraledighetscykeln: planering, under ledigheten, och återgång. Systemet bevakar FK-anmälan och vikariat.",
+            Icons.Material.Filled.ChildCare, Color.Success, 6, "Variabel", ["HR", "Chef", "Anställd"]),
+
+        new("sjukfranvaro-lang", "Sjukfrånvaro > 14 dagar", "Rehabkedjan steg för steg. Systemet bevakar dag 14, dag 90, dag 180, dag 365 och påminner om åtgärder.",
+            Icons.Material.Filled.LocalHospital, Color.Warning, 5, "Variabel", ["HR", "Chef", "FK"]),
+
+        new("avslut", "Avslut", "Komplett offboarding: från uppsägning till sista arbetsdag. Säkerställer att konton stängs, utrustning returneras och slutlön utbetalas.",
+            Icons.Material.Filled.ExitToApp, Color.Error, 7, "~1 månad", ["HR", "Chef", "IT"]),
+    ];
+
+    private List<AktivJourney> _aktiva =
+    [
+        new("Sara Johansson", "Ny medarbetare", "onboarding", "2026-03-10", 42, "IT-genomgång (dag 2)"),
+        new("Erik Bergström", "Ny medarbetare", "onboarding", "2026-02-15", 83, "60-dagarssamtal"),
+        new("Maria Lindgren", "Föräldraledig", "foraldraledig", "2026-03-01", 33, "Vikariat tillsatt?"),
+        new("Karl Berg", "Sjukfrånvaro > 14 dagar", "sjukfranvaro-lang", "2026-02-20", 60, "FK prövar mot ordinarie arbete (dag 90)"),
+        new("Per Andersson", "Avslut", "avslut", "2026-03-05", 71, "Återlämna utrustning"),
+    ];
+
+    private record JourneyDefinition(string Id, string Titel, string Beskrivning, string Ikon, Color Farg, int AntalSteg, string UppskattadTid, string[] Ansvariga);
+    private record AktivJourney(string Anstalld, string Journey, string JourneyId, string Startdatum, int Procent, string NastaSteg);
+}

@@ -43,21 +43,44 @@
 
     <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">@L["Leave"]</MudNavLink>
 
+    <MudNavGroup Title="Karriär" Icon="@Icons.Material.Filled.TrendingUp"
+                 Expanded="@_karriarOpen" ExpandedChanged="@(v => _karriarOpen = v)">
+        <MudNavLink Href="/karriar">Karriär & Kompetens</MudNavLink>
+        <MudNavLink Href="/karriar/min-utveckling">Min utvecklingsplan</MudNavLink>
+    </MudNavGroup>
+
     @if (Auth.IsInitialized && Auth.IsChef)
     {
         <MudNavLink Href="/godkannanden" Icon="@Icons.Material.Filled.CheckCircle">@L["Approvals"]</MudNavLink>
+        <MudNavLink Href="/journeys" Icon="@Icons.Material.Filled.Route">Medarbetarresor</MudNavLink>
         <MudNavLink Href="/halsosam" Icon="@Icons.Material.Filled.LocalHospital">@L["HalsoSAM"]</MudNavLink>
+        <MudNavLink Href="/arbetsmiljo" Icon="@Icons.Material.Filled.Shield">Arbetsmiljö (SAM)</MudNavLink>
         <MudNavLink Href="/las" Icon="@Icons.Material.Filled.Warning">@L["LAS"]</MudNavLink>
         <MudNavLink Href="/dokument" Icon="@Icons.Material.Filled.Description">@L["Documents"]</MudNavLink>
         <MudNavLink Href="/medarbetarsamtal" Icon="@Icons.Material.Filled.RecordVoiceOver">@L["PerformanceReviews"]</MudNavLink>
-        <MudNavLink Href="/rekrytering/vakanser" Icon="@Icons.Material.Filled.PersonSearch">@L["Recruitment"]</MudNavLink>
-        <MudNavLink Href="/rapporter" Icon="@Icons.Material.Filled.BarChart">@L["Reports"]</MudNavLink>
+        <MudNavGroup Title="@L["Recruitment"]" Icon="@Icons.Material.Filled.PersonSearch"
+                     Expanded="@_rekryteringOpen" ExpandedChanged="@(v => _rekryteringOpen = v)">
+            <MudNavLink Href="/rekrytering/vakanser">Vakanser</MudNavLink>
+            <MudNavLink Href="/rekrytering/talangpool">Talangpool</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="Förmåner" Icon="@Icons.Material.Filled.CardGiftcard"
+                     Expanded="@_formanerOpen" ExpandedChanged="@(v => _formanerOpen = v)">
+            <MudNavLink Href="/formaner">Översikt</MudNavLink>
+            <MudNavLink Href="/formaner/enrollment">Förmånsval</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="@L["Reports"]" Icon="@Icons.Material.Filled.BarChart"
+                     Expanded="@_rapporterOpen" ExpandedChanged="@(v => _rapporterOpen = v)">
+            <MudNavLink Href="/rapporter">Rapportbibliotek</MudNavLink>
+            <MudNavLink Href="/rapporter/workforce-plan">Bemanningsplanering</MudNavLink>
+            <MudNavLink Href="/rapporter/flight-risk">Uppsägningsrisk</MudNavLink>
+        </MudNavGroup>
     }
 
     @if (Auth.IsInitialized && Auth.IsHR)
     {
         <MudDivider Class="my-2" />
         <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">@L["Settings"]</MudNavLink>
+        <MudNavLink Href="/admin/provisionering" Icon="@Icons.Material.Filled.ManageAccounts">Identitetshantering</MudNavLink>
         <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
         <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>
     }
@@ -72,4 +95,8 @@
     private bool _personalOpen;
     private bool _lonOpen;
     private bool _schemaOpen;
+    private bool _rekryteringOpen;
+    private bool _formanerOpen;
+    private bool _karriarOpen;
+    private bool _rapporterOpen;
 }

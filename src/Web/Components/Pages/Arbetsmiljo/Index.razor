@@ -1,0 +1,388 @@
+@page "/arbetsmiljo"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+
+<PageTitle>OpenHR - Arbetsmiljö (SAM)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Arbetsmiljö (SAM)</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Systematiskt arbetsmiljöarbete — tillbud, skyddsronder och riskbedömningar</MudText>
+    </div>
+</div>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);">
+            <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_tillbud.Count(t => t.Status == "Öppet")</MudText>
+            <MudText Typo="Typo.body2">Öppna tillbud</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);">
+            <MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@_skyddsronder.Count(s => s.Status == "Planerad")</MudText>
+            <MudText Typo="Typo.body2">Planerade skyddsronder</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);">
+            <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_risker.Count(r => r.Atgard != "Klar")</MudText>
+            <MudText Typo="Typo.body2">Riskbedömningar pågår</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);">
+            <MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">2</MudText>
+            <MudText Typo="Typo.body2">Arbetsskador (YTD)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Tillbud" Icon="@Icons.Material.Filled.ReportProblem">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Inrapporterade tillbud</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+                       OnClick="@(() => _showTillbudForm = !_showTillbudForm)">
+                Rapportera tillbud
+            </MudButton>
+        </div>
+
+        @if (_showTillbudForm)
+        {
+            <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">Nytt tillbud</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showTillbudForm = false)" />
+                </div>
+                <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                    Beskriv händelsen. Systemet hjälper dig att klassificera och föreslår åtgärder baserat på typ av tillbud.
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_nyPlats" Label="Plats" Variant="Variant.Outlined" Placeholder="t.ex. Avdelning 32, korridor B" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_nyEnhet" Label="Enhet" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Avdelning 32")">Avdelning 32</MudSelectItem>
+                            <MudSelectItem Value="@("Avdelning 33")">Avdelning 33</MudSelectItem>
+                            <MudSelectItem Value="@("Akutmottagningen")">Akutmottagningen</MudSelectItem>
+                            <MudSelectItem Value="@("IVA")">IVA</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_nyBeskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="3"
+                                      Placeholder="Beskriv vad som hände, var, hur och eventuella vittnen..." />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_nyAllvarlighetsgrad" Label="Allvarlighetsgrad" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Låg")">Låg — Ingen skaderisk</MudSelectItem>
+                            <MudSelectItem Value="@("Medel")">Medel — Kunde ha orsakat skada</MudSelectItem>
+                            <MudSelectItem Value="@("Hög")">Hög — Nära skada</MudSelectItem>
+                            <MudSelectItem Value="@("Kritisk")">Kritisk — Akut fara</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_nyAtgard" Label="Åtgärdsförslag" Variant="Variant.Outlined"
+                                      Placeholder="Vad föreslår du för åtgärd?" />
+                    </MudItem>
+                </MudGrid>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                           Style="min-height: 48px;" OnClick="RapporteraTillbud">
+                    Rapportera
+                </MudButton>
+            </MudPaper>
+        }
+
+        @if (_tillbudSkapat)
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true"
+                      CloseIconClicked="@(() => _tillbudSkapat = false)">
+                Tillbud rapporterat! Skyddsombud och enhetschef har notifierats.
+            </MudAlert>
+        }
+
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Rapportör</th>
+                    <th>Enhet</th>
+                    <th>Beskrivning</th>
+                    <th>Allvarlighetsgrad</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in _tillbud)
+                {
+                    <tr>
+                        <td>@t.Datum</td>
+                        <td>@t.Rapportor</td>
+                        <td>@t.Enhet</td>
+                        <td style="max-width: 300px;">@t.Beskrivning</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@AllvarlighetFarg(t.Allvarlighetsgrad)">@t.Allvarlighetsgrad</MudChip></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@TillbudStatusFarg(t.Status)">@t.Status</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Skyddsronder" Icon="@Icons.Material.Filled.Checklist">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skyddsronder</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+                       OnClick="@(() => _showRondForm = !_showRondForm)">
+                Planera skyddsrond
+            </MudButton>
+        </div>
+
+        @if (_showRondForm)
+        {
+            <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">Planera ny skyddsrond</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showRondForm = false)" />
+                </div>
+                <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                    Systemet genererar en checklista baserad på enhet och tidigare fynd. Skyddsombud bjuds in automatiskt.
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="_rondDatum" Label="Datum" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="_rondEnhet" Label="Enhet" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Avdelning 32")">Avdelning 32</MudSelectItem>
+                            <MudSelectItem Value="@("Avdelning 33")">Avdelning 33</MudSelectItem>
+                            <MudSelectItem Value="@("Akutmottagningen")">Akutmottagningen</MudSelectItem>
+                            <MudSelectItem Value="@("IVA")">IVA</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_rondDeltagare" Label="Deltagare" Variant="Variant.Outlined"
+                                      Placeholder="t.ex. Anna HR, Erik Chef, Johan Skyddsombud" />
+                    </MudItem>
+                </MudGrid>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                           Style="min-height: 48px;" OnClick="PlaneraRond">
+                    Planera
+                </MudButton>
+            </MudPaper>
+        }
+
+        @if (_rondSkapad)
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true"
+                      CloseIconClicked="@(() => _rondSkapad = false)">
+                Skyddsrond planerad! Deltagare har bjudits in via kalender och notis.
+            </MudAlert>
+        }
+
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Enhet</th>
+                    <th>Deltagare</th>
+                    <th>Brister funna</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in _skyddsronder)
+                {
+                    <tr>
+                        <td>@s.Datum</td>
+                        <td>@s.Enhet</td>
+                        <td>@s.Deltagare</td>
+                        <td>@s.BristerFunna</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@RondStatusFarg(s.Status)">@s.Status</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Riskbedömningar" Icon="@Icons.Material.Filled.Shield">
+        <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Riskbedömningar</MudText>
+
+        <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">Riskmatris (Sannolikhet x Konsekvens)</MudText>
+        <MudPaper Class="pa-4 mb-6" Elevation="2">
+            <div style="display: grid; grid-template-columns: 40px repeat(5, 1fr); grid-template-rows: repeat(6, 44px); gap: 2px; max-width: 600px;">
+                @* Header row *@
+                <div></div>
+                @for (int k = 1; k <= 5; k++)
+                {
+                    var kval = k;
+                    <div style="display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem;">K@(kval)</div>
+                }
+                @* Rows for Sannolikhet 5 down to 1 *@
+                @for (int s = 5; s >= 1; s--)
+                {
+                    var sval = s;
+                    <div style="display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem;">S@(sval)</div>
+                    @for (int k = 1; k <= 5; k++)
+                    {
+                        var kval = k;
+                        var riskValue = sval * kval;
+                        var cellColor = riskValue switch
+                        {
+                            >= 15 => "#dc2626",
+                            >= 8 => "#d97706",
+                            >= 4 => "#eab308",
+                            _ => "#059669"
+                        };
+                        var hasRisk = _risker.Any(r => r.Sannolikhet == sval && r.Konsekvens == kval);
+                        <div style="background: @cellColor; color: white; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: @(hasRisk ? "800" : "400"); font-size: 0.8rem; border: @(hasRisk ? "3px solid #000" : "none");">
+                            @riskValue
+                        </div>
+                    }
+                }
+            </div>
+            <div class="d-flex gap-3 mt-3">
+                <MudChip T="string" Size="Size.Small" Style="background: #059669; color: white;">1-3: Acceptabel</MudChip>
+                <MudChip T="string" Size="Size.Small" Style="background: #eab308; color: white;">4-7: Bevaka</MudChip>
+                <MudChip T="string" Size="Size.Small" Style="background: #d97706; color: white;">8-14: Åtgärda</MudChip>
+                <MudChip T="string" Size="Size.Small" Style="background: #dc2626; color: white;">15-25: Akut</MudChip>
+            </div>
+        </MudPaper>
+
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead>
+                <tr>
+                    <th>Risk</th>
+                    <th>S</th>
+                    <th>K</th>
+                    <th>Riskvärde</th>
+                    <th>Åtgärd</th>
+                    <th>Ansvarig</th>
+                    <th>Deadline</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _risker.OrderByDescending(r => r.Sannolikhet * r.Konsekvens))
+                {
+                    var rv = r.Sannolikhet * r.Konsekvens;
+                    <tr>
+                        <td><strong>@r.Risk</strong></td>
+                        <td>@r.Sannolikhet</td>
+                        <td>@r.Konsekvens</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@RiskFarg(rv)">@rv</MudChip></td>
+                        <td>@r.Atgard</td>
+                        <td>@r.Ansvarig</td>
+                        <td>@r.Deadline</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    // --- Tillbud ---
+    private bool _showTillbudForm;
+    private bool _tillbudSkapat;
+    private string _nyPlats = "";
+    private string _nyEnhet = "";
+    private string _nyBeskrivning = "";
+    private string _nyAllvarlighetsgrad = "";
+    private string _nyAtgard = "";
+
+    private void RapporteraTillbud()
+    {
+        if (!string.IsNullOrWhiteSpace(_nyBeskrivning))
+        {
+            _tillbud.Insert(0, new("2026-03-19", "Aktuell användare", _nyEnhet, _nyBeskrivning, _nyAllvarlighetsgrad, "Öppet"));
+        }
+        _showTillbudForm = false;
+        _tillbudSkapat = true;
+        _nyPlats = ""; _nyEnhet = ""; _nyBeskrivning = ""; _nyAllvarlighetsgrad = ""; _nyAtgard = "";
+    }
+
+    private List<Tillbud> _tillbud =
+    [
+        new("2026-03-18", "Anna Svensson", "Akutmottagningen", "Halkigt golv i korridor B efter städning, inga varningsskyltar uppsatta", "Hög", "Öppet"),
+        new("2026-03-15", "Erik Johansson", "Avdelning 32", "Defekt sänghiss — patientsäng fastnade i höjdläge", "Kritisk", "Under utredning"),
+        new("2026-03-12", "Maria Lindgren", "IVA", "Nåls stick utan skyddsbehållare tillgänglig", "Hög", "Öppet"),
+        new("2026-03-08", "Per Gustafsson", "Avdelning 33", "Dålig belysning i medicinförrådet", "Medel", "Åtgärdad"),
+        new("2026-02-28", "Sara Andersson", "Akutmottagningen", "Verbal hotfull patient utan larmknapp i närheten", "Hög", "Under utredning"),
+        new("2026-02-20", "Karl Berg", "Avdelning 32", "Tungt lyft utan hjälpmedel — ryggont i efterhand", "Medel", "Åtgärdad"),
+    ];
+
+    // --- Skyddsronder ---
+    private bool _showRondForm;
+    private bool _rondSkapad;
+    private DateTime? _rondDatum;
+    private string _rondEnhet = "";
+    private string _rondDeltagare = "";
+
+    private void PlaneraRond()
+    {
+        if (_rondDatum.HasValue && !string.IsNullOrWhiteSpace(_rondEnhet))
+        {
+            _skyddsronder.Insert(0, new(_rondDatum.Value.ToString("yyyy-MM-dd"), _rondEnhet, _rondDeltagare, 0, "Planerad"));
+        }
+        _showRondForm = false;
+        _rondSkapad = true;
+        _rondDatum = null; _rondEnhet = ""; _rondDeltagare = "";
+    }
+
+    private List<Skyddsrond> _skyddsronder =
+    [
+        new("2026-04-01", "Avdelning 32", "Anna HR, Erik Chef, Johan Skyddsombud", 0, "Planerad"),
+        new("2026-03-15", "Akutmottagningen", "Maria HR, Per Chef, Lisa Skyddsombud", 3, "Genomförd"),
+        new("2026-02-15", "IVA", "Anna HR, Karl Chef, Johan Skyddsombud", 5, "Uppföljning pågår"),
+        new("2026-01-20", "Avdelning 33", "Maria HR, Sara Chef, Lisa Skyddsombud", 1, "Åtgärdad"),
+    ];
+
+    // --- Riskbedömningar ---
+    private List<Riskbedomning> _risker =
+    [
+        new("Hotfulla patienter/anhöriga", 4, 4, "Utbildning i bemötande, larmknappar installerade", "Anna HR", "2026-04-15"),
+        new("Sticksår vid provtagning", 3, 5, "Nya säkerhetskanyler beställda", "Per Chef", "2026-03-30"),
+        new("Ergonomiska risker — tunga lyft", 4, 3, "Lyftutrustning på varje avdelning", "Erik Chef", "2026-05-01"),
+        new("Psykosocial ohälsa — hög arbetsbelastning", 3, 4, "Bemanningsöversyn, stödsamtal erbjuds", "Maria HR", "Klar"),
+        new("Brand i medicinförråd", 1, 5, "Brandsläckare kontrollerad, utrymningsövning genomförd", "Karl Säkerhet", "Klar"),
+    ];
+
+    // --- Helpers ---
+    private static Color AllvarlighetFarg(string a) => a switch
+    {
+        "Kritisk" => Color.Error,
+        "Hög" => Color.Warning,
+        "Medel" => Color.Info,
+        "Låg" => Color.Success,
+        _ => Color.Default,
+    };
+
+    private static Color TillbudStatusFarg(string s) => s switch
+    {
+        "Öppet" => Color.Warning,
+        "Under utredning" => Color.Info,
+        "Åtgärdad" => Color.Success,
+        _ => Color.Default,
+    };
+
+    private static Color RondStatusFarg(string s) => s switch
+    {
+        "Planerad" => Color.Info,
+        "Genomförd" => Color.Success,
+        "Uppföljning pågår" => Color.Warning,
+        "Åtgärdad" => Color.Success,
+        _ => Color.Default,
+    };
+
+    private static Color RiskFarg(int rv) => rv switch
+    {
+        >= 15 => Color.Error,
+        >= 8 => Color.Warning,
+        >= 4 => Color.Info,
+        _ => Color.Success,
+    };
+
+    private record Tillbud(string Datum, string Rapportor, string Enhet, string Beskrivning, string Allvarlighetsgrad, string Status);
+    private record Skyddsrond(string Datum, string Enhet, string Deltagare, int BristerFunna, string Status);
+    private record Riskbedomning(string Risk, int Sannolikhet, int Konsekvens, string Atgard, string Ansvarig, string Deadline);
+}

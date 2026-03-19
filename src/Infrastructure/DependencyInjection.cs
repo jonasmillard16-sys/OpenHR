@@ -100,6 +100,7 @@ public static class DependencyInjection
         // Swedish payroll engine
         services.AddSingleton<SwedishTaxCalculator>();
         services.AddSingleton<KollektivavtalEngine>();
+        services.AddSingleton<TraktamentsCalculator>();
 
         // Integration adapters
         services.AddSingleton<Integrations.AGIXmlGenerator>();
