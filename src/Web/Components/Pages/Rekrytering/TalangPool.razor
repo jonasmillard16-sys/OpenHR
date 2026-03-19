@@ -1,0 +1,476 @@
+@page "/rekrytering/talangpool"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Talangpool & CRM</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Talangpool & CRM</MudText>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Upload" Style="min-height: 48px;"
+                   OnClick="@(() => _showCvUpload = true)">
+            Ladda upp CV
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.PersonAdd" Style="min-height: 48px;"
+                   OnClick="@(() => _showAddForm = true)">
+            Lägg till i pool
+        </MudButton>
+    </div>
+</div>
+
+@* === KPI:ER === *@
+<MudGrid Spacing="3" Class="mb-4">
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_kandidater.Count</MudText>
+            <MudText Typo="Typo.body2">I talangpoolen</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_kandidater.Count(k => k.NeedFollowUp)</MudText>
+            <MudText Typo="Typo.body2">Behöver uppföljning</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">3</MudText>
+            <MudText Typo="Typo.body2">Öppna vakanser</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="6" sm="3">
+        <MudPaper Class="pa-4 text-center" Elevation="2">
+            <MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">2</MudText>
+            <MudText Typo="Typo.body2">Anställda från pool (YTD)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* === SYSTEM NURTURING ALERTS === *@
+@foreach (var k in _kandidater.Where(k => k.NeedFollowUp))
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-2" Icon="@Icons.Material.Filled.Schedule">
+        Det har gått @k.DagarSedanKontakt dagar sedan kontakt med <strong>@k.Namn</strong>.
+        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Class="ml-2"
+                   OnClick="@(() => SkickaUppdatering(k))">Skicka uppdatering</MudButton>
+    </MudAlert>
+}
+
+@* === LÄGG TILL FORMULÄR === *@
+@if (_showAddForm)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Lägg till kandidat i talangpool</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showAddForm = false)" />
+        </div>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_addNamn" Label="Namn" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_addKompetens" Label="Kompetens" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_addEpost" Label="E-post" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_addKalla" Label="Källa" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Intern rekrytering")">Intern rekrytering</MudSelectItem>
+                    <MudSelectItem Value="@("LinkedIn")">LinkedIn</MudSelectItem>
+                    <MudSelectItem Value="@("Platsbanken")">Platsbanken</MudSelectItem>
+                    <MudSelectItem Value="@("Referens")">Referens</MudSelectItem>
+                    <MudSelectItem Value="@("Spontanansökan")">Spontanansökan</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4"
+                   Style="min-height: 48px;" OnClick="LaggTillKandidat">Lägg till</MudButton>
+    </MudPaper>
+}
+
+@if (_addedMsg != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _addedMsg = null)">@_addedMsg</MudAlert>
+}
+
+@* === TALANGPOOL TABELL === *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
+    <MudIcon Icon="@Icons.Material.Filled.Groups" Class="mr-1" Style="vertical-align: middle;" />
+    Talangpool
+</MudText>
+
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead>
+        <tr>
+            <th>Namn</th>
+            <th>Kompetens</th>
+            <th>Senaste kontakt</th>
+            <th>Källa</th>
+            <th>Intresse</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var k in _kandidater)
+        {
+            <tr>
+                <td>
+                    <strong>@k.Namn</strong>
+                    <br /><MudText Typo="Typo.caption">@k.Epost</MudText>
+                </td>
+                <td>
+                    @foreach (var s in k.Kompetenser)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mr-1 mb-1">@s</MudChip>
+                    }
+                </td>
+                <td>
+                    @k.SenasteKontakt
+                    @if (k.NeedFollowUp)
+                    {
+                        <br /><MudText Typo="Typo.caption" Color="Color.Warning">@k.DagarSedanKontakt dagar sedan</MudText>
+                    }
+                </td>
+                <td>@k.Kalla</td>
+                <td>
+                    <MudRating ReadOnly="true" SelectedValue="@k.Intresse" MaxValue="5" Size="Size.Small" />
+                </td>
+                <td>
+                    <MudChip T="string" Size="Size.Small" Color="@KandidatStatusFarg(k.Status)">@k.Status</MudChip>
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="@(() => SkickaIntresse(k))">Skicka intressemail</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                                   OnClick="@(() => BokaSamtal(k))">Boka samtal</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
+                                   OnClick="@(() => Arkivera(k))">Arkivera</MudButton>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+<MudDivider Class="my-6" />
+
+@* === CV-PARSNING === *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
+    <MudIcon Icon="@Icons.Material.Filled.DocumentScanner" Class="mr-1" Style="vertical-align: middle;" />
+    CV-parsning
+</MudText>
+
+@if (_showCvUpload || !_cvParsed)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="2" Style="border: 2px dashed var(--mud-palette-lines-default); text-align: center;">
+        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Style="font-size: 48px;" Color="Color.Primary" />
+        <MudText Typo="Typo.h6" Class="mt-2">Ladda upp CV (PDF)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+            Systemet extraherar automatiskt kontaktuppgifter, erfarenhet, utbildning och kompetenser.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+                   StartIcon="@Icons.Material.Filled.Upload" OnClick="SimuleraCvUpload">
+            Välj fil och parsea
+        </MudButton>
+    </MudPaper>
+}
+
+@if (_cvParsed)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mr-1" Style="vertical-align: middle;" />
+                CV parsat — extraherad data
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => { _cvParsed = false; _showCvUpload = false; })" />
+        </div>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption">Namn</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">Sofia Magnusson</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption">E-post</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">sofia.magnusson@gmail.com</MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.caption">Telefon</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">070-123 45 67</MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.caption">Erfarenhet</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">7 år — Intensivvård, akutsjukvård, kirurgi</MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.caption">Utbildning</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 600;">Sjuksköterskeprogrammet, Göteborgs universitet 2019</MudText>
+                <MudText Typo="Typo.body2">Specialistutb. intensivvård, Sahlgrenska 2021</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Class="mb-1">Kompetenser</MudText>
+                <div>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">IVA</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">Akutsjukvård</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">Ventilatorvård</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">Triagering</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">ABCDE-metodik</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">EKG-tolkning</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Ledarskap</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Handledning</MudChip>
+                </div>
+            </MudItem>
+        </MudGrid>
+
+        <MudAlert Severity="Severity.Info" Class="mt-4 mb-3" Variant="Variant.Text" Icon="@Icons.Material.Filled.Psychology">
+            Systemet föreslår: Sofia matchar 93% på vakansen "Sjuksköterska — IVA (Tillsvidare, 100%)".
+        </MudAlert>
+
+        <div class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+                       StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="SkapaProfil">
+                Skapa kandidatprofil
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Large" Style="min-height: 48px;">
+                Koppla till vakans
+            </MudButton>
+        </div>
+    </MudPaper>
+}
+
+<MudDivider Class="my-6" />
+
+@* === CAREER SITE PREVIEW === *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">
+    <MudIcon Icon="@Icons.Material.Filled.Language" Class="mr-1" Style="vertical-align: middle;" />
+    Karriärsida — Förhandsvisning
+</MudText>
+
+<MudPaper Class="pa-6 mb-4" Elevation="2" Style="border: 1px solid var(--mud-palette-lines-default);">
+    @* Employer branding *@
+    <div class="text-center mb-6">
+        <MudText Typo="Typo.h4" Style="font-weight: 700;" Color="Color.Primary">Jobba hos oss</MudText>
+        <MudText Typo="Typo.h6" Style="color: var(--mud-palette-text-secondary);">Region Västra Götaland</MudText>
+    </div>
+
+    @* Editable branding text *@
+    <MudGrid Spacing="4" Class="mb-6">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Style="font-size: 36px;" />
+                <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Vår kultur</MudText>
+                <MudText Typo="Typo.body2">
+                    @if (_editBranding)
+                    {
+                        <MudTextField @bind-Value="_brandingKultur" Lines="3" Variant="Variant.Outlined" />
+                    }
+                    else
+                    {
+                        @_brandingKultur
+                    }
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.CardGiftcard" Color="Color.Success" Style="font-size: 36px;" />
+                <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Förmåner</MudText>
+                <MudText Typo="Typo.body2">
+                    @if (_editBranding)
+                    {
+                        <MudTextField @bind-Value="_brandingFormaner" Lines="3" Variant="Variant.Outlined" />
+                    }
+                    else
+                    {
+                        @_brandingFormaner
+                    }
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Style="font-size: 36px;" />
+                <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Utveckling</MudText>
+                <MudText Typo="Typo.body2">
+                    @if (_editBranding)
+                    {
+                        <MudTextField @bind-Value="_brandingUtveckling" Lines="3" Variant="Variant.Outlined" />
+                    }
+                    else
+                    {
+                        @_brandingUtveckling
+                    }
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <div class="d-flex justify-end mb-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@(_editBranding ? Icons.Material.Filled.Save : Icons.Material.Filled.Edit)"
+                   OnClick="@(() => _editBranding = !_editBranding)">
+            @(_editBranding ? "Spara text" : "Redigera text")
+        </MudButton>
+    </div>
+
+    @* Lediga tjänster *@
+    <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">Lediga tjänster</MudText>
+    @foreach (var v in _oppnaVakanser)
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="1" Style="border-left: 3px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@v.Titel</MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@v.Enhet — @v.Form, @v.Grad</MudText>
+                </div>
+                <div class="d-flex align-center gap-2">
+                    <MudText Typo="Typo.caption">Sista dag: @v.SistaDag</MudText>
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">Ansök</MudButton>
+                </div>
+            </div>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    // Talangpool
+    private List<PoolKandidat> _kandidater = [];
+    private bool _showAddForm;
+    private string? _addedMsg;
+    private string _addNamn = "", _addKompetens = "", _addEpost = "", _addKalla = "Intern rekrytering";
+
+    // CV
+    private bool _showCvUpload;
+    private bool _cvParsed;
+
+    // Career site
+    private bool _editBranding;
+    private string _brandingKultur = "Vi tror på samarbete, respekt och ständig förbättring. Hos oss får du arbeta i tvärprofessionella team med fokus på patientens bästa.";
+    private string _brandingFormaner = "Friskvårdsbidrag 5 000 kr/år, flexibla arbetstider, generös semester (25–31 dagar), förmånlig pension via AKAP-KR, cykelförmån.";
+    private string _brandingUtveckling = "Internutbildningar, specialistutbildning med lön, konferenser, mentorskapsprogram och tydliga karriärvägar inom regionen.";
+
+    private List<VakansPreview> _oppnaVakanser = [];
+
+    protected override void OnInitialized()
+    {
+        _kandidater =
+        [
+            new("Jonas Berg", "jonas.berg@mail.se", ["Undersköterska", "Slutenvård", "Nattjänst"],
+                "2026-01-15", "Intern rekrytering", 4, "Aktiv", 63),
+            new("Helena Ström", "helena.strom@mail.se", ["Undersköterska", "IVA", "Intensivvård"],
+                "2026-02-10", "Intern rekrytering", 3, "Aktiv", 37),
+            new("Oscar Blom", "oscar.blom@mail.se", ["Undersköterska", "Akutvård"],
+                "2025-12-20", "Platsbanken", 2, "Passiv", 89),
+            new("Lisa Ekström", "lisa.ekstrom@mail.se", ["Sjuksköterska", "IVA", "Akut", "Ledarskap"],
+                "2026-03-01", "Intern rekrytering", 5, "Aktiv", 18),
+            new("Fredrik Nyman", "fredrik.nyman@mail.se", ["Läkare", "Akutmedicin", "Trauma"],
+                "2025-11-30", "LinkedIn", 4, "Passiv", 109),
+            new("Annika Dahl", "annika.dahl@mail.se", ["Sjuksköterska", "Barnsjukvård", "Neonatal"],
+                "2026-01-25", "Referens", 3, "Aktiv", 53),
+            new("Marcus Löf", "marcus.lof@mail.se", ["Fysioterapeut", "Ortopedi", "Rehabilitering"],
+                "2026-02-28", "Spontanansökan", 4, "Aktiv", 19),
+            new("Camilla Varg", "camilla.varg@mail.se", ["Sjuksköterska", "Kirurgi", "Operation"],
+                "2025-10-15", "Platsbanken", 3, "Arkiverad", 155),
+        ];
+
+        _oppnaVakanser =
+        [
+            new("Sjuksköterska", "Avdelning 32", "Tillsvidare", "100%", "2026-04-15"),
+            new("Undersköterska", "IVA", "Tillsvidare", "100%", "2026-03-28"),
+            new("Undersköterska natt", "Avdelning 33", "Vikariat", "75%", "2026-04-01"),
+        ];
+    }
+
+    private void SkickaIntresse(PoolKandidat k)
+    {
+        k.SenasteKontakt = DateTime.Today.ToString("yyyy-MM-dd");
+        k.DagarSedanKontakt = 0;
+        Snackbar.Add($"Intressemail skickat till {k.Namn}.", Severity.Success);
+    }
+
+    private void BokaSamtal(PoolKandidat k)
+    {
+        Snackbar.Add($"Samtal bokat med {k.Namn}. Kalenderhändelse skapad.", Severity.Info);
+    }
+
+    private void Arkivera(PoolKandidat k)
+    {
+        var oldStatus = k.Status;
+        k.Status = "Arkiverad";
+        Snackbar.Add($"{k.Namn} arkiverad. Ångra?", Severity.Normal, config =>
+        {
+            config.Action = "Ångra";
+            config.ActionColor = Color.Warning;
+            config.OnClick = _ =>
+            {
+                k.Status = oldStatus;
+                InvokeAsync(StateHasChanged);
+                return Task.CompletedTask;
+            };
+            config.VisibleStateDuration = 10000;
+            config.ShowCloseIcon = true;
+        });
+    }
+
+    private void SkickaUppdatering(PoolKandidat k)
+    {
+        k.SenasteKontakt = DateTime.Today.ToString("yyyy-MM-dd");
+        k.DagarSedanKontakt = 0;
+        Snackbar.Add($"Uppdatering skickad till {k.Namn}.", Severity.Success);
+    }
+
+    private void LaggTillKandidat()
+    {
+        if (string.IsNullOrWhiteSpace(_addNamn)) return;
+        var kompetenser = _addKompetens.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        _kandidater.Insert(0, new(_addNamn, _addEpost, kompetenser.Count > 0 ? kompetenser : ["Ej angiven"],
+            DateTime.Today.ToString("yyyy-MM-dd"), _addKalla, 3, "Aktiv", 0));
+        _addedMsg = $"{_addNamn} tillagd i talangpoolen.";
+        _addNamn = ""; _addKompetens = ""; _addEpost = ""; _addKalla = "Intern rekrytering";
+        _showAddForm = false;
+    }
+
+    private void SimuleraCvUpload()
+    {
+        _cvParsed = true;
+        _showCvUpload = false;
+    }
+
+    private void SkapaProfil()
+    {
+        _kandidater.Insert(0, new("Sofia Magnusson", "sofia.magnusson@gmail.com",
+            ["IVA", "Akutsjukvård", "Ventilatorvård", "Triagering", "Ledarskap"],
+            DateTime.Today.ToString("yyyy-MM-dd"), "CV-parsning", 5, "Aktiv", 0));
+        _cvParsed = false;
+        Snackbar.Add("Kandidatprofil skapad för Sofia Magnusson och tillagd i talangpoolen.", Severity.Success);
+    }
+
+    private static Color KandidatStatusFarg(string s) => s switch
+    {
+        "Aktiv" => Color.Success,
+        "Passiv" => Color.Warning,
+        "Arkiverad" => Color.Default,
+        _ => Color.Default
+    };
+
+    private class PoolKandidat(string namn, string epost, List<string> kompetenser, string senasteKontakt, string kalla, int intresse, string status, int dagarSedanKontakt)
+    {
+        public string Namn { get; set; } = namn;
+        public string Epost { get; set; } = epost;
+        public List<string> Kompetenser { get; set; } = kompetenser;
+        public string SenasteKontakt { get; set; } = senasteKontakt;
+        public string Kalla { get; set; } = kalla;
+        public int Intresse { get; set; } = intresse;
+        public string Status { get; set; } = status;
+        public int DagarSedanKontakt { get; set; } = dagarSedanKontakt;
+        public bool NeedFollowUp => DagarSedanKontakt >= 60 && Status != "Arkiverad";
+    }
+
+    private record VakansPreview(string Titel, string Enhet, string Form, string Grad, string SistaDag);
+}

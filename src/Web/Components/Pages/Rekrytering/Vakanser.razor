@@ -232,6 +232,12 @@
                                                             <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
                                                                        OnClick="@(() => AvanceraAnsokan(a, "Avslagen"))">Avslå</MudButton>
                                                         }
+                                                        @if (a.Status == "Avslagen")
+                                                        {
+                                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                                                                       StartIcon="@Icons.Material.Filled.GroupAdd"
+                                                                       OnClick="@(() => SparaTillTalangpool(a))">Spara till talangpool</MudButton>
+                                                        }
                                                     </div>
                                                 </td>
                                             </tr>
@@ -392,6 +398,11 @@
         "Tillsatt" => Color.Info,
         _ => Color.Default
     };
+
+    private void SparaTillTalangpool(AnsokningData a)
+    {
+        Snackbar.Add($"{a.Namn} sparad till talangpoolen. Se /rekrytering/talangpool.", Severity.Success);
+    }
 
     private static Color AnsokningFarg(string s) => s switch
     {
