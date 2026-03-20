@@ -1,181 +1,57 @@
 @page "/rekrytering/referenskontroll"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Recruitment.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Referenskontroller</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Referenskontroller</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Ny referenskontroll</MudButton>
-</div>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Referenskontroller</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_pagaende</MudText>
-            <MudText Typo="Typo.body2">Pågående kontroller</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_godkanda</MudText>
-            <MudText Typo="Typo.body2">Godkända (2026)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantarSvar</MudText>
-            <MudText Typo="Typo.body2">Väntar på svar</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_avvikelser</MudText>
-            <MudText Typo="Typo.body2">Med avvikelser</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_showForm)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Ny referenskontroll</MudText>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyKandidat" Label="Kandidat" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyReferensnamn" Label="Referensnamn" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyTelefon" Label="Telefon" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" @bind-Value="_nyRelation" Label="Relation" Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("Närmaste chef")">Närmaste chef</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Kollega")">Kollega</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Underställd")">Underställd</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Kund/extern")">Kund/extern</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12">
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaReferenskontroll"
-                               Disabled="@(string.IsNullOrWhiteSpace(_nyKandidat) || string.IsNullOrWhiteSpace(_nyReferensnamn))">Skapa</MudButton>
-                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_checks.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_checks.Count(c => c.Status == ReferenceCheckStatus.Godkand)</MudText><MudText Typo="Typo.body2">Godkända</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_checks.Count(c => c.Status == ReferenceCheckStatus.Begard)</MudText><MudText Typo="Typo.body2">Pågående</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_checks.Count(c => c.Status == ReferenceCheckStatus.Avvikelse)</MudText><MudText Typo="Typo.body2">Avvikelser</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_checks.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga referenskontroller registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Kandidat</th><th>Referens</th><th>Relation</th><th>Status</th><th>Kommentar</th></tr></thead>
+            <tbody>
+                @foreach (var c in _checks)
+                {
+                    <tr>
+                        <td><strong>@c.KandidatNamn</strong></td>
+                        <td>@c.ReferensNamn</td>
+                        <td>@c.ReferensRelation</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Status)">@StatusText(c.Status)</MudChip></td>
+                        <td>@(c.Kommentar ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    Referenskontroll genomförs för alla slutkandidater enligt rekryteringspolicy.
-    Minst två referenser kontaktas – varav en ska vara närmaste chef.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Pågående referenskontroller</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Kandidat</th>
-            <th>Tjänst</th>
-            <th>Rekryterare</th>
-            <th>Referenser</th>
-            <th>Genomförda</th>
-            <th>Bedömning</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _kontroller)
-        {
-            <tr>
-                <td><strong>@rad.Kandidat</strong></td>
-                <td>@rad.Tjanst</td>
-                <td>@rad.Rekryterare</td>
-                <td>@rad.AntalReferenser</td>
-                <td>@rad.Genomforda / @rad.AntalReferenser</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjKontroll(rad))">Visa</MudButton></td>
-            </tr>
-            @if (_valdKontroll == rad)
-            {
-                <tr>
-                    <td colspan="7">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Kandidat — Referenskontroll</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Tjänst:</strong> @rad.Tjanst</MudText>
-                            <MudText Typo="Typo.body2"><strong>Rekryterare:</strong> @rad.Rekryterare</MudText>
-                            <MudText Typo="Typo.body2"><strong>Referenser:</strong> @rad.Genomforda / @rad.AntalReferenser genomförda</MudText>
-                            <MudText Typo="Typo.body2"><strong>Bedömning:</strong> @rad.StatusText</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdKontroll = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Bedömningsformulär – standardfrågor</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Fråga</th>
-            <th>Kategori</th>
-            <th>Skala</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr><td>Hur bedömer du kandidatens yrkeskompetens?</td><td>Kompetens</td><td>1–5</td></tr>
-        <tr><td>Hur fungerade kandidaten i teamet?</td><td>Samarbete</td><td>1–5</td></tr>
-        <tr><td>Hur hanterade kandidaten press och stress?</td><td>Stresshantering</td><td>1–5</td></tr>
-        <tr><td>Var kandidaten pålitlig och punktlig?</td><td>Pålitlighet</td><td>1–5</td></tr>
-        <tr><td>Skulle du anställa kandidaten igen?</td><td>Helhetsbedömning</td><td>Ja/Nej/Kanske</td></tr>
-        <tr><td>Finns det något vi bör känna till?</td><td>Övrigt</td><td>Fritext</td></tr>
-    </tbody>
-</MudSimpleTable>
-
 @code {
-    private bool _showForm;
-    private string _nyKandidat = "";
-    private string _nyReferensnamn = "";
-    private string _nyTelefon = "";
-    private string _nyRelation = "";
-    private ReferensRad? _valdKontroll;
+    private List<ReferenceCheck> _checks = [];
+    private bool _loading = true;
+    private string? _error;
 
-    private void ValjKontroll(ReferensRad rad) => _valdKontroll = _valdKontroll == rad ? null : rad;
-
-    private void SkapaReferenskontroll()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyKandidat) || string.IsNullOrWhiteSpace(_nyReferensnamn)) return;
-        _kontroller.Insert(0, new ReferensRad(_nyKandidat, "Ny tjänst", "Du (inloggad)", 1, 0, "Ej påbörjad", Color.Info));
-        _pagaende++;
-        _nyKandidat = "";
-        _nyReferensnamn = "";
-        _nyTelefon = "";
-        _nyRelation = "";
-        _showForm = false;
+        try { _checks = await Db.ReferenceChecks.OrderByDescending(c => c.SkapadVid).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta referenskontroller: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private int _pagaende = 6;
-    private int _godkanda = 23;
-    private int _vantarSvar = 4;
-    private int _avvikelser = 1;
-
-    private List<ReferensRad> _kontroller = [];
-
-    protected override void OnInitialized()
-    {
-        _kontroller =
-        [
-            new("Maria Andersson", "Sjuksköterska, Akuten", "Lisa Holm", 3, 3, "Godkänd", Color.Success),
-            new("Johan Pettersson", "Läkare, Medicin", "Karl Berg", 2, 1, "Pågår", Color.Warning),
-            new("Sofia Lindgren", "HR-specialist", "Anna Svensson", 2, 2, "Godkänd", Color.Success),
-            new("Erik Forsberg", "IT-tekniker", "Per Gustafsson", 2, 0, "Ej påbörjad", Color.Info),
-            new("Karin Ström", "Undersköterska, Kirurgi", "Sara Karlsson", 3, 2, "Pågår", Color.Warning),
-            new("Anders Nyström", "Ekonom", "Maria Lindström", 2, 2, "Avvikelse", Color.Error),
-        ];
-    }
-
-    private record ReferensRad(string Kandidat, string Tjanst, string Rekryterare, int AntalReferenser, int Genomforda, string StatusText, Color StatusFarg);
+    private static string StatusText(ReferenceCheckStatus s) => s switch { ReferenceCheckStatus.Begard => "Begärd", ReferenceCheckStatus.Genomford => "Genomförd", ReferenceCheckStatus.Godkand => "Godkänd", ReferenceCheckStatus.Avvikelse => "Avvikelse", _ => s.ToString() };
+    private static Color StatusFarg(ReferenceCheckStatus s) => s switch { ReferenceCheckStatus.Godkand => Color.Success, ReferenceCheckStatus.Begard => Color.Warning, ReferenceCheckStatus.Avvikelse => Color.Error, _ => Color.Default };
 }

@@ -140,6 +140,12 @@ public class RegionHRDbContext : DbContext
     public DbSet<RegionHR.Communication.Domain.Announcement> Announcements => Set<RegionHR.Communication.Domain.Announcement>();
     public DbSet<RegionHR.Communication.Domain.Recognition> Recognitions => Set<RegionHR.Communication.Domain.Recognition>();
 
+    // ReferenceCheck (schema: recruitment)
+    public DbSet<RegionHR.Recruitment.Domain.ReferenceCheck> ReferenceChecks => Set<RegionHR.Recruitment.Domain.ReferenceCheck>();
+
+    // MBL (schema: case_mgmt)
+    public DbSet<RegionHR.CaseManagement.Domain.MBLNegotiation> MBLNegotiations => Set<RegionHR.CaseManagement.Domain.MBLNegotiation>();
+
     // Feedback (schema: performance)
     public DbSet<RegionHR.Performance.Domain.FeedbackRound> FeedbackRounds => Set<RegionHR.Performance.Domain.FeedbackRound>();
     public DbSet<RegionHR.Performance.Domain.FeedbackResponse> FeedbackResponses => Set<RegionHR.Performance.Domain.FeedbackResponse>();

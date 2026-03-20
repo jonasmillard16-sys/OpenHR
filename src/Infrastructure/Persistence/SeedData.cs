@@ -876,6 +876,20 @@ public static class SeedData
             EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(60)));
         db.Vacancies.AddRange(vakSsk, vakUsk, vakLak);
 
+        // === ReferenceChecks ===
+        var refCheck1 = RegionHR.Recruitment.Domain.ReferenceCheck.Skapa(vakSsk.Id, "Anna Bergman", "Lars Svensson", "Tidigare chef");
+        refCheck1.Genomfor("Mycket positiva omdomen. Rekommenderas starkt.", true);
+        var refCheck2 = RegionHR.Recruitment.Domain.ReferenceCheck.Skapa(vakSsk.Id, "Karl Lindqvist", "Eva Holm", "Handledare");
+        db.ReferenceChecks.AddRange(refCheck1, refCheck2);
+
+        // === MBL-förhandlingar ===
+        var mbl1 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Omorganisation Avdelning 32", RegionHR.CaseManagement.Domain.MBLType.Forhandling, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)), "Kommunal — Anna Ek", "HR-chef Eva Nilsson");
+        mbl1.Paborja();
+        mbl1.Avsluta();
+        mbl1.RegistreraProtokoll("Parterna enade. Omorganisation genomfors fran 1 maj 2026.");
+        var mbl2 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Nyanstallning verksamhetschef", RegionHR.CaseManagement.Domain.MBLType.Information, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Vardforbundet — Karl Berg", "HR-chef Eva Nilsson");
+        db.MBLNegotiations.AddRange(mbl1, mbl2);
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 

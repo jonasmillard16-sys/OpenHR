@@ -1,185 +1,96 @@
 @page "/arenden/mbl"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.CaseManagement.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - MBL-förhandlingar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">MBL-förhandlingar</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Nytt MBL-ärende</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny förhandling</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_begarda</MudText>
-            <MudText Typo="Typo.body2">Begärda</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_pagaende</MudText>
-            <MudText Typo="Typo.body2">Pågående</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutade</MudText>
-            <MudText Typo="Typo.body2">Avslutade (YTD)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_oenighet</MudText>
-            <MudText Typo="Typo.body2">Oenighet/Central</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    MBL (Medbestämmandelagen) kräver förhandling med fackliga organisationer vid viktigare förändringar.
-    MBL 11 § gäller viktigare förändring av verksamheten. MBL 19 § gäller anlitande av entreprenörer.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">MBL-ärenden</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Ärende-ID</th>
-            <th>Beslutstyp</th>
-            <th>Paragraf</th>
-            <th>Facklig organisation</th>
-            <th>Begärd datum</th>
-            <th>Förhandlingsdatum</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.ArendeId</strong></td>
-                <td>@rad.Beslutstyp</td>
-                <td>@rad.Paragraf</td>
-                <td>@rad.Fack</td>
-                <td>@rad.BegardDatum</td>
-                <td>@rad.ForhandlingsDatum</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Öppna</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="8">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.ArendeId — @rad.Beslutstyp</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Paragraf:</strong> @rad.Paragraf</MudText>
-                            <MudText Typo="Typo.body2"><strong>Facklig organisation:</strong> @rad.Fack</MudText>
-                            <MudText Typo="Typo.body2"><strong>Begärd:</strong> @rad.BegardDatum</MudText>
-                            <MudText Typo="Typo.body2"><strong>Förhandlingsdatum:</strong> @rad.ForhandlingsDatum</MudText>
-                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">MBL-paragrafer</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Paragraf</th>
-            <th>Beskrivning</th>
-            <th>Typiska beslut</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>MBL 11 §</strong></td>
-            <td>Primär förhandlingsskyldighet vid viktigare förändring</td>
-            <td>Omorganisation, nedläggning, nya arbetsmetoder</td>
-        </tr>
-        <tr>
-            <td><strong>MBL 12 §</strong></td>
-            <td>Särskild förhandling vid uppsägning pga arbetsbrist</td>
-            <td>Varsel, turordningsförhandling</td>
-        </tr>
-        <tr>
-            <td><strong>MBL 19 §</strong></td>
-            <td>Förhandling vid anlitande av extern entreprenör</td>
-            <td>Upphandling, outsourcing, bemanningsföretag</td>
-        </tr>
-        <tr>
-            <td><strong>MBL 38 §</strong></td>
-            <td>Fackligt tolkningsföreträde vid arbetsskyldighet</td>
-            <td>Tvist om arbetsuppgifter</td>
-        </tr>
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Nytt MBL-ärende</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyBeslutstyp" Label="Beslutstyp (t.ex. Omorganisation)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudSelect @bind-Value="_nyParagraf" Label="Paragraf" Variant="Variant.Outlined" Class="mb-3">
-            <MudSelectItem Value="@("MBL 11 §")">MBL 11 § — Viktigare förändring</MudSelectItem>
-            <MudSelectItem Value="@("MBL 19 §")">MBL 19 § — Entreprenör</MudSelectItem>
-            <MudSelectItem Value="@("MBL 12 §")">MBL 12 § — Arbetsbrist</MudSelectItem>
-        </MudSelect>
-        <MudTextField @bind-Value="_nyFack" Label="Facklig organisation" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaMBL">Skapa ärende</MudButton>
-    </MudPaper>
-}
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny MBL-förhandling</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formArende" Label="Ärende" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="MBLType" @bind-Value="_formTyp" Label="Typ" Variant="Variant.Outlined">
+                        <MudSelectItem Value="MBLType.Information">Information (§19)</MudSelectItem>
+                        <MudSelectItem Value="MBLType.Forhandling">Förhandling (§11-14)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3"><MudDatePicker @bind-Date="_formDatum" Label="Datum" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaMBL"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formArende) || _formDatum == null || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @if (_forhandlingar.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga MBL-förhandlingar registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Ärende</th><th>Typ</th><th>Datum</th><th>Status</th><th>Fackombud</th><th>AG-ombud</th></tr></thead>
+            <tbody>
+                @foreach (var m in _forhandlingar)
+                {
+                    <tr>
+                        <td><strong>@m.Arende</strong></td>
+                        <td><MudChip T="string" Size="Size.Small">@(m.Typ == MBLType.Information ? "§19 Info" : "§11-14 Förh.")</MudChip></td>
+                        <td>@m.Datum.ToString("yyyy-MM-dd")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(m.Status)">@StatusText(m.Status)</MudChip></td>
+                        <td>@(m.Fackombud ?? "—")</td>
+                        <td>@(m.Arbetsgivarombud ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyBeslutstyp = "", _nyParagraf = "MBL 11 §", _nyFack = "Kommunal";
-    private MBLRad? _valdRad;
+    private List<MBLNegotiation> _forhandlingar = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success, _formArende = "";
+    private MBLType _formTyp = MBLType.Information;
+    private DateTime? _formDatum;
 
-    private void ValjRad(MBLRad rad) => _valdRad = _valdRad == rad ? null : rad;
-
-    private void SkapaMBL()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyBeslutstyp)) return;
-        var id = $"MBL-2026-{_rader.Count + 15:D3}";
-        _rader.Insert(0, new(id, _nyBeslutstyp, _nyParagraf, _nyFack, DateTime.Today.ToString("yyyy-MM-dd"), "—", "Begärd", Color.Warning));
-        _begarda++;
-        _skapad = $"MBL-ärende {id} skapat! Kallelse skickas till {_nyFack}.";
-        _nyBeslutstyp = ""; _visaNyDialog = false;
+        try { _forhandlingar = await Db.MBLNegotiations.OrderByDescending(m => m.Datum).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta MBL-data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private int _begarda = 2;
-    private int _pagaende = 3;
-    private int _avslutade = 8;
-    private int _oenighet = 1;
-
-    private List<MBLRad> _rader = [];
-
-    protected override void OnInitialized()
+    private async Task SkapaMBL()
     {
-        _rader =
-        [
-            new("MBL-2026-014", "Omorganisation – Kardiologi", "MBL 11 §", "Kommunal, Vårdförbundet", "2026-03-15", "—", "Begärd", Color.Warning),
-            new("MBL-2026-013", "Ny schemamodell – Akuten", "MBL 11 §", "Kommunal", "2026-03-10", "2026-03-24", "Begärd", Color.Warning),
-            new("MBL-2026-012", "Upphandling städtjänst", "MBL 19 §", "Kommunal", "2026-03-01", "2026-03-14", "Pågående", Color.Info),
-            new("MBL-2026-011", "IT-system byte (OpenHR)", "MBL 11 §", "Kommunal, Vision, Vårdförbundet", "2026-02-15", "2026-03-05", "Pågående", Color.Info),
-            new("MBL-2026-010", "Bemanningsavtal – Sjuksköterskor", "MBL 19 §", "Vårdförbundet", "2026-02-10", "2026-03-01", "Pågående", Color.Info),
-            new("MBL-2026-009", "Flytt av Ortopedi till ny byggnad", "MBL 11 §", "Kommunal, Vårdförbundet", "2026-01-20", "2026-02-10", "Avslutad", Color.Success),
-            new("MBL-2026-008", "Nedläggning Filial Kungsbacka", "MBL 11 §", "Kommunal, Vision", "2026-01-10", "2026-02-05", "Oenighet – Central", Color.Error),
-            new("MBL-2026-007", "Löneöversyn 2026 – principer", "MBL 11 §", "Samtliga", "2026-01-05", "2026-01-25", "Avslutad", Color.Success),
-        ];
+        if (string.IsNullOrWhiteSpace(_formArende) || _formDatum == null) return;
+        _saving = true; _error = null;
+        try
+        {
+            var mbl = MBLNegotiation.Skapa(_formArende!, _formTyp, DateOnly.FromDateTime(_formDatum.Value));
+            Db.MBLNegotiations.Add(mbl);
+            await Db.SaveChangesAsync();
+            _forhandlingar.Insert(0, mbl);
+            _showForm = false; _success = "MBL-förhandling skapad."; _formArende = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private record MBLRad(string ArendeId, string Beslutstyp, string Paragraf, string Fack, string BegardDatum, string ForhandlingsDatum, string StatusText, Color StatusFarg);
+    private static string StatusText(MBLStatus s) => s switch { MBLStatus.Kallad => "Kallad", MBLStatus.Pagaende => "Pågående", MBLStatus.Avslutad => "Avslutad", MBLStatus.Protokollfrd => "Protokollförd", _ => s.ToString() };
+    private static Color StatusFarg(MBLStatus s) => s switch { MBLStatus.Kallad => Color.Warning, MBLStatus.Pagaende => Color.Info, MBLStatus.Avslutad => Color.Success, MBLStatus.Protokollfrd => Color.Success, _ => Color.Default };
 }
