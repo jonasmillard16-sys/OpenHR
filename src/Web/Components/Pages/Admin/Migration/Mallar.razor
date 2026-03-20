@@ -1,0 +1,124 @@
+@page "/admin/migration/mallar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Migration.Domain
+@inject MigrationEngineService MigrationEngine
+
+<PageTitle>OpenHR - Mappningsmallar</PageTitle>
+<MudBreadcrumbs Items="@_breadcrumbs" Class="mb-2 pa-0" />
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Mappningsmallar</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Foerkonfigurerade faltmappningar per kallsystem. Anvands automatiskt vid migrering.
+</MudText>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => _error = null">@_error</MudAlert>
+}
+
+@if (_saved)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => _saved = false">Mall sparad!</MudAlert>
+}
+
+<MudPaper Class="pa-5 mb-4" Elevation="2">
+    <MudText Typo="Typo.subtitle1" Class="mb-3">Skapa ny mall</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_nyttNamn" Label="Mallnamn" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_nyttSystem" Label="Kallsystem" Variant="Variant.Outlined">
+                @foreach (var source in Enum.GetValues<SourceSystem>())
+                {
+                    <MudSelectItem Value="@source">@source</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       OnClick="SkapaMall" Disabled="@(string.IsNullOrWhiteSpace(_nyttNamn) || _saving)"
+                       Style="min-height: 48px;">
+                @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Spara mall
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_mallar.Count == 0)
+{
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="1">
+        <MudIcon Icon="@Icons.Material.Filled.TableChart" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
+        <MudText Typo="Typo.h6">Inga mallar</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Skapa din forsta mappningsmall ovan.</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudTable Items="@_mallar" Hover="true" Striped="true" Dense="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Namn</MudTh>
+            <MudTh>Kallsystem</MudTh>
+            <MudTh>Mappningar</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Namn</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.KallSystem</MudChip></MudTd>
+            <MudTd><MudText Typo="Typo.caption" Style="max-width:400px; overflow:hidden; text-overflow:ellipsis;">@context.Mappningar</MudText></MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private static readonly List<BreadcrumbItem> _breadcrumbs =
+    [
+        new("Migrering", "/admin/migration"),
+        new("Mallar", null, true)
+    ];
+
+    private List<MigrationTemplate> _mallar = [];
+    private bool _loading = true;
+    private bool _saving;
+    private bool _saved;
+    private string? _error;
+    private string _nyttNamn = "";
+    private SourceSystem _nyttSystem = SourceSystem.PAXml;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mallar = await MigrationEngine.HamtaMallarAsync();
+        _loading = false;
+    }
+
+    private async Task SkapaMall()
+    {
+        _saving = true;
+        _error = null;
+        _saved = false;
+        try
+        {
+            var defaultMappings = MigrationEngine.GetAdapter(_nyttSystem)?.GetDefaultMappings();
+            var json = defaultMappings != null && defaultMappings.Length > 0
+                ? System.Text.Json.JsonSerializer.Serialize(defaultMappings.Select(m => new { m.KallFalt, m.MalFalt }))
+                : "{}";
+
+            await MigrationEngine.SkapaMallAsync(_nyttNamn, _nyttSystem, json);
+            _mallar = await MigrationEngine.HamtaMallarAsync();
+            _nyttNamn = "";
+            _saved = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

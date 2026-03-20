@@ -1,0 +1,105 @@
+@page "/admin/migration"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Migration.Domain
+@using Microsoft.EntityFrameworkCore
+@inject MigrationEngineService MigrationEngine
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Migrering</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Migreringsmotor</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Importera data från externa system som HEROMA, PAXml, PersonecP m.fl.
+</MudText>
+
+<MudStack Row="true" Class="mb-4" Spacing="2">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Href="/admin/migration/ny"
+               Style="min-height: 48px;">
+        Nytt migreringsjobb
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.ListAlt" Href="/admin/migration/mallar"
+               Style="min-height: 48px;">
+        Mappningsmallar
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_jobs.Count == 0)
+{
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="1">
+        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
+        <MudText Typo="Typo.h6">Inga migreringsjobb</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Starta ditt första migreringsjobb genom att klicka ovan.</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudTable Items="@_jobs" Hover="true" Striped="true" Dense="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Filnamn</MudTh>
+            <MudTh>Källsystem</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Rader</MudTh>
+            <MudTh>Importerade</MudTh>
+            <MudTh>Fel</MudTh>
+            <MudTh>Skapad av</MudTh>
+            <MudTh>Skapad</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.FilNamn</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Kalla</MudChip></MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</MudChip>
+            </MudTd>
+            <MudTd>@context.TotaltAntalRader</MudTd>
+            <MudTd>@context.ImporteradeRader</MudTd>
+            <MudTd>@context.FelRader</MudTd>
+            <MudTd>@context.SkapadAv</MudTd>
+            <MudTd>@context.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                               Href="@($"/admin/migration/{context.Id.Value}")" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<MigrationJob> _jobs = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _jobs = await MigrationEngine.HamtaAllaJobbAsync();
+        _loading = false;
+    }
+
+    private static Color GetStatusColor(MigrationJobStatus status) => status switch
+    {
+        MigrationJobStatus.Created => Color.Default,
+        MigrationJobStatus.Validating => Color.Info,
+        MigrationJobStatus.DryRun => Color.Warning,
+        MigrationJobStatus.Importing => Color.Info,
+        MigrationJobStatus.Complete => Color.Success,
+        MigrationJobStatus.Failed => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetStatusText(MigrationJobStatus status) => status switch
+    {
+        MigrationJobStatus.Created => "Skapad",
+        MigrationJobStatus.Validating => "Validerar",
+        MigrationJobStatus.DryRun => "Dry-run",
+        MigrationJobStatus.Importing => "Importerar",
+        MigrationJobStatus.Complete => "Klar",
+        MigrationJobStatus.Failed => "Misslyckad",
+        _ => status.ToString()
+    };
+}

@@ -1,0 +1,185 @@
+@page "/admin/migration/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Migration.Domain
+@inject MigrationEngineService MigrationEngine
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Migreringsjobb</PageTitle>
+<MudBreadcrumbs Items="@_breadcrumbs" Class="mb-2 pa-0" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_job == null)
+{
+    <MudAlert Severity="Severity.Warning">Migreringsjobbet hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">@_job.FilNamn</MudText>
+    <MudStack Row="true" Spacing="2" Class="mb-4">
+        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_job.Status)">@GetStatusText(_job.Status)</MudChip>
+        <MudChip T="string" Size="Size.Small" Color="Color.Info">@_job.Kalla</MudChip>
+        <MudText Typo="Typo.caption" Class="align-self-center" Style="color: var(--mud-palette-text-secondary);">
+            Skapad @_job.CreatedAt.ToString("yyyy-MM-dd HH:mm") av @_job.SkapadAv
+        </MudText>
+    </MudStack>
+
+    @if (_job.FelMeddelande != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_job.FelMeddelande</MudAlert>
+    }
+
+    <MudTabs Elevation="2" Rounded="true" Class="mb-4">
+        <MudTabPanel Text="Sammanfattning" Icon="@Icons.Material.Filled.Summarize">
+            <MudPaper Class="pa-5" Elevation="0">
+                <MudGrid>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                            <MudText Typo="Typo.h3" Color="Color.Primary">@_job.TotaltAntalRader</MudText>
+                            <MudText Typo="Typo.caption">Totalt antal rader</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                            <MudText Typo="Typo.h3" Color="Color.Success">@_job.ImporteradeRader</MudText>
+                            <MudText Typo="Typo.caption">Importerade</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                            <MudText Typo="Typo.h3" Color="Color.Error">@_job.FelRader</MudText>
+                            <MudText Typo="Typo.caption">Fel</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                            <MudText Typo="Typo.h3" Color="Color.Info">@_job.Mappningar.Count</MudText>
+                            <MudText Typo="Typo.caption">Mappningar</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_job.Mappningar.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle1" Class="mt-5 mb-2">Faltmappningar</MudText>
+                    <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                        <thead>
+                            <tr><th>Kallfalt</th><th>Malfalt</th><th>Transformationsregel</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in _job.Mappningar)
+                            {
+                                <tr><td>@m.KallFalt</td><td>@m.MalFalt</td><td>@(m.TransformationsRegel ?? "-")</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@ValideringsFelTabText()" Icon="@Icons.Material.Filled.ErrorOutline">
+            <MudPaper Class="pa-5" Elevation="0">
+                @if (_job.ValideringsFel.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Success">Inga valideringsfel hittades.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_job.ValideringsFel" Dense="true" Hover="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Rad</MudTh>
+                            <MudTh>Falt</MudTh>
+                            <MudTh>Feltyp</MudTh>
+                            <MudTh>Originalvarde</MudTh>
+                            <MudTh>Foreslagen korrektion</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.RadNummer</MudTd>
+                            <MudTd>@context.Falt</MudTd>
+                            <MudTd>@context.FelTyp</MudTd>
+                            <MudTd>@(context.OriginalVarde ?? "-")</MudTd>
+                            <MudTd>@(context.ForeslagnKorrektion ?? "-")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@LoggTabText()" Icon="@Icons.Material.Filled.List">
+            <MudPaper Class="pa-5" Elevation="0">
+                @if (_job.Logg.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Ingen importlogg annu.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_job.Logg" Dense="true" Hover="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Entitetstyp</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Importerad post-ID</MudTh>
+                            <MudTh>Felmeddelande</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.EntityTyp</MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@(context.Status == MigrationLogStatus.Success ? Color.Success : Color.Error)">
+                                    @(context.Status == MigrationLogStatus.Success ? "OK" : "Fel")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>@(context.ImporteradPostId?.ToString() ?? "-")</MudTd>
+                            <MudTd>@(context.FelMeddelande ?? "-")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private MigrationJob? _job;
+    private bool _loading = true;
+    private List<BreadcrumbItem> _breadcrumbs = [new("Migrering", "/admin/migration"), new("Detalj", null, true)];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _job = await MigrationEngine.HamtaJobbAsync(Id);
+        if (_job != null)
+        {
+            _breadcrumbs = [new("Migrering", "/admin/migration"), new(_job.FilNamn, null, true)];
+        }
+        _loading = false;
+    }
+
+    private static Color GetStatusColor(MigrationJobStatus status) => status switch
+    {
+        MigrationJobStatus.Created => Color.Default,
+        MigrationJobStatus.Validating => Color.Info,
+        MigrationJobStatus.DryRun => Color.Warning,
+        MigrationJobStatus.Importing => Color.Info,
+        MigrationJobStatus.Complete => Color.Success,
+        MigrationJobStatus.Failed => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetStatusText(MigrationJobStatus status) => status switch
+    {
+        MigrationJobStatus.Created => "Skapad",
+        MigrationJobStatus.Validating => "Validerar",
+        MigrationJobStatus.DryRun => "Dry-run",
+        MigrationJobStatus.Importing => "Importerar",
+        MigrationJobStatus.Complete => "Klar",
+        MigrationJobStatus.Failed => "Misslyckad",
+        _ => status.ToString()
+    };
+
+    private string ValideringsFelTabText() => $"Valideringsfel ({_job!.ValideringsFel.Count})";
+    private string LoggTabText() => $"Logg ({_job!.Logg.Count})";
+}

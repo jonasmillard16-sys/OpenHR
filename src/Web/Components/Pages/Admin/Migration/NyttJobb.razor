@@ -1,0 +1,164 @@
+@page "/admin/migration/ny"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Migration.Domain
+@using RegionHR.Migration.Adapters
+@inject MigrationEngineService MigrationEngine
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Nytt migreringsjobb</PageTitle>
+<MudBreadcrumbs Items="@_breadcrumbs" Class="mb-2 pa-0" />
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Nytt migreringsjobb</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Ladda upp en fil och starta migrering. Systemet validerar, kör dry-run och importerar automatiskt.
+</MudText>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => _error = null">@_error</MudAlert>
+}
+
+@if (_completedJob != null)
+{
+    <MudAlert Severity="@(_completedJob.Status == MigrationJobStatus.Complete ? Severity.Success : Severity.Warning)" Class="mb-4">
+        <MudText Typo="Typo.subtitle2">
+            Migrering @(_completedJob.Status == MigrationJobStatus.Complete ? "klar" : "avslutad")!
+        </MudText>
+        <MudText Typo="Typo.body2">
+            Totalt: @_completedJob.TotaltAntalRader rader | Importerade: @_completedJob.ImporteradeRader | Fel: @_completedJob.FelRader
+        </MudText>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Class="mt-2"
+                   Href="@($"/admin/migration/{_completedJob.Id.Value}")">
+            Visa detaljer
+        </MudButton>
+    </MudAlert>
+}
+
+<MudPaper Class="pa-5" Elevation="2">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudSelect @bind-Value="_selectedSource" Label="Källsystem" Variant="Variant.Outlined"
+                       Required="true" RequiredError="Välj ett källsystem">
+                @foreach (var source in Enum.GetValues<SourceSystem>())
+                {
+                    <MudSelectItem Value="@source">@GetSourceLabel(source)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.body2" Class="mb-2">Filuppladdning</MudText>
+            <InputFile OnChange="OnFileSelected" accept=".xml,.csv,.txt" />
+            @if (_fileName != null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Success" Class="mt-1">@_fileName</MudText>
+            }
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       OnClick="StartaMigrering" Style="min-height: 48px;"
+                       Disabled="@(_fileName == null || _running)">
+                @if (_running)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Migrerar...</span>
+                }
+                else
+                {
+                    <span>Starta migrering</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_running)
+{
+    <MudPaper Class="pa-5 mt-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-3">Pågående migrering</MudText>
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@_progressMessage</MudText>
+    </MudPaper>
+}
+
+@code {
+    private static readonly List<BreadcrumbItem> _breadcrumbs =
+    [
+        new("Migrering", "/admin/migration"),
+        new("Nytt jobb", null, true)
+    ];
+
+    private SourceSystem _selectedSource = SourceSystem.PAXml;
+    private string? _fileName;
+    private byte[]? _fileContent;
+    private bool _running;
+    private string? _error;
+    private string _progressMessage = "";
+    private MigrationJob? _completedJob;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        try
+        {
+            var file = e.File;
+            _fileName = file.Name;
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024).CopyToAsync(ms);
+            _fileContent = ms.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Filuppladdning misslyckades: {ex.Message}";
+            _fileName = null;
+            _fileContent = null;
+        }
+    }
+
+    private async Task StartaMigrering()
+    {
+        if (_fileContent == null || _fileName == null) return;
+
+        _running = true;
+        _error = null;
+        _completedJob = null;
+        _progressMessage = "Skapar migreringsjobb...";
+        StateHasChanged();
+
+        try
+        {
+            var job = await MigrationEngine.SkapaJobbAsync(_selectedSource, _fileName, "admin");
+
+            _progressMessage = "Parserar fil och validerar...";
+            StateHasChanged();
+
+            using var stream = new MemoryStream(_fileContent);
+            await MigrationEngine.KorMigreringAsync(job.Id.Value, stream);
+
+            _completedJob = await MigrationEngine.HamtaJobbAsync(job.Id.Value);
+            _progressMessage = "Migrering avslutad.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Migrering misslyckades: {ex.Message}";
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private static string GetSourceLabel(SourceSystem source) => source switch
+    {
+        SourceSystem.PAXml => "PAXml 2.0",
+        SourceSystem.HEROMA => "HEROMA (CSV)",
+        SourceSystem.PersonecP => "Personec P",
+        SourceSystem.Hogia => "Hogia Loneplus",
+        SourceSystem.Fortnox => "Fortnox",
+        SourceSystem.SIE4i => "SIE4i",
+        SourceSystem.Workday => "Workday",
+        SourceSystem.SAP => "SAP HCM",
+        SourceSystem.OracleHCM => "Oracle HCM",
+        SourceSystem.GenericCSV => "Generisk CSV",
+        _ => source.ToString()
+    };
+}
