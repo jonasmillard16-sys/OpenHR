@@ -533,8 +533,8 @@ ReadinessScore = SkillMatch×0.40 + ExperienceMatch×0.25 + CertMatch×0.25 + Pe
 | **CustomObject** | Object definition: name, fields (JSON schema), relations, icon |
 | **CustomObjectRecord** | Instance: object definition, data (JSONB), created by, timestamps |
 | **CustomObjectRelation** | Relation to core entity: type (one-to-many, many-to-many), source entity |
-| **WorkflowStep** | Step in visual workflow (extends existing WorkflowDefinition): type (Approval/Notification/FieldUpdate/ExternalCall/Condition), config |
-| **WorkflowExecution** | Workflow execution: definition, current step, status, data, history |
+| **WorkflowNode** | Node in visual workflow (extends existing WorkflowDefinition): type (Approval/Notification/FieldUpdate/ExternalCall/Condition), config. Renamed from WorkflowStep to avoid collision with CaseManagement.WorkflowStep. |
+| **WorkflowRunInstance** | Workflow execution instance: definition, current node, status, data, history. Renamed from WorkflowExecution per 15.8. |
 
 Custom objects get auto-generated CRUD views, API endpoints, webhook events, and search/filter/export.
 
