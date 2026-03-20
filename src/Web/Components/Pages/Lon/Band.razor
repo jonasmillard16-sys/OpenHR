@@ -1,0 +1,88 @@
+@page "/lon/band"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Compensation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Loneband</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Loneband</MudText>
+<MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Loneband per befattningskategori med stegniva-visualisering.
+</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_band.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga loneband registrerade.</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="4">
+        @foreach (var b in _band)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-5" Elevation="2">
+                    <MudText Typo="Typo.h6" Class="mb-1">@b.Befattningskategori</MudText>
+                    <MudText Typo="Typo.caption" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                        @FormatKr(b.Min) — @FormatKr(b.Max)
+                    </MudText>
+
+                    @* Visuell band-display *@
+                    <div style="position: relative; height: 40px; background: linear-gradient(to right, #e0f2f1, #0e7490, #e0f2f1); border-radius: 8px; overflow: hidden;" class="mb-3">
+                        @* Mal-markering *@
+                        @{
+                            var malPos = b.Max > b.Min ? (double)((b.Mal - b.Min) / (b.Max - b.Min) * 100) : 50;
+                        }
+                        <div style="position: absolute; left: @(malPos.ToString("F0"))%; top: 0; bottom: 0; width: 2px; background: #fff; z-index: 1;"></div>
+                        <div style="position: absolute; left: @((malPos - 2).ToString("F0"))%; top: 4px; background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; z-index: 2;">
+                            Mal @FormatKr(b.Mal)
+                        </div>
+                    </div>
+
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>Niva</th><th>Min</th><th>Max</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Totalt band</strong></td><td>@FormatKr(b.Min)</td><td>@FormatKr(b.Max)</td></tr>
+                            @if (b.Steg1Min.HasValue)
+                            {
+                                <tr><td>Steg 1</td><td>@FormatKr(b.Steg1Min.Value)</td><td>@FormatKr(b.Steg1Max!.Value)</td></tr>
+                            }
+                            @if (b.Steg2Min.HasValue)
+                            {
+                                <tr><td>Steg 2</td><td>@FormatKr(b.Steg2Min.Value)</td><td>@FormatKr(b.Steg2Max!.Value)</td></tr>
+                            }
+                            @if (b.Steg3Min.HasValue)
+                            {
+                                <tr><td>Steg 3</td><td>@FormatKr(b.Steg3Min.Value)</td><td>@FormatKr(b.Steg3Max!.Value)</td></tr>
+                            }
+                            @if (b.Steg4Min.HasValue)
+                            {
+                                <tr><td>Steg 4</td><td>@FormatKr(b.Steg4Min.Value)</td><td>@FormatKr(b.Steg4Max!.Value)</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<CompensationBand> _band = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _band = await Db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta loneband: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string FormatKr(decimal v) => $"{v:N0} kr";
+}

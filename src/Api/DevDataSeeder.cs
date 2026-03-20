@@ -6,6 +6,7 @@ using RegionHR.Recruitment.Domain;
 using RegionHR.Travel.Domain;
 using RegionHR.SalaryReview.Domain;
 using RegionHR.CaseManagement.Domain;
+using RegionHR.Compensation.Domain;
 
 namespace RegionHR.Api;
 
@@ -111,6 +112,47 @@ public static class DevDataSeeder
         rehab.TilldelaArendeagare(karin.Id);
         rehab.LaggTillAnteckning("Första samtalet genomfört. Medarbetaren upplever hög arbetsbelastning.", karin.Id);
         db.RehabCases.Add(rehab);
+
+        // Compensation Suite — Band
+        var bandSsk = new CompensationBand
+        {
+            Befattningskategori = "Sjukskoterska",
+            Min = 32000m, Mal = 38500m, Max = 45000m,
+            Steg1Min = 32000m, Steg1Max = 34500m,
+            Steg2Min = 34500m, Steg2Max = 38500m,
+            Steg3Min = 38500m, Steg3Max = 42000m,
+            Steg4Min = 42000m, Steg4Max = 45000m
+        };
+        var bandLak = new CompensationBand
+        {
+            Befattningskategori = "Lakare",
+            Min = 55000m, Mal = 62000m, Max = 72000m,
+            Steg1Min = 55000m, Steg1Max = 58000m,
+            Steg2Min = 58000m, Steg2Max = 62000m,
+            Steg3Min = 62000m, Steg3Max = 67000m,
+            Steg4Min = 67000m, Steg4Max = 72000m
+        };
+        db.CompensationBands.AddRange(bandSsk, bandLak);
+
+        // Compensation Suite — Plan
+        var compPlan = CompensationPlan.Skapa(
+            "Lonerevision 2026", new DateOnly(2026, 4, 1), new DateOnly(2026, 12, 31), 2_500_000m);
+        compPlan.Aktivera();
+        compPlan.LaggTillRiktlinje(new CompensationGuideline
+        {
+            CompensationPlanId = compPlan.Id,
+            PrestationsNiva = "Uppfyller forvantningar",
+            RekommenderadHojningProcent = 2.5m,
+            MaxHojningProcent = 3.5m
+        });
+        compPlan.LaggTillRiktlinje(new CompensationGuideline
+        {
+            CompensationPlanId = compPlan.Id,
+            PrestationsNiva = "Overstiger forvantningar",
+            RekommenderadHojningProcent = 4.0m,
+            MaxHojningProcent = 6.0m
+        });
+        db.CompensationPlans.Add(compPlan);
 
         db.SaveChanges();
     }

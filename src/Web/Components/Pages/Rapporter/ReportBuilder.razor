@@ -1,0 +1,193 @@
+@page "/rapporter/bygg"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Reporting.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Rapportbyggare</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rapportbyggare</MudText>
+<MudText Typo="Typo.body2" Color="Color.Default" Class="mb-6">Bygg egna rapporter genom att valja datakalla, kolumner, filter och visualisering.</MudText>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">1. Rapport</MudText>
+            <MudTextField @bind-Value="_namn" Label="Rapportnamn" Variant="Variant.Outlined" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_beskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+
+            <MudText Typo="Typo.h6" Class="mb-3 mt-4">2. Datakalla</MudText>
+            <MudSelect @bind-Value="_valdDatakalla" Label="Valj datakalla" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var ds in _datakallor)
+                {
+                    <MudSelectItem Value="@ds">@ds</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudText Typo="Typo.h6" Class="mb-3 mt-4">3. Kolumner</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Default" Class="mb-2">Valj vilka kolumner som ska inkluderas i rapporten.</MudText>
+            <MudGrid>
+                @foreach (var col in GetColumnsForDataSource())
+                {
+                    <MudItem xs="6" sm="4" md="3">
+                        <MudCheckBox T="bool" Value="@_valdaKolumner.Contains(col)" ValueChanged="@(v => ToggleColumn(col, v))" Label="@col" Color="Color.Primary" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mb-3 mt-4">4. Filter</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_filterEnhet" Label="Enhet" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem Value="@("Alla")">Alla enheter</MudSelectItem>
+                        <MudSelectItem Value="@("Avdelning 32")">Avdelning 32</MudSelectItem>
+                        <MudSelectItem Value="@("Avdelning 33")">Avdelning 33</MudSelectItem>
+                        <MudSelectItem Value="@("Akutmottagningen")">Akutmottagningen</MudSelectItem>
+                        <MudSelectItem Value="@("IVA")">IVA</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_filterStatus" Label="Anstallningsstatus" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem Value="@("Alla")">Alla</MudSelectItem>
+                        <MudSelectItem Value="@("Aktiv")">Aktiv</MudSelectItem>
+                        <MudSelectItem Value="@("Avslutad")">Avslutad</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mb-3 mt-4">5. Gruppering</MudText>
+            <MudSelect @bind-Value="_gruppering" Label="Gruppera efter" Variant="Variant.Outlined" Clearable="true">
+                <MudSelectItem Value="@("")">Ingen gruppering</MudSelectItem>
+                <MudSelectItem Value="@("Enhet")">Enhet</MudSelectItem>
+                <MudSelectItem Value="@("Befattning")">Befattning</MudSelectItem>
+                <MudSelectItem Value="@("Anstallningstyp")">Anstallningstyp</MudSelectItem>
+            </MudSelect>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">6. Visualisering</MudText>
+            <MudRadioGroup @bind-Value="_visualiseringsTyp">
+                <MudRadio Value="@("Table")" Color="Color.Primary">Tabell</MudRadio>
+                <MudRadio Value="@("Bar")" Color="Color.Primary">Stapeldiagram</MudRadio>
+                <MudRadio Value="@("Line")" Color="Color.Primary">Linjediagram</MudRadio>
+                <MudRadio Value="@("Pie")" Color="Color.Primary">Cirkeldiagram</MudRadio>
+            </MudRadioGroup>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.h6" Class="mb-3">Forhandsgranskning</MudText>
+            <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-gray); min-height: 120px;">
+                <MudText Typo="Typo.body2"><strong>Datakalla:</strong> @(_valdDatakalla ?? "Ej vald")</MudText>
+                <MudText Typo="Typo.body2"><strong>Kolumner:</strong> @(_valdaKolumner.Count > 0 ? string.Join(", ", _valdaKolumner) : "Inga")</MudText>
+                <MudText Typo="Typo.body2"><strong>Enhet:</strong> @(_filterEnhet ?? "Alla")</MudText>
+                <MudText Typo="Typo.body2"><strong>Visualisering:</strong> @_visualiseringsTyp</MudText>
+            </MudPaper>
+
+            <MudDivider Class="my-4" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="SparaRapport" Disabled="@(!KanSpara)">
+                Spara rapport
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Class="mt-2" OnClick="Aterstall">
+                Aterstall
+            </MudButton>
+        </MudPaper>
+
+        <MudPaper Class="pa-4 mt-3" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-3">Sparade rapporter</MudText>
+            @if (_sparadeRapporter.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default">Inga sparade rapporter annu.</MudText>
+            }
+            else
+            {
+                @foreach (var r in _sparadeRapporter)
+                {
+                    <MudPaper Class="pa-2 mb-2" Elevation="0" Style="background: var(--mud-palette-background-gray);">
+                        <MudText Typo="Typo.body2"><strong>@r.Namn</strong></MudText>
+                        <MudText Typo="Typo.caption">@r.Typ — @(r.VisualiseringsTyp ?? "Table")</MudText>
+                    </MudPaper>
+                }
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? _namn;
+    private string? _beskrivning;
+    private string? _valdDatakalla;
+    private HashSet<string> _valdaKolumner = [];
+    private string? _filterEnhet;
+    private string? _filterStatus;
+    private string? _gruppering;
+    private string _visualiseringsTyp = "Table";
+    private List<ReportDefinition> _sparadeRapporter = [];
+
+    private readonly List<string> _datakallor = ["Anstallda", "Lonekorngar", "Franvaro", "Schema", "Certifieringar", "LAS-ackumuleringar", "Rekrytering"];
+
+    private bool KanSpara => !string.IsNullOrWhiteSpace(_namn) && !string.IsNullOrWhiteSpace(_valdDatakalla) && _valdaKolumner.Count > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _sparadeRapporter = await Db.ReportDefinitions
+                .Where(r => r.VisualiseringsTyp != null)
+                .OrderByDescending(r => r.Namn)
+                .Take(10)
+                .ToListAsync();
+        }
+        catch { /* DB may not be available */ }
+    }
+
+    private List<string> GetColumnsForDataSource() => _valdDatakalla switch
+    {
+        "Anstallda" => ["Fornamn", "Efternamn", "Personnummer", "Epost", "Telefon", "Enhet", "Befattning", "Anstallningsdatum", "Sysselsattningsgrad"],
+        "Lonekorngar" => ["Period", "Brutto", "Skatt", "Netto", "OB-tillagg", "Overtid", "Arbetsgivaravgift"],
+        "Franvaro" => ["Antalld", "FranvarotypTyp", "FranDatum", "TillDatum", "AntalDagar", "Enhet"],
+        "Schema" => ["Datum", "Pass", "Start", "Slut", "Rast", "OB-kategori", "Status"],
+        "Certifieringar" => ["Certifiering", "Typ", "Utfardare", "GiltigFran", "GiltigTill", "Obligatorisk"],
+        "LAS-ackumuleringar" => ["Antalld", "AckumuleradeDagar", "Varningsniva", "SenastUppdaterad"],
+        "Rekrytering" => ["Vakans", "Status", "Antalnsokande", "PubliceradDatum", "TimeToFill"],
+        _ => []
+    };
+
+    private void ToggleColumn(string col, bool selected)
+    {
+        if (selected) _valdaKolumner.Add(col);
+        else _valdaKolumner.Remove(col);
+    }
+
+    private async Task SparaRapport()
+    {
+        if (!KanSpara) return;
+
+        var def = ReportDefinition.Skapa(_namn!, _beskrivning ?? "", ReportType.AdHoc);
+        var kolumnerJson = System.Text.Json.JsonSerializer.Serialize(_valdaKolumner);
+        var filterJson = System.Text.Json.JsonSerializer.Serialize(new { Enhet = _filterEnhet, Status = _filterStatus });
+        def.SattRapportmall(kolumnerJson, filterJson, _gruppering, _visualiseringsTyp);
+
+        await Db.ReportDefinitions.AddAsync(def);
+        await Db.SaveChangesAsync();
+
+        _sparadeRapporter.Insert(0, def);
+        Snackbar.Add($"Rapport '{_namn}' sparad!", Severity.Success);
+        Aterstall();
+    }
+
+    private void Aterstall()
+    {
+        _namn = null;
+        _beskrivning = null;
+        _valdDatakalla = null;
+        _valdaKolumner = [];
+        _filterEnhet = null;
+        _filterStatus = null;
+        _gruppering = null;
+        _visualiseringsTyp = "Table";
+    }
+}

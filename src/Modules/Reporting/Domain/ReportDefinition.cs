@@ -24,6 +24,12 @@ public class ReportDefinition
     public string? CronExpression { get; private set; }
     public string? MottagareEpost { get; private set; }
 
+    // Report template / self-service builder extensions (Phase B1)
+    public string? Kolumner { get; private set; } // JSON: column definitions
+    public string? Filter { get; private set; } // JSON: filter definitions
+    public string? Gruppering { get; private set; }
+    public string? VisualiseringsTyp { get; private set; } // Table/Bar/Line/Pie
+
     private ReportDefinition() { }
 
     public static ReportDefinition Skapa(string namn, string beskrivning, ReportType typ)
@@ -43,5 +49,13 @@ public class ReportDefinition
         CronExpression = cronExpression;
         MottagareEpost = mottagareEpost;
         ArSchemalagd = true;
+    }
+
+    public void SattRapportmall(string? kolumner, string? filter, string? gruppering, string? visualiseringsTyp)
+    {
+        Kolumner = kolumner;
+        Filter = filter;
+        Gruppering = gruppering;
+        VisualiseringsTyp = visualiseringsTyp;
     }
 }

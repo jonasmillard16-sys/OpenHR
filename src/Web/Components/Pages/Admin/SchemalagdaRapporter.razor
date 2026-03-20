@@ -1,0 +1,158 @@
+@page "/admin/rapporter/schema"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Reporting.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Schemalagda rapporter</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Schemalagda rapporter</MudText>
+<MudText Typo="Typo.body2" Color="Color.Default" Class="mb-6">Hantera automatiska rapporter som skickas med valt intervall och format.</MudText>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);"><MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_schemalagda.Count</MudText><MudText Typo="Typo.body2">Schemalagda</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_schemalagda.Count(s => s.SenastKord.HasValue)</MudText><MudText Typo="Typo.body2">Korda</MudText></MudPaper></MudItem>
+    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);"><MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@_rapportmallar.Count</MudText><MudText Typo="Typo.body2">Rapportmallar</MudText></MudPaper></MudItem>
+</MudGrid>
+
+<MudPaper Class="pa-4 mb-6" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3">Ny schemalagd rapport</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_nyReportTemplateId" Label="Rapportmall" Variant="Variant.Outlined" Required="true">
+                @foreach (var r in _rapportmallar)
+                {
+                    <MudSelectItem Value="@r.Id">@r.Namn</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudSelect @bind-Value="_nyFrekvens" Label="Frekvens" Variant="Variant.Outlined" Required="true">
+                <MudSelectItem Value="@("Daily")">Dagligen</MudSelectItem>
+                <MudSelectItem Value="@("Weekly")">Veckovis</MudSelectItem>
+                <MudSelectItem Value="@("Monthly")">Manadsvis</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_nyMottagare" Label="Mottagare (e-post)" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudSelect @bind-Value="_nyFormat" Label="Format" Variant="Variant.Outlined" Required="true">
+                <MudSelectItem Value="@("PDF")">PDF</MudSelectItem>
+                <MudSelectItem Value="@("Excel")">Excel</MudSelectItem>
+                <MudSelectItem Value="@("CSV")">CSV</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="1" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaSchemalagd" Disabled="@(!KanSkapa)">Skapa</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudText Typo="Typo.h6" Class="mb-3">Aktiva schemalagda rapporter</MudText>
+@if (_schemalagda.Count == 0)
+{
+    <MudPaper Class="pa-6 text-center" Elevation="2">
+        <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Default" Size="Size.Large" />
+        <MudText Typo="Typo.h6" Class="mt-3" Color="Color.Default">Inga schemalagda rapporter</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Default">Skapa en schemalagd rapport ovan.</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Rapportmall</th>
+                <th>Frekvens</th>
+                <th>Mottagare</th>
+                <th>Format</th>
+                <th>Senast kord</th>
+                <th>Nasta korning</th>
+                <th>Atgard</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in _schemalagda)
+            {
+                <tr>
+                    <td><strong>@(_mallNamn.GetValueOrDefault(s.ReportTemplateId, "Okand"))</strong></td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@GetFrekvensColor(s.Frekvens)">
+                            @GetFrekvensSvenska(s.Frekvens)
+                        </MudChip>
+                    </td>
+                    <td>@s.Mottagare</td>
+                    <td>@s.Format</td>
+                    <td>@(s.SenastKord?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    <td>@(s.NastaKorning?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => TaBortSchemalagd(s))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<ScheduledReport> _schemalagda = [];
+    private List<ReportDefinition> _rapportmallar = [];
+    private Dictionary<Guid, string> _mallNamn = [];
+
+    private Guid _nyReportTemplateId;
+    private string _nyFrekvens = "Weekly";
+    private string? _nyMottagare;
+    private string _nyFormat = "PDF";
+
+    private bool KanSkapa => _nyReportTemplateId != Guid.Empty && !string.IsNullOrWhiteSpace(_nyMottagare);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _schemalagda = await Db.ScheduledReports.OrderBy(s => s.NastaKorning).ToListAsync();
+            _rapportmallar = await Db.ReportDefinitions.OrderBy(r => r.Namn).ToListAsync();
+            _mallNamn = _rapportmallar.ToDictionary(r => r.Id, r => r.Namn);
+        }
+        catch { /* DB may not be available */ }
+    }
+
+    private async Task SkapaSchemalagd()
+    {
+        if (!KanSkapa) return;
+        var scheduled = ScheduledReport.Skapa(_nyReportTemplateId, _nyFrekvens, _nyMottagare!, _nyFormat);
+        await Db.ScheduledReports.AddAsync(scheduled);
+        await Db.SaveChangesAsync();
+        _schemalagda.Add(scheduled);
+        Snackbar.Add("Schemalagd rapport skapad!", Severity.Success);
+        _nyMottagare = null;
+        _nyReportTemplateId = Guid.Empty;
+    }
+
+    private async Task TaBortSchemalagd(ScheduledReport s)
+    {
+        Db.ScheduledReports.Remove(s);
+        await Db.SaveChangesAsync();
+        _schemalagda.Remove(s);
+        Snackbar.Add("Schemalagd rapport borttagen.", Severity.Info);
+    }
+
+    private string GetFrekvensSvenska(string frekvens) => frekvens switch
+    {
+        "Daily" => "Dagligen",
+        "Weekly" => "Veckovis",
+        "Monthly" => "Manadsvis",
+        _ => frekvens
+    };
+
+    private Color GetFrekvensColor(string frekvens) => frekvens switch
+    {
+        "Daily" => Color.Error,
+        "Weekly" => Color.Primary,
+        "Monthly" => Color.Success,
+        _ => Color.Default
+    };
+}

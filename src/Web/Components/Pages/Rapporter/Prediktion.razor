@@ -1,0 +1,140 @@
+@page "/rapporter/prediktion"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Prediktiv analys</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Prediktiv analys</MudText>
+<MudText Typo="Typo.body2" Color="Color.Default" Class="mb-6">AI-drivna modeller for att forutsaga personalfloden, sjukfranvaro och kostnader.</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        @foreach (var model in _models)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);">
+                    <MudIcon Icon="@GetModelIcon(model.Typ)" Color="Color.Primary" Size="Size.Large" />
+                    <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">@model.Namn</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1">@GetModelBeskrivning(model.Typ)</MudText>
+                    <MudDivider Class="my-3" />
+                    <div class="d-flex justify-space-between">
+                        <MudText Typo="Typo.body2"><strong>Precision:</strong></MudText>
+                        <MudText Typo="Typo.body2">@(model.Accuracy.HasValue ? $"{model.Accuracy.Value:P0}" : "Ej tranad")</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between mt-1">
+                        <MudText Typo="Typo.body2"><strong>Tranad:</strong></MudText>
+                        <MudText Typo="Typo.body2">@(model.SenasteTranningsDatum.HasValue ? model.SenasteTranningsDatum.Value.ToString("yyyy-MM-dd") : "-")</MudText>
+                    </div>
+                    @if (model.Accuracy.HasValue)
+                    {
+                        <MudProgressLinear Color="@(model.Accuracy >= 0.9m ? Color.Success : model.Accuracy >= 0.8m ? Color.Warning : Color.Error)"
+                                           Value="@((double)(model.Accuracy.Value * 100))" Class="mt-3" Rounded="true" Size="Size.Medium" />
+                    }
+                    <div class="d-flex justify-space-between mt-2">
+                        <MudText Typo="Typo.caption">Resultat:</MudText>
+                        <MudText Typo="Typo.caption"><strong>@_resultCount.GetValueOrDefault(model.Id, 0)</strong></MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Senaste prediktionsresultat</MudText>
+    @if (_results.Count == 0)
+    {
+        <MudPaper Class="pa-6 text-center" Elevation="2">
+            <MudIcon Icon="@Icons.Material.Filled.Psychology" Color="Color.Default" Size="Size.Large" />
+            <MudText Typo="Typo.h6" Class="mt-3" Color="Color.Default">Inga prediktionsresultat annu</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Default">Resultat genereras automatiskt nar modellerna kors med aktuell data.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead>
+                <tr>
+                    <th>Modell</th>
+                    <th>Entitetstyp</th>
+                    <th>Score</th>
+                    <th>Riskniva</th>
+                    <th>Beraknad</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _results)
+                {
+                    <tr>
+                        <td>@(_modelNames.GetValueOrDefault(r.PredictionModelId, "-"))</td>
+                        <td>@r.EntityTyp</td>
+                        <td>@r.Score.ToString("F2")</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@GetRiskColor(r.RiskNiva)">@r.RiskNiva</MudChip>
+                        </td>
+                        <td>@r.BeraknadVid.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<PredictionModel> _models = [];
+    private List<PredictionResult> _results = [];
+    private Dictionary<Guid, string> _modelNames = [];
+    private Dictionary<Guid, int> _resultCount = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _models = await Db.PredictionModels.OrderBy(m => m.Typ).ToListAsync();
+            _modelNames = _models.ToDictionary(m => m.Id, m => m.Namn);
+
+            _results = await Db.PredictionResults
+                .OrderByDescending(r => r.BeraknadVid)
+                .Take(20)
+                .ToListAsync();
+
+            _resultCount = _results
+                .GroupBy(r => r.PredictionModelId)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+        catch (Exception ex) { _error = $"Kunde inte ladda prediktioner: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private string GetModelIcon(string typ) => typ switch
+    {
+        "Attrition" => Icons.Material.Filled.PersonOff,
+        "HeadcountForecast" => Icons.Material.Filled.Groups,
+        "SickLeaveForecast" => Icons.Material.Filled.LocalHospital,
+        "LaborCostForecast" => Icons.Material.Filled.AccountBalance,
+        _ => Icons.Material.Filled.Psychology
+    };
+
+    private string GetModelBeskrivning(string typ) => typ switch
+    {
+        "Attrition" => "Identifierar medarbetare med forhojd risk for uppsagning baserat pa historiska monster.",
+        "HeadcountForecast" => "Prognos for framtida bemanningsbehov baserat pa turnover, pension och tillvaxt.",
+        "SickLeaveForecast" => "Forutser sjukfranvaro per enhet baserat pa sasong, historik och arbetsbelastning.",
+        "LaborCostForecast" => "Beraknar framtida lonekostnader inklusive OB, overtid och arbetsgivaravgifter.",
+        _ => ""
+    };
+
+    private Color GetRiskColor(string riskNiva) => riskNiva switch
+    {
+        "Critical" => Color.Error,
+        "High" => Color.Error,
+        "Medium" => Color.Warning,
+        "Low" => Color.Success,
+        _ => Color.Default
+    };
+}

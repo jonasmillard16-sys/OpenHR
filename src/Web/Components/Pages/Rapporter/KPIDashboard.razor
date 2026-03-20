@@ -1,0 +1,172 @@
+@page "/rapporter/kpi"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - KPI Dashboard</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">KPI Dashboard</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        @foreach (var kpi in _kpis)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudPaper Class="pa-4" Elevation="2" Style="@($"border-top: 4px solid {GetTroskelFarg(kpi)}")">
+                    <MudText Typo="Typo.overline" Color="Color.Default">@kpi.Kategori</MudText>
+                    <MudText Typo="Typo.h5" Style="font-weight: 700;">
+                        @FormatVarde(kpi)
+                    </MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@kpi.Namn</MudText>
+                    <div class="d-flex align-center mt-2 gap-2">
+                        @if (kpi.Trend == "Up")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="@(kpi.Riktning == "HigherIsBetter" ? Color.Success : Color.Error)" Size="Size.Small" />
+                        }
+                        else if (kpi.Trend == "Down")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="@(kpi.Riktning == "LowerIsBetter" ? Color.Success : Color.Error)" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingFlat" Color="Color.Default" Size="Size.Small" />
+                        }
+                        @if (kpi.JamforelseVarde.HasValue)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Default">Forra perioden: @kpi.JamforelseVarde</MudText>
+                        }
+                    </div>
+                    <MudText Typo="Typo.caption" Color="Color.Default" Class="mt-1">@kpi.Period</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">KPI-definitioner</MudText>
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>KPI</th>
+                <th>Kategori</th>
+                <th>Enhet</th>
+                <th>Gron</th>
+                <th>Gul</th>
+                <th>Rod</th>
+                <th>Aktuellt varde</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var kpi in _kpis)
+            {
+                <tr>
+                    <td><strong>@kpi.Namn</strong></td>
+                    <td><MudChip T="string" Size="Size.Small" Color="Color.Default">@kpi.Kategori</MudChip></td>
+                    <td>@kpi.Enhet</td>
+                    <td>@kpi.GronTroskel</td>
+                    <td>@kpi.GulTroskel</td>
+                    <td>@kpi.RodTroskel</td>
+                    <td>@FormatVarde(kpi)</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@GetTroskelColor(kpi)">
+                            @GetTroskelText(kpi)
+                        </MudChip>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<KPIViewModel> _kpis = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var definitions = await Db.KPIDefinitions
+                .Where(k => k.ArAktiv)
+                .OrderBy(k => k.Kategori).ThenBy(k => k.Namn)
+                .ToListAsync();
+
+            var defIds = definitions.Select(d => d.Id).ToList();
+            var snapshots = await Db.KPISnapshots
+                .Where(s => defIds.Contains(s.KPIDefinitionId))
+                .ToListAsync();
+
+            var snapshotMap = snapshots
+                .GroupBy(s => s.KPIDefinitionId)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.BeraknadVid).First());
+
+            _kpis = definitions.Select(d =>
+            {
+                snapshotMap.TryGetValue(d.Id, out var snapshot);
+                return new KPIViewModel(
+                    d.Id, d.Namn, d.Kategori, d.Enhet, d.Riktning,
+                    d.GronTroskel, d.GulTroskel, d.RodTroskel,
+                    snapshot?.Varde, snapshot?.JamforelseVarde,
+                    snapshot?.Trend ?? "Stable", snapshot?.Period ?? "-");
+            }).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte ladda KPI:er: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private string FormatVarde(KPIViewModel kpi)
+    {
+        if (!kpi.Varde.HasValue) return "-";
+        return kpi.Enhet switch
+        {
+            "percent" => $"{kpi.Varde:F1} %",
+            "currency" => $"{kpi.Varde:N0} kr",
+            "days" => $"{kpi.Varde:F0} dagar",
+            _ => $"{kpi.Varde:F0}"
+        };
+    }
+
+    private string GetTroskelFarg(KPIViewModel kpi) => GetTroskelColor(kpi) switch
+    {
+        Color.Success => "#4caf50",
+        Color.Warning => "#ff9800",
+        Color.Error => "#f44336",
+        _ => "#9e9e9e"
+    };
+
+    private Color GetTroskelColor(KPIViewModel kpi)
+    {
+        if (!kpi.Varde.HasValue) return Color.Default;
+        var v = kpi.Varde.Value;
+        if (kpi.Riktning == "HigherIsBetter")
+        {
+            if (v >= kpi.GronTroskel) return Color.Success;
+            if (v >= kpi.GulTroskel) return Color.Warning;
+            return Color.Error;
+        }
+        else
+        {
+            if (v <= kpi.GronTroskel) return Color.Success;
+            if (v <= kpi.GulTroskel) return Color.Warning;
+            return Color.Error;
+        }
+    }
+
+    private string GetTroskelText(KPIViewModel kpi) => GetTroskelColor(kpi) switch
+    {
+        Color.Success => "Gron",
+        Color.Warning => "Gul",
+        Color.Error => "Rod",
+        _ => "-"
+    };
+
+    private record KPIViewModel(
+        Guid Id, string Namn, string Kategori, string Enhet, string Riktning,
+        decimal GronTroskel, decimal GulTroskel, decimal RodTroskel,
+        decimal? Varde, decimal? JamforelseVarde, string Trend, string Period);
+}

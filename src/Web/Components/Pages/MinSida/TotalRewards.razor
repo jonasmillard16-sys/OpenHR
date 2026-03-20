@@ -1,0 +1,170 @@
+@page "/minsida/totalrewards"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Compensation.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@inject RegionHRDbContext Db
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>OpenHR - Total Rewards</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Din totala kompensation</MudText>
+<MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Oversikt av din fullstandiga ersattning inklusive lon, pension, forsakringar och formaner.
+</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_statement == null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen Total Rewards-data tillganglig.</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="4" Class="mb-6">
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 text-center" Elevation="2" Style="background: linear-gradient(135deg, #0e7490, #06b6d4); color: white; border-radius: 16px;">
+                <MudText Typo="Typo.caption" Style="opacity: 0.8;">Total arlig kompensation @_statement.Ar</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight: 800;">@FormatKr(_statement.TotalKompensation * 12m)</MudText>
+                <MudText Typo="Typo.body2" Style="opacity: 0.7;">@FormatKr(_statement.TotalKompensation) / manad</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" />
+                <MudText Typo="Typo.caption" Class="mt-1">Grundlon</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.GrundLon)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Secondary" />
+                <MudText Typo="Typo.caption" Class="mt-1">Tillagg</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Tillagg)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Savings" Color="Color.Success" />
+                <MudText Typo="Typo.caption" Class="mt-1">Pension</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Pension)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Warning" />
+                <MudText Typo="Typo.caption" Class="mt-1">Forsakringar</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Forsakringar)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.CardGiftcard" Color="Color.Info" />
+                <MudText Typo="Typo.caption" Class="mt-1">Formaner</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Formaner)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <MudPaper Class="pa-4 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Dark" />
+                <MudText Typo="Typo.caption" Class="mt-1">AG-avgifter</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.AGAvgifter)</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-5 mt-6" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-3">Fordelning</MudText>
+        <MudSimpleTable Hover="true" Dense="true">
+            <thead><tr><th>Komponent</th><th>Manad</th><th>Ar</th><th>Andel</th></tr></thead>
+            <tbody>
+                @foreach (var row in _rows)
+                {
+                    <tr>
+                        <td>@row.Label</td>
+                        <td>@FormatKr(row.Manad)</td>
+                        <td>@FormatKr(row.Manad * 12m)</td>
+                        <td>
+                            <MudProgressLinear Value="@((double)(row.Manad / _statement.TotalKompensation * 100))" Color="@row.Color" Style="min-width: 80px;" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudText Typo="Typo.caption" Class="mt-4" Style="color: var(--mud-palette-text-secondary);">
+        Genererad: @_statement.GenereradVid.ToString("yyyy-MM-dd HH:mm")
+    </MudText>
+}
+
+@code {
+    private TotalRewardsStatement? _statement;
+    private bool _loading = true;
+    private string? _error;
+    private List<RowData> _rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            var employeeIdClaim = auth.User.FindFirst("EmployeeId")?.Value;
+
+            // Fallback to first employee for demo
+            Guid anstallId;
+            if (employeeIdClaim != null && Guid.TryParse(employeeIdClaim, out var parsedId))
+            {
+                anstallId = parsedId;
+            }
+            else
+            {
+                var first = await Db.Employees.FirstOrDefaultAsync();
+                if (first == null) { _error = "Ingen anstalld hittad"; return; }
+                anstallId = first.Id.Value;
+            }
+
+            var year = DateTime.Now.Year;
+            _statement = await Db.TotalRewardsStatements
+                .FirstOrDefaultAsync(s => s.AnstallId == EmployeeId.From(anstallId) && s.Ar == year);
+
+            if (_statement == null)
+            {
+                var emp = await Db.Employees.Include(e => e.Anstallningar)
+                    .FirstOrDefaultAsync(e => e.Id == EmployeeId.From(anstallId));
+                if (emp == null) { _error = "Anstalld hittades inte"; return; }
+
+                var anst = emp.Anstallningar.FirstOrDefault();
+                if (anst == null) { _error = "Ingen anstallning"; return; }
+
+                decimal grundLon = anst.Manadslon.Amount;
+                _statement = TotalRewardsStatement.Generera(
+                    EmployeeId.From(anstallId), year,
+                    grundLon, grundLon * 0.05m, grundLon * 0.045m,
+                    800m, 2500m, grundLon * 0.3142m);
+                await Db.TotalRewardsStatements.AddAsync(_statement);
+                await Db.SaveChangesAsync();
+            }
+
+            _rows =
+            [
+                new("Grundlon", _statement.GrundLon, Color.Primary),
+                new("Tillagg", _statement.Tillagg, Color.Secondary),
+                new("Pension", _statement.Pension, Color.Success),
+                new("Forsakringar", _statement.Forsakringar, Color.Warning),
+                new("Formaner", _statement.Formaner, Color.Info),
+                new("AG-avgifter", _statement.AGAvgifter, Color.Dark)
+            ];
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta Total Rewards: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string FormatKr(decimal v) => $"{v:N0} kr";
+
+    private record RowData(string Label, decimal Manad, Color Color);
+}

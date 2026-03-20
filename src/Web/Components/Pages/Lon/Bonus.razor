@@ -1,0 +1,117 @@
+@page "/lon/bonus"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Compensation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Bonusplaner</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Bonusplaner</MudText>
+<MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Hantera individuella, grupp- och foretagsbonusar.
+</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _visaNyDialog = true)" Class="mb-4"
+    StartIcon="@Icons.Material.Filled.Add">
+    Ny bonusplan
+</MudButton>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_planer.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga bonusplaner skapade.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr><th>Namn</th><th>Typ</th><th>Utbetalning</th><th>Status</th><th>Targets</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var p in _planer)
+            {
+                <tr>
+                    <td><strong>@p.Namn</strong></td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@TypColor(p.Typ)">@p.Typ</MudChip></td>
+                    <td>@(p.UtbetalningsTidpunkt ?? "-")</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(p.Status)">@p.Status</MudChip></td>
+                    <td>@p.Targets.Count</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (_visaNyDialog)
+{
+    <MudDialog @bind-Visible="_visaNyDialog">
+        <TitleContent>Skapa ny bonusplan</TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_nyNamn" Label="Namn" Variant="Variant.Outlined" Class="mb-3" Required="true" />
+            <MudSelect T="BonusTyp" @bind-Value="_nyTyp" Label="Typ" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="BonusTyp.Individual">Individuell</MudSelectItem>
+                <MudSelectItem Value="BonusTyp.Grupp">Grupp</MudSelectItem>
+                <MudSelectItem Value="BonusTyp.Foretag">Foretag</MudSelectItem>
+            </MudSelect>
+            <MudTextField @bind-Value="_nyUtbetalning" Label="Utbetalningstidpunkt" Variant="Variant.Outlined"
+                Placeholder="t.ex. Mars, Arligen" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _visaNyDialog = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaBonusPlan"
+                Disabled="@(string.IsNullOrWhiteSpace(_nyNamn))">
+                Skapa
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<BonusPlan> _planer = [];
+    private bool _loading = true;
+    private bool _visaNyDialog;
+    private string _nyNamn = "";
+    private BonusTyp _nyTyp = BonusTyp.Individual;
+    private string _nyUtbetalning = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _planer = await Db.BonusPlans
+                .Include(p => p.Targets)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+        }
+        catch { /* tomma planer */ }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaBonusPlan()
+    {
+        var plan = BonusPlan.Skapa(_nyNamn, _nyTyp, string.IsNullOrWhiteSpace(_nyUtbetalning) ? null : _nyUtbetalning);
+        await Db.BonusPlans.AddAsync(plan);
+        await Db.SaveChangesAsync();
+        _planer.Insert(0, plan);
+        _visaNyDialog = false;
+        _nyNamn = "";
+        Snackbar.Add($"Bonusplan '{plan.Namn}' skapad", Severity.Success);
+    }
+
+    private static Color TypColor(BonusTyp typ) => typ switch
+    {
+        BonusTyp.Individual => Color.Primary,
+        BonusTyp.Grupp => Color.Secondary,
+        BonusTyp.Foretag => Color.Tertiary,
+        _ => Color.Default
+    };
+
+    private static Color StatusColor(BonusPlanStatus status) => status switch
+    {
+        BonusPlanStatus.Draft => Color.Default,
+        BonusPlanStatus.Active => Color.Success,
+        BonusPlanStatus.Closed => Color.Error,
+        _ => Color.Default
+    };
+}

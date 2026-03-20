@@ -16,6 +16,12 @@ public class ReportDefinitionConfiguration : IEntityTypeConfiguration<ReportDefi
         builder.Property(x => x.ParameterSchema).HasColumnType("jsonb");
         builder.Property(x => x.CronExpression).HasMaxLength(100);
         builder.Property(x => x.MottagareEpost).HasMaxLength(500);
+
+        // Report template / self-service builder extensions (Phase B1)
+        builder.Property(x => x.Kolumner).HasColumnType("jsonb");
+        builder.Property(x => x.Filter).HasColumnType("jsonb");
+        builder.Property(x => x.Gruppering).HasMaxLength(200);
+        builder.Property(x => x.VisualiseringsTyp).HasMaxLength(30);
     }
 }
 
@@ -31,5 +37,19 @@ public class ReportExecutionConfiguration : IEntityTypeConfiguration<ReportExecu
         builder.Property(x => x.Parametrar).HasColumnType("jsonb");
         builder.HasIndex(x => x.ReportDefinitionId);
         builder.HasIndex(x => x.Status);
+    }
+}
+
+public class ScheduledReportConfiguration : IEntityTypeConfiguration<ScheduledReport>
+{
+    public void Configure(EntityTypeBuilder<ScheduledReport> builder)
+    {
+        builder.ToTable("scheduled_reports", "reporting");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Frekvens).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Mottagare).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.Format).HasMaxLength(20).IsRequired();
+        builder.HasIndex(x => x.ReportTemplateId);
+        builder.HasIndex(x => x.NastaKorning);
     }
 }

@@ -1,0 +1,170 @@
+@page "/lon/modellering"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Compensation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Kompensationsmodellering</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kompensationsmodellering</MudText>
+<MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Simulera loneforandringar och se kostnadspåverkan inklusive arbetsgivaravgifter.
+</MudText>
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4">Parametrar</MudText>
+
+            <MudSelect T="string" Label="Befattningskategori" @bind-Value="_befattning" Variant="Variant.Outlined" Class="mb-4">
+                @foreach (var b in _band)
+                {
+                    <MudSelectItem Value="@b.Befattningskategori">@b.Befattningskategori</MudSelectItem>
+                }
+                <MudSelectItem Value="@("Annan")">Annan</MudSelectItem>
+            </MudSelect>
+
+            <MudNumericField T="decimal" Label="Nuvarande manadslön (kr)" @bind-Value="_nuvarandeLon"
+                Variant="Variant.Outlined" Class="mb-4" Format="N0" Min="0" />
+
+            <MudSlider T="decimal" @bind-Value="_hojningProcent" Min="0" Max="10" Step="0.5m" Class="mb-2">
+                Höjning: @_hojningProcent.ToString("F1") %
+            </MudSlider>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Simulera"
+                FullWidth="true" Class="mt-4" Disabled="@(_nuvarandeLon <= 0)">
+                Berakna kostnadspåverkan
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="7">
+        @if (_resultat != null)
+        {
+            <MudPaper Class="pa-6" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-4">Resultat</MudText>
+
+                <MudGrid Spacing="3" Class="mb-4">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption">Ny manadslön</MudText>
+                        <MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_resultat.NyLon)</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption">Höjning</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">+@FormatKr(_resultat.HojningKr)</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="mb-4" />
+
+                <MudSimpleTable Hover="true" Dense="true">
+                    <thead><tr><th></th><th>Nuvarande</th><th>Ny</th><th>Skillnad</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Manadslön</strong></td>
+                            <td>@FormatKr(_nuvarandeLon)</td>
+                            <td>@FormatKr(_resultat.NyLon)</td>
+                            <td style="color: var(--mud-palette-primary);">+@FormatKr(_resultat.HojningKr)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AG-avgifter (31,42%)</strong></td>
+                            <td>@FormatKr(_resultat.AGAvgiftNuvarande)</td>
+                            <td>@FormatKr(_resultat.AGAvgiftNy)</td>
+                            <td style="color: var(--mud-palette-primary);">+@FormatKr(_resultat.AGAvgiftNy - _resultat.AGAvgiftNuvarande)</td>
+                        </tr>
+                        <tr style="font-weight: 700;">
+                            <td><strong>Total kostnad</strong></td>
+                            <td>@FormatKr(_resultat.TotalKostnadNuvarande)</td>
+                            <td>@FormatKr(_resultat.TotalKostnadNy)</td>
+                            <td style="color: var(--mud-palette-primary);">+@FormatKr(_resultat.OkadKostnadPerManad)</td>
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4">
+                    Ökad arskostnad: <strong>@FormatKr(_resultat.OkadKostnadPerAr)</strong>
+                </MudAlert>
+
+                @if (_resultat.BandMin.HasValue)
+                {
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Bandposition</MudText>
+                    <MudProgressLinear Color="@(_resultat.InomBand ? Color.Primary : Color.Error)"
+                        Value="@((double)(_resultat.BandPosition ?? 0))" Class="mb-2" />
+                    <MudText Typo="Typo.caption">
+                        @FormatKr(_resultat.BandMin.Value) — @FormatKr(_resultat.BandMal!.Value) (mal) — @FormatKr(_resultat.BandMax!.Value)
+                        @if (!_resultat.InomBand) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Utanfor band</MudChip> }
+                    </MudText>
+                }
+            </MudPaper>
+        }
+        else
+        {
+            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Elevation="1" Style="min-height: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Large" Style="color: var(--mud-palette-text-secondary); opacity: 0.3;" />
+                <MudText Typo="Typo.body2" Class="mt-2" Style="color: var(--mud-palette-text-secondary);">
+                    Valj befattning, ange lon och procent for att simulera.
+                </MudText>
+            </MudPaper>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<CompensationBand> _band = [];
+    private string _befattning = "";
+    private decimal _nuvarandeLon = 38500m;
+    private decimal _hojningProcent = 2.5m;
+    private SimResult? _resultat;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _band = await Db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
+        if (_band.Count > 0) _befattning = _band[0].Befattningskategori;
+    }
+
+    private void Simulera()
+    {
+        var band = _band.FirstOrDefault(b => b.Befattningskategori == _befattning);
+        decimal nyLon = Math.Round(_nuvarandeLon * (1 + _hojningProcent / 100m), 0);
+        const decimal agProcent = 31.42m;
+        decimal agNuv = Math.Round(_nuvarandeLon * agProcent / 100m, 0);
+        decimal agNy = Math.Round(nyLon * agProcent / 100m, 0);
+
+        _resultat = new SimResult
+        {
+            NyLon = nyLon,
+            HojningKr = nyLon - _nuvarandeLon,
+            AGAvgiftNuvarande = agNuv,
+            AGAvgiftNy = agNy,
+            TotalKostnadNuvarande = _nuvarandeLon + agNuv,
+            TotalKostnadNy = nyLon + agNy,
+            OkadKostnadPerManad = (nyLon + agNy) - (_nuvarandeLon + agNuv),
+            OkadKostnadPerAr = ((nyLon + agNy) - (_nuvarandeLon + agNuv)) * 12m,
+            InomBand = band?.ArInomBand(nyLon) ?? true,
+            BandPosition = band != null ? (decimal?)band.BandPosition(nyLon) : null,
+            BandMin = band?.Min,
+            BandMal = band?.Mal,
+            BandMax = band?.Max
+        };
+    }
+
+    private static string FormatKr(decimal v) => $"{v:N0} kr";
+
+    private class SimResult
+    {
+        public decimal NyLon { get; set; }
+        public decimal HojningKr { get; set; }
+        public decimal AGAvgiftNuvarande { get; set; }
+        public decimal AGAvgiftNy { get; set; }
+        public decimal TotalKostnadNuvarande { get; set; }
+        public decimal TotalKostnadNy { get; set; }
+        public decimal OkadKostnadPerManad { get; set; }
+        public decimal OkadKostnadPerAr { get; set; }
+        public bool InomBand { get; set; }
+        public decimal? BandPosition { get; set; }
+        public decimal? BandMin { get; set; }
+        public decimal? BandMal { get; set; }
+        public decimal? BandMax { get; set; }
+    }
+}
