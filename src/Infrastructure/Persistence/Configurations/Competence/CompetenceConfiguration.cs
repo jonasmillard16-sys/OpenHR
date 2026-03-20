@@ -40,6 +40,7 @@ public class SkillConfiguration : IEntityTypeConfiguration<Skill>
         builder.Property(x => x.Namn).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Kategori).HasConversion<string>().HasMaxLength(30);
         builder.Property(x => x.Beskrivning).HasMaxLength(1000);
+        builder.Property(x => x.SkillCategoryEntityId).IsRequired(false);
         builder.HasIndex(x => x.Namn).IsUnique();
     }
 }

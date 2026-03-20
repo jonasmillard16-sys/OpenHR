@@ -1,0 +1,192 @@
+@page "/schema/prognos"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.Core.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Behovsprognos</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Behovsprognos</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid" Label="Enhet" Value="_valdEnhet" ValueChanged="OnEnhetChanged" Variant="Variant.Outlined">
+                @foreach (var enhet in _enheter)
+                {
+                    <MudSelectItem T="Guid" Value="@enhet.Id.Value">@enhet.Namn</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Bemanningsmonster per veckodag</MudText>
+    @if (_patterns.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+            Inga monster inlagda for denna enhet.
+        </MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead>
+                <tr><th>Veckodag</th><th>Snittbehov (personal)</th><th>Sasongsfaktor</th><th>Justerat behov</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _patterns.OrderBy(p => p.Veckodag))
+                {
+                    <tr>
+                        <td><strong>@VeckodagNamn(p.Veckodag)</strong></td>
+                        <td>@p.GenomsnittligBelastning.ToString("F1")</td>
+                        <td>@p.SasongsVariation.ToString("F2")</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@BelastningColor(p.GenomsnittligBelastning * p.SasongsVariation)">
+                                @((p.GenomsnittligBelastning * p.SasongsVariation).ToString("F1"))
+                            </MudChip>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3">Kommande handelser som paverkar bemanning</MudText>
+    @if (_events.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga kommande handelser.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_events" Hover="true" Elevation="2" Dense="true" Class="mb-6">
+            <HeaderContent>
+                <MudTh>Handelse</MudTh>
+                <MudTh>Typ</MudTh>
+                <MudTh>Period</MudTh>
+                <MudTh>Paverkan</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Namn</strong></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@EventTypColor(context.Typ)">@context.Typ</MudChip></MudTd>
+                <MudTd>@context.DatumFran.ToString("d MMM", _sv) - @context.DatumTill.ToString("d MMM yyyy", _sv)</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@(context.PaverkanGrad > 1.2m ? Color.Error : Color.Warning)">
+                        +@(((context.PaverkanGrad - 1) * 100).ToString("F0"))%
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3">Prognoser</MudText>
+    @if (_forecasts.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+            Inga prognoser beraknade for denna enhet annu. Kor optimering for att generera prognoser.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_forecasts" Hover="true" Elevation="2" Dense="true">
+            <HeaderContent>
+                <MudTh>Datum</MudTh>
+                <MudTh>Beraknat antal</MudTh>
+                <MudTh>Beraknade timmar</MudTh>
+                <MudTh>Konfidensgrad</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Datum.ToString("d MMM", _sv)</MudTd>
+                <MudTd>@context.BeraknatAntal</MudTd>
+                <MudTd>@context.BeraknadeTidmmar.ToString("F1")</MudTd>
+                <MudTd>
+                    <MudProgressLinear Color="@(context.Konfidensgrad > 80 ? Color.Success : context.Konfidensgrad > 50 ? Color.Warning : Color.Error)"
+                                       Value="@((double)context.Konfidensgrad)" Class="my-1" Style="min-width: 60px;" />
+                    @context.Konfidensgrad.ToString("F0")%
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo _sv = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+    private List<OrganizationUnit> _enheter = [];
+    private List<DemandPattern> _patterns = [];
+    private List<DemandEvent> _events = [];
+    private List<DemandForecast> _forecasts = [];
+    private Guid _valdEnhet;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _enheter = await Db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
+        if (_enheter.Count > 0)
+        {
+            _valdEnhet = _enheter[0].Id.Value;
+            await LaddaData();
+        }
+        _loading = false;
+    }
+
+    private async Task OnEnhetChanged(Guid enhet)
+    {
+        _valdEnhet = enhet;
+        await LaddaData();
+    }
+
+    private async Task LaddaData()
+    {
+        _patterns = await Db.DemandPatterns
+            .Where(p => p.EnhetId == OrganizationId.From(_valdEnhet))
+            .ToListAsync();
+
+        _events = await Db.DemandEvents
+            .Where(e => e.DatumTill >= DateOnly.FromDateTime(DateTime.Today))
+            .OrderBy(e => e.DatumFran)
+            .ToListAsync();
+
+        _forecasts = await Db.DemandForecasts
+            .Where(f => f.EnhetId == OrganizationId.From(_valdEnhet))
+            .OrderBy(f => f.Datum)
+            .Take(30)
+            .ToListAsync();
+    }
+
+    private static string VeckodagNamn(int dag) => dag switch
+    {
+        0 => "Sondag",
+        1 => "Mandag",
+        2 => "Tisdag",
+        3 => "Onsdag",
+        4 => "Torsdag",
+        5 => "Fredag",
+        6 => "Lordag",
+        _ => dag.ToString()
+    };
+
+    private static Color BelastningColor(decimal belastning) => belastning switch
+    {
+        >= 15 => Color.Error,
+        >= 12 => Color.Warning,
+        _ => Color.Success
+    };
+
+    private static Color EventTypColor(string typ) => typ switch
+    {
+        "Helgdag" => Color.Error,
+        "Evenemang" => Color.Warning,
+        "Influensasasong" => Color.Info,
+        "Semesterperiod" => Color.Success,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,192 @@
+@page "/admin/talangmarknad"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Competence.Domain
+@using RegionHR.Core.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Hantera talangmarknad</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Intern talangmarknad — Administration</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showForm = true)">Ny mojlighet</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa intern mojlighet</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudTextField @bind-Value="_newTitel" Label="Titel" Variant="Variant.Outlined" Class="mb-3" />
+            <MudSelect T="string" @bind-Value="_newTyp" Label="Typ" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("Roll")">Roll</MudSelectItem>
+                <MudSelectItem Value="@("Projekt")">Projekt</MudSelectItem>
+                <MudSelectItem Value="@("Gig")">Gig</MudSelectItem>
+                <MudSelectItem Value="@("Mentorskap")">Mentorskap</MudSelectItem>
+                <MudSelectItem Value="@("Rotation")">Rotation</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="_newEnhetId" Label="Enhet" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var unit in _units)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)unit.Id.Value)">@unit.Namn</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_newPeriodFran" Label="Period fran" Variant="Variant.Outlined" Class="mb-3" />
+            <MudDatePicker @bind-Date="_newPeriodTill" Label="Period till" Variant="Variant.Outlined" Class="mb-3" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaMojlighet">Skapa och publicera</MudButton>
+        </MudPaper>
+    }
+
+    @if (_created)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true"
+                  CloseIconClicked="@(() => _created = false)">Mojlighet skapad och publicerad!</MudAlert>
+    }
+
+    @* Filter by status *@
+    <div class="d-flex gap-2 mb-3">
+        <MudChip T="string" Color="@(_filterStatus == null ? Color.Primary : Color.Default)"
+                 OnClick="@(() => _filterStatus = null)">Alla (@_opportunities.Count)</MudChip>
+        @foreach (OpportunityStatus status in Enum.GetValues<OpportunityStatus>())
+        {
+            var count = _opportunities.Count(o => o.Status == status);
+            if (count > 0)
+            {
+                <MudChip T="string" Color="@(_filterStatus == status ? Color.Primary : Color.Default)"
+                         OnClick="@(() => _filterStatus = status)">@status (@count)</MudChip>
+            }
+        }
+    </div>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr><th>Titel</th><th>Typ</th><th>Period</th><th>Status</th><th>Ansokningar</th><th>Atgarder</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var opp in FilteredOpportunities)
+            {
+                var appCount = _applications.Count(a => a.InternalOpportunityId == opp.Id);
+                <tr>
+                    <td><strong>@opp.Titel</strong></td>
+                    <td><MudChip T="string" Size="Size.Small">@opp.Typ</MudChip></td>
+                    <td>@(opp.PeriodFran?.ToString("yyyy-MM-dd") ?? "—") — @(opp.PeriodTill?.ToString("yyyy-MM-dd") ?? "—")</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(opp.Status)">@opp.Status</MudChip></td>
+                    <td>@appCount</td>
+                    <td>
+                        @if (opp.Status == OpportunityStatus.Published)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning"
+                                       OnClick="@(() => StangMojlighet(opp))">Stang</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                       OnClick="@(() => TillsattMojlighet(opp))">Tillsatt</MudButton>
+                        }
+                        @if (opp.Status == OpportunityStatus.Draft)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       OnClick="@(() => PubliceraMojlighet(opp))">Publicera</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
+    @if (FilteredOpportunities.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">Inga mojligheter matchar filtret.</MudAlert>
+    }
+}
+
+@code {
+    private List<InternalOpportunity> _opportunities = [];
+    private List<OpportunityApplication> _applications = [];
+    private List<RegionHR.Core.Domain.OrganizationUnit> _units = [];
+    private OpportunityStatus? _filterStatus;
+    private bool _loading = true;
+    private string? _error;
+    private bool _showForm;
+    private bool _created;
+    private string _newTitel = "";
+    private string _newTyp = "Projekt";
+    private Guid? _newEnhetId;
+    private DateTime? _newPeriodFran;
+    private DateTime? _newPeriodTill;
+
+    private List<InternalOpportunity> FilteredOpportunities => _filterStatus is null
+        ? _opportunities
+        : _opportunities.Where(o => o.Status == _filterStatus).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _opportunities = await Db.InternalOpportunities
+                .OrderByDescending(o => o.PeriodFran)
+                .ToListAsync();
+            _applications = await Db.OpportunityApplications.ToListAsync();
+            _units = await Db.OrganizationUnits.OrderBy(u => u.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaMojlighet()
+    {
+        if (string.IsNullOrWhiteSpace(_newTitel) || _newEnhetId == null) return;
+
+        var periodFran = _newPeriodFran.HasValue ? (DateOnly?)DateOnly.FromDateTime(_newPeriodFran.Value) : null;
+        var periodTill = _newPeriodTill.HasValue ? (DateOnly?)DateOnly.FromDateTime(_newPeriodTill.Value) : null;
+
+        var opp = InternalOpportunity.Skapa(_newTyp, _newTitel, _newEnhetId.Value, periodFran, periodTill);
+        opp.Publicera();
+        await Db.InternalOpportunities.AddAsync(opp);
+        await Db.SaveChangesAsync();
+        _opportunities.Insert(0, opp);
+
+        _showForm = false;
+        _created = true;
+        _newTitel = "";
+    }
+
+    private async Task PubliceraMojlighet(InternalOpportunity opp)
+    {
+        opp.Publicera();
+        await Db.SaveChangesAsync();
+    }
+
+    private async Task StangMojlighet(InternalOpportunity opp)
+    {
+        opp.Stang();
+        await Db.SaveChangesAsync();
+    }
+
+    private async Task TillsattMojlighet(InternalOpportunity opp)
+    {
+        opp.Tillsatt();
+        await Db.SaveChangesAsync();
+    }
+
+    private static Color StatusFarg(OpportunityStatus s) => s switch
+    {
+        OpportunityStatus.Draft => Color.Default,
+        OpportunityStatus.Published => Color.Success,
+        OpportunityStatus.Closed => Color.Warning,
+        OpportunityStatus.Filled => Color.Info,
+        _ => Color.Default
+    };
+}

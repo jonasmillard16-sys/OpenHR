@@ -1,0 +1,171 @@
+@page "/kompetens/endorsements"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Competence.Domain
+@using RegionHR.Core.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Kompetensbekraftelser</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Kompetensbekraftelser</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Bekrafta kollegors kompetenser. Endorsements okar trovardheten i kompetensregistret.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_endorsements.Count</MudText>
+                <MudText Typo="Typo.body2">Totala bekraftelser</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_employeeSkills.Count</MudText>
+                <MudText Typo="Typo.body2">Kompetenser att bekrafta</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_employees.Count</MudText>
+                <MudText Typo="Typo.body2">Anstallda med skills</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Recent endorsements *@
+    @if (_endorsements.Count > 0)
+    {
+        <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">Senaste bekraftelser</MudText>
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead>
+                <tr><th>Skill</th><th>Anstalld</th><th>Bekraftad av</th><th>Datum</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var e in _endorsements.OrderByDescending(e => e.Datum).Take(20))
+                {
+                    var skill = _skills.FirstOrDefault(s => s.Id == e.SkillId);
+                    var anstalld = _employees.FirstOrDefault(emp => emp.Id.Value == e.AnstallId);
+                    var bekraftare = _employees.FirstOrDefault(emp => emp.Id.Value == e.BekraftadAv);
+                    <tr>
+                        <td><strong>@(skill?.Namn ?? "?")</strong></td>
+                        <td>@(anstalld != null ? $"{anstalld.Fornamn} {anstalld.Efternamn}" : e.AnstallId.ToString()[..8])</td>
+                        <td>@(bekraftare != null ? $"{bekraftare.Fornamn} {bekraftare.Efternamn}" : e.BekraftadAv.ToString()[..8])</td>
+                        <td>@e.Datum.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* Endorse colleagues *@
+    <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">Bekrafta kollegas kompetens</MudText>
+
+    <MudSelect T="Guid?" @bind-Value="_selectedAnstallId" Label="Valj anstalld" Variant="Variant.Outlined"
+               Class="mb-4" Style="max-width: 400px;">
+        @foreach (var emp in _employees)
+        {
+            <MudSelectItem T="Guid?" Value="@((Guid?)emp.Id.Value)">@emp.Fornamn @emp.Efternamn</MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (_selectedAnstallId != null)
+    {
+        var empSkills = _employeeSkills.Where(es => es.AnstallId == _selectedAnstallId.Value).ToList();
+        if (empSkills.Count > 0)
+        {
+            <MudGrid Spacing="2">
+                @foreach (var es in empSkills)
+                {
+                    var skill = _skills.FirstOrDefault(s => s.Id == es.SkillId);
+                    var alreadyEndorsed = _endorsements.Any(e => e.SkillId == es.SkillId && e.AnstallId == _selectedAnstallId.Value);
+                    var endorsementCount = _endorsements.Count(e => e.SkillId == es.SkillId && e.AnstallId == _selectedAnstallId.Value);
+
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Class="pa-3" Elevation="2">
+                            <div class="d-flex justify-space-between align-center">
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@(skill?.Namn ?? "?")</MudText>
+                                    <MudRating ReadOnly="true" SelectedValue="@es.Niva" MaxValue="5" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption">@endorsementCount bekraftelser</MudText>
+                                </div>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled"
+                                           Color="@(alreadyEndorsed ? Color.Default : Color.Primary)"
+                                           Disabled="@alreadyEndorsed"
+                                           OnClick="@(() => Endorsera(es.SkillId, _selectedAnstallId.Value))">
+                                    @(alreadyEndorsed ? "Bekraftad" : "Bekrafta")
+                                </MudButton>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">Denna anstalld har inga registrerade kompetenser.</MudAlert>
+        }
+    }
+
+    @if (_endorsed)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true"
+                  CloseIconClicked="@(() => _endorsed = false)">
+            Kompetens bekraftad!
+        </MudAlert>
+    }
+}
+
+@code {
+    private List<SkillEndorsement> _endorsements = [];
+    private List<EmployeeSkill> _employeeSkills = [];
+    private List<Skill> _skills = [];
+    private List<Employee> _employees = [];
+    private Guid? _selectedAnstallId;
+    private bool _loading = true;
+    private string? _error;
+    private bool _endorsed;
+
+    // Simulated current user
+    private Guid _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _endorsements = await Db.SkillEndorsements.ToListAsync();
+            _employeeSkills = await Db.EmployeeSkills.ToListAsync();
+            _skills = await Db.Skills.ToListAsync();
+
+            var empIdsWithSkills = _employeeSkills.Select(es => es.AnstallId).Distinct().ToHashSet();
+            _employees = (await Db.Employees.ToListAsync())
+                .Where(e => empIdsWithSkills.Contains(e.Id.Value))
+                .OrderBy(e => e.Efternamn)
+                .ToList();
+
+            _currentUserId = _employees.FirstOrDefault()?.Id.Value ?? Guid.NewGuid();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task Endorsera(Guid skillId, Guid anstallId)
+    {
+        var endorsement = SkillEndorsement.Skapa(skillId, anstallId, _currentUserId);
+        await Db.SkillEndorsements.AddAsync(endorsement);
+        await Db.SaveChangesAsync();
+        _endorsements.Add(endorsement);
+        _endorsed = true;
+    }
+}

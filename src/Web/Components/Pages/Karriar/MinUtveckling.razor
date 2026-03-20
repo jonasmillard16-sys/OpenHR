@@ -1,3 +1,4 @@
+@page "/karriar/minutveckling"
 @page "/karriar/min-utveckling"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Competence.Domain
@@ -6,11 +7,11 @@
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
-<PageTitle>OpenHR — Utvecklingsplan</PageTitle>
+<PageTitle>OpenHR — Min karriarutveckling</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Utvecklingsplan</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Min karriarutveckling</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Visa en anställds kompetenser och gap mot positionens kravprofil.
+    Karriarvagar med readiness-score, utvecklingsplan med milstolpar, och kompetens-gap.
 </MudText>
 
 @if (_loading)
@@ -23,7 +24,7 @@ else if (_error != null)
 }
 else
 {
-    <MudSelect T="Guid?" @bind-Value="_selectedAnstallId" Label="Välj anställd" Variant="Variant.Outlined"
+    <MudSelect T="Guid?" @bind-Value="_selectedAnstallId" Label="Valj anstalld" Variant="Variant.Outlined"
                Class="mb-4" Style="max-width: 400px;">
         @foreach (var emp in _employeesWithSkills)
         {
@@ -38,14 +39,160 @@ else
         {
             var myEmpSkills = _allEmpSkills.Where(es => es.AnstallId == selected.Id.Value).ToList();
 
-            <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
+            @* Career Paths with Readiness Scores *@
+            <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">
+                Karriarvagar — Readiness
+            </MudText>
+
+            <MudGrid Spacing="3" Class="mb-4">
+                @foreach (var cp in _careerPaths)
+                {
+                    var steps = cp.Steg.OrderBy(s => s.Ordning).ToList();
+                    var overallReadiness = CalculatePathReadiness(steps, myEmpSkills);
+
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="3">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6" Style="font-weight: 600;">@cp.Namn</MudText>
+                                    <MudText Typo="Typo.caption">@cp.Bransch</MudText>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    <MudChip T="string" Color="@ScoreColor(overallReadiness)">@overallReadiness% redo</MudChip>
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudProgressLinear Color="@ScoreColor(overallReadiness)" Value="@overallReadiness" Class="mb-3" />
+                                @foreach (var step in steps)
+                                {
+                                    var stepScore = CalculateStepReadiness(step, myEmpSkills);
+                                    <div class="d-flex align-center gap-2 mb-2">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">@step.Ordning</MudChip>
+                                        <MudText Typo="Typo.body2" Style="flex: 1;">@step.Befattning</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="@ScoreColor(stepScore)">@stepScore%</MudChip>
+                                    </div>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @* Development Plans *@
+            <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">Utvecklingsplaner</MudText>
+
+            @if (GetMyPlans(selected.Id.Value).Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">Ingen utvecklingsplan skapad annu.</MudAlert>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _showCreatePlan = true)"
+                           StartIcon="@Icons.Material.Filled.Add" Class="mb-4">Skapa utvecklingsplan</MudButton>
+            }
+            else
+            {
+                @foreach (var plan in GetMyPlans(selected.Id.Value))
+                {
+                    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <div>
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">Mal: @plan.MalRoll</MudText>
+                                <MudText Typo="Typo.caption">@plan.StartDatum.ToString("yyyy-MM-dd") — @(plan.MalDatum?.ToString("yyyy-MM-dd") ?? "oppen")</MudText>
+                            </div>
+                            <MudChip T="string" Color="@PlanStatusColor(plan.Status)">@plan.Status</MudChip>
+                        </div>
+
+                        @if (plan.Milstolpar.Count > 0)
+                        {
+                            <MudSimpleTable Hover="true" Elevation="0" Class="mt-2">
+                                <thead><tr><th>Milstolpe</th><th>Typ</th><th>Maldatum</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    @foreach (var m in plan.Milstolpar)
+                                    {
+                                        <tr>
+                                            <td>@m.Beskrivning</td>
+                                            <td><MudChip T="string" Size="Size.Small">@m.Typ</MudChip></td>
+                                            <td>@(m.MalDatum?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                            <td><MudChip T="string" Size="Size.Small" Color="@MilestoneStatusColor(m.Status)">@m.Status</MudChip></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-2">Inga milstolpar tillagda annu.</MudText>
+                        }
+                    </MudPaper>
+                }
+            }
+
+            @if (_showCreatePlan)
+            {
+                <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa utvecklingsplan</MudText>
+                    <MudTextField @bind-Value="_newPlanMalRoll" Label="Malroll" Variant="Variant.Outlined" Class="mb-3" />
+                    <MudDatePicker @bind-Date="_newPlanMalDatum" Label="Maldatum" Variant="Variant.Outlined" Class="mb-3" />
+                    <div class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaPlan">Skapa</MudButton>
+                        <MudButton Variant="Variant.Text" OnClick="@(() => _showCreatePlan = false)">Avbryt</MudButton>
+                    </div>
+                </MudPaper>
+            }
+
+            @if (_planCreated)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true"
+                          CloseIconClicked="@(() => _planCreated = false)">Utvecklingsplan skapad!</MudAlert>
+            }
+
+            @* Inferred Skills *@
+            <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">Harledda kompetenser</MudText>
+
+            @if (GetMyInferred(selected.Id.Value).Count > 0)
+            {
+                <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+                    <thead><tr><th>Skill</th><th>Kalla</th><th>Konfidens</th><th>Bekraftad</th></tr></thead>
+                    <tbody>
+                        @foreach (var inf in GetMyInferred(selected.Id.Value))
+                        {
+                            var skill = _allSkills.FirstOrDefault(s => s.Id == inf.SkillId);
+                            <tr>
+                                <td><strong>@(skill?.Namn ?? "?")</strong></td>
+                                <td>@inf.Kalla</td>
+                                <td>
+                                    <MudProgressLinear Color="@ScoreColor(inf.Konfidens)" Value="@inf.Konfidens"
+                                                       Style="min-width: 80px;" />
+                                    <MudText Typo="Typo.caption">@inf.Konfidens%</MudText>
+                                </td>
+                                <td>
+                                    @if (inf.ArBekraftad)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                                   OnClick="@(() => BekraftaSkill(inf))">Bekrafta</MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">Inga harledda kompetenser.</MudAlert>
+            }
+
+            @* Existing skills *@
+            <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">
                 Kompetenser — @selected.Fornamn @selected.Efternamn
             </MudText>
 
             @if (myEmpSkills.Count > 0)
             {
                 <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
-                    <thead><tr><th>Skill</th><th>Kategori</th><th>Nivå</th></tr></thead>
+                    <thead><tr><th>Skill</th><th>Kategori</th><th>Niva</th></tr></thead>
                     <tbody>
                         @foreach (var es in myEmpSkills)
                         {
@@ -63,65 +210,11 @@ else
             {
                 <MudAlert Severity="Severity.Info" Class="mb-4">Inga kompetenser registrerade.</MudAlert>
             }
-
-            var position = _allPositions.FirstOrDefault(p => p.InnehavareAnstallId == selected.Id.Value);
-
-            @if (position != null)
-            {
-                var posKrav = _allRequirements.Where(r => r.PositionId == position.Id).ToList();
-                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">
-                    Gap mot position: @position.Titel
-                </MudText>
-
-                @if (posKrav.Count > 0)
-                {
-                    <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
-                        <thead><tr><th>Skill</th><th>Krävd nivå</th><th>Anställds nivå</th><th>Status</th></tr></thead>
-                        <tbody>
-                            @foreach (var k in posKrav)
-                            {
-                                var skill = _allSkills.FirstOrDefault(s => s.Id == k.SkillId);
-                                var empSkill = myEmpSkills.FirstOrDefault(es => es.SkillId == k.SkillId);
-                                var dinNiva = empSkill?.Niva ?? 0;
-                                <tr>
-                                    <td>@(skill?.Namn ?? "?")</td>
-                                    <td><MudRating ReadOnly="true" SelectedValue="@k.MinNiva" MaxValue="5" Size="Size.Small" /></td>
-                                    <td><MudRating ReadOnly="true" SelectedValue="@dinNiva" MaxValue="5" Size="Size.Small" /></td>
-                                    <td>
-                                        @if (dinNiva >= k.MinNiva)
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Uppfylld</MudChip>
-                                        }
-                                        else if (dinNiva == 0)
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Error">Saknas</MudChip>
-                                        }
-                                        else
-                                        {
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">@dinNiva / @k.MinNiva</MudChip>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </MudSimpleTable>
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Info">Positionen har inga definierade krav.</MudAlert>
-                }
-            }
-            else
-            {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-                    Ingen position kopplad — gap-analys ej tillgänglig.
-                </MudAlert>
-            }
         }
     }
     else
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Välj en anställd ovan för att se kompetenser och gap.</MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Valj en anstalld ovan for att se karriarutveckling.</MudAlert>
     }
 }
 
@@ -129,11 +222,16 @@ else
     private List<Employee> _employeesWithSkills = [];
     private List<Skill> _allSkills = [];
     private List<EmployeeSkill> _allEmpSkills = [];
-    private List<PositionSkillRequirement> _allRequirements = [];
-    private List<RegionHR.Positions.Domain.Position> _allPositions = [];
+    private List<CareerPath> _careerPaths = [];
+    private List<DevelopmentPlan> _devPlans = [];
+    private List<InferredSkill> _inferredSkills = [];
     private Guid? _selectedAnstallId;
     private bool _loading = true;
     private string? _error;
+    private bool _showCreatePlan;
+    private bool _planCreated;
+    private string _newPlanMalRoll = "";
+    private DateTime? _newPlanMalDatum;
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,12 +239,14 @@ else
         {
             _allSkills = await Db.Skills.ToListAsync();
             _allEmpSkills = await Db.EmployeeSkills.ToListAsync();
-            _allRequirements = await Db.PositionSkillRequirements.ToListAsync();
-            _allPositions = await Db.Positions_Table
-                .Where(p => p.InnehavareAnstallId != null)
+            _careerPaths = await Db.CareerPaths
+                .Include(cp => cp.Steg)
                 .ToListAsync();
+            _devPlans = await Db.DevelopmentPlans
+                .Include(dp => dp.Milstolpar)
+                .ToListAsync();
+            _inferredSkills = await Db.InferredSkills.ToListAsync();
 
-            // Visa bara anställda som har minst en skill registrerad
             var anstallIdsWithSkills = _allEmpSkills.Select(es => es.AnstallId).Distinct().ToHashSet();
             var allEmployees = await Db.Employees.ToListAsync();
             _employeesWithSkills = allEmployees
@@ -154,7 +254,90 @@ else
                 .OrderBy(e => e.Efternamn)
                 .ToList();
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
         finally { _loading = false; }
     }
+
+    private List<DevelopmentPlan> GetMyPlans(Guid anstallId) =>
+        _devPlans.Where(p => p.AnstallId == anstallId).ToList();
+
+    private List<InferredSkill> GetMyInferred(Guid anstallId) =>
+        _inferredSkills.Where(i => i.AnstallId == anstallId).ToList();
+
+    private int CalculatePathReadiness(List<CareerPathStep> steps, List<EmployeeSkill> empSkills)
+    {
+        if (steps.Count == 0) return 0;
+        return (int)steps.Average(s => CalculateStepReadiness(s, empSkills));
+    }
+
+    private int CalculateStepReadiness(CareerPathStep step, List<EmployeeSkill> empSkills)
+    {
+        if (string.IsNullOrWhiteSpace(step.KravdaSkills)) return 100;
+        try
+        {
+            var required = System.Text.Json.JsonSerializer.Deserialize<List<SkillReq>>(step.KravdaSkills) ?? [];
+            if (required.Count == 0) return 100;
+            double totalScore = 0;
+            foreach (var req in required)
+            {
+                var skill = _allSkills.FirstOrDefault(s => s.Namn == req.Skill);
+                if (skill == null) continue;
+                var empSkill = empSkills.FirstOrDefault(es => es.SkillId == skill.Id);
+                if (empSkill != null)
+                    totalScore += Math.Min((double)empSkill.Niva / req.Niva, 1.0) * 100;
+            }
+            return (int)(totalScore / required.Count);
+        }
+        catch { return 0; }
+    }
+
+    private async Task SkapaPlan()
+    {
+        if (_selectedAnstallId == null || string.IsNullOrWhiteSpace(_newPlanMalRoll)) return;
+
+        var malDatum = _newPlanMalDatum.HasValue
+            ? (DateOnly?)DateOnly.FromDateTime(_newPlanMalDatum.Value)
+            : null;
+        var plan = DevelopmentPlan.Skapa(_selectedAnstallId.Value, _newPlanMalRoll,
+            DateOnly.FromDateTime(DateTime.Today), malDatum);
+        await Db.DevelopmentPlans.AddAsync(plan);
+        await Db.SaveChangesAsync();
+
+        _devPlans.Add(plan);
+        _showCreatePlan = false;
+        _planCreated = true;
+        _newPlanMalRoll = "";
+        _newPlanMalDatum = null;
+    }
+
+    private async Task BekraftaSkill(InferredSkill inf)
+    {
+        inf.Bekrafta();
+        await Db.SaveChangesAsync();
+    }
+
+    private static Color ScoreColor(int score) => score switch
+    {
+        >= 80 => Color.Success,
+        >= 50 => Color.Warning,
+        _ => Color.Error
+    };
+
+    private static Color PlanStatusColor(DevelopmentPlanStatus s) => s switch
+    {
+        DevelopmentPlanStatus.Draft => Color.Default,
+        DevelopmentPlanStatus.Active => Color.Primary,
+        DevelopmentPlanStatus.Completed => Color.Success,
+        _ => Color.Default
+    };
+
+    private static Color MilestoneStatusColor(MilestoneStatus s) => s switch
+    {
+        MilestoneStatus.Pending => Color.Default,
+        MilestoneStatus.InProgress => Color.Warning,
+        MilestoneStatus.Completed => Color.Success,
+        _ => Color.Default
+    };
+
+    private record SkillReq(string Skill, int Niva);
 }

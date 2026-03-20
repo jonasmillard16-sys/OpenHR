@@ -1,0 +1,161 @@
+@page "/schema/realtid"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.Core.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Realtidsvy</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Realtid - Dagens drift</MudText>
+    <MudChip T="string" Color="Color.Info" Size="Size.Large">@DateTime.Now.ToString("HH:mm") - @DateTime.Today.ToString("d MMMM yyyy", _sv)</MudChip>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPass</MudText>
+                <MudText Typo="Typo.body2">Planerade pass idag</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_instamplade</MudText>
+                <MudText Typo="Typo.body2">Instamplade</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_ejStamplade</MudText>
+                <MudText Typo="Typo.body2">Ej stamplade</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_oppnaTackningar</MudText>
+                <MudText Typo="Typo.body2">Tackningsforfragan</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Dagens pass</MudText>
+    <MudTable Items="_dagensPass" Hover="true" Elevation="2" Dense="true" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Anstalld</MudTh>
+            <MudTh>Passtyp</MudTh>
+            <MudTh>Planerad tid</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Faktisk start</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@_anstallNamn.GetValueOrDefault(context.AnstallId.Value, context.AnstallId.Value.ToString()[..8])</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@PassColor(context.PassTyp)">@context.PassTyp</MudChip></MudTd>
+            <MudTd>@context.PlaneradStart.ToString("HH:mm") - @context.PlaneradSlut.ToString("HH:mm")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@StatusText(context.Status)</MudChip></MudTd>
+            <MudTd>@(context.FaktiskStart?.ToString("HH:mm") ?? "-")</MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @if (_coverageRequests.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3">Oppna tackningsforfragningar</MudText>
+        <MudTable Items="_coverageRequests" Hover="true" Elevation="2" Dense="true">
+            <HeaderContent>
+                <MudTh>Pass-ID</MudTh>
+                <MudTh>Anledning</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Skapad</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ScheduledShiftId.ToString()[..8]...</MudTd>
+                <MudTd>@context.Anledning</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@CoverageColor(context.Status)">@context.Status</MudChip></MudTd>
+                <MudTd>@context.SkapadVid.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo _sv = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+    private List<ScheduledShift> _dagensPass = [];
+    private List<ShiftCoverageRequest> _coverageRequests = [];
+    private Dictionary<Guid, string> _anstallNamn = [];
+    private int _totalPass, _instamplade, _ejStamplade, _oppnaTackningar;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            _dagensPass = await Db.ScheduledShifts
+                .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
+                .OrderBy(s => s.PlaneradStart)
+                .ToListAsync();
+
+            _totalPass = _dagensPass.Count;
+            _instamplade = _dagensPass.Count(s => s.Status is ShiftStatus.Pagaende or ShiftStatus.Avslutad);
+            _ejStamplade = _dagensPass.Count(s => s.Status == ShiftStatus.Planerad && s.PlaneradStart <= TimeOnly.FromDateTime(DateTime.Now));
+
+            var anstallIds = _dagensPass.Select(s => s.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id))
+                .ToListAsync();
+            _anstallNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _coverageRequests = await Db.ShiftCoverageRequests
+                .Where(c => c.Status == CoverageStatus.Open || c.Status == CoverageStatus.Offered)
+                .OrderByDescending(c => c.SkapadVid)
+                .Take(20)
+                .ToListAsync();
+            _oppnaTackningar = _coverageRequests.Count;
+        }
+        catch { /* Silent fallback */ }
+        finally { _loading = false; }
+    }
+
+    private static Color PassColor(ShiftType typ) => typ switch
+    {
+        ShiftType.Dag => Color.Success,
+        ShiftType.Kvall => Color.Warning,
+        ShiftType.Natt => Color.Dark,
+        _ => Color.Default
+    };
+
+    private static Color StatusColor(ShiftStatus status) => status switch
+    {
+        ShiftStatus.Pagaende => Color.Success,
+        ShiftStatus.Avslutad => Color.Info,
+        ShiftStatus.Planerad => Color.Default,
+        ShiftStatus.Avbokad => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string StatusText(ShiftStatus status) => status switch
+    {
+        ShiftStatus.Pagaende => "Instamplad",
+        ShiftStatus.Avslutad => "Klar",
+        ShiftStatus.Planerad => "Planerad",
+        ShiftStatus.Avbokad => "Avbokad",
+        ShiftStatus.Bytt => "Bytt",
+        _ => status.ToString()
+    };
+
+    private static Color CoverageColor(CoverageStatus status) => status switch
+    {
+        CoverageStatus.Open => Color.Warning,
+        CoverageStatus.Offered => Color.Info,
+        CoverageStatus.Covered => Color.Success,
+        CoverageStatus.Uncovered => Color.Error,
+        _ => Color.Default
+    };
+}

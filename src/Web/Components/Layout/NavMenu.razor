@@ -33,7 +33,11 @@
         <MudNavGroup Title="@L["ScheduleAndTime"]" Icon="@Icons.Material.Filled.CalendarMonth"
                      Expanded="@_schemaOpen" ExpandedChanged="@(v => _schemaOpen = v)">
             <MudNavLink Href="/schema">@L["ScheduleOverview"]</MudNavLink>
+            <MudNavLink Href="/schema/realtid">Realtidsvy</MudNavLink>
             <MudNavLink Href="/schema/bemanning">@L["Staffing"]</MudNavLink>
+            <MudNavLink Href="/schema/optimering">Optimering</MudNavLink>
+            <MudNavLink Href="/schema/prognos">Behovsprognos</MudNavLink>
+            <MudNavLink Href="/schema/tillganglighet">Tillganglighet</MudNavLink>
             <MudNavLink Href="/stampling">@L["TimeClocking"]</MudNavLink>
             <MudNavLink Href="/tidrapporter">@L["TimeReports"]</MudNavLink>
         </MudNavGroup>
@@ -45,8 +49,10 @@
 
     <MudNavGroup Title="Karriär" Icon="@Icons.Material.Filled.TrendingUp"
                  Expanded="@_karriarOpen" ExpandedChanged="@(v => _karriarOpen = v)">
-        <MudNavLink Href="/karriar">Karriär & Kompetens</MudNavLink>
-        <MudNavLink Href="/karriar/min-utveckling">Min utvecklingsplan</MudNavLink>
+        <MudNavLink Href="/karriar">Talangmarknad</MudNavLink>
+        <MudNavLink Href="/karriar/minutveckling">Min karriarutveckling</MudNavLink>
+        <MudNavLink Href="/karriar/mentorskap">Mentorskap</MudNavLink>
+        <MudNavLink Href="/kompetens/endorsements">Endorsements</MudNavLink>
     </MudNavGroup>
 
     @if (Auth.IsInitialized && Auth.IsChef)
@@ -101,6 +107,8 @@
         <MudNavLink Href="/admin/automatisering" Icon="@Icons.Material.Filled.SmartToy">Automatisering</MudNavLink>
         <MudNavLink Href="/admin/kollektivavtal" Icon="@Icons.Material.Filled.Handshake">Kollektivavtal</MudNavLink>
         <MudNavLink Href="/admin/rapporter/schema" Icon="@Icons.Material.Filled.Schedule">Schemalagda rapporter</MudNavLink>
+        <MudNavLink Href="/admin/karriarvagar" Icon="@Icons.Material.Filled.Route">Karriarvagar</MudNavLink>
+        <MudNavLink Href="/admin/talangmarknad" Icon="@Icons.Material.Filled.Storefront">Talangmarknad</MudNavLink>
         <MudNavGroup Title="Förmånsadmin" Icon="@Icons.Material.Filled.AdminPanelSettings"
                      Expanded="@_formanerAdminOpen" ExpandedChanged="@(v => _formanerAdminOpen = v)">
             <MudNavLink Href="/admin/formaner/planer">Planer</MudNavLink>

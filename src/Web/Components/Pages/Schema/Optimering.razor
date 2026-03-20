@@ -1,0 +1,210 @@
+@page "/schema/optimering"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.Scheduling.Optimization
+@using RegionHR.Core.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Schemaoptimering</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Schemaoptimering</MudText>
+</div>
+
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" sm="4">
+        <MudSelect T="Guid" Label="Enhet" @bind-Value="_valdEnhet" Variant="Variant.Outlined">
+            @foreach (var enhet in _enheter)
+            {
+                <MudSelectItem T="Guid" Value="@enhet.Id.Value">@enhet.Namn</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="3">
+        <MudDatePicker Label="Period fran" @bind-Date="_periodFran" Variant="Variant.Outlined" />
+    </MudItem>
+    <MudItem xs="12" sm="3">
+        <MudDatePicker Label="Period till" @bind-Date="_periodTill" Variant="Variant.Outlined" />
+    </MudItem>
+    <MudItem xs="12" sm="2" Class="d-flex align-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   OnClick="KorOptimering" Disabled="_optimerar" FullWidth="true"
+                   StartIcon="@Icons.Material.Filled.AutoAwesome">
+            @if (_optimerar)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Surface" Class="mr-2" />
+            }
+            Optimera
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_resultat is not null)
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_resultat.GenereradePass</MudText>
+                <MudText Typo="Typo.body2">Genererade pass</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_resultat.TotalOBKostnad.ToString("N0") kr</MudText>
+                <MudText Typo="Typo.body2">OB-kostnad</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_resultat.TotalOvertidKostnad.ToString("N0") kr</MudText>
+                <MudText Typo="Typo.body2">Overtidskostnad</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h4" Color="@(_resultat.ATLKompliant ? Color.Success : Color.Error)" Style="font-weight: 700;">
+                    @(_resultat.ATLKompliant ? "Ja" : "Nej")
+                </MudText>
+                <MudText Typo="Typo.body2">ATL-kompliant</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudAlert Severity="@(_resultat.ATLKompliant ? Severity.Success : Severity.Warning)" Class="mb-4">
+        @if (_resultat.ATLKompliant)
+        {
+            <span>Optimeringen genererade @_resultat.GenereradePass pass som uppfyller alla ATL-krav.</span>
+        }
+        else
+        {
+            <span>Varning: Inte alla pass kunde bemannas. Kontrollera bemanning manuellt.</span>
+        }
+    </MudAlert>
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">Tidigare korningar</MudText>
+<MudTable Items="_tidigareKorningar" Hover="true" Elevation="2" Dense="true">
+    <HeaderContent>
+        <MudTh>Tidpunkt</MudTh>
+        <MudTh>Period</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Pass</MudTh>
+        <MudTh>OB-kostnad</MudTh>
+        <MudTh>ATL</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.SkapadVid.ToString("yyyy-MM-dd HH:mm")</MudTd>
+        <MudTd>@context.PeriodFran.ToString("d/M") - @context.PeriodTill.ToString("d/M")</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small" Color="@RunStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+        <MudTd>@context.GenereradePass</MudTd>
+        <MudTd>@context.TotalOBKostnad.ToString("N0") kr</MudTd>
+        <MudTd>
+            @if (context.ATLKompliant)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<OrganizationUnit> _enheter = [];
+    private List<SchedulingRun> _tidigareKorningar = [];
+    private Guid _valdEnhet;
+    private DateTime? _periodFran = DateTime.Today;
+    private DateTime? _periodTill = DateTime.Today.AddDays(7);
+    private bool _optimerar;
+    private SchedulingRun? _resultat;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _enheter = await Db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
+        if (_enheter.Count > 0) _valdEnhet = _enheter[0].Id.Value;
+
+        _tidigareKorningar = await Db.SchedulingRuns
+            .OrderByDescending(r => r.SkapadVid)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    private async Task KorOptimering()
+    {
+        if (_valdEnhet == Guid.Empty || _periodFran is null || _periodTill is null) return;
+
+        _optimerar = true;
+        StateHasChanged();
+
+        try
+        {
+            var fran = DateOnly.FromDateTime(_periodFran.Value);
+            var till = DateOnly.FromDateTime(_periodTill.Value);
+
+            var run = SchedulingRun.Starta(
+                OrganizationId.From(_valdEnhet), fran, till,
+                System.Text.Json.JsonSerializer.Serialize(new { _valdEnhet, fran, till }));
+
+            var solver = new ConstraintScheduleSolver();
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var personal = employees
+                .Where(e => e.Anstallningar.Any(a => a.EnhetId == OrganizationId.From(_valdEnhet) && a.Giltighetsperiod.IsActiveOn(idag)))
+                .Select(e => new PersonalInfo
+                {
+                    AnstallId = e.Id,
+                    Namn = $"{e.Fornamn} {e.Efternamn}",
+                    Sysselsattningsgrad = 100m,
+                    Kompetenser = [],
+                    LedigaDagar = []
+                }).ToList();
+
+            var behov = new List<StaffingRequirement>();
+            for (var d = fran; d <= till; d = d.AddDays(1))
+            {
+                behov.Add(new StaffingRequirement { Datum = d, PassTyp = ShiftType.Dag, Start = new TimeOnly(7, 0), Slut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), AntalBehov = 2 });
+                behov.Add(new StaffingRequirement { Datum = d, PassTyp = ShiftType.Kvall, Start = new TimeOnly(15, 0), Slut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), AntalBehov = 1 });
+            }
+
+            var problem = new ScheduleProblem
+            {
+                EnhetId = OrganizationId.From(_valdEnhet),
+                Period = new RegionHR.SharedKernel.Domain.DateRange(fran, till),
+                PassBehov = behov,
+                TillgangligPersonal = personal
+            };
+
+            var solution = solver.Solve(problem);
+            run.Slutfor(solution.Tilldelningar.Count, solution.TotalKostnad.Amount, 0m, solution.ObemannadeBehov.Count == 0);
+
+            await Db.SchedulingRuns.AddAsync(run);
+            await Db.SaveChangesAsync();
+
+            _resultat = run;
+            _tidigareKorningar.Insert(0, run);
+            Snackbar.Add($"Optimering klar! {run.GenereradePass} pass genererade.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Optimeringsfel: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _optimerar = false;
+        }
+    }
+
+    private static Color RunStatusColor(string status) => status switch
+    {
+        "Complete" => Color.Success,
+        "Running" => Color.Info,
+        "Failed" => Color.Error,
+        _ => Color.Default
+    };
+}

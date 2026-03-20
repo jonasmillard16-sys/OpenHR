@@ -1,0 +1,218 @@
+@page "/schema/tillganglighet"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.Core.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - Tillganglighet</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Medarbetartillganglighet</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid" Label="Anstalld" Value="_valdAnstallId" ValueChanged="OnAnstallChanged" Variant="Variant.Outlined">
+                @foreach (var emp in _employees)
+                {
+                    <MudSelectItem T="Guid" Value="@emp.Id.Value">@emp.Fornamn @emp.Efternamn</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (_fatigueScore is not null)
+    {
+        <MudAlert Severity="@FatigueSeverity(_fatigueScore.Poang)" Class="mb-4">
+            <strong>Trotthetspoang: @_fatigueScore.Poang/100</strong> —
+            @_fatigueScore.KonsekutivaDagar konsekutiva dagar,
+            @_fatigueScore.NattpassSenaste7Dagar nattpass (7d),
+            @_fatigueScore.TotalTimmarSenaste7Dagar.ToString("F1")h total (7d),
+            @_fatigueScore.HelgarbeteSenaste4Veckor helgdagar (4v).
+            Beraknad @_fatigueScore.BeraknadVid.ToString("yyyy-MM-dd HH:mm").
+        </MudAlert>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3">Aktuell tillganglighet</MudText>
+    @if (_availability.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+            Ingen tillganglighet registrerad for denna medarbetare.
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_availability" Hover="true" Elevation="2" Dense="true" Class="mb-6">
+            <HeaderContent>
+                <MudTh>Dag/Datum</MudTh>
+                <MudTh>Tid</MudTh>
+                <MudTh>Preferens</MudTh>
+                <MudTh>Repeterande</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    @if (context.ArRepeterande && context.Veckodag.HasValue)
+                    {
+                        <span>Varje @VeckodagNamn(context.Veckodag.Value)</span>
+                    }
+                    else if (context.Datum.HasValue)
+                    {
+                        @context.Datum.Value.ToString("d MMM yyyy", _sv)
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (context.TidFran.HasValue && context.TidTill.HasValue)
+                    {
+                        @context.TidFran.Value.ToString("HH:mm") <span> - </span> @context.TidTill.Value.ToString("HH:mm")
+                    }
+                    else
+                    {
+                        <span>Hela dagen</span>
+                    }
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@PreferensColor(context.Preferens)">@PreferensText(context.Preferens)</MudChip>
+                </MudTd>
+                <MudTd>@(context.ArRepeterande ? "Ja" : "Nej")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3">Lagg till tillganglighet</MudText>
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="3">
+                <MudSelect T="string" Label="Preferens" @bind-Value="_nyPreferens" Variant="Variant.Outlined">
+                    <MudSelectItem T="string" Value="@("VillJobba")">Vill jobba</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("KanJobba")">Kan jobba</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("KanInte")">Kan inte</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudDatePicker Label="Datum (specifikt)" @bind-Date="_nyDatum" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudSelect T="int?" Label="Veckodag" @bind-Value="_nyVeckodag" Variant="Variant.Outlined" Clearable="true">
+                    <MudSelectItem T="int?" Value="@((int?)1)">Mandag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)2)">Tisdag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)3)">Onsdag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)4)">Torsdag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)5)">Fredag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)6)">Lordag</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)0)">Sondag</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudCheckBox T="bool" @bind-Value="_nyRepeterande" Label="Repeterande" />
+            </MudItem>
+            <MudItem xs="12" sm="2" Class="d-flex align-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LaggTill" FullWidth="true">Lagg till</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo _sv = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+    private List<Employee> _employees = [];
+    private List<EmployeeAvailability> _availability = [];
+    private FatigueScore? _fatigueScore;
+    private Guid _valdAnstallId;
+    private bool _loading = true;
+
+    // Ny tillganglighet
+    private string _nyPreferens = "KanJobba";
+    private DateTime? _nyDatum;
+    private int? _nyVeckodag;
+    private bool _nyRepeterande;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        if (_employees.Count > 0)
+        {
+            _valdAnstallId = _employees[0].Id.Value;
+            await LaddaData();
+        }
+        _loading = false;
+    }
+
+    private async Task OnAnstallChanged(Guid id)
+    {
+        _valdAnstallId = id;
+        await LaddaData();
+    }
+
+    private async Task LaddaData()
+    {
+        _availability = await Db.EmployeeAvailabilities
+            .Where(a => a.AnstallId == EmployeeId.From(_valdAnstallId))
+            .ToListAsync();
+
+        _fatigueScore = await Db.FatigueScores
+            .Where(f => f.AnstallId == EmployeeId.From(_valdAnstallId))
+            .OrderByDescending(f => f.BeraknadVid)
+            .FirstOrDefaultAsync();
+    }
+
+    private async Task LaggTill()
+    {
+        if (_valdAnstallId == Guid.Empty) return;
+
+        var avail = new EmployeeAvailability
+        {
+            AnstallId = EmployeeId.From(_valdAnstallId),
+            Datum = _nyDatum.HasValue ? DateOnly.FromDateTime(_nyDatum.Value) : null,
+            Veckodag = _nyVeckodag,
+            Preferens = _nyPreferens,
+            ArRepeterande = _nyRepeterande
+        };
+
+        await Db.EmployeeAvailabilities.AddAsync(avail);
+        await Db.SaveChangesAsync();
+        _availability.Add(avail);
+
+        Snackbar.Add("Tillganglighet tillagd.", Severity.Success);
+        _nyDatum = null;
+        _nyVeckodag = null;
+    }
+
+    private static string VeckodagNamn(int dag) => dag switch
+    {
+        0 => "sondag", 1 => "mandag", 2 => "tisdag", 3 => "onsdag",
+        4 => "torsdag", 5 => "fredag", 6 => "lordag", _ => dag.ToString()
+    };
+
+    private static Color PreferensColor(string preferens) => preferens switch
+    {
+        "VillJobba" => Color.Success,
+        "KanJobba" => Color.Info,
+        "KanInte" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string PreferensText(string preferens) => preferens switch
+    {
+        "VillJobba" => "Vill jobba",
+        "KanJobba" => "Kan jobba",
+        "KanInte" => "Kan inte",
+        _ => preferens
+    };
+
+    private static Severity FatigueSeverity(int poang) => poang switch
+    {
+        >= 70 => Severity.Error,
+        >= 40 => Severity.Warning,
+        _ => Severity.Info
+    };
+}

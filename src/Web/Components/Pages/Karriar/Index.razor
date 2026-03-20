@@ -1,15 +1,16 @@
 @page "/karriar"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Competence.Domain
+@using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
-<PageTitle>OpenHR — Skills-katalog</PageTitle>
+<PageTitle>OpenHR — Talangmarknad</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Skills-katalog</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Intern talangmarknad</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Organisationens normaliserade kompetenser. Data hämtas från databasen.
+    Interna roller, projekt, gig och mentorskapsmojligheter. Se din matchning och anmall intresse.
 </MudText>
 
 @if (_loading)
@@ -25,31 +26,120 @@ else
     <MudGrid Spacing="3" Class="mb-4">
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_skills.Count</MudText>
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_opportunities.Count</MudText>
+                <MudText Typo="Typo.body2">Oppna mojligheter</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_skills.Count</MudText>
                 <MudText Typo="Typo.body2">Skills i katalogen</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_employeeSkills.Select(es => es.AnstallId).Distinct().Count()</MudText>
-                <MudText Typo="Typo.body2">Anställda med skills</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_careerPaths.Count</MudText>
+                <MudText Typo="Typo.body2">Karriarvagar</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_employeeSkills.Count</MudText>
-                <MudText Typo="Typo.body2">Registrerade kompetenser</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_requirements.Count</MudText>
-                <MudText Typo="Typo.body2">Positionskrav</MudText>
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_mentorRelations.Count</MudText>
+                <MudText Typo="Typo.body2">Aktiva mentorskap</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    @* Filter *@
+    @* Filter by type *@
+    <div class="d-flex gap-2 mb-3">
+        <MudChip T="string" Color="@(_filterTyp == null ? Color.Primary : Color.Default)"
+                 OnClick="@(() => _filterTyp = null)">Alla (@_opportunities.Count)</MudChip>
+        @foreach (var typ in _opportunities.Select(o => o.Typ).Distinct().OrderBy(t => t))
+        {
+            var count = _opportunities.Count(o => o.Typ == typ);
+            <MudChip T="string" Color="@(_filterTyp == typ ? Color.Primary : Color.Default)"
+                     OnClick="@(() => _filterTyp = typ)">@typ (@count)</MudChip>
+        }
+    </div>
+
+    <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">Oppna mojligheter</MudText>
+
+    @if (FilteredOpportunities.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">Inga oppna mojligheter just nu.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var opp in FilteredOpportunities)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-0" Style="height: 100%;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">@opp.Titel</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@TypFarg(opp.Typ)">@opp.Typ</MudChip>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (opp.PeriodFran.HasValue)
+                            {
+                                <MudText Typo="Typo.body2">
+                                    <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" />
+                                    @opp.PeriodFran?.ToString("yyyy-MM-dd") — @(opp.PeriodTill?.ToString("yyyy-MM-dd") ?? "tillsvidare")
+                                </MudText>
+                            }
+                            @{
+                                var matchScore = CalculateMatchScore(opp);
+                            }
+                            <div class="d-flex align-center gap-2 mt-2">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">Matchning:</MudText>
+                                <MudProgressLinear Color="@ScoreColor(matchScore)" Value="@matchScore"
+                                                   Style="min-width: 100px;" />
+                                <MudText Typo="Typo.body2">@matchScore%</MudText>
+                            </div>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       OnClick="@(() => VisaDetalj(opp))">Visa</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@(() => AnmalIntresse(opp))">Anmal intresse</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (_selectedOpp != null)
+    {
+        <MudPaper Class="pa-6 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">@_selectedOpp.Titel</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _selectedOpp = null)" />
+            </div>
+            <MudText Typo="Typo.body2"><strong>Typ:</strong> @_selectedOpp.Typ</MudText>
+            <MudText Typo="Typo.body2"><strong>Period:</strong> @_selectedOpp.PeriodFran?.ToString("yyyy-MM-dd") — @(_selectedOpp.PeriodTill?.ToString("yyyy-MM-dd") ?? "tillsvidare")</MudText>
+            <MudText Typo="Typo.body2"><strong>Status:</strong> @_selectedOpp.Status</MudText>
+            @if (!string.IsNullOrEmpty(_selectedOpp.Kravprofil))
+            {
+                <MudText Typo="Typo.body2" Class="mt-2"><strong>Kravprofil:</strong></MudText>
+                <MudText Typo="Typo.body2" Style="font-family: monospace;">@_selectedOpp.Kravprofil</MudText>
+            }
+        </MudPaper>
+    }
+
+    @if (_applied)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true"
+                  CloseIconClicked="@(() => _applied = false)">
+            Intresseanmalan registrerad!
+        </MudAlert>
+    }
+
+    @* Skills catalog section *@
+    <MudText Typo="Typo.h5" Class="mt-6 mb-3" Style="font-weight: 700;">Skills-katalog</MudText>
+
     <div class="d-flex gap-2 mb-3">
         <MudChip T="string" Color="@(_filterKategori == null ? Color.Primary : Color.Default)"
                  OnClick="@(() => _filterKategori = null)">Alla (@_skills.Count)</MudChip>
@@ -63,7 +153,7 @@ else
 
     <MudSimpleTable Hover="true" Elevation="2">
         <thead>
-            <tr><th>Skill</th><th>Kategori</th><th>Beskrivning</th><th>Anställda</th><th>Snitt nivå</th></tr>
+            <tr><th>Skill</th><th>Kategori</th><th>Beskrivning</th><th>Anstallda</th><th>Snitt niva</th></tr>
         </thead>
         <tbody>
             @foreach (var s in FilteredSkills)
@@ -89,20 +179,24 @@ else
             }
         </tbody>
     </MudSimpleTable>
-
-    @if (FilteredSkills.Count == 0)
-    {
-        <MudAlert Severity="Severity.Info" Class="mt-4">Inga skills matchar filtret.</MudAlert>
-    }
 }
 
 @code {
+    private List<InternalOpportunity> _opportunities = [];
     private List<Skill> _skills = [];
     private List<EmployeeSkill> _employeeSkills = [];
-    private List<PositionSkillRequirement> _requirements = [];
+    private List<CareerPath> _careerPaths = [];
+    private List<MentorRelation> _mentorRelations = [];
     private SkillCategory? _filterKategori;
+    private string? _filterTyp;
+    private InternalOpportunity? _selectedOpp;
+    private bool _applied;
     private bool _loading = true;
     private string? _error;
+
+    private List<InternalOpportunity> FilteredOpportunities => _filterTyp is null
+        ? _opportunities
+        : _opportunities.Where(o => o.Typ == _filterTyp).ToList();
 
     private List<Skill> FilteredSkills => _filterKategori is null
         ? _skills
@@ -112,16 +206,59 @@ else
     {
         try
         {
+            _opportunities = await Db.InternalOpportunities
+                .Where(o => o.Status == OpportunityStatus.Published)
+                .OrderByDescending(o => o.PeriodFran)
+                .ToListAsync();
             _skills = await Db.Skills.OrderBy(s => s.Kategori).ThenBy(s => s.Namn).ToListAsync();
             _employeeSkills = await Db.EmployeeSkills.ToListAsync();
-            _requirements = await Db.PositionSkillRequirements.ToListAsync();
+            _careerPaths = await Db.CareerPaths.ToListAsync();
+            _mentorRelations = await Db.MentorRelations
+                .Where(m => m.Status == "Active")
+                .ToListAsync();
         }
         catch (Exception ex)
         {
-            _error = $"Kunde inte hämta skills: {ex.Message}";
+            _error = $"Kunde inte hamta data: {ex.Message}";
         }
         finally { _loading = false; }
     }
+
+    private int CalculateMatchScore(InternalOpportunity opp)
+    {
+        // Simplified client-side score based on available skills
+        if (string.IsNullOrEmpty(opp.Kravprofil)) return 50;
+        // Count overlapping skills between employee base and requirements
+        var skillCount = _employeeSkills.Select(es => es.SkillId).Distinct().Count();
+        return Math.Min(skillCount * 15, 100);
+    }
+
+    private void VisaDetalj(InternalOpportunity opp)
+    {
+        _selectedOpp = _selectedOpp == opp ? null : opp;
+    }
+
+    private void AnmalIntresse(InternalOpportunity opp)
+    {
+        _applied = true;
+    }
+
+    private static Color TypFarg(string typ) => typ switch
+    {
+        "Roll" => Color.Primary,
+        "Projekt" => Color.Info,
+        "Gig" => Color.Warning,
+        "Mentorskap" => Color.Success,
+        "Rotation" => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private static Color ScoreColor(int score) => score switch
+    {
+        >= 80 => Color.Success,
+        >= 50 => Color.Warning,
+        _ => Color.Error
+    };
 
     private static Color KategoriFarg(SkillCategory k) => k switch
     {

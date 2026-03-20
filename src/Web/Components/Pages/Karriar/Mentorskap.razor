@@ -1,0 +1,189 @@
+@page "/karriar/mentorskap"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Competence.Domain
+@using RegionHR.Core.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Mentorskap</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Mentorskap</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Hitta mentor, se aktiva mentorskap och hantera relationer.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_relations.Count(r => r.Status == "Active")</MudText>
+                <MudText Typo="Typo.body2">Aktiva mentorskap</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_relations.Select(r => r.MentorId).Distinct().Count()</MudText>
+                <MudText Typo="Typo.body2">Mentorer</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_relations.Select(r => r.AdeptId).Distinct().Count()</MudText>
+                <MudText Typo="Typo.body2">Adepter</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">Aktiva mentorrelationer</MudText>
+
+    @if (_relations.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">Inga mentorrelationer registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead>
+                <tr>
+                    <th>Mentor</th>
+                    <th>Adept</th>
+                    <th>Fokusomrade</th>
+                    <th>Startdatum</th>
+                    <th>Motesfrekvens</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rel in _relations)
+                {
+                    var mentor = _employees.FirstOrDefault(e => e.Id.Value == rel.MentorId);
+                    var adept = _employees.FirstOrDefault(e => e.Id.Value == rel.AdeptId);
+                    <tr>
+                        <td><strong>@(mentor != null ? $"{mentor.Fornamn} {mentor.Efternamn}" : rel.MentorId.ToString()[..8])</strong></td>
+                        <td>@(adept != null ? $"{adept.Fornamn} {adept.Efternamn}" : rel.AdeptId.ToString()[..8])</td>
+                        <td>@rel.FokusOmrade</td>
+                        <td>@rel.StartDatum.ToString("yyyy-MM-dd")</td>
+                        <td>Var @rel.MotesFrekvensDagar:e dag</td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="@StatusFarg(rel.Status)">@rel.Status</MudChip>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* Find mentor section *@
+    <MudText Typo="Typo.h5" Class="mb-3 mt-4" Style="font-weight: 700;">Hitta mentor</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+        Anstallda med hog kompetensniva som kan vara mentorer.
+    </MudText>
+
+    <MudGrid Spacing="3">
+        @foreach (var mentor in _potentialMentors)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">@mentor.Namn</MudText>
+                            <MudText Typo="Typo.caption">@mentor.TopSkills</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2">Snitt kompetensniva: @mentor.AvgNiva.ToString("0.0") / 5</MudText>
+                        <MudRating ReadOnly="true" SelectedValue="@((int)Math.Round(mentor.AvgNiva))" MaxValue="5" Size="Size.Small" />
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="@(() => SkickaMentorForfragan(mentor))">Skicka forfragan</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_requestSent)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true"
+                  CloseIconClicked="@(() => _requestSent = false)">
+            Mentorforfragan skickad!
+        </MudAlert>
+    }
+}
+
+@code {
+    private List<MentorRelation> _relations = [];
+    private List<Employee> _employees = [];
+    private List<PotentialMentor> _potentialMentors = [];
+    private bool _loading = true;
+    private string? _error;
+    private bool _requestSent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _relations = await Db.MentorRelations.ToListAsync();
+            _employees = await Db.Employees.ToListAsync();
+
+            var empSkills = await Db.EmployeeSkills.ToListAsync();
+            var skills = await Db.Skills.ToListAsync();
+
+            // Find potential mentors: employees with high skill levels
+            _potentialMentors = _employees
+                .Select(e =>
+                {
+                    var mySkills = empSkills.Where(es => es.AnstallId == e.Id.Value).ToList();
+                    if (mySkills.Count == 0) return null;
+
+                    var avgNiva = mySkills.Average(s => s.Niva);
+                    if (avgNiva < 3) return null;
+
+                    var topSkillNames = mySkills
+                        .OrderByDescending(s => s.Niva)
+                        .Take(3)
+                        .Select(s => skills.FirstOrDefault(sk => sk.Id == s.SkillId)?.Namn ?? "?")
+                        .ToList();
+
+                    return new PotentialMentor(
+                        e.Id.Value,
+                        $"{e.Fornamn} {e.Efternamn}",
+                        avgNiva,
+                        string.Join(", ", topSkillNames));
+                })
+                .Where(m => m != null)
+                .Cast<PotentialMentor>()
+                .OrderByDescending(m => m.AvgNiva)
+                .Take(6)
+                .ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void SkickaMentorForfragan(PotentialMentor mentor)
+    {
+        _requestSent = true;
+    }
+
+    private static Color StatusFarg(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Completed" => Color.Info,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
+
+    private record PotentialMentor(Guid Id, string Namn, double AvgNiva, string TopSkills);
+}

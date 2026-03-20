@@ -312,6 +312,79 @@ public static class SeedData
             EmployeeSkill.Skapa(employees[7].Id.Value, arbetsratt.Id, 2),
             EmployeeSkill.Skapa(employees[7].Id.Value, excel.Id, 3));
 
+        // === Skill Categories (entity-baserade, ersätter enum) ===
+        var katKlinisk = SkillCategoryEntity.Skapa("Klinisk", "Kliniska vårdkompetenser");
+        var katTeknisk = SkillCategoryEntity.Skapa("Teknisk", "Tekniska och IT-kompetenser");
+        var katLedarskap = SkillCategoryEntity.Skapa("Ledarskap", "Ledarskaps- och chefskompetenser");
+        var katAdmin = SkillCategoryEntity.Skapa("Administration", "Administrativa kompetenser");
+        var katKomm = SkillCategoryEntity.Skapa("Kommunikation", "Kommunikations- och samverkanskompetenser");
+        var katReg = SkillCategoryEntity.Skapa("Regulatorisk", "Regelverks- och lagstiftningskompetenser");
+
+        db.SkillCategories.AddRange(katKlinisk, katTeknisk, katLedarskap, katAdmin, katKomm, katReg);
+
+        // Koppla befintliga skills till nya kategori-entiteter
+        hlr.SattKategoriEntitet(katKlinisk.Id);
+        triage.SattKategoriEntitet(katKlinisk.Id);
+        lakemedel.SattKategoriEntitet(katKlinisk.Id);
+        journal.SattKategoriEntitet(katKlinisk.Id);
+        saravard.SattKategoriEntitet(katKlinisk.Id);
+        ventilator.SattKategoriEntitet(katKlinisk.Id);
+        ledarskap.SattKategoriEntitet(katLedarskap.Id);
+        projektledning.SattKategoriEntitet(katLedarskap.Id);
+        excel.SattKategoriEntitet(katTeknisk.Id);
+        it.SattKategoriEntitet(katTeknisk.Id);
+        kommunikation.SattKategoriEntitet(katAdmin.Id);
+        arbetsratt.SattKategoriEntitet(katAdmin.Id);
+
+        // === Skill Relations ===
+        db.SkillRelations.AddRange(
+            SkillRelation.Skapa(hlr.Id, triage.Id, "Related"),
+            SkillRelation.Skapa(lakemedel.Id, journal.Id, "Related"),
+            SkillRelation.Skapa(ledarskap.Id, projektledning.Id, "Prerequisite"));
+
+        // === Inferred Skills ===
+        db.InferredSkills.AddRange(
+            InferredSkill.Skapa(employees[0].Id.Value, triage.Id, "Befattning", 75),
+            InferredSkill.Skapa(employees[1].Id.Value, ventilator.Id, "Erfarenhet", 60),
+            InferredSkill.Skapa(employees[3].Id.Value, ledarskap.Id, "Kurs", 50));
+
+        // === Career Paths ===
+        var cpVard = CareerPath.Skapa("Sjukskoterska till Vardenhetschef", "Vard",
+            "Karriarvag fran grundutbildad sjukskoterska till enhetschef");
+        cpVard.LaggTillSteg("Sjukskoterska", 1, 24,
+            "[{\"Skill\":\"HLR\",\"Niva\":3},{\"Skill\":\"Lakemedel\",\"Niva\":3}]", 0);
+        cpVard.LaggTillSteg("Specialistsjukskoterska", 2, 36,
+            "[{\"Skill\":\"HLR\",\"Niva\":5},{\"Skill\":\"Ventilatorvard\",\"Niva\":3}]", 24);
+        cpVard.LaggTillSteg("Vardenhetschef", 3, 0,
+            "[{\"Skill\":\"Ledarskap\",\"Niva\":4},{\"Skill\":\"Kommunikation\",\"Niva\":4}]", 60);
+
+        var cpIt = CareerPath.Skapa("Utvecklare till Tech Lead", "IT",
+            "Karriarvag inom IT-utveckling");
+        cpIt.LaggTillSteg("Utvecklare", 1, 24,
+            "[{\"Skill\":\"IT-system\",\"Niva\":3}]", 0);
+        cpIt.LaggTillSteg("Senior Utvecklare", 2, 36,
+            "[{\"Skill\":\"IT-system\",\"Niva\":4},{\"Skill\":\"Projektledning\",\"Niva\":2}]", 24);
+        cpIt.LaggTillSteg("Tech Lead", 3, 0,
+            "[{\"Skill\":\"IT-system\",\"Niva\":5},{\"Skill\":\"Ledarskap\",\"Niva\":3}]", 60);
+
+        db.CareerPaths.AddRange(cpVard, cpIt);
+
+        // === Internal Opportunity (published project) ===
+        var opportunity = InternalOpportunity.Skapa("Projekt", "Digitalisering av patientjournaler",
+            sjukhus.Id.Value,
+            DateOnly.FromDateTime(DateTime.Today),
+            DateOnly.FromDateTime(DateTime.Today.AddMonths(6)),
+            "[{\"Skill\":\"IT-system\",\"Niva\":3},{\"Skill\":\"Journalforing\",\"Niva\":2}]");
+        opportunity.Publicera();
+        db.InternalOpportunities.Add(opportunity);
+
+        // === Mentor Relations ===
+        db.MentorRelations.AddRange(
+            MentorRelation.Skapa(employees[7].Id.Value, employees[0].Id.Value, "Ledarskap och karriarutveckling",
+                DateOnly.FromDateTime(DateTime.Today.AddMonths(-2)), 14),
+            MentorRelation.Skapa(employees[1].Id.Value, employees[3].Id.Value, "Klinisk specialisering",
+                DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 7));
+
         // === Provisioning rules (default konfiguration) ===
         db.ProvisioningRules.AddRange(
             Provisioning.ProvisioningRule.Skapa(
@@ -1175,6 +1248,40 @@ public static class SeedData
             RegionHR.VMS.Domain.SpendCategory.Skapa("Bemanningssjukskoterska", "Inhyrda sjukskoterskor via bemanningsforetag"),
             RegionHR.VMS.Domain.SpendCategory.Skapa("IT-konsult", "Externt inhyrda IT-resurser"),
             RegionHR.VMS.Domain.SpendCategory.Skapa("Administrativ", "Administrativ stodpersonal via bemanning"));
+
+        // === WFM: DemandPatterns for Akuten (5 st — vardagar, helger) ===
+        db.DemandPatterns.AddRange(
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 1, GenomsnittligBelastning = 12, SasongsVariation = 1.0m }, // Mån
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 2, GenomsnittligBelastning = 11, SasongsVariation = 1.0m }, // Tis
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 5, GenomsnittligBelastning = 14, SasongsVariation = 1.1m }, // Fre
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 6, GenomsnittligBelastning = 16, SasongsVariation = 1.2m }, // Lör
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 0, GenomsnittligBelastning = 15, SasongsVariation = 1.15m }); // Sön
+
+        // === WFM: DemandEvents (3 st) ===
+        db.DemandEvents.AddRange(
+            new RegionHR.Scheduling.Domain.DemandEvent { Namn = "Jul 2026", Typ = "Helgdag", PaverkanGrad = 1.6m, DatumFran = new DateOnly(2026, 12, 23), DatumTill = new DateOnly(2026, 12, 26) },
+            new RegionHR.Scheduling.Domain.DemandEvent { Namn = "Midsommar 2026", Typ = "Helgdag", PaverkanGrad = 1.4m, DatumFran = new DateOnly(2026, 6, 19), DatumTill = new DateOnly(2026, 6, 21) },
+            new RegionHR.Scheduling.Domain.DemandEvent { Namn = "Influensasasong 2026/2027", Typ = "Influensasasong", PaverkanGrad = 1.35m, DatumFran = new DateOnly(2026, 11, 1), DatumTill = new DateOnly(2027, 2, 28) });
+
+        // === WFM: SchedulingConstraints (5 st) ===
+        db.SchedulingConstraints.AddRange(
+            new RegionHR.Scheduling.Domain.SchedulingConstraint { Typ = "ATL", Beskrivning = "ATL §13: Minst 11h sammanhangande dygnsvila", Vikt = 100, ArHard = true },
+            new RegionHR.Scheduling.Domain.SchedulingConstraint { Typ = "ATL", Beskrivning = "ATL §14: Minst 36h sammanhangande veckovila", Vikt = 100, ArHard = true },
+            new RegionHR.Scheduling.Domain.SchedulingConstraint { Typ = "Kompetens", Beskrivning = "Ratt kompetens pa varje pass (legitimation, HLR etc.)", Vikt = 95, ArHard = true },
+            new RegionHR.Scheduling.Domain.SchedulingConstraint { Typ = "Preferens", Beskrivning = "Medarbetarpreferenser for pass och tider", Vikt = 30, ArHard = false },
+            new RegionHR.Scheduling.Domain.SchedulingConstraint { Typ = "Kostnad", Beskrivning = "Minimera OB- och overtidskostnader", Vikt = 40, ArHard = false });
+
+        // === WFM: EmployeeAvailability (4 st) ===
+        db.EmployeeAvailabilities.AddRange(
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[0].Id, Veckodag = 1, TidFran = new TimeOnly(7, 0), TidTill = new TimeOnly(16, 0), Preferens = "VillJobba", ArRepeterande = true },
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[0].Id, Veckodag = 6, Preferens = "KanInte", ArRepeterande = true },
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[2].Id, Veckodag = 5, TidFran = new TimeOnly(15, 0), TidTill = new TimeOnly(22, 0), Preferens = "KanJobba", ArRepeterande = true },
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[3].Id, Datum = new DateOnly(2026, 4, 10), Preferens = "KanInte", ArRepeterande = false });
+
+        // === WFM: FatigueScores (2 st for seeded employees) ===
+        db.FatigueScores.AddRange(
+            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[1].Id, konsekutivaDagar: 5, nattpassSenaste7Dagar: 2, totalTimmarSenaste7Dagar: 42.5m, kortVila: 1, helgarbeteSenaste4Veckor: 3),
+            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[3].Id, konsekutivaDagar: 3, nattpassSenaste7Dagar: 1, totalTimmarSenaste7Dagar: 35.0m, kortVila: 0, helgarbeteSenaste4Veckor: 1));
 
         await db.SaveChangesAsync();
     }
