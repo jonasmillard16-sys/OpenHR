@@ -374,6 +374,13 @@ app.MapSelfServiceEndpoints();
 app.MapManagerPortalEndpoints();
 
 // ============================================================
+// Phase A: Migrering, Automatisering, Kollektivavtal
+// ============================================================
+app.MapMigrationEndpoints();
+app.MapAutomationEndpoints();
+app.MapAgreementEndpoints();
+
+// ============================================================
 // Integration Status
 // ============================================================
 app.MapGet("/api/v1/integration/status", async (KOLLHOSPAdapter koll, CancellationToken ct) =>

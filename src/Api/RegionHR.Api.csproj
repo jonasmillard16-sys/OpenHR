@@ -44,6 +44,9 @@
     <ProjectReference Include="..\Modules\Offboarding\RegionHR.Offboarding.csproj" />
     <ProjectReference Include="..\Modules\Analytics\RegionHR.Analytics.csproj" />
     <ProjectReference Include="..\Modules\Configuration\RegionHR.Configuration.csproj" />
+    <ProjectReference Include="..\Modules\Migration\RegionHR.Migration.csproj" />
+    <ProjectReference Include="..\Modules\Automation\RegionHR.Automation.csproj" />
+    <ProjectReference Include="..\Modules\Agreements\RegionHR.Agreements.csproj" />
   </ItemGroup>
 
 </Project>
