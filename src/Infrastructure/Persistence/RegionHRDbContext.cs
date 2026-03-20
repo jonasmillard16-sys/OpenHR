@@ -140,6 +140,10 @@ public class RegionHRDbContext : DbContext
     public DbSet<RegionHR.Communication.Domain.Announcement> Announcements => Set<RegionHR.Communication.Domain.Announcement>();
     public DbSet<RegionHR.Communication.Domain.Recognition> Recognitions => Set<RegionHR.Communication.Domain.Recognition>();
 
+    // Feedback (schema: performance)
+    public DbSet<RegionHR.Performance.Domain.FeedbackRound> FeedbackRounds => Set<RegionHR.Performance.Domain.FeedbackRound>();
+    public DbSet<RegionHR.Performance.Domain.FeedbackResponse> FeedbackResponses => Set<RegionHR.Performance.Domain.FeedbackResponse>();
+
     // Succession (schema: positions)
     public DbSet<RegionHR.Positions.Domain.SuccessionPlan> SuccessionPlans => Set<RegionHR.Positions.Domain.SuccessionPlan>();
 

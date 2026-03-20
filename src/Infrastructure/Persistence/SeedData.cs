@@ -839,6 +839,19 @@ public static class SeedData
             RegionHR.Positions.Domain.SuccessionPlan.Skapa(posLakAkut.Id, employees[1].Id.Value, 2032, null, RegionHR.Positions.Domain.SuccessionReadiness.EjIdentifierad, 0),
             RegionHR.Positions.Domain.SuccessionPlan.Skapa(posSsk32.Id, employees[0].Id.Value, 2035, employees[4].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom2Ar, 40));
 
+        // === FeedbackRound + Responses ===
+        var fb360Anna = RegionHR.Performance.Domain.FeedbackRound.Skapa(employees[0].Id.Value, "360-feedback Anna Svensson 2026");
+        fb360Anna.Oppna();
+        fb360Anna.Stang();
+        var fbResp1 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[7].Id.Value, "Chef", 4, "Bra samarbetsformaga");
+        var fbResp2 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[3].Id.Value, "Kollega", 5, "Alltid hjalpsam");
+        var fbResp3 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[4].Id.Value, "Kollega", 4);
+
+        var fb360Erik = RegionHR.Performance.Domain.FeedbackRound.Skapa(employees[1].Id.Value, "360-feedback Erik Johansson 2026");
+        fb360Erik.Oppna();
+        db.FeedbackRounds.AddRange(fb360Anna, fb360Erik);
+        db.FeedbackResponses.AddRange(fbResp1, fbResp2, fbResp3);
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 

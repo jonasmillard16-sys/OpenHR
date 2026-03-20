@@ -1,171 +1,127 @@
 @page "/medarbetarsamtal/360"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Performance.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>OpenHR - 360-graders feedback</PageTitle>
+<PageTitle>OpenHR - 360-feedback</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">360-graders feedback</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny feedbackrunda</MudButton>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">360-feedback</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showCreate = true)">Ny feedbackrunda</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_aktivaRundor</MudText>
-            <MudText Typo="Typo.body2">Aktiva rundor</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutade</MudText>
-            <MudText Typo="Typo.body2">Avslutade (2026)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText>
-            <MudText Typo="Typo.body2">Väntar på svar</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_svarsfrekvens %</MudText>
-            <MudText Typo="Typo.body2">Genomsnittlig svarsfrekvens</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    360-graders feedback samlar in bedömningar från kollegor, underställda, chef och övriga intressenter.
-    Alla svar är anonyma och presenteras aggregerat i slutrapporten.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Pågående feedbackrundor</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Medarbetare</th>
-            <th>Befattning</th>
-            <th>Period</th>
-            <th>Bedömare</th>
-            <th>Svar inkomna</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rundor)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Befattning</td>
-                <td>@rad.Period</td>
-                <td>@rad.AntalBedomare</td>
-                <td>
-                    <MudProgressLinear Value="@rad.SvarProcent" Color="@(rad.SvarProcent >= 80 ? Color.Success : Color.Warning)" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@rad.SvarInkomna / @rad.AntalBedomare (@rad.SvarProcent %)</MudText>
-                </td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRunda(rad))">Detaljer</MudButton></td>
-            </tr>
-            @if (_valdRunda == rad)
-            {
-                <tr>
-                    <td colspan="7">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>360-feedback — @rad.Namn</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Befattning:</strong> @rad.Befattning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Period:</strong> @rad.Period</MudText>
-                            <MudText Typo="Typo.body2"><strong>Bedömare:</strong> @rad.AntalBedomare</MudText>
-                            <MudText Typo="Typo.body2"><strong>Svar inkomna:</strong> @rad.SvarInkomna / @rad.AntalBedomare (@rad.SvarProcent %)</MudText>
-                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRunda = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Bedömningskategorier</MudText>
-<MudGrid Spacing="3">
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Ledarskap</MudText>
-            <MudText Typo="Typo.body2">Kommunikation, beslutsfattande, coachning, delegering</MudText>
-            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
-            <MudText Typo="Typo.caption">Genomsnitt: 4.1 / 5</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Samarbete</MudText>
-            <MudText Typo="Typo.body2">Teamwork, konflikthantering, kunskapsdelning</MudText>
-            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
-            <MudText Typo="Typo.caption">Genomsnitt: 4.3 / 5</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-4" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Fackkompetens</MudText>
-            <MudText Typo="Typo.body2">Yrkeskunskap, problemlösning, kvalitet</MudText>
-            <MudRating ReadOnly="true" SelectedValue="4" Class="mt-2" />
-            <MudText Typo="Typo.caption">Genomsnitt: 3.9 / 5</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_visaNyDialog)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny 360-feedbackrunda</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyAnst" Label="Anställd att utvärdera" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyAntalBed" Label="Antal bedömare" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaFeedback">Skapa</MudButton>
-    </MudPaper>
-}
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_rounds.Count</MudText><MudText Typo="Typo.body2">Rundor totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_rounds.Count(r => r.Round.Status == FeedbackRoundStatus.Stangd)</MudText><MudText Typo="Typo.body2">Avslutade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rounds.Count(r => r.Round.Status == FeedbackRoundStatus.Oppnad)</MudText><MudText Typo="Typo.body2">Pågående</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_totalResponses</MudText><MudText Typo="Typo.body2">Svar totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_showCreate)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny feedbackrunda</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showCreate = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                        @foreach (var e in _employees) { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formTitel" Label="Titel" Variant="Variant.Outlined" Required="true" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaRunda"
+                       Disabled="@(_formAnstallId == null || string.IsNullOrWhiteSpace(_formTitel) || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @if (_rounds.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga feedbackrundor registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Titel</th><th>Status</th><th>Svar</th><th>Snittbetyg</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in _rounds)
+                {
+                    <tr>
+                        <td><strong>@r.AnstallNamn</strong></td>
+                        <td>@r.Round.Titel</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Round.Status)">@StatusText(r.Round.Status)</MudChip></td>
+                        <td>@r.AntalSvar</td>
+                        <td>@(r.AntalSvar > 0 ? $"{r.SnittBetyg:F1} / 5" : "—")</td>
+                        <td>
+                            @if (r.Round.Status == FeedbackRoundStatus.Utkast) { <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => OppnaRunda(r.Round))">Öppna</MudButton> }
+                            else if (r.Round.Status == FeedbackRoundStatus.Oppnad) { <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" OnClick="@(() => StangRunda(r.Round))">Stäng</MudButton> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyAnst = "", _nyAntalBed = "";
+    private List<RoundVm> _rounds = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private int _totalResponses;
+    private bool _loading = true, _saving, _showCreate;
+    private string? _error, _success, _formTitel = "";
+    private Guid? _formAnstallId;
 
-    private void SkapaFeedback()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyAnst)) return;
-        _skapad = $"360-feedbackrunda skapad för {_nyAnst}. Enkät skickas till {_nyAntalBed} bedömare.";
-        _nyAnst = ""; _nyAntalBed = ""; _visaNyDialog = false;
-    }
-    private FeedbackRunda? _valdRunda;
+        try
+        {
+            var rounds = await Db.FeedbackRounds.OrderByDescending(r => r.SkapadVid).ToListAsync();
+            var responses = await Db.FeedbackResponses.ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            var respByRound = responses.GroupBy(r => r.RoundId).ToDictionary(g => g.Key, g => g.ToList());
 
-    private void ValjRunda(FeedbackRunda rad) => _valdRunda = _valdRunda == rad ? null : rad;
-
-    private int _aktivaRundor = 4;
-    private int _avslutade = 12;
-    private int _vantar = 18;
-    private int _svarsfrekvens = 78;
-
-    private List<FeedbackRunda> _rundor = [];
-
-    protected override void OnInitialized()
-    {
-        _rundor =
-        [
-            new("Anna Svensson", "Verksamhetschef", "2026-03-01 – 2026-03-31", 8, 6, 75, "Pågår", Color.Warning),
-            new("Karl Berg", "Avdelningschef", "2026-03-01 – 2026-03-31", 10, 9, 90, "Pågår", Color.Warning),
-            new("Erik Johansson", "Sektionschef", "2026-02-15 – 2026-03-15", 6, 6, 100, "Avslutad", Color.Success),
-            new("Lisa Holm", "HR-chef", "2026-03-10 – 2026-04-10", 12, 4, 33, "Pågår", Color.Warning),
-            new("Per Gustafsson", "IT-chef", "2026-03-01 – 2026-03-31", 7, 7, 100, "Avslutad", Color.Success),
-            new("Sara Karlsson", "Enhetschef", "2026-03-15 – 2026-04-15", 9, 2, 22, "Ny", Color.Info),
-        ];
+            _rounds = rounds.Select(r =>
+            {
+                var resps = respByRound.GetValueOrDefault(r.Id, []);
+                return new RoundVm(names.GetValueOrDefault(r.AnstallId, "Okänd"), r, resps.Count,
+                    resps.Count > 0 ? resps.Average(x => x.Betyg) : 0);
+            }).ToList();
+            _totalResponses = responses.Count;
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record FeedbackRunda(string Namn, string Befattning, string Period, int AntalBedomare, int SvarInkomna, int SvarProcent, string StatusText, Color StatusFarg);
+    private async Task SkapaRunda()
+    {
+        if (_formAnstallId == null || string.IsNullOrWhiteSpace(_formTitel)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var round = FeedbackRound.Skapa(_formAnstallId.Value, _formTitel!);
+            Db.FeedbackRounds.Add(round);
+            await Db.SaveChangesAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            _rounds.Insert(0, new RoundVm(names.GetValueOrDefault(_formAnstallId.Value, "Okänd"), round, 0, 0));
+            _showCreate = false; _success = "Feedbackrunda skapad."; _formTitel = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private async Task OppnaRunda(FeedbackRound r) { try { r.Oppna(); await Db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
+    private async Task StangRunda(FeedbackRound r) { try { r.Stang(); await Db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
+
+    private static string StatusText(FeedbackRoundStatus s) => s switch { FeedbackRoundStatus.Utkast => "Utkast", FeedbackRoundStatus.Oppnad => "Öppen", FeedbackRoundStatus.Stangd => "Stängd", _ => s.ToString() };
+    private static Color StatusFarg(FeedbackRoundStatus s) => s switch { FeedbackRoundStatus.Oppnad => Color.Success, FeedbackRoundStatus.Stangd => Color.Info, _ => Color.Default };
+
+    private record RoundVm(string AnstallNamn, FeedbackRound Round, int AntalSvar, double SnittBetyg);
 }
