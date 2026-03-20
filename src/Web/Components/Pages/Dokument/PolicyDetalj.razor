@@ -1,0 +1,135 @@
+@page "/dokument/policyer/{PolicyId:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.PolicyManagement.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+
+<PageTitle>OpenHR - Policy</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/dokument/policyer" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_policy == null)
+{
+    <MudAlert Severity="Severity.Warning">Policy hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">@_policy.Titel</MudText>
+    <MudStack Row="true" Spacing="3" Class="mb-4">
+        <MudChip T="string" Size="Size.Small" Color="@StatusColor(_policy.Status)">@StatusText(_policy.Status)</MudChip>
+        <MudText Typo="Typo.body2">Version @_policy.Version</MudText>
+        <MudText Typo="Typo.body2">Kategori: @KategoriText(_policy.Kategori)</MudText>
+        @if (_policy.PubliceradVid.HasValue)
+        {
+            <MudText Typo="Typo.body2">Publicerad @_policy.PubliceradVid.Value.ToLocalTime().ToString("yyyy-MM-dd")</MudText>
+        }
+    </MudStack>
+
+    @if (_policy.Sammanfattning != null)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">@_policy.Sammanfattning</MudAlert>
+    }
+
+    <MudPaper Class="pa-5 mb-4" Elevation="2">
+        <MudText Typo="Typo.body1" Style="white-space: pre-wrap;">@_policy.Innehall</MudText>
+    </MudPaper>
+
+    @* Bekräftelsedel *@
+    @if (_policy.KraverBekraftelse && _policy.Status == PolicyStatus.Publicerad)
+    {
+        <MudDivider Class="my-4" />
+
+        @if (!Auth.EmployeeId.HasValue)
+        {
+            <MudAlert Severity="Severity.Warning">Bekräftelse kräver att du är inloggad med en personalprofil.</MudAlert>
+        }
+        else if (_alreadyConfirmed)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Filled">
+                Du har bekräftat denna policy (@_confirmedDate).
+            </MudAlert>
+        }
+        else
+        {
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;" Class="mb-2">Bekräftelse krävs</MudText>
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    Genom att klicka nedan bekräftar du att du har läst och förstått denna policy.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+                           OnClick="BekraftaPolicy" Disabled="_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Jag har läst och förstår policyn
+                </MudButton>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    [Parameter] public Guid PolicyId { get; set; }
+
+    private Policy? _policy;
+    private bool _loading = true, _saving, _alreadyConfirmed;
+    private string? _error, _confirmedDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _policy = await Db.Policies.FirstOrDefaultAsync(p => p.Id == PolicyId);
+
+            if (_policy != null && Auth.EmployeeId.HasValue)
+            {
+                var existing = await Db.PolicyConfirmations
+                    .FirstOrDefaultAsync(c => c.PolicyId == PolicyId && c.AnstallId == Auth.EmployeeId.Value);
+                if (existing != null)
+                {
+                    _alreadyConfirmed = true;
+                    _confirmedDate = existing.BekraftadVid.ToLocalTime().ToString("yyyy-MM-dd");
+                }
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta policy: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task BekraftaPolicy()
+    {
+        if (!Auth.EmployeeId.HasValue || _policy == null)
+        {
+            _error = "Bekräftelse kräver kopplad anställd.";
+            return;
+        }
+
+        _saving = true; _error = null;
+        try
+        {
+            var confirmation = PolicyConfirmation.Skapa(_policy.Id, Auth.EmployeeId.Value, _policy.Version);
+            Db.PolicyConfirmations.Add(confirmation);
+            await Db.SaveChangesAsync();
+            _alreadyConfirmed = true;
+            _confirmedDate = confirmation.BekraftadVid.ToLocalTime().ToString("yyyy-MM-dd");
+        }
+        catch (Exception ex) { _error = $"Kunde inte spara bekräftelse: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private static string StatusText(PolicyStatus s) => s switch { PolicyStatus.Utkast => "Utkast", PolicyStatus.Publicerad => "Publicerad", PolicyStatus.Arkiverad => "Arkiverad", _ => s.ToString() };
+    private static Color StatusColor(PolicyStatus s) => s switch { PolicyStatus.Publicerad => Color.Success, PolicyStatus.Arkiverad => Color.Default, _ => Color.Info };
+    private static string KategoriText(PolicyCategory k) => k switch { PolicyCategory.ITSakerhet => "IT-säkerhet", PolicyCategory.Arbetsmiljo => "Arbetsmiljö", PolicyCategory.GDPR => "GDPR", PolicyCategory.Personalhandbok => "Personalhandbok", PolicyCategory.Medicinsk => "Medicinsk", PolicyCategory.Juridisk => "Juridisk", _ => "Övrigt" };
+}

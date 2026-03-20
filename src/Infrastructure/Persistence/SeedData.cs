@@ -706,6 +706,34 @@ public static class SeedData
         pulsApril.Oppna();
         db.PulseSurveys.Add(pulsApril);
 
+        // === Policyer via domänens Skapa() + Publicera() ===
+        var policyGdpr = RegionHR.PolicyManagement.Domain.Policy.Skapa(
+            "GDPR-policy", "Hantering av personuppgifter enligt GDPR och patientdatalagen.",
+            RegionHR.PolicyManagement.Domain.PolicyCategory.GDPR, kraverBekraftelse: true, "Admin",
+            sammanfattning: "Alla anstallda ska folja regionens regler for hantering av personuppgifter.");
+        policyGdpr.Publicera();
+
+        var policyIt = RegionHR.PolicyManagement.Domain.Policy.Skapa(
+            "IT-sakerhetspolicy", "Regler for anvandning av IT-system, losenord och e-post.",
+            RegionHR.PolicyManagement.Domain.PolicyCategory.ITSakerhet, kraverBekraftelse: true, "Admin",
+            sammanfattning: "Alla anvandare av regionens IT-system ska folja dessa regler.");
+        policyIt.Publicera();
+
+        var policyArbetsmiljo = RegionHR.PolicyManagement.Domain.Policy.Skapa(
+            "Arbetsmiljopolicy", "Regionens overgripande policy for fysisk och psykosocial arbetsmiljo.",
+            RegionHR.PolicyManagement.Domain.PolicyCategory.Arbetsmiljo, kraverBekraftelse: false, "Admin",
+            sammanfattning: "Arbetsmiljon ska vara saker och halsoframjande.");
+
+        db.Policies.AddRange(policyGdpr, policyIt, policyArbetsmiljo);
+
+        // Bekräftelser — kopplade till verkliga anställda
+        db.PolicyConfirmations.AddRange(
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[0].Id.Value, policyGdpr.Version), // Anna
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[1].Id.Value, policyGdpr.Version), // Erik
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[3].Id.Value, policyGdpr.Version), // Karl
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[0].Id.Value, policyIt.Version),     // Anna
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[2].Id.Value, policyIt.Version));    // Maria
+
         await db.SaveChangesAsync();
     }
 }

@@ -1,192 +1,197 @@
 @page "/dokument/policyer"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.PolicyManagement.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Policyer</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Policydistribution</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Send" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Distribuera policy</MudButton>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Policyer</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showCreate = true)">Ny policy</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPolicyer</MudText>
-            <MudText Typo="Typo.body2">Aktiva policyer</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_bekraftade %</MudText>
-            <MudText Typo="Typo.body2">Genomsnittlig bekräftelsegrad</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantarBekraftelse</MudText>
-            <MudText Typo="Typo.body2">Väntar bekräftelse</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_senastUppdaterad</MudText>
-            <MudText Typo="Typo.body2">Senast uppdaterad policy</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudAlert Severity="Severity.Warning" Class="mb-4">
-    <strong>@_vantarBekraftelse medarbetare</strong> har ännu inte bekräftat en eller flera policyer.
-    Påminnelser skickas automatiskt var 14:e dag.
-</MudAlert>
-
-@if (_paminnMeddelande is not null)
+@if (_loading)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _paminnMeddelande = null)">@_paminnMeddelande</MudAlert>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_policies.Count</MudText><MudText Typo="Typo.body2">Policyer totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_policies.Count(p => p.Policy.Status == PolicyStatus.Publicerad)</MudText><MudText Typo="Typo.body2">Publicerade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_totalBekraftelsekrav</MudText><MudText Typo="Typo.body2">Kräver bekräftelse</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_totalConfirmations</MudText><MudText Typo="Typo.body2">Bekräftelser totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudText Typo="Typo.h6" Class="mb-3">Policyer och bekräftelsestatus</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Policy</th>
-            <th>Version</th>
-            <th>Distribuerad</th>
-            <th>Målgrupp</th>
-            <th>Bekräftade</th>
-            <th>Bekräftelsegrad</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _policyer)
+    @if (_showCreate)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny policy</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showCreate = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newTitel" Label="Titel" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="PolicyCategory" @bind-Value="_newKategori" Label="Kategori" Variant="Variant.Outlined">
+                        @foreach (var k in Enum.GetValues<PolicyCategory>())
+                        {
+                            <MudSelectItem Value="@k">@KategoriText(k)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_newSammanfattning" Label="Sammanfattning" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_newInnehall" Label="Innehåll" Variant="Variant.Outlined" Lines="4" Required="true" /></MudItem>
+                <MudItem xs="12"><MudCheckBox T="bool" @bind-Value="_newKraverBekraftelse" Label="Kräver bekräftelse från anställda" Color="Color.Primary" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaPolicy"
+                       Disabled="@(string.IsNullOrWhiteSpace(_newTitel) || string.IsNullOrWhiteSpace(_newInnehall) || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @if (_policies.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga policyer registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Policy</th><th>Kategori</th><th>Version</th><th>Status</th><th>Bekräftade</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in _policies)
+                {
+                    <tr>
+                        <td><strong>@p.Policy.Titel</strong><br /><MudText Typo="Typo.caption">@(p.Policy.Sammanfattning ?? "—")</MudText></td>
+                        <td>@KategoriText(p.Policy.Kategori)</td>
+                        <td>v@p.Policy.Version</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(p.Policy.Status)">@StatusText(p.Policy.Status)</MudChip></td>
+                        <td>
+                            @if (p.Policy.KraverBekraftelse && p.Policy.Status == PolicyStatus.Publicerad)
+                            {
+                                var pct = _totalEmployees > 0 ? (int)(100.0 * p.Confirmations / _totalEmployees) : 0;
+                                <MudText Typo="Typo.body2">@p.Confirmations / @_totalEmployees (@pct%)</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">—</MudText>
+                            }
+                        </td>
+                        <td>
+                            @if (p.Policy.Status == PolicyStatus.Utkast)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => PubliceraPolicy(p.Policy))">Publicera</MudButton>
+                            }
+                            else if (p.Policy.Status == PolicyStatus.Publicerad)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/dokument/policyer/{p.Policy.Id}")">Visa</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => ArkiveraPolicy(p.Policy))">Arkivera</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        @if (_recentConfirmations.Count > 0)
         {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Version</td>
-                <td>@rad.Distribuerad</td>
-                <td>@rad.Malgrupp</td>
-                <td>@rad.Bekraftade / @rad.Mottagare</td>
-                <td>
-                    <MudProgressLinear Value="@rad.BekraftProcent" Color="@(rad.BekraftProcent >= 90 ? Color.Success : rad.BekraftProcent >= 70 ? Color.Warning : Color.Error)" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@rad.BekraftProcent %</MudText>
-                </td>
-                <td>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjPolicy(rad))">Visa</MudButton>
-                    @if (rad.BekraftProcent < 100)
+            <MudText Typo="Typo.h6" Class="mb-3">Senaste bekräftelser</MudText>
+            <MudSimpleTable Hover="true" Elevation="1">
+                <thead><tr><th>Datum</th><th>Anställd</th><th>Policy</th></tr></thead>
+                <tbody>
+                    @foreach (var c in _recentConfirmations)
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" OnClick="@(() => Paminn(rad))">Påminn</MudButton>
+                        <tr><td>@c.Datum</td><td><strong>@c.Namn</strong></td><td>@c.PolicyTitel</td></tr>
                     }
-                </td>
-            </tr>
-            @if (_valdPolicy == rad)
-            {
-                <tr>
-                    <td colspan="7">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Version:</strong> @rad.Version</MudText>
-                            <MudText Typo="Typo.body2"><strong>Distribuerad:</strong> @rad.Distribuerad</MudText>
-                            <MudText Typo="Typo.body2"><strong>Målgrupp:</strong> @rad.Malgrupp</MudText>
-                            <MudText Typo="Typo.body2"><strong>Bekräftade:</strong> @rad.Bekraftade / @rad.Mottagare (@rad.BekraftProcent %)</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdPolicy = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
+                </tbody>
+            </MudSimpleTable>
         }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Senaste bekräftelser</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Datum</th>
-            <th>Medarbetare</th>
-            <th>Policy</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var b in _bekraftelser)
-        {
-            <tr>
-                <td>@b.Datum</td>
-                <td><strong>@b.Namn</strong></td>
-                <td>@b.Policy</td>
-                <td><MudChip T="string" Size="Size.Small" Color="Color.Success">Bekräftad</MudChip></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
-{
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Distribuera policy</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyPolicy" Label="Välj policy" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyMottagare" Label="Mottagare (enhet)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="Distribuera">Skapa</MudButton>
-    </MudPaper>
-}
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyPolicy = "", _nyMottagare = "";
+    private List<PolicyVm> _policies = [];
+    private List<RecentConfirmVm> _recentConfirmations = [];
+    private int _totalEmployees, _totalBekraftelsekrav, _totalConfirmations;
+    private bool _loading = true, _saving, _showCreate;
+    private string? _error, _success;
+    private string _newTitel = "", _newSammanfattning = "", _newInnehall = "";
+    private PolicyCategory _newKategori = PolicyCategory.Ovrigt;
+    private bool _newKraverBekraftelse = true;
 
-    private void Distribuera()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyPolicy)) return;
-        _skapad = $"Policy {_nyPolicy} distribuerad till {_nyMottagare}!";
-        _nyPolicy = ""; _nyMottagare = ""; _visaNyDialog = false;
-    }
-    private PolicyRad? _valdPolicy;
-    private string? _paminnMeddelande;
+        try
+        {
+            var policies = await Db.Policies.OrderByDescending(p => p.SkapadVid).ToListAsync();
+            var confirmations = await Db.PolicyConfirmations.ToListAsync();
+            _totalEmployees = await Db.Employees.CountAsync();
 
-    private void ValjPolicy(PolicyRad rad) => _valdPolicy = _valdPolicy == rad ? null : rad;
-    private void Paminn(PolicyRad rad) => _paminnMeddelande = $"Påminnelse skickad för: {rad.Namn}";
+            var confByPolicy = confirmations.GroupBy(c => c.PolicyId).ToDictionary(g => g.Key, g => g.Count());
+            _policies = policies.Select(p => new PolicyVm(p, confByPolicy.GetValueOrDefault(p.Id))).ToList();
+            _totalBekraftelsekrav = policies.Count(p => p.KraverBekraftelse && p.Status == PolicyStatus.Publicerad);
+            _totalConfirmations = confirmations.Count;
 
-    private int _totalPolicyer = 12;
-    private int _bekraftade = 84;
-    private int _vantarBekraftelse = 198;
-    private string _senastUppdaterad = "2026-03-01";
-
-    private List<PolicyRad> _policyer = [];
-    private List<BekraftelseRad> _bekraftelser = [];
-
-    protected override void OnInitialized()
-    {
-        _policyer =
-        [
-            new("IT-säkerhetspolicy", "3.1", "2026-02-15", "Alla anställda", 1156, 1254, 92),
-            new("Arbetsmiljöpolicy", "2.0", "2026-01-10", "Alla anställda", 1198, 1254, 96),
-            new("GDPR-policy – hantering av personuppgifter", "1.4", "2026-03-01", "Alla anställda", 987, 1254, 79),
-            new("Policy mot kränkande särbehandling", "2.1", "2025-11-01", "Alla anställda", 1210, 1254, 97),
-            new("Resepolicy", "1.2", "2025-09-15", "Alla anställda", 1087, 1254, 87),
-            new("Drogpolicy", "1.0", "2025-06-01", "Alla anställda", 1232, 1254, 98),
-            new("Policy för sociala medier", "1.1", "2026-01-20", "Alla anställda", 924, 1254, 74),
-            new("Läkemedelspolicy", "2.3", "2025-10-01", "Vårdpersonal", 648, 680, 95),
-        ];
-
-        _bekraftelser =
-        [
-            new("2026-03-17", "Anna Svensson", "GDPR-policy – hantering av personuppgifter"),
-            new("2026-03-17", "Karl Berg", "GDPR-policy – hantering av personuppgifter"),
-            new("2026-03-16", "Erik Johansson", "IT-säkerhetspolicy"),
-            new("2026-03-16", "Lisa Holm", "GDPR-policy – hantering av personuppgifter"),
-            new("2026-03-15", "Per Gustafsson", "Policy för sociala medier"),
-            new("2026-03-15", "Sara Karlsson", "GDPR-policy – hantering av personuppgifter"),
-        ];
+            var recentConfs = confirmations.OrderByDescending(c => c.BekraftadVid).Take(10).ToList();
+            if (recentConfs.Count > 0)
+            {
+                var empIds = recentConfs.Select(c => c.AnstallId).Distinct().ToList();
+                var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+                var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+                var titles = policies.ToDictionary(p => p.Id, p => p.Titel);
+                _recentConfirmations = recentConfs.Select(c => new RecentConfirmVm(
+                    c.BekraftadVid.ToLocalTime().ToString("yyyy-MM-dd"),
+                    names.GetValueOrDefault(c.AnstallId, "Okänd"),
+                    titles.GetValueOrDefault(c.PolicyId, "Okänd"))).ToList();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta policyer: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record PolicyRad(string Namn, string Version, string Distribuerad, string Malgrupp, int Bekraftade, int Mottagare, int BekraftProcent);
-    private record BekraftelseRad(string Datum, string Namn, string Policy);
+    private async Task SkapaPolicy()
+    {
+        _saving = true; _error = null;
+        try
+        {
+            var policy = Policy.Skapa(_newTitel, _newInnehall, _newKategori, _newKraverBekraftelse, "Admin",
+                string.IsNullOrWhiteSpace(_newSammanfattning) ? null : _newSammanfattning);
+            Db.Policies.Add(policy);
+            await Db.SaveChangesAsync();
+            _policies.Insert(0, new PolicyVm(policy, 0));
+            _showCreate = false;
+            _success = $"Policy \"{_newTitel}\" skapad.";
+            _newTitel = ""; _newSammanfattning = ""; _newInnehall = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private async Task PubliceraPolicy(Policy p)
+    {
+        try { p.Publicera(); await Db.SaveChangesAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte publicera: {ex.Message}"; }
+    }
+
+    private async Task ArkiveraPolicy(Policy p)
+    {
+        try { p.Arkivera(); await Db.SaveChangesAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte arkivera: {ex.Message}"; }
+    }
+
+    private static string StatusText(PolicyStatus s) => s switch { PolicyStatus.Utkast => "Utkast", PolicyStatus.Publicerad => "Publicerad", PolicyStatus.Arkiverad => "Arkiverad", _ => s.ToString() };
+    private static Color StatusColor(PolicyStatus s) => s switch { PolicyStatus.Publicerad => Color.Success, PolicyStatus.Arkiverad => Color.Default, _ => Color.Info };
+    private static string KategoriText(PolicyCategory k) => k switch { PolicyCategory.ITSakerhet => "IT-säkerhet", PolicyCategory.Arbetsmiljo => "Arbetsmiljö", PolicyCategory.GDPR => "GDPR", PolicyCategory.Personalhandbok => "Personalhandbok", PolicyCategory.Medicinsk => "Medicinsk", PolicyCategory.Juridisk => "Juridisk", _ => "Övrigt" };
+
+    private record PolicyVm(Policy Policy, int Confirmations);
+    private record RecentConfirmVm(string Datum, string Namn, string PolicyTitel);
 }

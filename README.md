@@ -56,6 +56,7 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 - **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
 - **Benefits Enrollment** — se "Delvis implementerad" ovan
 - **Talangpool** — se "Delvis implementerad" ovan
+- **Policyer (v1)** — ny datamodell: Policy (aggregate root) med Status (Utkast/Publicerad/Arkiverad), Kategori, Version, KraverBekraftelse. PolicyConfirmation kopplar bekräftelse till verklig AnstallId (ingen Guid.Empty accepteras). Admin: skapa/publicera/arkivera, se bekräftelsestatus per policy (antal/total). Anställd: läsa policy och bekräfta via Auth.EmployeeId. Seeddata: 3 policyer + 5 bekräftelser. Schema: policy.
 - **Pulsundersökningar (v1)** — ny datamodell: PulseSurvey (aggregate root) + PulseSurveyQuestion (owned) + PulseSurveyResponse + PulseSurveyAnswer (owned). Schema: pulse. Admin skapar enkäter, lägger till frågor (1–5 skala), öppnar/stänger. Anonyma svar sparas i DB utan AnstallId. Resultatvy: snitt per fråga, antal svar. Begränsning: ingen deduplikering (samma person kan svara flera gånger), ingen automatisk utskick, ingen trendanalys.
 - **E-learning (v1.5)** — kurskatalog (Course) + kursanmälningar (CourseEnrollment) från DB. Anmälan via domänens Anmala(). Progress/status från modellen. Seeddata.
 - **Medarbetarsamtal (v1.5)** — PerformanceReview med domänlogik (Skapa, SattSjalvbedomning, SattChefsbedomning, Genomfor). Persisteras i DB. Seeddata i olika statusar.
