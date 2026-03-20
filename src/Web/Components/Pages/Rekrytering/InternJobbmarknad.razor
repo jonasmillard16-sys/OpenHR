@@ -1,132 +1,46 @@
 @page "/rekrytering/intern"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Recruitment.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Intern jobbmarknad</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Intern jobbmarknad</MudText>
-    <MudChip T="string" Size="Size.Large" Color="Color.Primary">@_tjanster.Count lediga tjänster</MudChip>
-</div>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Intern jobbmarknad</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Publicerade vakanser öppna för internrekrytering.</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_tjanster.Count</MudText>
-            <MudText Typo="Typo.body2">Öppna tjänster</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_tjanster.Count(t => t.Ny)</MudText>
-            <MudText Typo="Typo.body2">Nya denna vecka</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_tjanster.Count(t => t.DagarKvar <= 7)</MudText>
-            <MudText Typo="Typo.body2">Stänger snart</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_antalIntresse</MudText>
-            <MudText Typo="Typo.body2">Intresseanmälningar totalt</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_bekraftad)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_vakanser.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga publicerade vakanser just nu.</MudAlert> }
+else
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _bekraftad = false)">
-        Intresseanmälan skickad! Du får bekräftelse via e-post.
-    </MudAlert>
+    @foreach (var v in _vakanser)
+    {
+        <MudPaper Class="pa-4 mb-3" Elevation="2">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">@v.Titel</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@v.EnhetNamn — @v.Anstallningsform — Sista dag: @v.SistaAnsokningsDag.ToString("yyyy-MM-dd")</MudText>
+            <MudText Typo="Typo.body1" Class="mt-2">@v.Beskrivning</MudText>
+        </MudPaper>
+    }
 }
 
-<MudTextField @bind-Value="_sok" Label="Sök tjänst eller enhet..." Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
-
-<MudStack Spacing="3">
-    @foreach (var t in FiltreradeTjanster())
-    {
-        <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
-            <div class="d-flex justify-space-between align-center mb-2">
-                <div class="d-flex align-center gap-2">
-                    <MudText Typo="Typo.h6" Style="font-weight: 600;">@t.Titel</MudText>
-                    @if (t.Ny)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Ny</MudChip>
-                    }
-                    @if (t.DagarKvar <= 7)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">@t.DagarKvar dagar kvar</MudChip>
-                    }
-                </div>
-                <MudText Typo="Typo.caption">Sista ansökningsdag: @t.SistaDag</MudText>
-            </div>
-            <div class="d-flex gap-4 mb-2">
-                <MudText Typo="Typo.body2"><strong>Enhet:</strong> @t.Enhet</MudText>
-                <MudText Typo="Typo.body2"><strong>Anställningsform:</strong> @t.Anstallningsform</MudText>
-                <MudText Typo="Typo.body2"><strong>Omfattning:</strong> @t.Omfattning</MudText>
-            </div>
-            <MudText Typo="Typo.body2" Class="mb-3">@t.Beskrivning</MudText>
-            <div class="d-flex justify-space-between align-center">
-                <MudText Typo="Typo.caption">@t.AntalIntresse intresseanmälningar</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
-                           StartIcon="@Icons.Material.Filled.Send"
-                           OnClick="@(() => SkickaIntresse(t))">Intresseanmälan</MudButton>
-            </div>
-        </MudPaper>
-    }
-</MudStack>
-
 @code {
-    private string _sok = "";
-    private bool _bekraftad;
-    private int _antalIntresse = 34;
-    private List<InternTjanst> _tjanster = [];
+    private List<VakansVm> _vakanser = [];
+    private bool _loading = true;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _tjanster =
-        [
-            new("Sjuksköterska, Akutmottagningen", "Akutmottagningen, Sjukhus Norr", "Tillsvidare", "100 %",
-                "Vi söker en erfaren sjuksköterska till vår akutmottagning. Du arbetar i team med läkare och undersköterskor i en dynamisk miljö.",
-                "2026-04-01", 8, true, 15),
-            new("Undersköterska, Geriatrik avd 14", "Geriatriska kliniken", "Tillsvidare", "75–100 %",
-                "Hos oss arbetar du med äldre patienter i en trivsam miljö. Vi söker dig som är engagerad och har erfarenhet av geriatrik.",
-                "2026-03-28", 5, true, 11),
-            new("Teamledare, HR-avdelningen", "HR-avdelningen, Regionkontoret", "Tillsvidare", "100 %",
-                "HR-avdelningen söker en teamledare för rekryterings- och kompetensgruppen. Du leder ett team på 6 medarbetare.",
-                "2026-04-15", 29, false, 3),
-            new("Biomedicinsk analytiker", "Klinisk kemi, Laboratoriet", "Vikariat 12 mån", "100 %",
-                "Vikariat som biomedicinsk analytiker vid klinisk kemiska laboratoriet. Vi söker dig med BMA-examen och gärna erfarenhet av klinisk kemi.",
-                "2026-03-25", 3, false, 7),
-            new("Fysioterapeut, Rehabenheten", "Rehabenheten, Sjukhus Söder", "Tillsvidare", "80–100 %",
-                "Vi utökar teamet och söker fysioterapeut med intresse för ortopedisk rehabilitering. Möjlighet till specialistutbildning.",
-                "2026-04-10", 24, false, 5),
-        ];
+        try
+        {
+            var vacancies = await Db.Vacancies.Where(v => v.Status == VacancyStatus.Publicerad).OrderBy(v => v.SistaAnsokningsDag).ToListAsync();
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+            _vakanser = vacancies.Select(v => new VakansVm(v.Titel, enhetNamn.GetValueOrDefault(v.EnhetId.Value, "—"), v.Anstallningsform, v.SistaAnsokningsDag, v.Beskrivning)).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta vakanser: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private List<InternTjanst> FiltreradeTjanster()
-    {
-        if (string.IsNullOrWhiteSpace(_sok))
-            return _tjanster;
-
-        var s = _sok.ToLower();
-        return _tjanster.Where(t =>
-            t.Titel.ToLower().Contains(s) ||
-            t.Enhet.ToLower().Contains(s) ||
-            t.Beskrivning.ToLower().Contains(s)).ToList();
-    }
-
-    private void SkickaIntresse(InternTjanst t)
-    {
-        t.AntalIntresse++;
-        _antalIntresse++;
-        _bekraftad = true;
-    }
-
-    private record InternTjanst(string Titel, string Enhet, string Anstallningsform, string Omfattning,
-        string Beskrivning, string SistaDag, int DagarKvar, bool Ny, int AntalIntresse)
-    {
-        public int AntalIntresse { get; set; } = AntalIntresse;
-    }
+    private record VakansVm(string Titel, string EnhetNamn, RegionHR.SharedKernel.Domain.EmploymentType Anstallningsform, DateOnly SistaAnsokningsDag, string Beskrivning);
 }

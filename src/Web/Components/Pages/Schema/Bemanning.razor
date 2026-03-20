@@ -1,36 +1,71 @@
 @page "/schema/bemanning"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Bemanningsöversikt</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bemanningsöversikt</MudText>
-<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Realtid — alla enheter</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Schemalagda pass idag — alla enheter</MudText>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Enhet</th><th>Dag (07-16)</th><th>Kväll (15-22)</th><th>Natt (21-07)</th><th>Status</th></tr></thead>
-    <tbody>
-        @foreach (var e in _enheter)
-        {
-            <tr>
-                <td><strong>@e.Namn</strong></td>
-                <td>@e.Dag</td>
-                <td>@e.Kvall</td>
-                <td>@e.Natt</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@e.StatusFarg">@e.Status</MudChip></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_enheter.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga schemalagda pass idag.</MudAlert> }
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Enhet</th><th>Dag</th><th>Kväll</th><th>Natt</th></tr></thead>
+        <tbody>
+            @foreach (var e in _enheter)
+            {
+                <tr>
+                    <td><strong>@e.Namn</strong></td>
+                    <td>@e.Dag</td>
+                    <td>@e.Kvall</td>
+                    <td>@e.Natt</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
     private List<EnhetBemanning> _enheter = [];
-    protected override void OnInitialized()
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
     {
-        _enheter = [
-            new("Avdelning 32", "8/8", "5/6", "4/4", "Delvis", Color.Warning),
-            new("Avdelning 33", "6/6", "4/4", "3/3", "Full", Color.Success),
-            new("Akutmottagningen", "12/12", "10/10", "8/8", "Full", Color.Success),
-            new("IVA", "10/10", "7/8", "6/7", "Underbem.", Color.Error),
-        ];
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var shifts = await Db.ScheduledShifts
+                .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
+                .ToListAsync();
+
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var empEnhet = new Dictionary<Guid, Guid>();
+            foreach (var emp in employees)
+            {
+                var anst = emp.AktivAnstallning(idag);
+                if (anst != null) empEnhet[emp.Id.Value] = anst.EnhetId.Value;
+            }
+
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            _enheter = enheter.Select(enhet =>
+            {
+                var enhetShifts = shifts.Where(s => empEnhet.GetValueOrDefault(s.AnstallId.Value) == enhet.Id.Value).ToList();
+                return new EnhetBemanning(
+                    enhet.Namn,
+                    enhetShifts.Count(s => s.PassTyp == ShiftType.Dag),
+                    enhetShifts.Count(s => s.PassTyp == ShiftType.Kvall),
+                    enhetShifts.Count(s => s.PassTyp == ShiftType.Natt));
+            }).Where(e => e.Dag + e.Kvall + e.Natt > 0).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta bemanningsdata: {ex.Message}"; }
+        finally { _loading = false; }
     }
-    private record EnhetBemanning(string Namn, string Dag, string Kvall, string Natt, string Status, Color StatusFarg);
+
+    private record EnhetBemanning(string Namn, int Dag, int Kvall, int Natt);
 }

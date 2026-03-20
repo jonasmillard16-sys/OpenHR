@@ -1,58 +1,68 @@
 @page "/lon/statistik"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Payroll.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Lönestatistik</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönestatistik</MudText>
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönestatistik 2026</MudText>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Totalt brutto (senaste)</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_senasteBrutto)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Totalt AG-avgifter</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_senasteAg)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Totalt netto</MudText><MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@FormatKr(_senasteNetto)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Körningar</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@_runs.Count</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Totala lönekostnader (YTD)</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">462 440 700 kr</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Arbetsgivaravgifter (YTD)</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">145 294 500 kr</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Snittlön per anställd</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700;">30 690 kr</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.caption">Övertidskostnad (YTD)</MudText>
-            <MudText Typo="Typo.h5" Color="Color.Warning" Style="font-weight: 700;">8 234 100 kr</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mb-3">Lönekostnader per månad</MudText>
-<MudPaper Class="pa-4 mb-6" Elevation="2">
-    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_loneSeries" ChartLabels="@_loneLabels" Width="100%" Height="350px" />
-</MudPaper>
-
-<MudText Typo="Typo.h6" Class="mb-3">Månad för månad</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead><tr><th>Period</th><th>Bruttolön</th><th>AG-avgifter</th><th>Pension</th><th>Nettolön</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Mars 2026</strong></td><td>158 432 100 kr</td><td>49 758 900 kr</td><td>12 890 300 kr</td><td>110 902 470 kr</td></tr>
-        <tr><td>Februari 2026</td><td>152 118 400 kr</td><td>47 775 500 kr</td><td>12 374 200 kr</td><td>106 482 880 kr</td></tr>
-        <tr><td>Januari 2026</td><td>151 890 200 kr</td><td>47 760 100 kr</td><td>12 355 800 kr</td><td>106 323 140 kr</td></tr>
-    </tbody>
-</MudSimpleTable>
+    <MudText Typo="Typo.h6" Class="mb-3">Månad för månad</MudText>
+    @if (_runs.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga lönekörningar registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Period</th><th>Bruttolön</th><th>AG-avgifter</th><th>Nettolön</th><th>Anställda</th></tr></thead>
+            <tbody>
+                @foreach (var r in _runs)
+                {
+                    <tr>
+                        <td><strong>@r.Period</strong></td>
+                        <td>@FormatKr(r.TotalBrutto.Amount)</td>
+                        <td>@FormatKr(r.TotalArbetsgivaravgifter.Amount)</td>
+                        <td>@FormatKr(r.TotalNetto.Amount)</td>
+                        <td>@r.AntalAnstallda</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    private List<ChartSeries<double>> _loneSeries =
-    [
-        new ChartSeries<double> { Name = "Bruttolön (mkr)", Data = new ChartData<double>(new double[] { 151.9, 152.1, 158.4 }) },
-        new ChartSeries<double> { Name = "AG-avgifter (mkr)", Data = new ChartData<double>(new double[] { 47.8, 47.8, 49.8 }) },
-        new ChartSeries<double> { Name = "Pension (mkr)", Data = new ChartData<double>(new double[] { 12.4, 12.4, 12.9 }) }
-    ];
-    private string[] _loneLabels = ["Jan 2026", "Feb 2026", "Mar 2026"];
+    private List<PayrollRun> _runs = [];
+    private decimal _senasteBrutto, _senasteAg, _senasteNetto;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _runs = await Db.PayrollRuns.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month).Take(12).ToListAsync();
+            if (_runs.Count > 0)
+            {
+                _senasteBrutto = _runs[0].TotalBrutto.Amount;
+                _senasteAg = _runs[0].TotalArbetsgivaravgifter.Amount;
+                _senasteNetto = _runs[0].TotalNetto.Amount;
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta lönestatistik: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string FormatKr(decimal v) => $"{v:N0} kr";
 }

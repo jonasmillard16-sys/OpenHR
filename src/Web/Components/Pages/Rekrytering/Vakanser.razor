@@ -1,438 +1,104 @@
 @page "/rekrytering/vakanser"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
-@inject ISnackbar Snackbar
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Recruitment.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Rekrytering</PageTitle>
-
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Rekrytering</MudText>
-    <div class="d-flex gap-2">
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large"
-                   Href="/rekrytering/pipeline" StartIcon="@Icons.Material.Filled.ViewKanban" Style="min-height: 48px;">
-            Pipeline
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
-                   OnClick="@(() => _showForm = true)">
-            Ny vakans
-        </MudButton>
-    </div>
 </div>
 
-@* === NY VAKANS FORMULÄR === *@
-@if (_showForm)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny vakans</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
-        </div>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_newTitel" Label="Tjänstetitel" Variant="Variant.Outlined" Required="true"
-                              Error="@_titelFel" ErrorText="Tjänstetitel är obligatoriskt" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect @bind-Value="_newEnhet" Label="Enhet" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("Avdelning 32")">Avdelning 32</MudSelectItem>
-                    <MudSelectItem Value="@("Avdelning 33")">Avdelning 33</MudSelectItem>
-                    <MudSelectItem Value="@("Akutmottagningen")">Akutmottagningen</MudSelectItem>
-                    <MudSelectItem Value="@("IVA")">IVA</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_newForm" Label="Anställningsform" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("Tillsvidare")">Tillsvidare</MudSelectItem>
-                    <MudSelectItem Value="@("Vikariat")">Vikariat</MudSelectItem>
-                    <MudSelectItem Value="@("Sommarvikariat")">Sommarvikariat</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_newGrad" Label="Sysselsättningsgrad" Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("100%")">100%</MudSelectItem>
-                    <MudSelectItem Value="@("75%")">75%</MudSelectItem>
-                    <MudSelectItem Value="@("50%")">50%</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_newSistadag" Label="Sista ansökningsdag" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_newBeskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="3" />
-            </MudItem>
-        </MudGrid>
-        <div class="d-flex gap-2 mt-4">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaVakans">
-                Publicera vakans
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large" Style="min-height: 48px;" OnClick="SparaSomUtkast">
-                Spara som utkast
-            </MudButton>
-        </div>
-    </MudPaper>
-}
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_vakanser.Count</MudText><MudText Typo="Typo.body2">Vakanser totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == VacancyStatus.Publicerad)</MudText><MudText Typo="Typo.body2">Publicerade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == VacancyStatus.Stangd)</MudText><MudText Typo="Typo.body2">Stängda</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_totalAnsokngar</MudText><MudText Typo="Typo.body2">Ansökningar</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
-}
-
-@* === KPI-KORT === *@
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => _filter = "oppna")">
-            <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Publicerad")</MudText>
-            <MudText Typo="Typo.body2">Öppna vakanser</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => _filter = "alla")">
-            <MudText Typo="Typo.h3" Style="font-weight: 700;">@_vakanser.Sum(v => v.Ansokningar.Count)</MudText>
-            <MudText Typo="Typo.body2">Ansökningar totalt</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_vakanser.Sum(v => v.Ansokningar.Count(a => a.Status == "Intervju"))</MudText>
-            <MudText Typo="Typo.body2">Under intervju</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_vakanser.Count(v => v.Status == "Tillsatt")</MudText>
-            <MudText Typo="Typo.body2">Tillsatta (YTD)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@* === FILTER === *@
-<div class="d-flex gap-2 mb-3">
-    <MudChip T="string" Color="@(_filter == "alla" ? Color.Primary : Color.Default)" OnClick="@(() => _filter = "alla")">Alla (@_vakanser.Count)</MudChip>
-    <MudChip T="string" Color="@(_filter == "oppna" ? Color.Primary : Color.Default)" OnClick="@(() => _filter = "oppna")">Publicerade (@_vakanser.Count(v => v.Status == "Publicerad"))</MudChip>
-    <MudChip T="string" Color="@(_filter == "utkast" ? Color.Primary : Color.Default)" OnClick="@(() => _filter = "utkast")">Utkast (@_vakanser.Count(v => v.Status == "Utkast"))</MudChip>
-    <MudChip T="string" Color="@(_filter == "tillsatta" ? Color.Primary : Color.Default)" OnClick="@(() => _filter = "tillsatta")">Tillsatta (@_vakanser.Count(v => v.Status == "Tillsatt"))</MudChip>
-</div>
-
-@* === VAKANSTABELL === *@
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr><th>Vakans</th><th>Enhet</th><th>Form</th><th>Ansökningar</th><th>Status</th><th>Sista dag</th><th></th></tr>
-    </thead>
-    <tbody>
-        @foreach (var v in FilteredVakanser)
-        {
-            <tr style="cursor: pointer;" @onclick="@(() => ValjVakans(v))">
-                <td><strong>@v.Titel</strong><br /><MudText Typo="Typo.caption">@v.Grad</MudText></td>
-                <td>@v.Enhet</td>
-                <td>@v.Form</td>
-                <td>
-                    <MudChip T="string" Size="Size.Small" Color="@(v.Ansokningar.Count > 0 ? Color.Info : Color.Default)">
-                        @v.Ansokningar.Count st
-                    </MudChip>
-                </td>
-                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(v.Status)">@v.Status</MudChip></td>
-                <td>@v.SistaDag</td>
-                <td>
-                    @if (v.Status == "Utkast")
+    @if (_vakanser.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga vakanser registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Titel</th><th>Anställningsform</th><th>Status</th><th>Sista dag</th><th>Ansökningar</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var v in _vakanser)
+                {
+                    <tr>
+                        <td><strong>@v.Titel</strong><br /><MudText Typo="Typo.caption">@v.EnhetNamn</MudText></td>
+                        <td>@v.Anstallningsform</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(v.Status)">@StatusText(v.Status)</MudChip></td>
+                        <td>@(v.SistaAnsokningsDag.ToString("yyyy-MM-dd"))</td>
+                        <td>@v.AntalAnsokngar</td>
+                        <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => _valdVakans = _valdVakans == v ? null : v)">Visa</MudButton></td>
+                    </tr>
+                    @if (_valdVakans == v)
                     {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => PubliceraVakans(v))">Publicera</MudButton>
+                        <tr><td colspan="6">
+                            <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudText Typo="Typo.body2" Class="mb-2">@v.Beskrivning</MudText>
+                                @if (v.AntalAnsokngar > 0)
+                                {
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">Ansökningar:</MudText>
+                                    @foreach (var a in v.Ansokngar)
+                                    {
+                                        <MudText Typo="Typo.body2">@a.Namn — @a.Epost — <MudChip T="string" Size="Size.Small">@a.Status</MudChip></MudText>
+                                    }
+                                }
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdVakans = null)" Class="mt-2">Stäng</MudButton>
+                            </MudPaper>
+                        </td></tr>
                     }
-                    else if (v.Status == "Publicerad")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => StangVakans(v))">Stäng</MudButton>
-                    }
-                </td>
-            </tr>
-
-            @* === DETALJPANEL MED ANSÖKNINGAR === *@
-            @if (_valdVakans == v)
-            {
-                <tr>
-                    <td colspan="7" style="padding: 0;">
-                        <MudPaper Class="pa-5 ma-0" Elevation="0" Style="border-top: 2px solid var(--mud-palette-primary); background: var(--mud-palette-background);">
-                            <div class="d-flex justify-space-between align-center mb-3">
-                                <MudText Typo="Typo.h6" Style="font-weight: 700;">@v.Titel — @v.Enhet</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _valdVakans = null)" Size="Size.Small" />
-                            </div>
-
-                            <MudGrid Spacing="3" Class="mb-4">
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Anställningsform</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@v.Form</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Sysselsättningsgrad</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@v.Grad</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Sista ansökningsdag</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@v.SistaDag</MudText>
-                                </MudItem>
-                                <MudItem xs="6" md="3">
-                                    <MudText Typo="Typo.caption">Ansökningar</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@v.Ansokningar.Count st</MudText>
-                                </MudItem>
-                            </MudGrid>
-
-                            @if (!string.IsNullOrEmpty(v.Beskrivning))
-                            {
-                                <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@v.Beskrivning</MudText>
-                            }
-
-                            @if (v.Ansokningar.Count > 0)
-                            {
-                                <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Ansökningar</MudText>
-                                <MudSimpleTable Hover="true" Elevation="1" Dense="true">
-                                    <thead>
-                                        <tr><th>Namn</th><th>E-post</th><th>Erfarenhet</th><th>Poäng</th><th>Status</th><th></th></tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var a in v.Ansokningar)
-                                        {
-                                            <tr>
-                                                <td><strong>@a.Namn</strong></td>
-                                                <td>@a.Epost</td>
-                                                <td>@a.Erfarenhet</td>
-                                                <td>
-                                                    @if (a.Poang > 0)
-                                                    {
-                                                        <MudRating ReadOnly="true" SelectedValue="@a.Poang" MaxValue="5" Size="Size.Small" />
-                                                    }
-                                                    else
-                                                    {
-                                                        <MudText Typo="Typo.caption">Ej bedömd</MudText>
-                                                    }
-                                                </td>
-                                                <td><MudChip T="string" Size="Size.Small" Color="@AnsokningFarg(a.Status)">@a.Status</MudChip></td>
-                                                <td>
-                                                    <div class="d-flex gap-1">
-                                                        @if (a.Status == "Mottagen")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info"
-                                                                       OnClick="@(() => AvanceraAnsokan(a, "Screenad"))">Screena</MudButton>
-                                                        }
-                                                        else if (a.Status == "Screenad")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning"
-                                                                       OnClick="@(() => AvanceraAnsokan(a, "Intervju"))">Boka intervju</MudButton>
-                                                        }
-                                                        else if (a.Status == "Intervju")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                                                       OnClick="@(() => AvanceraAnsokan(a, "Erbjuden"))">Erbjud</MudButton>
-                                                        }
-                                                        else if (a.Status == "Erbjuden")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                                                       OnClick="@(() => AvanceraAnsokan(a, "Anställd"))">Anställ</MudButton>
-                                                        }
-                                                        @if (a.Status != "Avslagen" && a.Status != "Anställd")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
-                                                                       OnClick="@(() => AvanceraAnsokan(a, "Avslagen"))">Avslå</MudButton>
-                                                        }
-                                                        @if (a.Status == "Avslagen")
-                                                        {
-                                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                                                       StartIcon="@Icons.Material.Filled.GroupAdd"
-                                                                       OnClick="@(() => SparaTillTalangpool(a))">Spara till talangpool</MudButton>
-                                                        }
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </MudSimpleTable>
-                            }
-                            else
-                            {
-                                <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga ansökningar har inkommit ännu.</MudAlert>
-                            }
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (FilteredVakanser.Count == 0)
-{
-    <MudAlert Severity="Severity.Info" Class="mt-4" Variant="Variant.Text">Inga vakanser matchar det valda filtret.</MudAlert>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _showForm;
-    private string? _skapad;
-    private string _filter = "alla";
+    private List<VakansVm> _vakanser = [];
+    private VakansVm? _valdVakans;
+    private int _totalAnsokngar;
+    private bool _loading = true;
+    private string? _error;
 
-    // Form fields
-    private string _newTitel = "", _newEnhet = "", _newForm = "Tillsvidare", _newGrad = "100%", _newBeskrivning = "";
-    private DateTime? _newSistadag = DateTime.Today.AddDays(30);
-    private bool _titelFel;
-
-    // Data
-    private List<VakansData> _vakanser = [];
-    private VakansData? _valdVakans;
-
-    private List<VakansData> FilteredVakanser => _filter switch
+    protected override async Task OnInitializedAsync()
     {
-        "oppna" => _vakanser.Where(v => v.Status == "Publicerad").ToList(),
-        "utkast" => _vakanser.Where(v => v.Status == "Utkast").ToList(),
-        "tillsatta" => _vakanser.Where(v => v.Status == "Tillsatt").ToList(),
-        _ => _vakanser
-    };
-
-    protected override void OnInitialized()
-    {
-        _vakanser =
-        [
-            new("Sjuksköterska", "Avdelning 32", "Tillsvidare", "100%", "Publicerad", "2026-04-15",
-                "Vi söker en erfaren sjuksköterska till Avdelning 32. Du har minst 2 års erfarenhet inom slutenvård.",
-                [
-                    new("Anna Bergman", "anna.bergman@mail.se", "5 års erfarenhet, slutenvård", 4, "Intervju"),
-                    new("Karl Lindqvist", "karl.lindqvist@mail.se", "Nyexaminerad 2025", 0, "Mottagen"),
-                    new("Lisa Ekström", "lisa.ekstrom@mail.se", "8 år IVA + akut", 5, "Erbjuden"),
-                    new("Per Strand", "per.strand@mail.se", "3 år vårdcentral", 3, "Screenad"),
-                    new("Maria Holm", "maria.holm@mail.se", "10 år, specialistutbildad", 5, "Intervju"),
-                    new("Johan Falk", "johan.falk@mail.se", "6 år akutvård", 4, "Screenad"),
-                    new("Sara Nilsson", "sara.nilsson@mail.se", "2 år barnklinik", 0, "Mottagen"),
-                    new("Anders Ek", "anders.ek@mail.se", "4 år ortopedi", 3, "Mottagen"),
-                ]),
-            new("Undersköterska", "IVA", "Tillsvidare", "100%", "Publicerad", "2026-03-28",
-                "IVA söker undersköterska med erfarenhet av intensivvård. Nattjänstgöring förekommer.",
-                [
-                    new("Karin Svensson", "karin@mail.se", "7 år IVA", 5, "Erbjuden"),
-                    new("Magnus Berg", "magnus@mail.se", "3 år akuten", 3, "Intervju"),
-                    new("Helena Ström", "helena@mail.se", "Nyutbildad, praktik IVA", 2, "Screenad"),
-                    new("Erik Dahl", "erik.dahl@mail.se", "5 år medicinkliniken", 4, "Intervju"),
-                ]),
-            new("Undersköterska natt", "Avdelning 33", "Vikariat", "75%", "Publicerad", "2026-04-01",
-                "Vikariat för nattjänstgöring under sommaren.",
-                [
-                    new("Lena Johansson", "lena@mail.se", "10 år nattjänst", 4, "Screenad"),
-                    new("Oscar Blom", "oscar@mail.se", "2 år", 0, "Mottagen"),
-                ]),
-            new("Läkare", "Akutmottagningen", "Tillsvidare", "100%", "Utkast", "",
-                "Akutmottagningen söker specialistläkare i akutsjukvård.",
-                []),
-            new("Sjuksköterska sommar", "Avdelning 32", "Sommarvikariat", "100%", "Utkast", "",
-                "Sommarvikariat juni–augusti.",
-                []),
-            new("Undersköterska", "Avdelning 32", "Tillsvidare", "100%", "Tillsatt", "2026-02-15",
-                "Tjänsten tillsattes av Maria Lindgren.",
-                [
-                    new("Maria Lindgren", "maria.l@mail.se", "8 år slutenvård", 5, "Anställd"),
-                    new("Jonas Berg", "jonas@mail.se", "3 år", 3, "Avslagen"),
-                ]),
-            new("Sjuksköterska natt", "IVA", "Tillsvidare", "100%", "Tillsatt", "2026-01-20",
-                "Tillsatt av Per Andersson.",
-                [
-                    new("Per Andersson", "per.a@mail.se", "6 år IVA natt", 5, "Anställd"),
-                ]),
-        ];
-    }
-
-    private void ValjVakans(VakansData v) => _valdVakans = _valdVakans == v ? null : v;
-
-    private void SkapaVakans()
-    {
-        _titelFel = string.IsNullOrWhiteSpace(_newTitel);
-        if (_titelFel) return;
-        _vakanser.Insert(0, new(_newTitel, _newEnhet, _newForm, _newGrad, "Publicerad",
-            _newSistadag?.ToString("yyyy-MM-dd") ?? "", _newBeskrivning, []));
-        _showForm = false;
-        _skapad = $"Vakans \"{_newTitel}\" publicerad!";
-        ResetForm();
-    }
-
-    private void SparaSomUtkast()
-    {
-        _titelFel = string.IsNullOrWhiteSpace(_newTitel);
-        if (_titelFel) return;
-        _vakanser.Insert(0, new(_newTitel, _newEnhet, _newForm, _newGrad, "Utkast", "", _newBeskrivning, []));
-        _showForm = false;
-        _skapad = $"Vakans \"{_newTitel}\" sparad som utkast.";
-        ResetForm();
-    }
-
-    private void ResetForm()
-    {
-        _newTitel = ""; _newEnhet = ""; _newForm = "Tillsvidare"; _newGrad = "100%"; _newBeskrivning = "";
-        _newSistadag = DateTime.Today.AddDays(30);
-        _titelFel = false;
-    }
-
-    private void PubliceraVakans(VakansData v) { v.Status = "Publicerad"; v.SistaDag = DateTime.Today.AddDays(30).ToString("yyyy-MM-dd"); }
-    private void StangVakans(VakansData v) { v.Status = "Stängd"; }
-
-    private void AvanceraAnsokan(AnsokningData a, string nyStatus)
-    {
-        var oldStatus = a.Status;
-        a.Status = nyStatus;
-
-        if (nyStatus == "Avslagen")
+        try
         {
-            Snackbar.Add("Ansökan avslagen. Ångra?", Severity.Normal, config =>
-            {
-                config.Action = "Ångra";
-                config.ActionColor = Color.Warning;
-                config.OnClick = _ =>
-                {
-                    a.Status = oldStatus;
-                    InvokeAsync(StateHasChanged);
-                    return Task.CompletedTask;
-                };
-                config.VisibleStateDuration = 10000;
-                config.ShowCloseIcon = true;
-            });
+            var vacancies = await Db.Vacancies.OrderByDescending(v => v.SistaAnsokningsDag).ToListAsync();
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+
+            _vakanser = vacancies.Select(v => new VakansVm(
+                v.Titel, enhetNamn.GetValueOrDefault(v.EnhetId.Value, "—"),
+                v.Anstallningsform, v.Status, v.SistaAnsokningsDag,
+                v.Beskrivning, v.Ansokngar.Count,
+                v.Ansokngar.Select(a => new AnsVm(a.Namn, a.Epost, a.Status.ToString())).ToList()
+            )).ToList();
+            _totalAnsokngar = vacancies.Sum(v => v.Ansokngar.Count);
         }
+        catch (Exception ex) { _error = $"Kunde inte hämta vakanser: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private static Color StatusFarg(string s) => s switch
+    private static string StatusText(VacancyStatus s) => s switch
     {
-        "Publicerad" => Color.Success,
-        "Utkast" => Color.Warning,
-        "Stängd" => Color.Default,
-        "Tillsatt" => Color.Info,
-        _ => Color.Default
+        VacancyStatus.Utkast => "Utkast", VacancyStatus.Publicerad => "Publicerad",
+        VacancyStatus.Stangd => "Stängd", VacancyStatus.Tillsatt => "Tillsatt", _ => s.ToString()
+    };
+    private static Color StatusFarg(VacancyStatus s) => s switch
+    {
+        VacancyStatus.Publicerad => Color.Success, VacancyStatus.Stangd => Color.Info,
+        VacancyStatus.Tillsatt => Color.Primary, _ => Color.Default
     };
 
-    private void SparaTillTalangpool(AnsokningData a)
-    {
-        Snackbar.Add($"{a.Namn} sparad till talangpoolen. Se /rekrytering/talangpool.", Severity.Success);
-    }
-
-    private static Color AnsokningFarg(string s) => s switch
-    {
-        "Mottagen" => Color.Default,
-        "Screenad" => Color.Info,
-        "Intervju" => Color.Warning,
-        "Erbjuden" => Color.Success,
-        "Anställd" => Color.Primary,
-        "Avslagen" => Color.Error,
-        _ => Color.Default
-    };
-
-    private class VakansData(string titel, string enhet, string form, string grad, string status, string sistaDag, string beskrivning, List<AnsokningData> ansokningar)
-    {
-        public string Titel { get; set; } = titel;
-        public string Enhet { get; set; } = enhet;
-        public string Form { get; set; } = form;
-        public string Grad { get; set; } = grad;
-        public string Status { get; set; } = status;
-        public string SistaDag { get; set; } = sistaDag;
-        public string Beskrivning { get; set; } = beskrivning;
-        public List<AnsokningData> Ansokningar { get; set; } = ansokningar;
-    }
-
-    private class AnsokningData(string namn, string epost, string erfarenhet, int poang, string status)
-    {
-        public string Namn { get; set; } = namn;
-        public string Epost { get; set; } = epost;
-        public string Erfarenhet { get; set; } = erfarenhet;
-        public int Poang { get; set; } = poang;
-        public string Status { get; set; } = status;
-    }
+    private record AnsVm(string Namn, string Epost, string Status);
+    private record VakansVm(string Titel, string EnhetNamn, EmploymentType Anstallningsform, VacancyStatus Status, DateOnly SistaAnsokningsDag, string Beskrivning, int AntalAnsokngar, List<AnsVm> Ansokngar);
 }

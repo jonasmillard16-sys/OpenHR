@@ -852,6 +852,30 @@ public static class SeedData
         db.FeedbackRounds.AddRange(fb360Anna, fb360Erik);
         db.FeedbackResponses.AddRange(fbResp1, fbResp2, fbResp3);
 
+        // === LASAccumulations ===
+        var lasMaria = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[2].Id, EmploymentType.SAVA);
+        lasMaria.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-200)), DateOnly.FromDateTime(DateTime.Today.AddDays(-50)), null);
+        lasMaria.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-40)), DateOnly.FromDateTime(DateTime.Today), null);
+        var lasJohan = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[5].Id, EmploymentType.Vikariat);
+        lasJohan.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-320)), DateOnly.FromDateTime(DateTime.Today), null);
+        db.LASAccumulations.AddRange(lasMaria, lasJohan);
+
+        // === Vacancies ===
+        var vakSsk = RegionHR.Recruitment.Domain.Vacancy.Skapa(
+            avd32.Id, "Sjukskoterska", "Vi soker erfaren sjukskoterska till Avdelning 32.",
+            EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(30)));
+        vakSsk.Publicera(false, false);
+        vakSsk.TaEmotAnsokan("Anna Bergman", "anna.bergman@mail.se", null);
+        vakSsk.TaEmotAnsokan("Karl Lindqvist", "karl.l@mail.se", null);
+        var vakUsk = RegionHR.Recruitment.Domain.Vacancy.Skapa(
+            iva.Id, "Underskoterska IVA", "IVA soker underskoterska med intensivvardserfarenhet.",
+            EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(14)));
+        vakUsk.Publicera(false, false);
+        var vakLak = RegionHR.Recruitment.Domain.Vacancy.Skapa(
+            akuten.Id, "Lakare akutmottagningen", "Specialist i akutsjukvard.",
+            EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(60)));
+        db.Vacancies.AddRange(vakSsk, vakUsk, vakLak);
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 
