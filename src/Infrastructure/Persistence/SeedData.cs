@@ -794,6 +794,9 @@ public static class SeedData
         swap2.Erbjud(employees[6].Id);
         db.ShiftSwapRequests.AddRange(swap1, swap2);
 
+        // === SalaryCodes via SalaryCodeSeed ===
+        db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
+
         await db.SaveChangesAsync();
     }
 }

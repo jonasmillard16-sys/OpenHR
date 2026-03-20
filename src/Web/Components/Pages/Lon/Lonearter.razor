@@ -1,44 +1,58 @@
 @page "/lon/lonearter"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Payroll.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Lönearter</PageTitle>
-
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönearter</MudText>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Kod</th><th>Benämning</th><th>Skattekategori</th><th>Semestergrundande</th><th>Pensionsgrundande</th></tr></thead>
-    <tbody>
-        @foreach (var l in _lonearter)
-        {
-            <tr>
-                <td><strong>@l.Kod</strong></td>
-                <td>@l.Benamning</td>
-                <td>@l.Skattekategori</td>
-                <td>@(l.Semestergrundande ? "✓" : "—")</td>
-                <td>@(l.Pensionsgrundande ? "✓" : "—")</td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_lonearter.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga lönearter registrerade.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@_lonearter.Count lönearter i systemet</MudText>
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Kod</th><th>Benämning</th><th>Skattekategori</th><th>Semester</th><th>Pension</th><th>Avdrag</th></tr></thead>
+        <tbody>
+            @foreach (var l in _lonearter)
+            {
+                <tr>
+                    <td><strong>@l.Kod</strong></td>
+                    <td>@l.Benamning</td>
+                    <td>@l.Skattekategori</td>
+                    <td>@(l.ArSemestergrundande ? "✓" : "—")</td>
+                    <td>@(l.ArPensionsgrundande ? "✓" : "—")</td>
+                    <td>@(l.ArAvdrag ? "Avdrag" : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 @code {
-    private List<LoneartRad> _lonearter = [];
-    protected override void OnInitialized()
+    private List<SalaryCode> _lonearter = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
     {
-        _lonearter = [
-            new("1100", "Månadslön", "A-skatt", true, true),
-            new("1310", "OB-tillägg vardag kväll", "A-skatt", true, true),
-            new("1311", "OB-tillägg vardag natt", "A-skatt", true, true),
-            new("1312", "OB-tillägg helg", "A-skatt", true, true),
-            new("1313", "OB-tillägg storhelg", "A-skatt", true, true),
-            new("1410", "Övertidstillägg enkel", "A-skatt", false, true),
-            new("1411", "Övertidstillägg kvalificerad", "A-skatt", false, true),
-            new("2100", "Semesterlön", "A-skatt", false, true),
-            new("2200", "Semestertillägg", "A-skatt", false, true),
-            new("3100", "Sjuklön dag 2-14", "A-skatt", true, true),
-            new("5100", "Traktamente", "Skattefritt", false, false),
-            new("5200", "Milersättning", "Skattefritt", false, false),
-        ];
+        try
+        {
+            _lonearter = await Db.SalaryCodes.OrderBy(s => s.Kod).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta lönearter: {ex.Message}"; }
+        finally { _loading = false; }
     }
-    private record LoneartRad(string Kod, string Benamning, string Skattekategori, bool Semestergrundande, bool Pensionsgrundande);
 }
