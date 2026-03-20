@@ -1,6 +1,7 @@
 @page "/arenden/nytt"
 @inject RegionHR.Web.Services.ArendeService ArendeService
 @inject NavigationManager Nav
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>Nytt ärende - RegionHR</PageTitle>
 
@@ -80,10 +81,10 @@
         try
         {
             var typ = Enum.Parse<RegionHR.SharedKernel.Domain.AbsenceType>(_franvaroTyp);
-            // Demo: använder en fast anställd-ID
-            var demoAnstallId = RegionHR.SharedKernel.Domain.EmployeeId.New();
+            if (!Auth.EmployeeId.HasValue) { _felmeddelande = "Kräver kopplad anställd."; _sparar = false; return; }
+            var anstallId = RegionHR.SharedKernel.Domain.EmployeeId.From(Auth.EmployeeId.Value);
             var id = await ArendeService.SkapaFranvaroarendeAsync(
-                demoAnstallId, typ, fran, till,
+                anstallId, typ, fran, till,
                 _beskrivning ?? $"{_franvaroTyp} {fran} - {till}");
             _sparat = true;
         }

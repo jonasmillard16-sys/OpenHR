@@ -1,5 +1,6 @@
 @page "/arenden/{Id:guid}"
 @inject RegionHR.Web.Services.ArendeService ArendeService
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>Ärende - RegionHR</PageTitle>
 
@@ -108,7 +109,8 @@ else
 
     private async Task Godkann()
     {
-        var godkannare = RegionHR.SharedKernel.Domain.EmployeeId.New(); // Demo
+        if (!Auth.EmployeeId.HasValue) return;
+        var godkannare = RegionHR.SharedKernel.Domain.EmployeeId.From(Auth.EmployeeId.Value);
         // First send for approval, then approve
         _arende!.SkickaForGodkannande("Chefsgodkännande", godkannare);
         await ArendeService.GodkannAsync(

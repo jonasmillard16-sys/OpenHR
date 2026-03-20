@@ -176,10 +176,11 @@
 
             _expiringCount = _expiringCerts.Count;
         }
-        catch
+        catch (Exception ex)
         {
-            _expiringCount = 3; // demo fallback
+            _expiringCount = 0;
             _expiringCerts = [];
+            System.Diagnostics.Debug.WriteLine($"Kompetens cert load: {ex.Message}");
         }
 
         // Mandatory training completion data (demo data until backend aggregation exists)

@@ -1,193 +1,83 @@
 @page "/dokument/organisation"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using Microsoft.JSInterop
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Documents.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Organisationsdokument</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Organisationsdokument</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Upload" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ladda upp dokument</MudButton>
-</div>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Organisationsdokument</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Dokument som inte är kopplade till en specifik anställd.</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalDokument</MudText>
-            <MudText Typo="Typo.body2">Totalt dokument</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_giltiga</MudText>
-            <MudText Typo="Typo.body2">Giltiga</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_garutSnart</MudText>
-            <MudText Typo="Typo.body2">Går ut inom 90 dagar</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_utgangna</MudText>
-            <MudText Typo="Typo.body2">Utgångna</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mb-3">Kollektivavtal</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Avtal</th>
-            <th>Parter</th>
-            <th>Giltighetstid</th>
-            <th>Omfattar</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _kollektivavtal)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Parter</td>
-                <td>@rad.Giltighetstid</td>
-                <td>@rad.Omfattar</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => VisaPdf(rad.Namn))">Visa PDF</MudButton></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Lokala avtal och delegationsordningar</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Dokument</th>
-            <th>Typ</th>
-            <th>Fastställd</th>
-            <th>Ansvarig</th>
-            <th>Senast reviderad</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _lokalaAvtal)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Typ</td>
-                <td>@rad.Faststalld</td>
-                <td>@rad.Ansvarig</td>
-                <td>@rad.SenastReviderad</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => VisaPdf(rad.Namn))">Visa PDF</MudButton></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (_visarPdf != null)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-5 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 700;">@_visarPdf</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visarPdf = null)" Size="Size.Small" />
-        </div>
-        <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_policyer</MudText><MudText Typo="Typo.body2">Policyer</MudText></MudPaper></MudItem>
+        <MudItem xs="6"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_dokument</MudText><MudText Typo="Typo.body2">Uppladdade dokument</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Publicerade policyer</MudText>
+    @if (_policyList.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga publicerade policyer.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Policy</th><th>Kategori</th><th>Version</th><th>Publicerad</th></tr></thead>
             <tbody>
-                <tr><td style="width: 160px;"><strong>Dokument</strong></td><td>@_visarPdf</td></tr>
-                <tr><td><strong>Typ</strong></td><td>PDF</td></tr>
-                <tr><td><strong>Storlek</strong></td><td>@(Random.Shared.Next(120, 850)) KB</td></tr>
-                <tr><td><strong>Senast ändrad</strong></td><td>@DateTime.Today.AddDays(-Random.Shared.Next(1, 90)).ToString("yyyy-MM-dd")</td></tr>
-                <tr><td><strong>Ansvarig</strong></td><td>HR-avdelningen</td></tr>
+                @foreach (var p in _policyList)
+                {
+                    <tr><td><strong>@p.Titel</strong></td><td>@p.Kategori</td><td>v@p.Version</td><td>@(p.PubliceradVid?.ToLocalTime().ToString("yyyy-MM-dd") ?? "—")</td></tr>
+                }
             </tbody>
         </MudSimpleTable>
-        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background); border: 1px solid var(--mud-palette-lines-default); border-radius: 8px; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">@_visarPdf
+    }
 
-Dokumentet innehåller gällande bestämmelser och avtal.
-Fastställt av behörig beslutsfattare.
+    <MudText Typo="Typo.h6" Class="mb-3">Organisationsdokument (uppladdade)</MudText>
+    @if (_docList.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga organisationsdokument uppladdade. Använd Dokument → Ladda upp för att lägga till.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Filnamn</th><th>Kategori</th><th>Uppladdad</th></tr></thead>
+            <tbody>
+                @foreach (var d in _docList)
+                {
+                    <tr><td><strong>@d.FileName</strong></td><td>@d.Kategori</td><td>@d.UppladdadVid.ToLocalTime().ToString("yyyy-MM-dd")</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 
-I produktion öppnas dokumentet som riktig PDF.</MudPaper>
-        <div class="d-flex gap-2 mt-3">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                       OnClick="@(() => { if (JS != null) JS.InvokeVoidAsync("eval", "window.print()"); })">Skriv ut</MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
-                       OnClick="@(() => _visarPdf = null)">Stäng</MudButton>
-        </div>
-    </MudPaper>
-}
-
-@if (_visaNyDialog)
-{
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ladda upp dokument</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyTitel" Label="Dokumenttitel" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyKategori" Label="Kategori" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="LaddaUpp">Skapa</MudButton>
-    </MudPaper>
-}
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4">
+        Kollektivavtal (AB, HOK, PAN) och lokala avtal hanteras utanför detta system. Kontakta HR-avdelningen för gällande avtalstexter.
+    </MudAlert>
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyTitel = "", _nyKategori = "";
+    private List<RegionHR.PolicyManagement.Domain.Policy> _policyList = [];
+    private List<Document> _docList = [];
+    private int _policyer, _dokument;
+    private bool _loading = true;
+    private string? _error;
 
-    private void LaddaUpp()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyTitel)) return;
-        _skapad = $"Dokument {_nyTitel} uppladdat!";
-        _nyTitel = ""; _nyKategori = ""; _visaNyDialog = false;
+        try
+        {
+            _policyList = await Db.Policies
+                .Where(p => p.Status == RegionHR.PolicyManagement.Domain.PolicyStatus.Publicerad)
+                .OrderByDescending(p => p.PubliceradVid).ToListAsync();
+            _policyer = _policyList.Count;
+
+            // Show documents not linked to a specific employee (AnstallId = Guid.Empty won't exist,
+            // so we show all non-archived documents as organizational scope)
+            _docList = await Db.Documents
+                .Where(d => !d.IsArchived)
+                .OrderByDescending(d => d.UppladdadVid)
+                .Take(20).ToListAsync();
+            _dokument = _docList.Count;
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
-    private string? _visarPdf;
-
-    [Inject] private IJSRuntime? JS { get; set; }
-
-    private void VisaPdf(string dokumentNamn)
-    {
-        _visarPdf = _visarPdf == dokumentNamn ? null : dokumentNamn;
-    }
-
-    private int _totalDokument = 34;
-    private int _giltiga = 28;
-    private int _garutSnart = 4;
-    private int _utgangna = 2;
-
-    private List<KollektivavtalRad> _kollektivavtal = [];
-    private List<LokaltAvtalRad> _lokalaAvtal = [];
-
-    protected override void OnInitialized()
-    {
-        _kollektivavtal =
-        [
-            new("AB – Allmänna bestämmelser", "SKR / Kommunal, Vårdförbundet m.fl.", "2024-04-01 – 2026-03-31", "Alla anställda", "Giltigt", Color.Success),
-            new("HÖK – Huvudöverenskommelse (Vårdförbundet)", "SKR / Vårdförbundet", "2024-04-01 – 2026-03-31", "Sjuksköterskor, barnmorskor", "Giltigt", Color.Success),
-            new("HÖK – Huvudöverenskommelse (Läkarförbundet)", "SKR / Läkarförbundet", "2024-04-01 – 2026-09-30", "Läkare", "Giltigt", Color.Success),
-            new("PAN – Pensionsavtal", "SKR / Fackförbund", "Tillsvidare", "Alla anställda", "Giltigt", Color.Success),
-            new("BEA – Bestämmelser för arbetstagare i utbildning", "SKR / Kommunal", "2023-01-01 – 2025-12-31", "AT-läkare, elever", "Går ut snart", Color.Warning),
-        ];
-
-        _lokalaAvtal =
-        [
-            new("Delegationsordning – Regiondirektören", "Delegationsordning", "2025-06-01", "Regiondirektör", "2025-06-01"),
-            new("Lokalt avtal – OB-tillägg vårdpersonal", "Lokalt avtal", "2024-10-01", "HR-direktör", "2024-10-01"),
-            new("Lokalt avtal – Flextid administration", "Lokalt avtal", "2024-01-15", "HR-direktör", "2024-01-15"),
-            new("Samverkansavtal", "Samverkan", "2023-09-01", "Regiondirektör", "2025-03-01"),
-            new("Lokalt avtal – Jour och beredskap", "Lokalt avtal", "2024-04-01", "HR-direktör", "2024-04-01"),
-            new("Arbetsmiljöpolicy", "Policy", "2025-01-01", "HR-direktör", "2025-01-01"),
-            new("Jämställdhetsplan 2025–2027", "Plan", "2025-01-01", "HR-direktör", "2025-01-01"),
-        ];
-    }
-
-    private record KollektivavtalRad(string Namn, string Parter, string Giltighetstid, string Omfattar, string StatusText, Color StatusFarg);
-    private record LokaltAvtalRad(string Namn, string Typ, string Faststalld, string Ansvarig, string SenastReviderad);
 }
