@@ -1,22 +1,109 @@
 @page "/stampling"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Instämpling</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Instämpling idag</MudText>
-<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@DateTime.Today.ToString("dddd d MMMM yyyy")</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@DateTime.Today.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))</MudText>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">42</MudText><MudText Typo="Typo.body2">Instämplade</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">3</MudText><MudText Typo="Typo.body2">Sena ankomster</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">2</MudText><MudText Typo="Typo.body2">Saknar stämpling</MudText></MudPaper></MudItem>
-</MudGrid>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_stamplade</MudText><MudText Typo="Typo.body2">Instämplade</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_sena</MudText><MudText Typo="Typo.body2">Sena ankomster</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_saknar</MudText><MudText Typo="Typo.body2">Saknar stämpling</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead><tr><th>Namn</th><th>Planerat</th><th>Stämplat in</th><th>Status</th></tr></thead>
-    <tbody>
-        <tr><td>Anna Svensson</td><td>07:00</td><td>06:55</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td>Lisa Holm</td><td>07:00</td><td>07:12</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Sen</MudChip></td></tr>
-        <tr><td>Karl Berg</td><td>07:00</td><td>—</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Saknas</MudChip></td></tr>
-        <tr><td>Maria Lindgren</td><td>07:00</td><td>06:58</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga schemalagda pass idag.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Namn</th><th>Planerat</th><th>Stämplat in</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td>@r.Planerat</td>
+                        <td>@(r.StamplatIn ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@r.StatusFarg">@r.StatusText</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<StamplingRad> _rader = [];
+    private int _stamplade, _sena, _saknar;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var shifts = await Db.ScheduledShifts
+                .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
+                .ToListAsync();
+
+            var clockEvents = await Db.TimeClockEvents
+                .Where(e => e.Tidpunkt.Date == DateTime.Today.Date && e.Typ == ClockEventType.In)
+                .ToListAsync();
+            var clockByEmployee = clockEvents.ToDictionary(e => e.AnstallId.Value, e => e.Tidpunkt);
+
+            var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
+            var employees = await Db.Employees.Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            foreach (var s in shifts.OrderBy(s => s.PlaneradStart))
+            {
+                var hasClockIn = clockByEmployee.TryGetValue(s.AnstallId.Value, out var clockTime);
+                string statusText;
+                Color statusFarg;
+                if (hasClockIn)
+                {
+                    var late = clockTime.TimeOfDay > s.PlaneradStart.ToTimeSpan().Add(TimeSpan.FromMinutes(5));
+                    statusText = late ? "Sen" : "OK";
+                    statusFarg = late ? Color.Warning : Color.Success;
+                }
+                else
+                {
+                    statusText = "Saknas";
+                    statusFarg = Color.Error;
+                }
+
+                _rader.Add(new StamplingRad(
+                    names.GetValueOrDefault(s.AnstallId.Value, "Okänd"),
+                    s.PlaneradStart.ToString("HH:mm"),
+                    hasClockIn ? clockTime.ToLocalTime().ToString("HH:mm") : null,
+                    statusText, statusFarg));
+            }
+
+            _stamplade = _rader.Count(r => r.StatusText is "OK" or "Sen");
+            _sena = _rader.Count(r => r.StatusText == "Sen");
+            _saknar = _rader.Count(r => r.StatusText == "Saknas");
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta stämplingsdata: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private record StamplingRad(string Namn, string Planerat, string? StamplatIn, string StatusText, Color StatusFarg);
+}

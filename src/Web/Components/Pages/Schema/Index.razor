@@ -1,73 +1,111 @@
 @page "/schema"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Schemaöversikt</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Schemaöversikt</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-               StartIcon="@Icons.Material.Filled.Add" Href="/schema/ny" Style="min-height: 48px;">
-        Skapa schema
-    </MudButton>
+               StartIcon="@Icons.Material.Filled.Add" Href="/schema/ny" Style="min-height: 48px;">Skapa schema</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">847</MudText>
-            <MudText Typo="Typo.body2">Pass denna vecka</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">98%</MudText>
-            <MudText Typo="Typo.body2">Bemanningsgrad</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">3</MudText>
-            <MudText Typo="Typo.body2">Obesatta pass</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="6" sm="3">
-        <MudPaper Class="pa-4 text-center" Elevation="2">
-            <MudText Typo="Typo.h4" Style="font-weight: 700;">0</MudText>
-            <MudText Typo="Typo.body2">ATL-överträdelser</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPass</MudText><MudText Typo="Typo.body2">Pass denna vecka</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_enheter.Count</MudText><MudText Typo="Typo.body2">Enheter</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudText Typo="Typo.h6" Class="mb-3">Vecka 12 — Alla enheter</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Enhet</th><th>Mån</th><th>Tis</th><th>Ons</th><th>Tor</th><th>Fre</th><th>Lör</th><th>Sön</th></tr></thead>
-    <tbody>
-        @foreach (var e in _enheter)
-        {
-            <tr>
-                <td><strong>@e.Namn</strong></td>
-                @foreach (var d in e.Dagar)
+    <MudText Typo="Typo.h6" Class="mb-3">Vecka @_veckonummer — Schemalagda pass per enhet</MudText>
+    @if (_enhetData.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga schemalagda pass denna vecka.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Enhet</th>@foreach (var d in _veckodagar) { <th>@d.ToString("ddd d/M", _sv)</th> }</tr></thead>
+            <tbody>
+                @foreach (var e in _enhetData)
                 {
-                    <td style="text-align: center;">
-                        <MudChip T="string" Size="Size.Small" Color="@d.Farg" Style="min-width: 40px;">@d.Antal</MudChip>
-                    </td>
+                    <tr>
+                        <td><strong>@e.Namn</strong></td>
+                        @foreach (var count in e.DagAntal)
+                        {
+                            <td style="text-align: center;"><MudChip T="string" Size="Size.Small" Color="@(count > 0 ? Color.Success : Color.Default)">@count</MudChip></td>
+                        }
+                    </tr>
                 }
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    private List<EnhetSchema> _enheter = [];
-    protected override void OnInitialized()
+    private static readonly System.Globalization.CultureInfo _sv = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+    private List<RegionHR.Core.Domain.OrganizationUnit> _enheter = [];
+    private List<EnhetVecka> _enhetData = [];
+    private List<DateOnly> _veckodagar = [];
+    private int _totalPass, _veckonummer;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
     {
-        _enheter = [
-            new("Avdelning 32", [new(8, Color.Success), new(8, Color.Success), new(7, Color.Warning), new(8, Color.Success), new(8, Color.Success), new(6, Color.Warning), new(6, Color.Warning)]),
-            new("Avdelning 33", [new(6, Color.Success), new(6, Color.Success), new(6, Color.Success), new(5, Color.Warning), new(6, Color.Success), new(4, Color.Success), new(4, Color.Success)]),
-            new("Akutmottagningen", [new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(12, Color.Success), new(10, Color.Success), new(10, Color.Success)]),
-            new("IVA", [new(10, Color.Success), new(10, Color.Success), new(10, Color.Success), new(10, Color.Success), new(8, Color.Warning), new(7, Color.Error), new(7, Color.Error)]),
-        ];
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var monday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
+            _veckodagar = Enumerable.Range(0, 7).Select(i => monday.AddDays(i)).ToList();
+            _veckonummer = System.Globalization.ISOWeek.GetWeekOfYear(DateTime.Today);
+
+            var sunday = monday.AddDays(6);
+            var shifts = await Db.ScheduledShifts
+                .Where(s => s.Datum >= monday && s.Datum <= sunday && s.Status != ShiftStatus.Avbokad)
+                .ToListAsync();
+            _totalPass = shifts.Count;
+
+            _enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+
+            // Get employees to map shift → unit
+            var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
+            var employees = await Db.Employees.Include(e => e.Anstallningar)
+                .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var empEnhet = new Dictionary<Guid, Guid>();
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            foreach (var emp in employees)
+            {
+                var anst = emp.AktivAnstallning(idag);
+                if (anst != null) empEnhet[emp.Id.Value] = anst.EnhetId.Value;
+            }
+
+            _enhetData = _enheter
+                .Select(enhet =>
+                {
+                    var counts = _veckodagar.Select(dag =>
+                        shifts.Count(s => s.Datum == dag && empEnhet.GetValueOrDefault(s.AnstallId.Value) == enhet.Id.Value)
+                    ).ToList();
+                    return new EnhetVecka(enhet.Namn, counts);
+                })
+                .Where(e => e.DagAntal.Any(c => c > 0))
+                .ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta schemadata: {ex.Message}"; }
+        finally { _loading = false; }
     }
-    private record DagData(int Antal, Color Farg);
-    private record EnhetSchema(string Namn, List<DagData> Dagar);
+
+    private record EnhetVecka(string Namn, List<int> DagAntal);
 }

@@ -763,6 +763,37 @@ public static class SeedData
 
         db.Timesheets.AddRange(tsAnnaMars, tsErikMars, tsKarlFeb, tsMariaMars, tsSaraMars);
 
+        // === TravelClaims via domänens Skapa() ===
+        var reseErik = RegionHR.Travel.Domain.TravelClaim.Skapa(
+            employees[1].Id, "Konferens Stockholm", DateOnly.FromDateTime(DateTime.Today.AddDays(-10)));
+        reseErik.SattTraktamente(2, 0);
+        reseErik.SkickaIn();
+        var reseAnna = RegionHR.Travel.Domain.TravelClaim.Skapa(
+            employees[0].Id, "Utbildning Goteborg", DateOnly.FromDateTime(DateTime.Today.AddDays(-25)));
+        reseAnna.SattTraktamente(1, 0);
+        reseAnna.SkickaIn();
+        reseAnna.Attestera("Eva Nilsson");
+        db.TravelClaims.AddRange(reseErik, reseAnna);
+
+        // === DelegatedAccess via domänens Skapa() ===
+        var delegEva = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
+            employees[8].Id.Value, employees[2].Id.Value, "Ledighet – godkanna",
+            DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(14)), "Semester");
+        var delegAnders = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
+            employees[7].Id.Value, employees[3].Id.Value, "Tidrapporter – attestera",
+            DateOnly.FromDateTime(DateTime.Today.AddDays(10)), DateOnly.FromDateTime(DateTime.Today.AddDays(24)), "Konferens");
+        db.DelegatedAccesses.AddRange(delegEva, delegAnders);
+
+        // === ShiftSwapRequests via domänens Skapa() ===
+        var swap1 = RegionHR.Scheduling.Domain.ShiftSwapRequest.Skapa(
+            employees[0].Id, Guid.NewGuid(), "Behover byta pga lakartid");
+        swap1.Erbjud(employees[4].Id);
+        swap1.Acceptera(employees[4].Id, null);
+        var swap2 = RegionHR.Scheduling.Domain.ShiftSwapRequest.Skapa(
+            employees[3].Id, Guid.NewGuid(), "Vill byta till dagpass");
+        swap2.Erbjud(employees[6].Id);
+        db.ShiftSwapRequests.AddRange(swap1, swap2);
+
         await db.SaveChangesAsync();
     }
 }

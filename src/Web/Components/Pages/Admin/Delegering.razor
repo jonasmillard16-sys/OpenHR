@@ -1,210 +1,141 @@
 @page "/admin/delegering"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Delegering</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Delegering av behörigheter</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Ny delegering</MudButton>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Delegering</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny delegering</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="4">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_aktiva</MudText>
-            <MudText Typo="Typo.body2">Aktiva delegeringar</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_kommande</MudText>
-            <MudText Typo="Typo.body2">Kommande (schemalagda)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="4">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Default" Style="font-weight: 700;">@_utgangna</MudText>
-            <MudText Typo="Typo.body2">Utgångna (senaste 30 d)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_showForm)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa ny delegering</MudText>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyFran" Label="Från (chef)" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyTill" Label="Till (ställföreträdare)" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" @bind-Value="_nyBehorighet" Label="Behörighet" Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("Ledighet – godkänna")">Ledighet -- godkänna</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Tidrapporter – attestera")">Tidrapporter -- attestera</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Resor/utlägg – godkänna")">Resor/utlägg -- godkänna</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Lön – granska")">Lön -- granska</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Ärenden – handlägga")">Ärenden -- handlägga</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudDatePicker @bind-Date="_nyGiltigTom" Label="Giltig t.o.m." Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaDelegering"
-                               Disabled="@(string.IsNullOrWhiteSpace(_nyFran) || string.IsNullOrWhiteSpace(_nyTill) || string.IsNullOrWhiteSpace(_nyBehorighet))">Skapa delegering</MudButton>
-                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-
-@if (_meddelande is not null)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _meddelande = null)">@_meddelande</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_aktiva</MudText><MudText Typo="Typo.body2">Aktiva</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_kommande</MudText><MudText Typo="Typo.body2">Kommande</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_utgangna</MudText><MudText Typo="Typo.body2">Utgångna</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudAlert Severity="Severity.Warning" Class="mb-4">
-    Delegeringar bör ha en tidsbegränsad period. Chefer ansvarar för att delegeringen avser rätt behörighetsnivå.
-    Alla godkännanden gjorda av delegat loggas med referens till delegeringsbeslutet.
-</MudAlert>
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny delegering</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formDelegator" Label="Från (chef)" Variant="Variant.Outlined">
+                        @foreach (var e in _employees) { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formDelegat" Label="Till (ställföreträdare)" Variant="Variant.Outlined">
+                        @foreach (var e in _employees) { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_formRoll" Label="Behörighet" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_formFran" Label="Från" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_formTill" Label="Till" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_formAnledning" Label="Anledning" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaDelegering"
+                       Disabled="@(_formDelegator == null || _formDelegat == null || _formFran == null || _formTill == null || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
 
-<MudText Typo="Typo.h6" Class="mb-3">Aktiva delegeringar</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Delegerar (chef)</th>
-            <th>Till (ställföreträdare)</th>
-            <th>Period</th>
-            <th>Behörighet</th>
-            <th>Anledning</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Fran</strong></td>
-                <td><strong>@rad.Till</strong></td>
-                <td>@rad.Period</td>
-                <td>@rad.Behorighet</td>
-                <td>@rad.Anledning</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td>
-                    @if (rad.StatusText == "Aktiv")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => AvslutaDelegering(rad))">Avsluta</MudButton>
-                    }
-                    else
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => VisaDetaljer(rad))">Detaljer</MudButton>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Delegerbara behörigheter</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Behörighet</th>
-            <th>Beskrivning</th>
-            <th>Kräver</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>Ledighet – godkänna</strong></td>
-            <td>Godkänna/avslå ledighetsansökningar</td>
-            <td>Chefsbehörighet</td>
-        </tr>
-        <tr>
-            <td><strong>Tidrapporter – attestera</strong></td>
-            <td>Attestera tidrapporter och övertid</td>
-            <td>Chefsbehörighet</td>
-        </tr>
-        <tr>
-            <td><strong>Resor/utlägg – godkänna</strong></td>
-            <td>Godkänna reseräkningar och utläggsrapporter</td>
-            <td>Chefsbehörighet</td>
-        </tr>
-        <tr>
-            <td><strong>Lön – granska</strong></td>
-            <td>Granska lönekörning (ej slutgodkänna)</td>
-            <td>HR-behörighet</td>
-        </tr>
-        <tr>
-            <td><strong>Ärenden – handlägga</strong></td>
-            <td>Handlägga personalärenden</td>
-            <td>HR-behörighet</td>
-        </tr>
-    </tbody>
-</MudSimpleTable>
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga delegeringar registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Från</th><th>Till</th><th>Behörighet</th><th>Period</th><th>Anledning</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    var idag = DateOnly.FromDateTime(DateTime.Today);
+                    var status = !r.Deleg.ArAktiv ? "Avslutad" : r.Deleg.FranDatum > idag ? "Kommande" : r.Deleg.TillDatum < idag ? "Utgången" : "Aktiv";
+                    var farg = status switch { "Aktiv" => Color.Success, "Kommande" => Color.Info, _ => Color.Default };
+                    <tr>
+                        <td><strong>@r.DelegatorNamn</strong></td>
+                        <td>@r.DelegatNamn</td>
+                        <td>@r.Deleg.Roll</td>
+                        <td>@r.Deleg.FranDatum.ToString("yyyy-MM-dd") – @r.Deleg.TillDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@(r.Deleg.Anledning ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@farg">@status</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    private bool _showForm;
-    private string _nyFran = "";
-    private string _nyTill = "";
-    private string _nyBehorighet = "";
-    private DateTime? _nyGiltigTom;
-    private string? _meddelande;
-    private DelegeringRad? _valdRad;
-    private int _aktiva = 3;
-    private int _kommande = 2;
-    private int _utgangna = 5;
+    private List<DelegVm> _rader = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private int _aktiva, _kommande, _utgangna;
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
+    private Guid? _formDelegator, _formDelegat;
+    private DateTime? _formFran, _formTill;
+    private string _formRoll = "", _formAnledning = "";
 
-    private void SkapaDelegering()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyFran) || string.IsNullOrWhiteSpace(_nyTill) || string.IsNullOrWhiteSpace(_nyBehorighet)) return;
-        var tom = _nyGiltigTom?.ToString("yyyy-MM-dd") ?? "Tillsvidare";
-        var period = $"{DateTime.Now:yyyy-MM-dd} – {tom}";
-        _rader.Insert(0, new DelegeringRad(_nyFran, _nyTill, period, _nyBehorighet, "Ny delegering", "Aktiv", Color.Success));
-        _aktiva++;
-        _meddelande = $"Delegering från {_nyFran} till {_nyTill} skapad.";
-        _nyFran = "";
-        _nyTill = "";
-        _nyBehorighet = "";
-        _nyGiltigTom = null;
-        _showForm = false;
-    }
-
-    private void AvslutaDelegering(DelegeringRad rad)
-    {
-        var idx = _rader.IndexOf(rad);
-        if (idx >= 0)
+        try
         {
-            _rader[idx] = rad with { StatusText = "Avslutad", StatusFarg = Color.Default };
+            var delegs = await Db.DelegatedAccesses.OrderByDescending(d => d.SkapadVid).ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = delegs.Select(d => new DelegVm(
+                names.GetValueOrDefault(d.DelegatorId, "Okänd"),
+                names.GetValueOrDefault(d.DelegatId, "Okänd"), d)).ToList();
+
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            _aktiva = delegs.Count(d => d.ArGiltig(idag));
+            _kommande = delegs.Count(d => d.ArAktiv && d.FranDatum > idag);
+            _utgangna = delegs.Count(d => !d.ArAktiv || d.TillDatum < idag);
         }
-        _meddelande = $"Delegering från {rad.Fran} till {rad.Till} avslutad.";
+        catch (Exception ex) { _error = $"Kunde inte hämta delegeringar: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private void VisaDetaljer(DelegeringRad rad)
+    private async Task SkapaDelegering()
     {
-        _valdRad = _valdRad == rad ? null : rad;
+        if (_formDelegator == null || _formDelegat == null || _formFran == null || _formTill == null) return;
+        _saving = true; _error = null;
+        try
+        {
+            var d = DelegatedAccess.Skapa(_formDelegator.Value, _formDelegat.Value, _formRoll,
+                DateOnly.FromDateTime(_formFran.Value), DateOnly.FromDateTime(_formTill.Value), _formAnledning);
+            Db.DelegatedAccesses.Add(d);
+            await Db.SaveChangesAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            _rader.Insert(0, new DelegVm(names.GetValueOrDefault(d.DelegatorId, "Okänd"), names.GetValueOrDefault(d.DelegatId, "Okänd"), d));
+            _showForm = false; _success = "Delegering skapad.";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private List<DelegeringRad> _rader = [];
-
-    protected override void OnInitialized()
-    {
-        _rader =
-        [
-            new("Eva Nilsson", "Maria Lindström", "2026-03-15 – 2026-03-28", "Ledighet – godkänna, Tidrapporter – attestera", "Semester", "Aktiv", Color.Success),
-            new("Anders Ström", "Karl Berg", "2026-03-10 – 2026-04-10", "Ledighet – godkänna", "Föräldraledighet", "Aktiv", Color.Success),
-            new("Helena Kraft", "Lisa Holm", "2026-03-17 – 2026-03-21", "Resor/utlägg – godkänna", "Konferens", "Aktiv", Color.Success),
-            new("Per Gustafsson", "Erik Johansson", "2026-04-01 – 2026-04-15", "Ledighet – godkänna, Tidrapporter – attestera", "Semester", "Kommande", Color.Info),
-            new("Sara Karlsson", "Anna Svensson", "2026-04-07 – 2026-04-18", "Ärenden – handlägga", "Utbildning", "Kommande", Color.Info),
-            new("Jonas Eriksson", "Per Gustafsson", "2026-02-15 – 2026-03-01", "Ledighet – godkänna", "Sjukdom", "Utgången", Color.Default),
-            new("Anna Svensson", "Sara Karlsson", "2026-02-01 – 2026-02-14", "Tidrapporter – attestera", "Semester", "Utgången", Color.Default),
-        ];
-    }
-
-    private record DelegeringRad(string Fran, string Till, string Period, string Behorighet, string Anledning, string StatusText, Color StatusFarg);
+    private record DelegVm(string DelegatorNamn, string DelegatNamn, DelegatedAccess Deleg);
 }

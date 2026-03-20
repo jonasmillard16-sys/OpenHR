@@ -1,7 +1,13 @@
 @page "/resor"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
 @using RegionHR.Infrastructure.Payroll
+@using RegionHR.Travel.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject TraktamentsCalculator TraktCalc
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Resor och utlägg</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -9,73 +15,79 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Nytt resekrav</MudButton>
 </div>
 
-@if (_showForm)
+@if (_error != null)
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@if (_showForm && Auth.EmployeeId.HasValue)
+{
+    <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
         <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa nytt resekrav</MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Nytt resekrav</MudText>
             <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
         </div>
-        <MudTextField @bind-Value="_newDatum" Label="Datum" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newDestination" Label="Destination" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newBelopp" Label="Belopp (kr)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                   Style="min-height: 48px;" OnClick="SkapaResekrav">Skapa</MudButton>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_formDatum" Label="Resedatum" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formBeskrivning" Label="Beskrivning" Variant="Variant.Outlined" Required="true" /></MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaResekrav"
+                   Disabled="@(_formDatum == null || string.IsNullOrWhiteSpace(_formBeskrivning) || _saving)">Skapa</MudButton>
     </MudPaper>
 }
-
-@if (_skapad)
+else if (_showForm)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Resekrav skapat!</MudAlert>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">Resekrav kräver kopplad anställd.</MudAlert>
 }
 
-@if (_meddelande is not null)
+@if (_success != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _meddelande = null)">@_meddelande</MudAlert>
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
 }
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Datum</th><th>Belopp</th><th>Status</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Datum</td>
-                <td>@rad.Belopp</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td>
-                    @if (rad.StatusText == "Inskickad")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => Godkann(rad))">Godkänn</MudButton>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_claims.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga resekrav registrerade.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
+        <thead><tr><th>Anställd</th><th>Datum</th><th>Beskrivning</th><th>Belopp</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var c in _claims)
+            {
+                <tr>
+                    <td><strong>@c.Namn</strong></td>
+                    <td>@c.Datum.ToString("yyyy-MM-dd")</td>
+                    <td>@c.Beskrivning</td>
+                    <td>@c.Belopp.ToString("N0") kr</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Status)">@StatusText(c.Status)</MudChip></td>
+                    <td>
+                        @if (c.Status == TravelClaimStatus.Inskickad && Auth.EmployeeId.HasValue)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => AttesteraKrav(c))">Godkänn</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
 
 <MudDivider Class="my-6" />
 
-@* ======================== BERÄKNA TRAKTAMENTE ======================== *@
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">
-    <MudIcon Icon="@Icons.Material.Filled.Calculate" Class="mr-2" Style="vertical-align: middle;" />
-    Beräkna traktamente
-</MudText>
-<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Systemet beräknar traktamente enligt Skatteverkets regler 2026. Ange resedatum så beräknas allt automatiskt.
-</MudText>
+@* Traktamente calculator — kept as real calculation logic *@
+<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">Beräkna traktamente</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Beräkning enligt Skatteverkets regler.</MudText>
 
 <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
     <MudGrid Spacing="3">
-        <MudItem xs="12" md="3">
-            <MudDatePicker @bind-Date="_traktAvresa" Label="Avresedatum" Variant="Variant.Outlined"
-                           DateFormat="yyyy-MM-dd" Editable="true" />
-        </MudItem>
-        <MudItem xs="12" md="3">
-            <MudDatePicker @bind-Date="_traktHemkomst" Label="Hemkomstdatum" Variant="Variant.Outlined"
-                           DateFormat="yyyy-MM-dd" Editable="true" />
-        </MudItem>
+        <MudItem xs="12" md="3"><MudDatePicker @bind-Date="_traktAvresa" Label="Avresedatum" Variant="Variant.Outlined" /></MudItem>
+        <MudItem xs="12" md="3"><MudDatePicker @bind-Date="_traktHemkomst" Label="Hemkomstdatum" Variant="Variant.Outlined" /></MudItem>
         <MudItem xs="12" md="2">
             <MudSelect T="string" @bind-Value="_traktTyp" Label="Typ" Variant="Variant.Outlined">
                 <MudSelectItem T="string" Value="@("Inrikes")">Inrikes</MudSelectItem>
@@ -86,15 +98,10 @@
         {
             <MudItem xs="12" md="2">
                 <MudSelect T="string" @bind-Value="_traktLand" Label="Land" Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("Norge")">Norge</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Danmark")">Danmark</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Finland")">Finland</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Tyskland")">Tyskland</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Frankrike")">Frankrike</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Storbritannien")">Storbritannien</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("USA")">USA</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Spanien")">Spanien</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Italien")">Italien</MudSelectItem>
+                    @foreach (var l in new[] { "Norge", "Danmark", "Finland", "Tyskland", "Frankrike", "Storbritannien", "USA" })
+                    {
+                        <MudSelectItem T="string" Value="@l">@l</MudSelectItem>
+                    }
                 </MudSelect>
             </MudItem>
         }
@@ -108,9 +115,7 @@
             </MudItem>
         }
         <MudItem xs="12" md="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       Style="min-height: 48px; width: 100%;" OnClick="BeraknaTraktamente"
-                       StartIcon="@Icons.Material.Filled.Calculate">Beräkna</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px; width: 100%;" OnClick="BeraknaTraktamente">Beräkna</MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -121,106 +126,101 @@
         <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Beräkningsresultat</MudText>
         <MudText Typo="Typo.body2" Class="mb-3">@_traktResultat.Beskrivning</MudText>
         <MudGrid Spacing="3">
-            <MudItem xs="6" md="3">
-                <MudText Typo="Typo.caption">Antal dagar</MudText>
-                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.AntalDagar</MudText>
-            </MudItem>
-            <MudItem xs="6" md="3">
-                <MudText Typo="Typo.caption">Dagtraktamente</MudText>
-                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Dagtraktamente.ToString("N0") kr</MudText>
-            </MudItem>
-            <MudItem xs="6" md="3">
-                <MudText Typo="Typo.caption">Nattillägg</MudText>
-                <MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Natttillagg.ToString("N0") kr</MudText>
-            </MudItem>
-            <MudItem xs="6" md="3">
-                <MudText Typo="Typo.caption">Totalt</MudText>
-                <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;">@_traktResultat.Totalt.ToString("N0") kr</MudText>
-            </MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.caption">Antal dagar</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.AntalDagar</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.caption">Dagtraktamente</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Dagtraktamente.ToString("N0") kr</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.caption">Nattillägg</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@_traktResultat.Natttillagg.ToString("N0") kr</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.caption">Totalt</MudText><MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;">@_traktResultat.Totalt.ToString("N0") kr</MudText></MudItem>
         </MudGrid>
     </MudPaper>
 }
-
 @if (_traktFel is not null)
 {
     <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _traktFel = null)">@_traktFel</MudAlert>
 }
 
 @code {
-    private bool _showForm;
-    private bool _skapad;
-    private string _newDatum = "";
-    private string _newDestination = "";
-    private string _newBelopp = "";
+    private List<ClaimVm> _claims = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
+    private DateTime? _formDatum;
+    private string _formBeskrivning = "";
 
-    private void SkapaResekrav()
-    {
-        _showForm = false;
-        _skapad = true;
-        _newDatum = "";
-        _newDestination = "";
-        _newBelopp = "";
-    }
-
-    private string? _meddelande;
-
-    private List<ReseRad> _rader = [];
-
-    protected override void OnInitialized()
-    {
-        _rader =
-        [
-            new("Erik Johansson", "2026-03-10", "4 850 kr", "Inskickad", Color.Warning),
-            new("Anna Svensson", "2026-02-25", "2 300 kr", "Godkänd", Color.Success),
-            new("Lisa Holm", "2026-02-15", "6 720 kr", "Utbetald", Color.Success),
-        ];
-    }
-
-    private void Godkann(ReseRad rad)
-    {
-        var idx = _rader.IndexOf(rad);
-        if (idx >= 0)
-        {
-            _rader[idx] = rad with { StatusText = "Godkänd", StatusFarg = Color.Success };
-        }
-        _meddelande = $"Resekrav för {rad.Namn} ({rad.Belopp}) godkänt.";
-    }
-
-    // ---- Traktamente ----
-    private DateTime? _traktAvresa = DateTime.Today;
-    private DateTime? _traktHemkomst = DateTime.Today.AddDays(2);
-    private string _traktTyp = "Inrikes";
-    private string _traktLand = "Norge";
-    private bool _traktHotell = false;
+    // Traktamente
+    private DateTime? _traktAvresa = DateTime.Today, _traktHemkomst = DateTime.Today.AddDays(2);
+    private string _traktTyp = "Inrikes", _traktLand = "Norge";
+    private bool _traktHotell;
     private TraktamentsBerakning? _traktResultat;
     private string? _traktFel;
 
-    private void BeraknaTraktamente()
+    protected override async Task OnInitializedAsync()
     {
-        _traktFel = null;
-        _traktResultat = null;
+        try
+        {
+            var claims = await Db.TravelClaims.OrderByDescending(c => c.ReseDatum).Take(50).ToListAsync();
+            var empIds = claims.Select(c => c.AnstallId.Value).Distinct().ToList();
+            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
-        if (_traktAvresa is null || _traktHemkomst is null)
-        {
-            _traktFel = "Ange både avresedatum och hemkomstdatum.";
-            return;
+            _claims = claims.Select(c => new ClaimVm(c.Id, names.GetValueOrDefault(c.AnstallId.Value, "Okänd"),
+                c.ReseDatum, c.Beskrivning, c.TotalBelopp.Amount, c.Status, c)).ToList();
         }
-
-        if (_traktHemkomst.Value <= _traktAvresa.Value)
-        {
-            _traktFel = "Hemkomstdatum måste vara efter avresedatum.";
-            return;
-        }
-
-        if (_traktTyp == "Inrikes")
-        {
-            _traktResultat = TraktCalc.BeraknaInrikes(_traktAvresa.Value, _traktHemkomst.Value, _traktHotell);
-        }
-        else
-        {
-            _traktResultat = TraktCalc.BeraknaUtrikes(_traktLand, _traktAvresa.Value, _traktHemkomst.Value);
-        }
+        catch (Exception ex) { _error = $"Kunde inte hämta resekrav: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record ReseRad(string Namn, string Datum, string Belopp, string StatusText, Color StatusFarg);
+    private async Task SkapaResekrav()
+    {
+        if (!Auth.EmployeeId.HasValue || _formDatum == null || string.IsNullOrWhiteSpace(_formBeskrivning)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var claim = TravelClaim.Skapa(EmployeeId.From(Auth.EmployeeId.Value), _formBeskrivning, DateOnly.FromDateTime(_formDatum.Value));
+            claim.SkickaIn();
+            Db.TravelClaims.Add(claim);
+            await Db.SaveChangesAsync();
+            _claims.Insert(0, new ClaimVm(claim.Id, Auth.UserName ?? "Jag", claim.ReseDatum, claim.Beskrivning, claim.TotalBelopp.Amount, claim.Status, claim));
+            _showForm = false; _success = "Resekrav skapat."; _formBeskrivning = ""; _formDatum = null;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private async Task AttesteraKrav(ClaimVm vm)
+    {
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
+        try
+        {
+            vm.Entity.Attestera(Auth.UserName ?? "Chef");
+            await Db.SaveChangesAsync();
+            _success = "Resekrav godkänt.";
+        }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+    }
+
+    private void BeraknaTraktamente()
+    {
+        _traktResultat = null; _traktFel = null;
+        if (_traktAvresa == null || _traktHemkomst == null) { _traktFel = "Ange datum."; return; }
+        try
+        {
+            _traktResultat = _traktTyp == "Inrikes"
+                ? TraktCalc.BeraknaInrikes(_traktAvresa.Value, _traktHemkomst.Value, _traktHotell)
+                : TraktCalc.BeraknaUtrikes(_traktLand, _traktAvresa.Value, _traktHemkomst.Value);
+        }
+        catch (Exception ex) { _traktFel = ex.Message; }
+    }
+
+    private static string StatusText(TravelClaimStatus s) => s switch
+    {
+        TravelClaimStatus.Utkast => "Utkast", TravelClaimStatus.Inskickad => "Inskickad",
+        TravelClaimStatus.Godkand => "Godkänd", TravelClaimStatus.Utbetald => "Utbetald",
+        TravelClaimStatus.Avslagen => "Avslagen", _ => s.ToString()
+    };
+    private static Color StatusFarg(TravelClaimStatus s) => s switch
+    {
+        TravelClaimStatus.Inskickad => Color.Warning, TravelClaimStatus.Godkand or TravelClaimStatus.Utbetald => Color.Success,
+        TravelClaimStatus.Avslagen => Color.Error, _ => Color.Default
+    };
+
+    private record ClaimVm(Guid Id, string Namn, DateOnly Datum, string Beskrivning, decimal Belopp, TravelClaimStatus Status, TravelClaim Entity);
 }

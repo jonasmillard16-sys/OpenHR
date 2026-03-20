@@ -1,72 +1,124 @@
 @page "/schema/passbyte"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Passbyte</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Passbyten</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rader.Count(r => r.StatusText == "Väntar")</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">2</MudText><MudText Typo="Typo.body2">Erbjudna</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">12</MudText><MudText Typo="Typo.body2">Genomförda (mars)</MudText></MudPaper></MudItem>
-</MudGrid>
-
-@if (_meddelande is not null)
+@if (_loading)
 {
-    <MudAlert Severity="@_meddelandeSeverity" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _meddelande = null)">@_meddelande</MudAlert>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rader.Count(r => r.Status == ShiftSwapStatus.Accepterad)</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_rader.Count(r => r.Status == ShiftSwapStatus.Begard || r.Status == ShiftSwapStatus.Erbjuden)</MudText><MudText Typo="Typo.body2">Pågående</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_rader.Count(r => r.Status == ShiftSwapStatus.Godkand)</MudText><MudText Typo="Typo.body2">Godkända</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_actionMsg != null)
+    {
+        <MudAlert Severity="@_actionSev" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _actionMsg = null)">@_actionMsg</MudAlert>
+    }
+
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga passbyten registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Begärande</th><th>Motivering</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.BegarandeNamn</strong></td>
+                        <td>@(r.Motivering ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
+                        <td>
+                            @if (r.Status == ShiftSwapStatus.Accepterad && Auth.EmployeeId.HasValue)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => GodkannSwap(r))">Godkänn</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => NekaSwap(r))" Class="ml-1">Nej</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Begärande</th><th>Deras pass</th><th>Byter med</th><th>Deras pass</th><th>Status</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Begarande</strong></td>
-                <td>@rad.DerasPass</td>
-                <td>@rad.ByterMed</td>
-                <td>@rad.MotpartPass</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td>
-                    @if (rad.StatusText == "Väntar")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => Godkann(rad))">Godkänn</MudButton>
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => Neka(rad))" Class="ml-1">Nej</MudButton>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
 @code {
-    private string? _meddelande;
-    private Severity _meddelandeSeverity = Severity.Success;
+    private List<SwapVm> _rader = [];
+    private bool _loading = true;
+    private string? _error, _actionMsg;
+    private Severity _actionSev;
 
-    private List<PassbyteRad> _rader = [];
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _rader =
-        [
-            new("Anna Svensson", "Natt 20/3", "Sara Karlsson", "Dag 20/3", "Väntar", Color.Warning),
-            new("Karl Berg", "Kväll 22/3", "Lisa Holm", "Dag 22/3", "Väntar", Color.Warning),
-            new("Maria Lindgren", "Dag 25/3", "Helena Bergström", "Kväll 25/3", "Godkänd", Color.Success),
-        ];
+        try
+        {
+            var swaps = await Db.ShiftSwapRequests
+                .OrderByDescending(s => s.SkapadVid).Take(50).ToListAsync();
+
+            var empIds = swaps.Select(s => s.BegardAv.Value).Distinct().ToList();
+            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = swaps.Select(s => new SwapVm(s.Id.Value, names.GetValueOrDefault(s.BegardAv.Value, "Okänd"),
+                s.Motivering, s.Status, s)).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta passbyten: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private void Godkann(PassbyteRad rad)
+    private async Task GodkannSwap(SwapVm vm)
     {
-        _rader.Remove(rad);
-        _meddelande = $"Passbyte för {rad.Begarande} godkänt.";
-        _meddelandeSeverity = Severity.Success;
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
+        try
+        {
+            vm.Entity.Godkann(Auth.UserName ?? "Chef");
+            await Db.SaveChangesAsync();
+            _actionMsg = $"Passbyte godkänt."; _actionSev = Severity.Success;
+        }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
-    private void Neka(PassbyteRad rad)
+    private async Task NekaSwap(SwapVm vm)
     {
-        _rader.Remove(rad);
-        _meddelande = $"Passbyte för {rad.Begarande} nekat.";
-        _meddelandeSeverity = Severity.Warning;
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
+        try
+        {
+            vm.Entity.Avvisa(Auth.UserName ?? "Chef", "Nekat av chef");
+            await Db.SaveChangesAsync();
+            _actionMsg = $"Passbyte nekat."; _actionSev = Severity.Warning;
+        }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
-    private record PassbyteRad(string Begarande, string DerasPass, string ByterMed, string MotpartPass, string StatusText, Color StatusFarg);
+    private static string StatusText(ShiftSwapStatus s) => s switch
+    {
+        ShiftSwapStatus.Begard => "Begärd", ShiftSwapStatus.Erbjuden => "Erbjuden",
+        ShiftSwapStatus.Accepterad => "Väntar godkännande", ShiftSwapStatus.Godkand => "Godkänd",
+        ShiftSwapStatus.Avvisad => "Avvisad", ShiftSwapStatus.Makulerad => "Makulerad", _ => s.ToString()
+    };
+    private static Color StatusFarg(ShiftSwapStatus s) => s switch
+    {
+        ShiftSwapStatus.Accepterad => Color.Warning, ShiftSwapStatus.Godkand => Color.Success,
+        ShiftSwapStatus.Avvisad => Color.Error, _ => Color.Default
+    };
+
+    private record SwapVm(Guid Id, string BegarandeNamn, string? Motivering, ShiftSwapStatus Status, ShiftSwapRequest Entity);
 }
