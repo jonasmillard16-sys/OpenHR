@@ -1,0 +1,154 @@
+@page "/vms/statistik"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - VMS Statistik</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Spend Analytics - Inhyrd personal</MudText>
+</div>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Totalt fakturerat</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_totalInvoiced.ToString("N0") kr</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Betalda fakturor</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_totalPaid.ToString("N0") kr</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Aktiva inhyrda</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_activeWorkers</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Medelbedomning</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@(_avgPerformance > 0 ? _avgPerformance.ToString("F1") : "-")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Kostnad per leverantor</MudText>
+                @if (_vendorCosts.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen data.</MudAlert>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true">
+                        <thead><tr><th>Leverantor</th><th>Kostnad (kr)</th></tr></thead>
+                        <tbody>
+                            @for (var i = 0; i < _vendorLabels.Length; i++)
+                            {
+                                var idx = i;
+                                <tr><td>@_vendorLabels[idx]</td><td>@_vendorCosts[idx].Kostnad.ToString("N0")</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Spend-kategorier</MudText>
+                @if (_categories.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga kategorier.</MudAlert>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>Kategori</th><th>Beskrivning</th></tr></thead>
+                        <tbody>
+                        @foreach (var c in _categories)
+                        {
+                            <tr><td>@c.Namn</td><td>@c.Beskrivning</td></tr>
+                        }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Leverantorsbedomningar</MudText>
+        @if (_performances.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga bedomningar registrerade.</MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead><tr><th>Leverantor</th><th>Period</th><th>Poang</th><th>Kommentar</th></tr></thead>
+                <tbody>
+                @foreach (var p in _performances)
+                {
+                    <tr>
+                        <td>@p.VendorNamn</td>
+                        <td>@p.Performance.Period</td>
+                        <td><MudRating ReadOnly="true" SelectedValue="@p.Performance.Poang" Size="Size.Small" /></td>
+                        <td>@p.Performance.Kommentar</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private decimal _totalInvoiced, _totalPaid;
+    private int _activeWorkers;
+    private double _avgPerformance;
+    private List<SpendCategory> _categories = [];
+    private List<VendorCost> _vendorCosts = [];
+    private List<PerfRow> _performances = [];
+    @* ChartSeries removed — replaced with simple table *@
+    private string[] _vendorLabels = [];
+
+    record VendorCost(string Namn, decimal Kostnad);
+    record PerfRow(VendorPerformance Performance, string VendorNamn);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var invoices = await Db.VendorInvoices.ToListAsync();
+        _totalInvoiced = invoices.Sum(i => i.Belopp);
+        _totalPaid = invoices.Where(i => i.Status == VendorInvoiceStatus.Paid).Sum(i => i.Belopp);
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var workers = await Db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
+        _activeWorkers = workers.Count;
+
+        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+        _vendorCosts = vendors.Select(v => new VendorCost(
+            v.Value,
+            workers.Where(w => w.VendorId == VendorId.From(v.Key.Value)).Sum(w => w.TimKostnad * 160)
+        )).Where(c => c.Kostnad > 0).ToList();
+
+        _vendorLabels = _vendorCosts.Select(c => c.Namn).ToArray();
+
+        var perfs = await Db.VendorPerformances.OrderByDescending(p => p.CreatedAt).ToListAsync();
+        _avgPerformance = perfs.Count > 0 ? perfs.Average(p => p.Poang) : 0;
+        _performances = perfs.Select(p => new PerfRow(p, vendors.GetValueOrDefault(p.VendorId, "Okand"))).ToList();
+
+        _categories = await Db.SpendCategories.OrderBy(c => c.Namn).ToListAsync();
+        _loading = false;
+    }
+}

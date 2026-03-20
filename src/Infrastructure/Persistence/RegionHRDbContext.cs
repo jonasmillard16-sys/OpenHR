@@ -31,6 +31,8 @@ using RegionHR.Infrastructure.Journeys;
 using RegionHR.Automation.Domain;
 using RegionHR.Agreements.Domain;
 using RegionHR.Migration.Domain;
+using RegionHR.Compensation.Domain;
+using RegionHR.VMS.Domain;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -110,6 +112,7 @@ public class RegionHRDbContext : DbContext
     // Reporting (schema: reporting)
     public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
     public DbSet<ReportExecution> ReportExecutions => Set<ReportExecution>();
+    public DbSet<ScheduledReport> ScheduledReports => Set<ScheduledReport>();
 
     // GDPR (schema: gdpr)
     public DbSet<DataSubjectRequest> DataSubjectRequests => Set<DataSubjectRequest>();
@@ -173,6 +176,11 @@ public class RegionHRDbContext : DbContext
     // Analytics (schema: analytics)
     public DbSet<SavedReport> SavedReports => Set<SavedReport>();
     public DbSet<Dashboard> Dashboards => Set<Dashboard>();
+    public DbSet<KPIDefinition> KPIDefinitions => Set<KPIDefinition>();
+    public DbSet<KPISnapshot> KPISnapshots => Set<KPISnapshot>();
+    public DbSet<KPIAlert> KPIAlerts => Set<KPIAlert>();
+    public DbSet<PredictionModel> PredictionModels => Set<PredictionModel>();
+    public DbSet<PredictionResult> PredictionResults => Set<PredictionResult>();
 
     // Configuration (schema: configuration)
     public DbSet<TenantConfiguration> TenantConfigurations => Set<TenantConfiguration>();
@@ -211,6 +219,18 @@ public class RegionHRDbContext : DbContext
     public DbSet<MigrationValidationError> MigrationValidationErrors => Set<MigrationValidationError>();
     public DbSet<MigrationLog> MigrationLogs => Set<MigrationLog>();
 
+    // Compensation (schema: compensation)
+    public DbSet<CompensationPlan> CompensationPlans => Set<CompensationPlan>();
+    public DbSet<CompensationBand> CompensationBands => Set<CompensationBand>();
+    public DbSet<CompensationBudget> CompensationBudgets => Set<CompensationBudget>();
+    public DbSet<CompensationGuideline> CompensationGuidelines => Set<CompensationGuideline>();
+    public DbSet<BonusPlan> BonusPlans => Set<BonusPlan>();
+    public DbSet<BonusTarget> BonusTargets => Set<BonusTarget>();
+    public DbSet<BonusOutcome> BonusOutcomes => Set<BonusOutcome>();
+    public DbSet<VariablePayComponent> VariablePayComponents => Set<VariablePayComponent>();
+    public DbSet<TotalRewardsStatement> TotalRewardsStatements => Set<TotalRewardsStatement>();
+    public DbSet<CompensationSimulation> CompensationSimulations => Set<CompensationSimulation>();
+
     // Agreements (schema: agreements)
     public DbSet<CollectiveAgreement> CollectiveAgreements => Set<CollectiveAgreement>();
     public DbSet<AgreementOBRate> AgreementOBRates => Set<AgreementOBRate>();
@@ -223,6 +243,17 @@ public class RegionHRDbContext : DbContext
     public DbSet<AgreementPensionRule> AgreementPensionRules => Set<AgreementPensionRule>();
     public DbSet<AgreementInsurancePackage> AgreementInsurancePackages => Set<AgreementInsurancePackage>();
     public DbSet<PrivateCompensationPlan> PrivateCompensationPlans => Set<PrivateCompensationPlan>();
+
+    // VMS (schema: vms)
+    public DbSet<Vendor> Vendors => Set<Vendor>();
+    public DbSet<FrameworkAgreement> FrameworkAgreements => Set<FrameworkAgreement>();
+    public DbSet<RateCard> RateCards => Set<RateCard>();
+    public DbSet<StaffingRequest> StaffingRequests => Set<StaffingRequest>();
+    public DbSet<ContingentWorker> ContingentWorkers => Set<ContingentWorker>();
+    public DbSet<ContingentTimeReport> ContingentTimeReports => Set<ContingentTimeReport>();
+    public DbSet<VendorInvoice> VendorInvoices => Set<VendorInvoice>();
+    public DbSet<VendorPerformance> VendorPerformances => Set<VendorPerformance>();
+    public DbSet<SpendCategory> SpendCategories => Set<SpendCategory>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -241,6 +272,11 @@ public class RegionHRDbContext : DbContext
         configurationBuilder.Properties<AutomationCategoryId>().HaveConversion<AutomationCategoryIdConverter>();
         configurationBuilder.Properties<CollectiveAgreementId>().HaveConversion<CollectiveAgreementIdConverter>();
         configurationBuilder.Properties<MigrationJobId>().HaveConversion<MigrationJobIdConverter>();
+        configurationBuilder.Properties<CompensationPlanId>().HaveConversion<CompensationPlanIdConverter>();
+        configurationBuilder.Properties<BonusPlanId>().HaveConversion<BonusPlanIdConverter>();
+        configurationBuilder.Properties<VendorId>().HaveConversion<VendorIdConverter>();
+        configurationBuilder.Properties<StaffingRequestId>().HaveConversion<StaffingRequestIdConverter>();
+        configurationBuilder.Properties<FrameworkAgreementId>().HaveConversion<FrameworkAgreementIdConverter>();
         configurationBuilder.Properties<Money>().HaveConversion<MoneyConverter>();
         configurationBuilder.Properties<Percentage>().HaveConversion<PercentageConverter>();
     }
@@ -320,4 +356,29 @@ public class CollectiveAgreementIdConverter : Microsoft.EntityFrameworkCore.Stor
 public class MigrationJobIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<MigrationJobId, Guid>
 {
     public MigrationJobIdConverter() : base(v => v.Value, v => MigrationJobId.From(v)) { }
+}
+
+public class CompensationPlanIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<CompensationPlanId, Guid>
+{
+    public CompensationPlanIdConverter() : base(v => v.Value, v => CompensationPlanId.From(v)) { }
+}
+
+public class BonusPlanIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<BonusPlanId, Guid>
+{
+    public BonusPlanIdConverter() : base(v => v.Value, v => BonusPlanId.From(v)) { }
+}
+
+public class VendorIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<VendorId, Guid>
+{
+    public VendorIdConverter() : base(v => v.Value, v => VendorId.From(v)) { }
+}
+
+public class StaffingRequestIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<StaffingRequestId, Guid>
+{
+    public StaffingRequestIdConverter() : base(v => v.Value, v => StaffingRequestId.From(v)) { }
+}
+
+public class FrameworkAgreementIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<FrameworkAgreementId, Guid>
+{
+    public FrameworkAgreementIdConverter() : base(v => v.Value, v => FrameworkAgreementId.From(v)) { }
 }

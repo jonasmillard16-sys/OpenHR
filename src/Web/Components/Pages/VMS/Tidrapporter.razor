@@ -1,0 +1,81 @@
+@page "/vms/tidrapporter"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Tidrapporter (inhyrda)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Tidrapporter - Inhyrd personal</MudText>
+</div>
+
+@if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_reports.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga tidrapporter registrerade.</MudAlert>
+}
+else
+{
+    <MudTable Items="_reports" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Inhyrd</MudTh>
+            <MudTh>Period</MudTh>
+            <MudTh>Timmar</MudTh>
+            <MudTh>OB</MudTh>
+            <MudTh>Overtid</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Atgarder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.WorkerNamn</MudTd>
+            <MudTd>@context.Report.Period</MudTd>
+            <MudTd>@context.Report.Timmar.ToString("F1")</MudTd>
+            <MudTd>@context.Report.OBTimmar.ToString("F1")</MudTd>
+            <MudTd>@context.Report.Overtid.ToString("F1")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@ReportStatusColor(context.Report.Status)">@context.Report.Status</MudChip></MudTd>
+            <MudTd>
+                @if (context.Report.Status == TimeReportStatus.Draft)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => SkickaIn(context.Report))">Skicka in</MudButton>
+                }
+                @if (context.Report.Status == TimeReportStatus.Submitted)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => Attestera(context.Report))">Attestera</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _success;
+    private List<ReportRow> _reports = [];
+
+    record ReportRow(ContingentTimeReport Report, string WorkerNamn);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var reports = await Db.ContingentTimeReports.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        var workers = await Db.ContingentWorkers.ToDictionaryAsync(w => w.Id, w => w.Namn);
+        _reports = reports.Select(r => new ReportRow(r, workers.GetValueOrDefault(r.ContingentWorkerId, "Okand"))).ToList();
+        _loading = false;
+    }
+
+    private async Task SkickaIn(ContingentTimeReport r) { r.SkickaIn(); await Db.SaveChangesAsync(); _success = "Tidrapport inskickad."; await Load(); }
+    private async Task Attestera(ContingentTimeReport r) { r.Attestera(Guid.NewGuid()); await Db.SaveChangesAsync(); _success = "Tidrapport attesterad."; await Load(); }
+
+    private Color ReportStatusColor(TimeReportStatus s) => s switch
+    {
+        TimeReportStatus.Draft => Color.Default,
+        TimeReportStatus.Submitted => Color.Info,
+        TimeReportStatus.Attested => Color.Success,
+        _ => Color.Default
+    };
+}

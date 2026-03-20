@@ -71,8 +71,21 @@
         <MudNavGroup Title="@L["Reports"]" Icon="@Icons.Material.Filled.BarChart"
                      Expanded="@_rapporterOpen" ExpandedChanged="@(v => _rapporterOpen = v)">
             <MudNavLink Href="/rapporter">Rapportbibliotek</MudNavLink>
+            <MudNavLink Href="/rapporter/bygg">Rapportbyggare</MudNavLink>
+            <MudNavLink Href="/rapporter/kpi">KPI Dashboard</MudNavLink>
+            <MudNavLink Href="/rapporter/prediktion">Prediktiv analys</MudNavLink>
             <MudNavLink Href="/rapporter/workforce-plan">Bemanningsplanering</MudNavLink>
-            <MudNavLink Href="/rapporter/flight-risk">Uppsägningsrisk</MudNavLink>
+            <MudNavLink Href="/rapporter/flight-risk">Uppsagningsrisk</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="Inhyrd personal" Icon="@Icons.Material.Filled.GroupWork"
+                     Expanded="@_vmsOpen" ExpandedChanged="@(v => _vmsOpen = v)">
+            <MudNavLink Href="/vms">Oversikt</MudNavLink>
+            <MudNavLink Href="/vms/leverantorer">Leverantorer</MudNavLink>
+            <MudNavLink Href="/vms/ramavtal">Ramavtal</MudNavLink>
+            <MudNavLink Href="/vms/bestallningar">Bestallningar</MudNavLink>
+            <MudNavLink Href="/vms/tidrapporter">Tidrapporter</MudNavLink>
+            <MudNavLink Href="/vms/fakturor">Fakturor</MudNavLink>
+            <MudNavLink Href="/vms/statistik">Statistik</MudNavLink>
         </MudNavGroup>
     }
 
@@ -84,6 +97,7 @@
         <MudNavLink Href="/admin/migration" Icon="@Icons.Material.Filled.CloudUpload">Migrering</MudNavLink>
         <MudNavLink Href="/admin/automatisering" Icon="@Icons.Material.Filled.SmartToy">Automatisering</MudNavLink>
         <MudNavLink Href="/admin/kollektivavtal" Icon="@Icons.Material.Filled.Handshake">Kollektivavtal</MudNavLink>
+        <MudNavLink Href="/admin/rapporter/schema" Icon="@Icons.Material.Filled.Schedule">Schemalagda rapporter</MudNavLink>
         <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
         <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>
     }
@@ -102,4 +116,5 @@
     private bool _formanerOpen;
     private bool _karriarOpen;
     private bool _rapporterOpen;
+    private bool _vmsOpen;
 }

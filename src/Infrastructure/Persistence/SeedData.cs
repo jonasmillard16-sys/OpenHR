@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RegionHR.Core.Domain;
 using RegionHR.Agreements.Domain;
+using RegionHR.Analytics.Domain;
 using RegionHR.Competence.Domain;
 using RegionHR.HalsoSAM.Domain;
 using RegionHR.Infrastructure.Journeys;
@@ -1080,6 +1081,100 @@ public static class SeedData
             RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catKompetens.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
             RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catRekrytering.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
             RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catGDPR.Id, RegionHR.Automation.Domain.AutomationLevel.Autopilot));
+
+        // === KPI Definitions (10 st) ===
+        var kpiHeadcount = KPIDefinition.Skapa("Headcount", "Workforce", "COUNT(employees WHERE active=true)", "count", "HigherIsBetter", 100, 80, 50);
+        var kpiFTE = KPIDefinition.Skapa("FTE (heltidsekvivalenter)", "Workforce", "SUM(employment_percent)/100", "count", "HigherIsBetter", 95, 85, 70);
+        var kpiVacancy = KPIDefinition.Skapa("Vakansgrad", "Recruitment", "vacant_positions/total_positions*100", "percent", "LowerIsBetter", 5, 10, 15);
+        var kpiTurnover = KPIDefinition.Skapa("Personalomsattning", "Turnover", "terminated_12m/avg_headcount*100", "percent", "LowerIsBetter", 8, 15, 20);
+        var kpiSickLeave = KPIDefinition.Skapa("Sjukfranvaro %", "Absence", "sick_days/total_workdays*100", "percent", "LowerIsBetter", 4, 6, 8);
+        var kpiSalaryCost = KPIDefinition.Skapa("Lonekostnad per FTE", "Compensation", "total_salary_cost/fte_count", "currency", "LowerIsBetter", 45000, 50000, 55000);
+        var kpiCertCoverage = KPIDefinition.Skapa("Certifieringstackning", "Competence", "valid_certs/required_certs*100", "percent", "HigherIsBetter", 95, 85, 70);
+        var kpiTimeToFill = KPIDefinition.Skapa("Time to fill (dagar)", "Recruitment", "AVG(fill_date - publish_date)", "days", "LowerIsBetter", 30, 45, 60);
+        var kpiENPS = KPIDefinition.Skapa("eNPS", "Engagement", "promoters_pct - detractors_pct", "count", "HigherIsBetter", 30, 10, -10);
+        var kpiLASRisk = KPIDefinition.Skapa("LAS-riskantal", "Compliance", "COUNT(las_days >= 300)", "count", "LowerIsBetter", 0, 3, 5);
+        db.KPIDefinitions.AddRange(kpiHeadcount, kpiFTE, kpiVacancy, kpiTurnover, kpiSickLeave, kpiSalaryCost, kpiCertCoverage, kpiTimeToFill, kpiENPS, kpiLASRisk);
+
+        // === KPI Snapshots (current period: 2026-Q1) ===
+        db.KPISnapshots.AddRange(
+            KPISnapshot.Skapa(kpiHeadcount.Id, "2026-Q1", 10, 10, "Stable"),
+            KPISnapshot.Skapa(kpiFTE.Id, "2026-Q1", 9.2m, 9.0m, "Up"),
+            KPISnapshot.Skapa(kpiVacancy.Id, "2026-Q1", 7.5m, 8.0m, "Down"),
+            KPISnapshot.Skapa(kpiTurnover.Id, "2026-Q1", 0, null, "Stable"),
+            KPISnapshot.Skapa(kpiSickLeave.Id, "2026-Q1", 4.2m, 4.5m, "Down"),
+            KPISnapshot.Skapa(kpiSalaryCost.Id, "2026-Q1", 42500, 41000, "Up"),
+            KPISnapshot.Skapa(kpiCertCoverage.Id, "2026-Q1", 88, 85, "Up"),
+            KPISnapshot.Skapa(kpiTimeToFill.Id, "2026-Q1", 0, null, "Stable"),
+            KPISnapshot.Skapa(kpiENPS.Id, "2026-Q1", 0, null, "Stable"),
+            KPISnapshot.Skapa(kpiLASRisk.Id, "2026-Q1", 2, 1, "Up"));
+
+        // === Prediction Models (4 st) ===
+        var pmAttrition = PredictionModel.Skapa("Uppsagningsriskmodell", "Attrition", """{"features":["tenure","age","salary_delta","sick_days","overtime_hours"]}""");
+        pmAttrition.UppdateraTranning(0.82m);
+        var pmHeadcount = PredictionModel.Skapa("Bemanningsprognos", "HeadcountForecast", """{"features":["headcount_history","turnover_rate","planned_recruitment"]}""");
+        pmHeadcount.UppdateraTranning(0.91m);
+        var pmSickLeave = PredictionModel.Skapa("Sjukfranvaroprognos", "SickLeaveForecast", """{"features":["season","sick_history","workload","age"]}""");
+        pmSickLeave.UppdateraTranning(0.78m);
+        var pmLaborCost = PredictionModel.Skapa("Lonekostnadsprognos", "LaborCostForecast", """{"features":["salary_base","ob_tillagg","overtime","employer_fees","pension"]}""");
+        pmLaborCost.UppdateraTranning(0.95m);
+        db.PredictionModels.AddRange(pmAttrition, pmHeadcount, pmSickLeave, pmLaborCost);
+
+        // === VMS / Contingent Workforce ===
+        var vendor1 = RegionHR.VMS.Domain.Vendor.Skapa("MedStaff AB", "556789-1234", "Anna Lind", "anna@medstaff.se", "031-111222", "Sjukvard");
+        var vendor2 = RegionHR.VMS.Domain.Vendor.Skapa("VardPool Sverige", "556790-5678", "Erik Johansson", "erik@vardpool.se", "08-333444", "Sjukvard");
+        var vendor3 = RegionHR.VMS.Domain.Vendor.Skapa("BemanningsExpert", "556791-9012", "Lisa Berg", "lisa@bemanningsexpert.se", "040-555666", "IT");
+        db.Vendors.AddRange(vendor1, vendor2, vendor3);
+
+        var ramavtal1 = RegionHR.VMS.Domain.FrameworkAgreement.Skapa(
+            vendor1.Id, new DateOnly(2025, 1, 1), new DateOnly(2027, 12, 31),
+            "Standardvillkor for bemanningssjukskoterskor", 3, "Automatisk forlangning 12 manader", 5_000_000m);
+        ramavtal1.LaggTillRateCard("Sjukskoterska", 520m, 85m, 195m, 25m);
+        ramavtal1.LaggTillRateCard("Underskoterska", 380m, 65m, 145m, 25m);
+
+        var ramavtal2 = RegionHR.VMS.Domain.FrameworkAgreement.Skapa(
+            vendor3.Id, new DateOnly(2025, 6, 1), new DateOnly(2026, 12, 31),
+            "IT-konsulter systemutveckling", 2, "Ingen automatisk forlangning", 2_000_000m);
+        ramavtal2.LaggTillRateCard("Systemutvecklare", 950m, 0m, 0m, 25m);
+        ramavtal2.LaggTillRateCard("Projektledare", 1100m, 0m, 0m, 25m);
+        db.FrameworkAgreements.AddRange(ramavtal1, ramavtal2);
+
+        var vmsRequest = RegionHR.VMS.Domain.StaffingRequest.Skapa(
+            avd32.Id, "Sjukskoterska", new DateOnly(2026, 1, 15), new DateOnly(2026, 6, 30), 2,
+            "Minst 3 ars erfarenhet inom akutsjukvard");
+        vmsRequest.SkickaIn();
+        vmsRequest.Godkann();
+        vmsRequest.Tillsatt();
+        db.StaffingRequests.Add(vmsRequest);
+
+        var cw1 = RegionHR.VMS.Domain.ContingentWorker.Skapa(
+            "Maria Lindqvist", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 1, 20), new DateOnly(2026, 6, 30), 520m, avd32.Id);
+        var cw2 = RegionHR.VMS.Domain.ContingentWorker.Skapa(
+            "Johan Pettersson", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 2, 1), null, 520m, avd32.Id);
+        db.ContingentWorkers.AddRange(cw1, cw2);
+
+        var tr1 = RegionHR.VMS.Domain.ContingentTimeReport.Skapa(cw1.Id, "2026-02", 152m, 8m, 4m);
+        tr1.SkickaIn();
+        tr1.Attestera(Guid.NewGuid());
+        var tr2 = RegionHR.VMS.Domain.ContingentTimeReport.Skapa(cw2.Id, "2026-02", 160m, 0m, 0m);
+        tr2.SkickaIn();
+        var tr3 = RegionHR.VMS.Domain.ContingentTimeReport.Skapa(cw1.Id, "2026-03", 168m, 12m, 8m);
+        db.ContingentTimeReports.AddRange(tr1, tr2, tr3);
+
+        var inv1 = RegionHR.VMS.Domain.VendorInvoice.Skapa(vendor1.Id, "2026-02", 168_480m);
+        inv1.Matcha(165_100m);
+        inv1.Godkann();
+        var inv2 = RegionHR.VMS.Domain.VendorInvoice.Skapa(vendor1.Id, "2026-03", 183_040m);
+        db.VendorInvoices.AddRange(inv1, inv2);
+
+        db.VendorPerformances.AddRange(
+            RegionHR.VMS.Domain.VendorPerformance.Skapa(vendor1.Id, "2026-Q1", 4, "Bra leverans, punktliga rapporter"),
+            RegionHR.VMS.Domain.VendorPerformance.Skapa(vendor2.Id, "2026-Q1", 3, "Acceptabelt men forlangda ledtider"),
+            RegionHR.VMS.Domain.VendorPerformance.Skapa(vendor3.Id, "2026-Q1", 5, "Utmarkt kvalitet, proaktiv kommunikation"));
+
+        db.SpendCategories.AddRange(
+            RegionHR.VMS.Domain.SpendCategory.Skapa("Bemanningssjukskoterska", "Inhyrda sjukskoterskor via bemanningsforetag"),
+            RegionHR.VMS.Domain.SpendCategory.Skapa("IT-konsult", "Externt inhyrda IT-resurser"),
+            RegionHR.VMS.Domain.SpendCategory.Skapa("Administrativ", "Administrativ stodpersonal via bemanning"));
 
         await db.SaveChangesAsync();
     }

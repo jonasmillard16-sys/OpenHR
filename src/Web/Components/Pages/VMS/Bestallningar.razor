@@ -1,0 +1,132 @@
+@page "/vms/bestallningar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Bestallningar</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Bemanningsbestallningar</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny bestallning</MudButton>
+</div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny bestallning</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudGrid>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_befattning" Label="Befattning" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="3"><MudDatePicker @bind-Date="_periodFran" Label="Period fran" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="3"><MudDatePicker @bind-Date="_periodTill" Label="Period till" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="3"><MudNumericField @bind-Value="_antalPersoner" Label="Antal personer" Variant="Variant.Outlined" Min="1" /></MudItem>
+            <MudItem xs="12" md="9"><MudTextField @bind-Value="_kravprofil" Label="Kravprofil" Variant="Variant.Outlined" Lines="2" /></MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaBeställning"
+                   Disabled="@(string.IsNullOrWhiteSpace(_befattning) || _saving)">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    <MudTable Items="_requests" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Befattning</MudTh>
+            <MudTh>Period</MudTh>
+            <MudTh>Antal</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Atgarder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Befattning</MudTd>
+            <MudTd>@context.PeriodFran — @context.PeriodTill</MudTd>
+            <MudTd>@context.AntalPersoner</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd>
+                @if (context.Status == StaffingRequestStatus.Draft)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => SkickaIn(context))">Skicka in</MudButton>
+                }
+                @if (context.Status == StaffingRequestStatus.Submitted)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success" OnClick="@(() => Godkann(context))">Godkann</MudButton>
+                }
+                @if (context.Status == StaffingRequestStatus.Approved)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => Tillsatt(context))">Tillsatt</MudButton>
+                }
+                @if (context.Status != StaffingRequestStatus.Closed)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Dark" OnClick="@(() => Stang(context))">Stang</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private string _befattning = "", _kravprofil = "";
+    private DateTime? _periodFran = DateTime.Today;
+    private DateTime? _periodTill = DateTime.Today.AddMonths(3);
+    private int _antalPersoner = 1;
+    private List<StaffingRequest> _requests = [];
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _requests = await Db.StaffingRequests.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        _loading = false;
+    }
+
+    private async Task SkapaBeställning()
+    {
+        _saving = true;
+        var units = await Db.OrganizationUnits.FirstOrDefaultAsync();
+        var enhetId = units != null ? units.Id : OrganizationId.New();
+
+        var request = StaffingRequest.Skapa(
+            enhetId,
+            _befattning,
+            DateOnly.FromDateTime(_periodFran ?? DateTime.Today),
+            DateOnly.FromDateTime(_periodTill ?? DateTime.Today.AddMonths(3)),
+            _antalPersoner,
+            _kravprofil);
+
+        Db.StaffingRequests.Add(request);
+        await Db.SaveChangesAsync();
+        _success = $"Bestallning for {_befattning} skapad.";
+        _showForm = false;
+        _befattning = _kravprofil = "";
+        _antalPersoner = 1;
+        _saving = false;
+        await Load();
+    }
+
+    private async Task SkickaIn(StaffingRequest r) { r.SkickaIn(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task Godkann(StaffingRequest r) { r.Godkann(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task Tillsatt(StaffingRequest r) { r.Tillsatt(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task Stang(StaffingRequest r) { r.Stang(); await Db.SaveChangesAsync(); await Load(); }
+
+    private Color StatusColor(StaffingRequestStatus s) => s switch
+    {
+        StaffingRequestStatus.Draft => Color.Default,
+        StaffingRequestStatus.Submitted => Color.Info,
+        StaffingRequestStatus.Approved => Color.Primary,
+        StaffingRequestStatus.Filled => Color.Success,
+        StaffingRequestStatus.Closed => Color.Dark,
+        _ => Color.Default
+    };
+}

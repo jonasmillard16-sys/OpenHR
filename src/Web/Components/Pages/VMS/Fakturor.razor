@@ -1,0 +1,103 @@
+@page "/vms/fakturor"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Fakturor (VMS)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Leverantorsfakturor</MudText>
+</div>
+
+@if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_invoices.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga fakturor registrerade.</MudAlert>
+}
+else
+{
+    <MudTable Items="_invoices" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Leverantor</MudTh>
+            <MudTh>Period</MudTh>
+            <MudTh>Belopp</MudTh>
+            <MudTh>Matchad</MudTh>
+            <MudTh>Differens</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Atgarder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.VendorNamn</MudTd>
+            <MudTd>@context.Invoice.Period</MudTd>
+            <MudTd>@context.Invoice.Belopp.ToString("N0") kr</MudTd>
+            <MudTd>
+                @if (context.Invoice.MatchadMotTidrapporter)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.HorizontalRule" Color="Color.Default" Size="Size.Small" />
+                }
+            </MudTd>
+            <MudTd>
+                @if (context.Invoice.Differens.HasValue)
+                {
+                    <MudText Typo="Typo.body2" Color="@(context.Invoice.Differens.Value != 0 ? Color.Warning : Color.Success)">
+                        @context.Invoice.Differens.Value.ToString("N0") kr
+                    </MudText>
+                }
+            </MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@InvoiceStatusColor(context.Invoice.Status)">@context.Invoice.Status</MudChip></MudTd>
+            <MudTd>
+                @if (context.Invoice.Status == VendorInvoiceStatus.Received)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => Matcha(context.Invoice))">Matcha</MudButton>
+                }
+                @if (context.Invoice.Status == VendorInvoiceStatus.Matched)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => Godkann(context.Invoice))">Godkann</MudButton>
+                }
+                @if (context.Invoice.Status == VendorInvoiceStatus.Approved)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => MarkeraBetald(context.Invoice))">Betald</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _success;
+    private List<InvoiceRow> _invoices = [];
+
+    record InvoiceRow(VendorInvoice Invoice, string VendorNamn);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var invoices = await Db.VendorInvoices.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+        _invoices = invoices.Select(i => new InvoiceRow(i, vendors.GetValueOrDefault(i.VendorId, "Okand"))).ToList();
+        _loading = false;
+    }
+
+    private async Task Matcha(VendorInvoice inv) { inv.Matcha(inv.Belopp * 0.98m); await Db.SaveChangesAsync(); _success = "Faktura matchad."; await Load(); }
+    private async Task Godkann(VendorInvoice inv) { inv.Godkann(); await Db.SaveChangesAsync(); _success = "Faktura godkand."; await Load(); }
+    private async Task MarkeraBetald(VendorInvoice inv) { inv.MarkeraBetald(); await Db.SaveChangesAsync(); _success = "Faktura markerad som betald."; await Load(); }
+
+    private Color InvoiceStatusColor(VendorInvoiceStatus s) => s switch
+    {
+        VendorInvoiceStatus.Received => Color.Default,
+        VendorInvoiceStatus.Matched => Color.Info,
+        VendorInvoiceStatus.Approved => Color.Success,
+        VendorInvoiceStatus.Paid => Color.Dark,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,98 @@
+@page "/vms/ramavtal"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Ramavtal</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Ramavtal</MudText>
+</div>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_agreements.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga ramavtal registrerade.</MudAlert>
+}
+else
+{
+    <MudTable Items="_agreements" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Leverantor</MudTh>
+            <MudTh>Giltig fran</MudTh>
+            <MudTh>Giltig till</MudTh>
+            <MudTh>Uppsagningstid</MudTh>
+            <MudTh>Avtalsvarde</MudTh>
+            <MudTh>Priskort</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.VendorNamn</MudTd>
+            <MudTd>@context.Agreement.GiltigFran</MudTd>
+            <MudTd>@context.Agreement.GiltigTill</MudTd>
+            <MudTd>@context.Agreement.UppságningstidManader man</MudTd>
+            <MudTd>@(context.Agreement.Avtalsvarde?.ToString("N0") ?? "-") kr</MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                           OnClick="@(() => ToggleExpand(context))">
+                    @(context.Expanded ? "Dolj" : $"Visa ({context.Agreement.RateCards.Count})")
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+        <ChildRowContent>
+            @if (context.Expanded && context.Agreement.RateCards.Count > 0)
+            {
+                <MudTr>
+                    <td colspan="6">
+                        <MudSimpleTable Dense="true" Class="ml-8 mb-2" Style="max-width: 800px;">
+                            <thead><tr><th>Yrkeskategori</th><th>Timpris</th><th>OB-paslag</th><th>Overtid</th><th>Moms</th></tr></thead>
+                            <tbody>
+                            @foreach (var rc in context.Agreement.RateCards)
+                            {
+                                <tr>
+                                    <td>@rc.YrkesKategori</td>
+                                    <td>@rc.TimPris.ToString("N0") kr</td>
+                                    <td>@rc.OBPaslag.ToString("N0") kr</td>
+                                    <td>@rc.OvertidPaslag.ToString("N0") kr</td>
+                                    <td>@rc.Moms.ToString("F1")%</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </MudSimpleTable>
+                    </td>
+                </MudTr>
+            }
+        </ChildRowContent>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private List<AgreementRow> _agreements = [];
+
+    class AgreementRow
+    {
+        public FrameworkAgreement Agreement { get; set; } = default!;
+        public string VendorNamn { get; set; } = "";
+        public bool Expanded { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var agreements = await Db.FrameworkAgreements
+            .Include(a => a.RateCards)
+            .OrderBy(a => a.GiltigFran)
+            .ToListAsync();
+        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+
+        _agreements = agreements.Select(a => new AgreementRow
+        {
+            Agreement = a,
+            VendorNamn = vendors.GetValueOrDefault(a.VendorId, "Okand")
+        }).ToList();
+
+        _loading = false;
+    }
+
+    private void ToggleExpand(AgreementRow row) => row.Expanded = !row.Expanded;
+}

@@ -47,6 +47,8 @@
     <ProjectReference Include="..\Modules\Migration\RegionHR.Migration.csproj" />
     <ProjectReference Include="..\Modules\Automation\RegionHR.Automation.csproj" />
     <ProjectReference Include="..\Modules\Agreements\RegionHR.Agreements.csproj" />
+    <ProjectReference Include="..\Modules\Compensation\RegionHR.Compensation.csproj" />
+    <ProjectReference Include="..\Modules\VMS\RegionHR.VMS.csproj" />
   </ItemGroup>
 
 </Project>

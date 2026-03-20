@@ -365,6 +365,7 @@ app.MapLMSEndpoints();
 // ============================================================
 app.MapConfigurationEndpoints();
 app.MapAnalyticsEndpoints();
+app.MapAnalyticsExpandedEndpoints();
 app.MapPermissionEndpoints();
 
 // ============================================================
@@ -379,6 +380,16 @@ app.MapManagerPortalEndpoints();
 app.MapMigrationEndpoints();
 app.MapAutomationEndpoints();
 app.MapAgreementEndpoints();
+
+// ============================================================
+// Phase B2: Compensation Suite
+// ============================================================
+app.MapCompensationEndpoints();
+
+// ============================================================
+// Phase B4: VMS / Contingent Workforce
+// ============================================================
+app.MapVMSEndpoints();
 
 // ============================================================
 // Integration Status

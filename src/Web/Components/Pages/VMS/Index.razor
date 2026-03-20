@@ -1,0 +1,117 @@
+@page "/vms"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Inhyrd personal (VMS)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Inhyrd personal - Oversikt</MudText>
+</div>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Aktiva inhyrda</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_activeWorkers</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Aktiva leverantorer</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_activeVendors</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Beraknad manadskostnad</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_totalCost.ToString("N0") kr</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Fakturaavvikelser</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_deviations</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Snabblankar</MudText>
+                <MudList T="string">
+                    <MudListItem Href="/vms/leverantorer" Icon="@Icons.Material.Filled.Business">Leverantorer</MudListItem>
+                    <MudListItem Href="/vms/ramavtal" Icon="@Icons.Material.Filled.Handshake">Ramavtal</MudListItem>
+                    <MudListItem Href="/vms/bestallningar" Icon="@Icons.Material.Filled.ShoppingCart">Bestallningar</MudListItem>
+                    <MudListItem Href="/vms/tidrapporter" Icon="@Icons.Material.Filled.AccessTime">Tidrapporter</MudListItem>
+                    <MudListItem Href="/vms/fakturor" Icon="@Icons.Material.Filled.Receipt">Fakturor</MudListItem>
+                    <MudListItem Href="/vms/statistik" Icon="@Icons.Material.Filled.BarChart">Statistik</MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Senaste bestallningar</MudText>
+                @if (_recentRequests.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga bestallningar annu.</MudAlert>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Hover="true">
+                        <thead><tr><th>Befattning</th><th>Period</th><th>Status</th></tr></thead>
+                        <tbody>
+                        @foreach (var r in _recentRequests)
+                        {
+                            <tr>
+                                <td>@r.Befattning</td>
+                                <td>@r.PeriodFran — @r.PeriodTill</td>
+                                <td><MudChip T="string" Size="Size.Small" Color="@StatusColor(r.Status)">@r.Status</MudChip></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _loading = true;
+    private int _activeWorkers;
+    private int _activeVendors;
+    private decimal _totalCost;
+    private int _deviations;
+    private List<StaffingRequest> _recentRequests = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _activeWorkers = await Db.ContingentWorkers.CountAsync(w => w.Slutdatum == null || w.Slutdatum >= today);
+        _activeVendors = await Db.Vendors.CountAsync(v => v.Status == VendorStatus.Active);
+
+        var workers = await Db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
+        _totalCost = workers.Sum(w => w.TimKostnad * 160);
+
+        _deviations = await Db.VendorInvoices.CountAsync(i => i.Differens.HasValue && i.Differens != 0);
+        _recentRequests = await Db.StaffingRequests.OrderByDescending(r => r.CreatedAt).Take(5).ToListAsync();
+
+        _loading = false;
+    }
+
+    private Color StatusColor(StaffingRequestStatus s) => s switch
+    {
+        StaffingRequestStatus.Draft => Color.Default,
+        StaffingRequestStatus.Submitted => Color.Info,
+        StaffingRequestStatus.Approved => Color.Primary,
+        StaffingRequestStatus.Filled => Color.Success,
+        StaffingRequestStatus.Closed => Color.Dark,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,128 @@
+@page "/vms/leverantorer"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Leverantorer</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Leverantorer</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny leverantor</MudButton>
+</div>
+
+@if (_showForm)
+{
+    <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny leverantor</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+        </div>
+        <MudGrid>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_namn" Label="Foretagsnamn" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_orgNummer" Label="Organisationsnummer" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_kontaktperson" Label="Kontaktperson" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_epost" Label="E-post" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_kategori" Label="Kategori" Variant="Variant.Outlined" /></MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaLeverantor"
+                   Disabled="@(string.IsNullOrWhiteSpace(_namn) || string.IsNullOrWhiteSpace(_orgNummer) || _saving)">Skapa</MudButton>
+    </MudPaper>
+}
+
+@if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    <MudTable Items="_vendors" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Namn</MudTh>
+            <MudTh>Org.nummer</MudTh>
+            <MudTh>Kontaktperson</MudTh>
+            <MudTh>Kategori</MudTh>
+            <MudTh>Bedomning</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Atgarder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Vendor.Namn</MudTd>
+            <MudTd>@context.Vendor.OrgNummer</MudTd>
+            <MudTd>@context.Vendor.Kontaktperson</MudTd>
+            <MudTd>@context.Vendor.Kategori</MudTd>
+            <MudTd>
+                @if (context.AvgScore.HasValue)
+                {
+                    <MudRating ReadOnly="true" SelectedValue="@((int)Math.Round(context.AvgScore.Value))" Size="Size.Small" />
+                    <MudText Typo="Typo.caption">(@context.AvgScore.Value.ToString("F1"))</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Ingen</MudText>
+                }
+            </MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@VendorStatusColor(context.Vendor.Status)">@context.Vendor.Status</MudChip></MudTd>
+            <MudTd>
+                @if (context.Vendor.Status != VendorStatus.Blocked)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" OnClick="@(() => Blockera(context.Vendor))" aria-label="Blockera" />
+                }
+                @if (context.Vendor.Status != VendorStatus.Active)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" OnClick="@(() => Aktivera(context.Vendor))" aria-label="Aktivera" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private string _namn = "", _orgNummer = "", _kontaktperson = "", _epost = "", _telefon = "", _kategori = "";
+    private List<VendorRow> _vendors = [];
+
+    record VendorRow(Vendor Vendor, double? AvgScore);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var vendors = await Db.Vendors.OrderBy(v => v.Namn).ToListAsync();
+        var performances = await Db.VendorPerformances.ToListAsync();
+        _vendors = vendors.Select(v =>
+        {
+            var scores = performances.Where(p => p.VendorId == v.Id).Select(p => (double)p.Poang).ToList();
+            return new VendorRow(v, scores.Count > 0 ? scores.Average() : null);
+        }).ToList();
+        _loading = false;
+    }
+
+    private async Task SkapaLeverantor()
+    {
+        _saving = true;
+        var vendor = Vendor.Skapa(_namn, _orgNummer, _kontaktperson, _epost, _telefon, _kategori);
+        Db.Vendors.Add(vendor);
+        await Db.SaveChangesAsync();
+        _success = $"Leverantor {_namn} skapad.";
+        _showForm = false;
+        _namn = _orgNummer = _kontaktperson = _epost = _telefon = _kategori = "";
+        _saving = false;
+        await Load();
+    }
+
+    private async Task Blockera(Vendor v) { v.Blockera(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task Aktivera(Vendor v) { v.Aktivera(); await Db.SaveChangesAsync(); await Load(); }
+
+    private Color VendorStatusColor(VendorStatus s) => s switch
+    {
+        VendorStatus.Active => Color.Success,
+        VendorStatus.Inactive => Color.Default,
+        VendorStatus.Blocked => Color.Error,
+        _ => Color.Default
+    };
+}
