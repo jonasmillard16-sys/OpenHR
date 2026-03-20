@@ -136,6 +136,12 @@ public class RegionHRDbContext : DbContext
     public DbSet<RegionHR.Pulse.Domain.PulseSurvey> PulseSurveys => Set<RegionHR.Pulse.Domain.PulseSurvey>();
     public DbSet<RegionHR.Pulse.Domain.PulseSurveyResponse> PulseSurveyResponses => Set<RegionHR.Pulse.Domain.PulseSurveyResponse>();
 
+    // Communication (schema: communication)
+    public DbSet<RegionHR.Communication.Domain.Announcement> Announcements => Set<RegionHR.Communication.Domain.Announcement>();
+
+    // Insurance (schema: insurance)
+    public DbSet<RegionHR.Insurance.Domain.InsuranceCoverage> InsuranceCoverages => Set<RegionHR.Insurance.Domain.InsuranceCoverage>();
+
     // Wellness (schema: wellness)
     public DbSet<RegionHR.Wellness.Domain.WellnessClaim> WellnessClaims => Set<RegionHR.Wellness.Domain.WellnessClaim>();
 

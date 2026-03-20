@@ -805,6 +805,28 @@ public static class SeedData
         friskvardErik.Godkann(employees[8].Id.Value);
         db.WellnessClaims.AddRange(friskvardAnna, friskvardKarl, friskvardErik);
 
+        // === Announcements via domänens Skapa() ===
+        var annons1 = RegionHR.Communication.Domain.Announcement.Skapa(
+            "Parkering under ombyggnation", "Parkeringshuset stängs 1-15 april för renovering. Använd alternativ parkering vid norra infarten.",
+            RegionHR.Communication.Domain.AnnouncementPriority.Viktig, "Admin");
+        annons1.Publicera();
+        var annons2 = RegionHR.Communication.Domain.Announcement.Skapa(
+            "Vaccinering influensa", "Årets influensavaccinering erbjuds 1-30 november. Boka tid via MinSida.",
+            RegionHR.Communication.Domain.AnnouncementPriority.Normal, "Admin");
+        annons2.Publicera();
+        var annons3 = RegionHR.Communication.Domain.Announcement.Skapa(
+            "IT-driftstopp planerat 5 april", "IT-system nedstängda 02:00-06:00 för uppgradering.",
+            RegionHR.Communication.Domain.AnnouncementPriority.Kritisk, "Admin");
+        db.Announcements.AddRange(annons1, annons2, annons3);
+
+        // === InsuranceCoverages ===
+        db.InsuranceCoverages.AddRange(
+            RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.TGL, "TGL — Tjänstegrupplivförsäkring", "KPA Pension", "Livförsäkring för alla anställda"),
+            RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.AGS, "AGS — Avtalsgruppsjukförsäkring", "AFA Försäkring", "Kompletterande sjukförsäkring"),
+            RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.TFA, "TFA — Trygghetsförsäkring vid arbetsskada", "AFA Försäkring", "Arbetsskadeförsäkring"),
+            RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.AFA, "AFA — Avtalsförsäkring", "AFA Försäkring", "Samlingsbegrepp"),
+            RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.PSA, "PSA — Avtal om ersättning vid personskada", "AFA Försäkring", "Personskadeförsäkring"));
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 

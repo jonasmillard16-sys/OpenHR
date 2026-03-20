@@ -1,143 +1,112 @@
 @page "/admin/anslagstavla"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Communication.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Anslagstavla</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Anslagstavla</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Nytt anslag</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Nytt anslag</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_aktiva</MudText>
-            <MudText Typo="Typo.body2">Aktiva anslag</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_dennaManad</MudText>
-            <MudText Typo="Typo.body2">Publicerade denna månad</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_schemalagda</MudText>
-            <MudText Typo="Typo.body2">Schemalagda</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_lasgrad %</MudText>
-            <MudText Typo="Typo.body2">Genomsnittlig läsgrad</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_showForm)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa nytt anslag</MudText>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" md="8">
-                <MudTextField @bind-Value="_nyTitel" Label="Titel" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudSelect T="string" @bind-Value="_nyPrioritet" Label="Prioritet" Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("Hög")">Hög</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Normal")">Normal</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Låg")">Låg</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_nyMeddelande" Label="Meddelande" Variant="Variant.Outlined" Lines="3" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaAnslag"
-                               Disabled="@(string.IsNullOrWhiteSpace(_nyTitel) || string.IsNullOrWhiteSpace(_nyMeddelande))">Publicera</MudButton>
-                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Nytt anslag</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudTextField @bind-Value="_newTitel" Label="Titel" Variant="Variant.Outlined" Class="mb-3" Required="true" />
+            <MudTextField @bind-Value="_newInnehall" Label="Innehåll" Variant="Variant.Outlined" Lines="3" Class="mb-3" Required="true" />
+            <MudSelect T="AnnouncementPriority" @bind-Value="_newPrioritet" Label="Prioritet" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="AnnouncementPriority.Normal">Normal</MudSelectItem>
+                <MudSelectItem Value="AnnouncementPriority.Viktig">Viktig</MudSelectItem>
+                <MudSelectItem Value="AnnouncementPriority.Kritisk">Kritisk</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaAnslag"
+                       Disabled="@(string.IsNullOrWhiteSpace(_newTitel) || string.IsNullOrWhiteSpace(_newInnehall) || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @if (_anslag.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga anslag publicerade.</MudAlert> }
+    else
+    {
+        @foreach (var a in _anslag)
+        {
+            <MudPaper Class="pa-4 mb-3" Elevation="2" Style="@(a.Prioritet == AnnouncementPriority.Kritisk ? "border-left: 4px solid var(--mud-palette-error);" : a.Prioritet == AnnouncementPriority.Viktig ? "border-left: 4px solid var(--mud-palette-warning);" : "")">
+                <div class="d-flex justify-space-between align-center mb-1">
+                    <MudText Typo="Typo.h6" Style="font-weight: 600;">@a.Titel</MudText>
+                    <MudStack Row="true" Spacing="2">
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(a.Status)">@StatusText(a.Status)</MudChip>
+                        @if (a.Prioritet != AnnouncementPriority.Normal)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@(a.Prioritet == AnnouncementPriority.Kritisk ? Color.Error : Color.Warning)">@a.Prioritet</MudChip>
+                        }
+                    </MudStack>
+                </div>
+                <MudText Typo="Typo.body1" Class="mb-2">@a.Innehall</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@a.SkapadVid.ToLocalTime().ToString("yyyy-MM-dd HH:mm") — @a.SkapadAv</MudText>
+                @if (a.Status == AnnouncementStatus.Utkast)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="@(() => PubliceraAnslag(a))">Publicera</MudButton>
+                }
+                else if (a.Status == AnnouncementStatus.Publicerad)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Class="mt-2" OnClick="@(() => ArkiveraAnslag(a))">Arkivera</MudButton>
+                }
+            </MudPaper>
+        }
+    }
 }
 
-<MudStack Spacing="3">
-    @foreach (var anslag in _anslag)
-    {
-        <MudPaper Class="pa-4" Elevation="2" Style="@($"border-left: 4px solid {(anslag.Prioritet == "Hög" ? "var(--mud-palette-error)" : anslag.Prioritet == "Normal" ? "var(--mud-palette-primary)" : "var(--mud-palette-info)")}")">
-            <div class="d-flex justify-space-between align-center mb-2">
-                <div class="d-flex align-center gap-2">
-                    <MudText Typo="Typo.h6" Style="font-weight: 600;">@anslag.Titel</MudText>
-                    @if (anslag.Prioritet == "Hög")
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Viktigt</MudChip>
-                    }
-                </div>
-                <MudText Typo="Typo.caption">@anslag.Datum</MudText>
-            </div>
-            <MudText Typo="Typo.body2" Class="mb-2">@anslag.Innehall</MudText>
-            <div class="d-flex justify-space-between align-center">
-                <div class="d-flex align-center gap-3">
-                    <MudText Typo="Typo.caption"><strong>Målgrupp:</strong> @anslag.Malgrupp</MudText>
-                    <MudText Typo="Typo.caption"><strong>Publicerad av:</strong> @anslag.Forfattare</MudText>
-                </div>
-                <MudText Typo="Typo.caption">Läst av @anslag.LasAv av @anslag.Mottagare (@anslag.LasgradProcent %)</MudText>
-            </div>
-        </MudPaper>
-    }
-</MudStack>
-
 @code {
-    private bool _showForm;
-    private string _nyTitel = "";
-    private string _nyMeddelande = "";
-    private string _nyPrioritet = "Normal";
-    private int _aktiva = 8;
-    private int _dennaManad = 3;
-    private int _schemalagda = 2;
-    private int _lasgrad = 72;
+    private List<Announcement> _anslag = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success, _newTitel = "", _newInnehall = "";
+    private AnnouncementPriority _newPrioritet = AnnouncementPriority.Normal;
 
-    private void SkapaAnslag()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyTitel) || string.IsNullOrWhiteSpace(_nyMeddelande)) return;
-        _anslag.Insert(0, new AnslagRad(_nyTitel, _nyPrioritet, DateTime.Now.ToString("yyyy-MM-dd"),
-            _nyMeddelande, "Alla enheter", "Du (inloggad)", 0, 1254, 0));
-        _aktiva++;
-        _dennaManad++;
-        _nyTitel = "";
-        _nyMeddelande = "";
-        _nyPrioritet = "Normal";
-        _showForm = false;
+        try { _anslag = await Db.Announcements.OrderByDescending(a => a.SkapadVid).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta anslag: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private List<AnslagRad> _anslag = [];
-
-    protected override void OnInitialized()
+    private async Task SkapaAnslag()
     {
-        _anslag =
-        [
-            new("Ny parkeringspolicy från 1 april", "Hög", "2026-03-15",
-                "Från och med 1 april gäller nya parkeringsregler på sjukhusområdet. Personal parkerar på P3 och P4. Besöksparkering på P1 och P2.",
-                "Alla enheter", "HR-avdelningen", 856, 1254, 68),
-            new("Influensavaccination – sista chansen", "Hög", "2026-03-12",
-                "Sista tillfället att vaccinera sig mot säsongsinfluensa är 21 mars kl. 08–16 i personalrummet, plan 2.",
-                "Vårdpersonal", "Smittskyddsenheten", 512, 680, 75),
-            new("Nya lunchmenyer i personalmatsalen", "Låg", "2026-03-10",
-                "Från vecka 12 erbjuder personalmatsalen nytt menykoncept med fokus på klimatsmart mat. Se intranätet för veckomenyer.",
-                "Alla enheter", "Serviceavdelningen", 423, 1254, 34),
-            new("Löneöversyn 2026 – tidplan", "Normal", "2026-03-08",
-                "Löneöversynen för 2026 påbörjas 1 april. Chefer kallats till informationsmöte 25 mars. Nya löner beräknas gälla fr.o.m. 1 juni.",
-                "Alla enheter", "HR-avdelningen", 1102, 1254, 88),
-            new("IT-driftstopp lördag 22 mars", "Hög", "2026-03-05",
-                "Planerat underhåll av servermiljö lördag 22 mars kl. 02–06. Journalsystem och OpenHR kan vara otillgängliga.",
-                "Alla enheter", "IT-avdelningen", 987, 1254, 79),
-            new("Sommarschemat – anmäl önskemål", "Normal", "2026-03-01",
-                "Anmäl önskemål om sommarsemester senast 31 mars via OpenHR > Ledighet. Schemat fastställs 15 april.",
-                "Alla enheter", "HR-avdelningen", 934, 1254, 74),
-        ];
+        _saving = true; _error = null;
+        try
+        {
+            var a = Announcement.Skapa(_newTitel!, _newInnehall!, _newPrioritet, "Admin");
+            Db.Announcements.Add(a);
+            await Db.SaveChangesAsync();
+            _anslag.Insert(0, a);
+            _showForm = false; _success = "Anslag skapat."; _newTitel = ""; _newInnehall = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private record AnslagRad(string Titel, string Prioritet, string Datum, string Innehall, string Malgrupp, string Forfattare, int LasAv, int Mottagare, int LasgradProcent);
+    private async Task PubliceraAnslag(Announcement a)
+    {
+        try { a.Publicera(); await Db.SaveChangesAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte publicera: {ex.Message}"; }
+    }
+
+    private async Task ArkiveraAnslag(Announcement a)
+    {
+        try { a.Arkivera(); await Db.SaveChangesAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte arkivera: {ex.Message}"; }
+    }
+
+    private static string StatusText(AnnouncementStatus s) => s switch { AnnouncementStatus.Utkast => "Utkast", AnnouncementStatus.Publicerad => "Publicerad", AnnouncementStatus.Arkiverad => "Arkiverad", _ => s.ToString() };
+    private static Color StatusColor(AnnouncementStatus s) => s switch { AnnouncementStatus.Publicerad => Color.Success, AnnouncementStatus.Arkiverad => Color.Default, _ => Color.Info };
 }
