@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RegionHR.Core.Domain;
+using RegionHR.Agreements.Domain;
 using RegionHR.Competence.Domain;
 using RegionHR.HalsoSAM.Domain;
 using RegionHR.Infrastructure.Journeys;
@@ -899,6 +900,63 @@ public static class SeedData
 
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
+
+        // === Automation Framework ===
+        var catCompliance = RegionHR.Automation.Domain.AutomationCategory.Skapa("Compliance", "Lagefterlevnad och regelkrav (LAS, ATL, diskriminering)", "Gavel");
+        var catFranvaro = RegionHR.Automation.Domain.AutomationCategory.Skapa("Franvaro", "Sjukfranvaro, VAB och frånvarohantering", "EventBusy");
+        var catLon = RegionHR.Automation.Domain.AutomationCategory.Skapa("Lon", "Lonebearbetning och utbetalning", "Payments");
+        var catKompetens = RegionHR.Automation.Domain.AutomationCategory.Skapa("Kompetens", "Certifieringar, utbildning och kompetensgap", "School");
+        var catRekrytering = RegionHR.Automation.Domain.AutomationCategory.Skapa("Rekrytering", "Rekrytering, onboarding och offboarding", "PersonAdd");
+        var catGDPR = RegionHR.Automation.Domain.AutomationCategory.Skapa("GDPR", "Dataskydd, gallring och registerutdrag", "Security");
+        db.AutomationCategories.AddRange(catCompliance, catFranvaro, catLon, catKompetens, catRekrytering, catGDPR);
+
+        // --- Automation Rules (22 regler) ---
+        // Compliance (5)
+        var rules = new List<RegionHR.Automation.Domain.AutomationRule>
+        {
+            RegionHR.Automation.Domain.AutomationRule.Skapa("LAS-varning 300 dagar", catCompliance.Id, "LASAccumulationUpdated", "{\"dagar_min\":300}", "{\"typ\":\"notify\",\"mall\":\"las_varning\"}", RegionHR.Automation.Domain.AutomationLevel.Notify, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("LAS konvertering 360 dagar", catCompliance.Id, "LASAccumulationUpdated", "{\"dagar_min\":360}", "{\"typ\":\"autopilot\",\"mall\":\"las_konvertering\"}", RegionHR.Automation.Domain.AutomationLevel.Notify, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("ATL max veckoarbetstid", catCompliance.Id, "ShiftCreated", "{\"max_timmar_vecka\":48}", "{\"typ\":\"block\"}", RegionHR.Automation.Domain.AutomationLevel.Block, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("ATL dygnsvila 11 timmar", catCompliance.Id, "ShiftCreated", "{\"min_vila_timmar\":11}", "{\"typ\":\"block\"}", RegionHR.Automation.Domain.AutomationLevel.Block, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Diskrimineringskontroll loneoversyn", catCompliance.Id, "SalaryReviewCreated", "{\"avvikelse_procent\":5}", "{\"typ\":\"suggest\",\"mall\":\"diskriminering_varning\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+
+            // Franvaro (4)
+            RegionHR.Automation.Domain.AutomationRule.Skapa("FK-anmalan dag 15", catFranvaro.Id, "SickLeaveUpdated", "{\"dagar_min\":14}", "{\"typ\":\"notify\",\"mall\":\"fk_anmalan\"}", RegionHR.Automation.Domain.AutomationLevel.Notify, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Rehab-trigger dag 30", catFranvaro.Id, "SickLeaveUpdated", "{\"dagar_min\":30}", "{\"typ\":\"suggest\",\"mall\":\"rehab_start\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Sjukfranvaro-eskalering dag 90", catFranvaro.Id, "SickLeaveUpdated", "{\"dagar_min\":90}", "{\"typ\":\"notify\",\"mall\":\"eskalering_90\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Korttidsfranvaro-monster", catFranvaro.Id, "CronDaily", "{\"max_tillfallen_6_man\":6}", "{\"typ\":\"suggest\",\"mall\":\"korttid_monster\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+
+            // Lon (4)
+            RegionHR.Automation.Domain.AutomationRule.Skapa("AGI-generering manadsslut", catLon.Id, "PayrollRunCompleted", "{}", "{\"typ\":\"autopilot\",\"mall\":\"agi_xml\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Lonefil pain.001", catLon.Id, "PayrollRunApproved", "{}", "{\"typ\":\"autopilot\",\"mall\":\"pain001\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Loneavvikelse-varning", catLon.Id, "PayrollCalculated", "{\"avvikelse_procent\":20}", "{\"typ\":\"suggest\",\"mall\":\"lon_avvikelse\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("OB-tillagg automatisk berakning", catLon.Id, "TimesheetApproved", "{}", "{\"typ\":\"autopilot\",\"mall\":\"ob_berakning\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+
+            // Kompetens (3)
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Certifiering utgar 30 dagar", catKompetens.Id, "CronDaily", "{\"dagar_kvar\":30}", "{\"typ\":\"notify\",\"mall\":\"cert_utgar_30\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Certifiering utgar 90 dagar", catKompetens.Id, "CronDaily", "{\"dagar_kvar\":90}", "{\"typ\":\"notify\",\"mall\":\"cert_utgar_90\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Obligatorisk utbildning forsenad", catKompetens.Id, "CronWeekly", "{\"forsenad\":true}", "{\"typ\":\"suggest\",\"mall\":\"utbildning_paminnelse\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+
+            // Rekrytering (3)
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Onboarding auto-start", catRekrytering.Id, "EmploymentCreated", "{}", "{\"typ\":\"autopilot\",\"mall\":\"onboarding_start\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Offboarding auto-start", catRekrytering.Id, "EmploymentTerminated", "{}", "{\"typ\":\"autopilot\",\"mall\":\"offboarding_start\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Provanstallning utgar", catRekrytering.Id, "CronDaily", "{\"dagar_kvar\":30}", "{\"typ\":\"notify\",\"mall\":\"provanstallning_utgar\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+
+            // GDPR (3)
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Retention gallring 7 ar", catGDPR.Id, "CronMonthly", "{\"ar\":7}", "{\"typ\":\"autopilot\",\"mall\":\"gallring\"}", RegionHR.Automation.Domain.AutomationLevel.Autopilot, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Registerutdrag auto-generering", catGDPR.Id, "DataSubjectRequestCreated", "{}", "{\"typ\":\"autopilot\",\"mall\":\"registerutdrag\"}", RegionHR.Automation.Domain.AutomationLevel.Autopilot, true),
+            RegionHR.Automation.Domain.AutomationRule.Skapa("Samtycke utgangen", catGDPR.Id, "CronWeekly", "{\"dagar_kvar\":0}", "{\"typ\":\"notify\",\"mall\":\"samtycke_utgangen\"}", RegionHR.Automation.Domain.AutomationLevel.Notify),
+        };
+        db.AutomationRules.AddRange(rules);
+
+        // --- Default LevelConfigs (6 st) ---
+        db.AutomationLevelConfigs.AddRange(
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catCompliance.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catFranvaro.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catLon.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catKompetens.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catRekrytering.Id, RegionHR.Automation.Domain.AutomationLevel.Notify),
+            RegionHR.Automation.Domain.AutomationLevelConfig.Skapa(catGDPR.Id, RegionHR.Automation.Domain.AutomationLevel.Autopilot));
 
         await db.SaveChangesAsync();
     }

@@ -1,0 +1,143 @@
+@page "/admin/automation"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Automation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Automation</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Automationsramverk</MudText>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Info" Href="/admin/automation/logg" StartIcon="@Icons.Material.Filled.History">Exekveringslogg</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/admin/automation/forslag" StartIcon="@Icons.Material.Filled.Lightbulb">Forslag (@_antalForslag)</MudButton>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_kategorier.Count</MudText><MudText Typo="Typo.body2">Kategorier</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_antalAktiva</MudText><MudText Typo="Typo.body2">Aktiva regler</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_antalForslag</MudText><MudText Typo="Typo.body2">Vantande forslag</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_antalExekveringar</MudText><MudText Typo="Typo.body2">Exekveringar (30d)</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Kategori</th>
+                <th>Regler</th>
+                <th>Automationsniva</th>
+                <th>Minimum</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var k in _kategorier)
+            {
+                var harLas = k.Regler.Any(r => r.ArSystemRegel && r.MinimumNiva >= AutomationLevel.Block);
+                <tr>
+                    <td>
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+                            <strong>@k.Kategori.Namn</strong>
+                            @if (harLas)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
+                            }
+                        </div>
+                        <MudText Typo="Typo.caption">@k.Kategori.Beskrivning</MudText>
+                    </td>
+                    <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@k.Regler.Count regler</MudChip></td>
+                    <td>
+                        <MudSelect T="AutomationLevel" Value="@k.Config.ValdNiva" ValueChanged="@(v => AndraNiva(k, v))"
+                                   Variant="Variant.Outlined" Dense="true" Style="max-width: 180px;">
+                            @foreach (var niva in Enum.GetValues<AutomationLevel>())
+                            {
+                                <MudSelectItem T="AutomationLevel" Value="@niva">@NivaNamn(niva)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </td>
+                    <td>
+                        @{
+                            var minNiva = k.Regler.Where(r => r.ArSystemRegel).Select(r => r.MinimumNiva).DefaultIfEmpty(AutomationLevel.Notify).Max();
+                        }
+                        <MudChip T="string" Size="Size.Small" Color="@(minNiva >= AutomationLevel.Block ? Color.Error : Color.Default)">@NivaNamn(minNiva)</MudChip>
+                    </td>
+                    <td><MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/admin/automation/{k.Kategori.Namn}")">Visa regler</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<KategoriVm> _kategorier = [];
+    private int _antalAktiva, _antalForslag, _antalExekveringar;
+    private bool _loading = true;
+    private string? _error, _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cats = await Db.AutomationCategories.ToListAsync();
+            var rules = await Db.AutomationRules.ToListAsync();
+            var configs = await Db.AutomationLevelConfigs.ToListAsync();
+
+            _kategorier = cats.Select(c => new KategoriVm(
+                c,
+                rules.Where(r => r.KategoriId == c.Id).ToList(),
+                configs.FirstOrDefault(cfg => cfg.KategoriId == c.Id)
+                    ?? AutomationLevelConfig.Skapa(c.Id, AutomationLevel.Notify)
+            )).ToList();
+
+            _antalAktiva = rules.Count(r => r.ArAktiv);
+            _antalForslag = await Db.AutomationSuggestions.CountAsync(s => s.Status == SuggestionStatus.Pending);
+            var sedan30d = DateTime.UtcNow.AddDays(-30);
+            _antalExekveringar = await Db.AutomationExecutions.CountAsync(e => e.Tidsstampel >= sedan30d);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta automationsdata: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task AndraNiva(KategoriVm k, AutomationLevel nyNiva)
+    {
+        try
+        {
+            var minNiva = k.Regler.Where(r => r.ArSystemRegel).Select(r => r.MinimumNiva).DefaultIfEmpty(AutomationLevel.Notify).Max();
+            k.Config.AndraNiva(nyNiva, minNiva);
+            await Db.SaveChangesAsync();
+            _success = $"Niva andrad till {NivaNamn(nyNiva)} for {k.Kategori.Namn}";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string NivaNamn(AutomationLevel niva) => niva switch
+    {
+        AutomationLevel.Notify => "Notifiera",
+        AutomationLevel.Suggest => "Foreslå",
+        AutomationLevel.Autopilot => "Autopilot",
+        AutomationLevel.Block => "Blockera",
+        _ => niva.ToString()
+    };
+
+    private record KategoriVm(AutomationCategory Kategori, List<AutomationRule> Regler, AutomationLevelConfig Config);
+}

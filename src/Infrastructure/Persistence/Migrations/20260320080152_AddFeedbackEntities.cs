@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RegionHR.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFeedbackEntities : Migration
+    public partial class AddFeedbackEntities : Microsoft.EntityFrameworkCore.Migrations.Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

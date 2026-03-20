@@ -28,6 +28,9 @@ using RegionHR.Infrastructure.Authorization;
 using RegionHR.Infrastructure.Provisioning;
 using RegionHR.Infrastructure.Arbetsmiljo;
 using RegionHR.Infrastructure.Journeys;
+using RegionHR.Automation.Domain;
+using RegionHR.Agreements.Domain;
+using RegionHR.Migration.Domain;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -194,6 +197,33 @@ public class RegionHRDbContext : DbContext
     public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
     public DbSet<ProvisioningRule> ProvisioningRules => Set<ProvisioningRule>();
 
+    // Automation (schema: automation)
+    public DbSet<RegionHR.Automation.Domain.AutomationRule> AutomationRules => Set<RegionHR.Automation.Domain.AutomationRule>();
+    public DbSet<RegionHR.Automation.Domain.AutomationCategory> AutomationCategories => Set<RegionHR.Automation.Domain.AutomationCategory>();
+    public DbSet<RegionHR.Automation.Domain.AutomationLevelConfig> AutomationLevelConfigs => Set<RegionHR.Automation.Domain.AutomationLevelConfig>();
+    public DbSet<RegionHR.Automation.Domain.AutomationExecution> AutomationExecutions => Set<RegionHR.Automation.Domain.AutomationExecution>();
+    public DbSet<RegionHR.Automation.Domain.AutomationSuggestion> AutomationSuggestions => Set<RegionHR.Automation.Domain.AutomationSuggestion>();
+
+    // Migration (schema: migration)
+    public DbSet<MigrationJob> MigrationJobs => Set<MigrationJob>();
+    public DbSet<MigrationMapping> MigrationMappings => Set<MigrationMapping>();
+    public DbSet<MigrationTemplate> MigrationTemplates => Set<MigrationTemplate>();
+    public DbSet<MigrationValidationError> MigrationValidationErrors => Set<MigrationValidationError>();
+    public DbSet<MigrationLog> MigrationLogs => Set<MigrationLog>();
+
+    // Agreements (schema: agreements)
+    public DbSet<CollectiveAgreement> CollectiveAgreements => Set<CollectiveAgreement>();
+    public DbSet<AgreementOBRate> AgreementOBRates => Set<AgreementOBRate>();
+    public DbSet<AgreementOvertimeRule> AgreementOvertimeRules => Set<AgreementOvertimeRule>();
+    public DbSet<AgreementVacationRule> AgreementVacationRules => Set<AgreementVacationRule>();
+    public DbSet<AgreementRestRule> AgreementRestRules => Set<AgreementRestRule>();
+    public DbSet<AgreementSalaryStructure> AgreementSalaryStructures => Set<AgreementSalaryStructure>();
+    public DbSet<AgreementWorkingHours> AgreementWorkingHours => Set<AgreementWorkingHours>();
+    public DbSet<AgreementNoticePeriod> AgreementNoticePeriods => Set<AgreementNoticePeriod>();
+    public DbSet<AgreementPensionRule> AgreementPensionRules => Set<AgreementPensionRule>();
+    public DbSet<AgreementInsurancePackage> AgreementInsurancePackages => Set<AgreementInsurancePackage>();
+    public DbSet<PrivateCompensationPlan> PrivateCompensationPlans => Set<PrivateCompensationPlan>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Register value converters BEFORE model validation — this is the only way
@@ -207,6 +237,10 @@ public class RegionHRDbContext : DbContext
         configurationBuilder.Properties<ScheduleId>().HaveConversion<ScheduleIdConverter>();
         configurationBuilder.Properties<StaffingTemplateId>().HaveConversion<StaffingTemplateIdConverter>();
         configurationBuilder.Properties<ShiftSwapId>().HaveConversion<ShiftSwapIdConverter>();
+        configurationBuilder.Properties<AutomationRuleId>().HaveConversion<AutomationRuleIdConverter>();
+        configurationBuilder.Properties<AutomationCategoryId>().HaveConversion<AutomationCategoryIdConverter>();
+        configurationBuilder.Properties<CollectiveAgreementId>().HaveConversion<CollectiveAgreementIdConverter>();
+        configurationBuilder.Properties<MigrationJobId>().HaveConversion<MigrationJobIdConverter>();
         configurationBuilder.Properties<Money>().HaveConversion<MoneyConverter>();
         configurationBuilder.Properties<Percentage>().HaveConversion<PercentageConverter>();
     }
@@ -266,4 +300,24 @@ public class MoneyConverter : Microsoft.EntityFrameworkCore.Storage.ValueConvers
 public class PercentageConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Percentage, decimal>
 {
     public PercentageConverter() : base(v => v.Value, v => new Percentage(v)) { }
+}
+
+public class AutomationRuleIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<AutomationRuleId, Guid>
+{
+    public AutomationRuleIdConverter() : base(v => v.Value, v => AutomationRuleId.From(v)) { }
+}
+
+public class AutomationCategoryIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<AutomationCategoryId, Guid>
+{
+    public AutomationCategoryIdConverter() : base(v => v.Value, v => AutomationCategoryId.From(v)) { }
+}
+
+public class CollectiveAgreementIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<CollectiveAgreementId, Guid>
+{
+    public CollectiveAgreementIdConverter() : base(v => v.Value, v => CollectiveAgreementId.From(v)) { }
+}
+
+public class MigrationJobIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<MigrationJobId, Guid>
+{
+    public MigrationJobIdConverter() : base(v => v.Value, v => MigrationJobId.From(v)) { }
 }

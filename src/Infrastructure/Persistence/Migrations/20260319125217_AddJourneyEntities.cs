@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RegionHR.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddJourneyEntities : Migration
+    public partial class AddJourneyEntities : Microsoft.EntityFrameworkCore.Migrations.Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RegionHR.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddAnnouncementAndInsuranceEntities : Migration
+    public partial class AddAnnouncementAndInsuranceEntities : Microsoft.EntityFrameworkCore.Migrations.Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

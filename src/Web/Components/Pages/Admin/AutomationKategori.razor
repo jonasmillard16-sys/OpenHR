@@ -1,0 +1,146 @@
+@page "/admin/automation/{kategori}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Automation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Automation: @Kategori</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/automation" Class="mb-2">Tillbaka</MudButton>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">@_kategoriNamn</MudText>
+        <MudText Typo="Typo.body2" Class="mt-1">@_kategoriBeskrivning</MudText>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+        Kategoriniva: <strong>@NivaNamn(_config?.ValdNiva ?? AutomationLevel.Notify)</strong>.
+        Individuella regler arver kategorins niva om de inte har hogre minimumniva.
+    </MudAlert>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Regel</th>
+                <th>Trigger</th>
+                <th>Aktiv</th>
+                <th>Minimumniva</th>
+                <th>System</th>
+                <th>Atgarder</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _regler)
+            {
+                <tr>
+                    <td>
+                        <strong>@r.Namn</strong>
+                    </td>
+                    <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@r.TriggerTyp</MudChip></td>
+                    <td>
+                        @if (r.ArAktiv)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Aktiv</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Inaktiv</MudChip>
+                        }
+                    </td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@(r.MinimumNiva >= AutomationLevel.Block ? Color.Error : Color.Default)">@NivaNamn(r.MinimumNiva)</MudChip></td>
+                    <td>
+                        @if (r.ArSystemRegel)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
+                        }
+                    </td>
+                    <td>
+                        @if (!r.ArSystemRegel)
+                        {
+                            @if (r.ArAktiv)
+                            {
+                                <MudButton Variant="Variant.Text" Color="Color.Warning" Size="Size.Small" OnClick="@(() => ToggleRegel(r, false))">Inaktivera</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Text" Color="Color.Success" Size="Size.Small" OnClick="@(() => ToggleRegel(r, true))">Aktivera</MudButton>
+                            }
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Kan ej andras</MudText>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter] public string Kategori { get; set; } = "";
+
+    private List<AutomationRule> _regler = [];
+    private AutomationLevelConfig? _config;
+    private string _kategoriNamn = "", _kategoriBeskrivning = "";
+    private bool _loading = true;
+    private string? _error, _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var cat = await Db.AutomationCategories.FirstOrDefaultAsync(c => c.Namn == Kategori);
+            if (cat == null)
+            {
+                _error = $"Kategorin '{Kategori}' hittades inte.";
+                _loading = false;
+                return;
+            }
+
+            _kategoriNamn = cat.Namn;
+            _kategoriBeskrivning = cat.Beskrivning;
+            _regler = await Db.AutomationRules.Where(r => r.KategoriId == cat.Id).OrderBy(r => r.Namn).ToListAsync();
+            _config = await Db.AutomationLevelConfigs.FirstOrDefaultAsync(c => c.KategoriId == cat.Id);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta regler: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task ToggleRegel(AutomationRule regel, bool aktiv)
+    {
+        try
+        {
+            if (aktiv) regel.Aktivera();
+            else regel.Inaktivera();
+            await Db.SaveChangesAsync();
+            _success = $"Regel '{regel.Namn}' {(aktiv ? "aktiverad" : "inaktiverad")}.";
+        }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+    }
+
+    private static string NivaNamn(AutomationLevel niva) => niva switch
+    {
+        AutomationLevel.Notify => "Notifiera",
+        AutomationLevel.Suggest => "Foreslå",
+        AutomationLevel.Autopilot => "Autopilot",
+        AutomationLevel.Block => "Blockera",
+        _ => niva.ToString()
+    };
+}

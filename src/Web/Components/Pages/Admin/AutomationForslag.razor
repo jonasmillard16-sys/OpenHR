@@ -1,0 +1,155 @@
+@page "/admin/automation/forslag"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Automation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Automationsforslag</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/automation" Class="mb-2">Tillbaka</MudButton>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Automationsforslag</MudText>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantande</MudText><MudText Typo="Typo.body2">Vantande</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_accepterade</MudText><MudText Typo="Typo.body2">Accepterade</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_avvisade</MudText><MudText Typo="Typo.body2">Avvisade</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_forslag.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga vantande forslag.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead>
+                <tr>
+                    <th>Skapad</th>
+                    <th>Regel</th>
+                    <th>Foreslagen atgard</th>
+                    <th>Giltig till</th>
+                    <th>Status</th>
+                    <th>Atgarder</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in _forslag)
+                {
+                    var utgangen = DateTime.UtcNow > f.GiltigTill;
+                    <tr>
+                        <td>@f.SkapadVid.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><strong>@(_regelNamn.GetValueOrDefault(f.RegelId, "Okand"))</strong></td>
+                        <td>@f.ForeslagenAtgard</td>
+                        <td>
+                            @f.GiltigTill.ToString("yyyy-MM-dd")
+                            @if (utgangen)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error">Utgangen</MudChip>
+                            }
+                        </td>
+                        <td>
+                            @{
+                                var statusFarg = f.Status switch
+                                {
+                                    SuggestionStatus.Pending => Color.Warning,
+                                    SuggestionStatus.Accepted => Color.Success,
+                                    SuggestionStatus.Dismissed => Color.Default,
+                                    _ => Color.Error
+                                };
+                            }
+                            <MudChip T="string" Size="Size.Small" Color="@statusFarg">@StatusNamn(f.Status)</MudChip>
+                        </td>
+                        <td>
+                            @if (f.Status == SuggestionStatus.Pending && !utgangen)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Class="mr-2" OnClick="@(() => Acceptera(f))">Acceptera</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small" OnClick="@(() => Avvisa(f))">Avvisa</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<AutomationSuggestion> _forslag = [];
+    private Dictionary<RegionHR.SharedKernel.Domain.AutomationRuleId, string> _regelNamn = [];
+    private int _vantande, _accepterade, _avvisade;
+    private bool _loading = true;
+    private string? _error, _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _forslag = await Db.AutomationSuggestions
+                .OrderByDescending(s => s.SkapadVid)
+                .Take(200)
+                .ToListAsync();
+
+            var regelIds = _forslag.Select(f => f.RegelId).Distinct().ToList();
+            var regler = await Db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
+
+            _vantande = _forslag.Count(f => f.Status == SuggestionStatus.Pending);
+            _accepterade = _forslag.Count(f => f.Status == SuggestionStatus.Accepted);
+            _avvisade = _forslag.Count(f => f.Status == SuggestionStatus.Dismissed);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta forslag: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task Acceptera(AutomationSuggestion forslag)
+    {
+        try
+        {
+            forslag.Acceptera();
+            await Db.SaveChangesAsync();
+            _success = "Forslag accepterat.";
+            _vantande--; _accepterade++;
+        }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+    }
+
+    private async Task Avvisa(AutomationSuggestion forslag)
+    {
+        try
+        {
+            forslag.Avvisa();
+            await Db.SaveChangesAsync();
+            _success = "Forslag avvisat.";
+            _vantande--; _avvisade++;
+        }
+        catch (InvalidOperationException ex) { _error = ex.Message; }
+    }
+
+    private static string StatusNamn(SuggestionStatus status) => status switch
+    {
+        SuggestionStatus.Pending => "Vantande",
+        SuggestionStatus.Accepted => "Accepterad",
+        SuggestionStatus.Dismissed => "Avvisad",
+        SuggestionStatus.Expired => "Utgangen",
+        _ => status.ToString()
+    };
+}

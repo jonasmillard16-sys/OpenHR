@@ -1,0 +1,123 @@
+@page "/admin/automation/logg"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Automation.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Automationslogg</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/automation" Class="mb-2">Tillbaka</MudButton>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Exekveringslogg</MudText>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudDatePicker @bind-Date="_franDatum" Label="Fran datum" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudDatePicker @bind-Date="_tillDatum" Label="Till datum" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Filtrera">Filtrera</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_exekveringar.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga exekveringar registrerade for vald period.</MudAlert>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mb-2">Visar @_exekveringar.Count exekveringar</MudText>
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead>
+                <tr>
+                    <th>Tidpunkt</th>
+                    <th>Regel</th>
+                    <th>Handelsetyp</th>
+                    <th>Niva</th>
+                    <th>Resultat</th>
+                    <th>Atgard</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in _exekveringar)
+                {
+                    var nivaFarg = e.AnvandNiva switch
+                    {
+                        AutomationLevel.Block => Color.Error,
+                        AutomationLevel.Autopilot => Color.Success,
+                        AutomationLevel.Suggest => Color.Warning,
+                        _ => Color.Info
+                    };
+                    <tr>
+                        <td>@e.Tidsstampel.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><strong>@(_regelNamn.GetValueOrDefault(e.RegelId, "Okand"))</strong></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@e.HandelseTyp</MudChip></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@nivaFarg">@NivaNamn(e.AnvandNiva)</MudChip></td>
+                        <td>@e.Resultat</td>
+                        <td>@e.UtfordAtgard</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<AutomationExecution> _exekveringar = [];
+    private Dictionary<RegionHR.SharedKernel.Domain.AutomationRuleId, string> _regelNamn = [];
+    private DateTime? _franDatum = DateTime.Today.AddDays(-30);
+    private DateTime? _tillDatum = DateTime.Today.AddDays(1);
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Filtrera();
+    }
+
+    private async Task Filtrera()
+    {
+        _loading = true; _error = null;
+        try
+        {
+            var from = _franDatum ?? DateTime.Today.AddDays(-30);
+            var to = (_tillDatum ?? DateTime.Today).AddDays(1);
+
+            _exekveringar = await Db.AutomationExecutions
+                .Where(e => e.Tidsstampel >= from && e.Tidsstampel <= to)
+                .OrderByDescending(e => e.Tidsstampel)
+                .Take(500)
+                .ToListAsync();
+
+            var regelIds = _exekveringar.Select(e => e.RegelId).Distinct().ToList();
+            var regler = await Db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta logg: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string NivaNamn(AutomationLevel niva) => niva switch
+    {
+        AutomationLevel.Notify => "Notifiera",
+        AutomationLevel.Suggest => "Foreslå",
+        AutomationLevel.Autopilot => "Autopilot",
+        AutomationLevel.Block => "Blockera",
+        _ => niva.ToString()
+    };
+}

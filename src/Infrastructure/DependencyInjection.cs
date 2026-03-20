@@ -21,6 +21,9 @@ using RegionHR.Infrastructure.Reporting;
 using RegionHR.Infrastructure.Payroll;
 using RegionHR.Infrastructure.Scheduling;
 using RegionHR.Infrastructure.Events;
+using RegionHR.Infrastructure.Services;
+using RegionHR.Automation.Domain;
+using RegionHR.Migration.Adapters;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -120,6 +123,15 @@ public static class DependencyInjection
         // Provisioning (lokal registrering — inga externa anrop i v1)
         services.AddScoped<Provisioning.IIdentityProvider, Provisioning.LocalRecordingProvider>();
         services.AddScoped<Provisioning.ProvisioningService>();
+
+        // Automation engine
+        services.AddScoped<IAutomationEngine, AutomationEngineService>();
+
+        // Migration engine
+        services.AddScoped<IMigrationAdapter, PAXmlAdapter>();
+        services.AddScoped<IMigrationAdapter, HeromaAdapter>();
+        services.AddScoped<IMigrationAdapter, GenericCSVAdapter>();
+        services.AddScoped<MigrationEngineService>();
 
         // Background services
         services.AddHostedService<NotificationReminderService>();
