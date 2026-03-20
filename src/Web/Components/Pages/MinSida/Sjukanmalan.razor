@@ -9,6 +9,11 @@
 
 <PageTitle>OpenHR - Jag är sjuk</PageTitle>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">@_error</MudAlert>
+}
+
 <OhrConversationFlow Steps="@_steps" CurrentStep="@_currentStep" OnBack="GoBack">
     @switch (_currentStep)
     {
@@ -112,6 +117,7 @@
     private bool _showEndDatePicker;
     private DateTime? _customDate;
     private DateTime? _endDate;
+    private string? _error;
 
     private void SelectStartDate(DateOnly date)
     {
@@ -140,10 +146,11 @@
     {
         if (!Auth.EmployeeId.HasValue)
         {
-            _currentStep = 2; // Show confirmation but nothing saved
+            _error = "Sjukanmälan kräver en kopplad anställd — logga in med en personalprofil.";
             return;
         }
 
+        _error = null;
         try
         {
             var anstallId = Auth.EmployeeId.Value;
@@ -161,13 +168,12 @@
             await Db.LeaveRequests.AddAsync(request);
 
             await Db.SaveChangesAsync();
+            _currentStep = 2;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Sjukanmälan: {ex.Message}");
+            _error = $"Kunde inte spara sjukanmälan: {ex.Message}";
         }
-
-        _currentStep = 2;
     }
 
     private void GoBack()

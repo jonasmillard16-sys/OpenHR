@@ -126,13 +126,14 @@ else if (!_loading)
 
     private async Task Godkann(ApprovalItem item)
     {
+        if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
         try
         {
             if (item.EntityType == "LeaveRequest")
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
-                req.Godkann(Auth.EmployeeId!.Value, null);
+                req.Godkann(Auth.EmployeeId.Value, null);
                 await Db.SaveChangesAsync();
             }
             _approvals.Remove(item);
@@ -142,13 +143,14 @@ else if (!_loading)
 
     private async Task Neka(ApprovalItem item)
     {
+        if (!Auth.EmployeeId.HasValue) { _error = "Avslag kräver kopplad anställd."; return; }
         try
         {
             if (item.EntityType == "LeaveRequest")
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
-                req.Avvisa(Auth.EmployeeId!.Value, "Nekad av chef");
+                req.Avvisa(Auth.EmployeeId.Value, "Nekad av chef");
                 await Db.SaveChangesAsync();
             }
             _approvals.Remove(item);

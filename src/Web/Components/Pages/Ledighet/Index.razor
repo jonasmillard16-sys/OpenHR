@@ -102,11 +102,12 @@
 
     private async Task Godkann(LedighetRad row)
     {
+        if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
-            req.Godkann(Auth.EmployeeId!.Value, null);
+            req.Godkann(Auth.EmployeeId.Value, null);
             await Db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
@@ -125,11 +126,12 @@
 
     private async Task Neka(LedighetRad row)
     {
+        if (!Auth.EmployeeId.HasValue) { _error = "Avslag kräver kopplad anställd."; return; }
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
-            req.Avvisa(Auth.EmployeeId!.Value, "Nekad av chef");
+            req.Avvisa(Auth.EmployeeId.Value, "Nekad av chef");
             await Db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
