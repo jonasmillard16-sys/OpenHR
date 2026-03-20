@@ -1,80 +1,117 @@
 @page "/tidrapporter"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Tidrapporter</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Tidrapporter</MudText>
 </div>
 
-@if (_pendingCount > 0)
+@if (_loading)
 {
-    <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.AccessTime">
-        <strong>@_pendingCount tidrapporter</strong> väntar på granskning.
-    </MudAlert>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Period</th>
-            <th>Planerade h</th>
-            <th>Faktiska h</th>
-            <th>Övertid</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var ts in _timesheets)
-        {
-            <tr>
-                <td><strong>@ts.Namn</strong></td>
-                <td>@ts.Period</td>
-                <td>@ts.Planerade</td>
-                <td>@ts.Faktiska</td>
-                <td>@ts.Overtid</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(ts.Status)">@ts.Status</MudChip></td>
-                <td>
-                    @if (ts.Status == "Inskickad")
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   Href="@($"/tidrapporter/{ts.Id}")" StartIcon="@Icons.Material.Filled.RateReview">
-                            Granska
-                        </MudButton>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@code {
-    private int _pendingCount;
-    private List<TimesheetRow> _timesheets = [];
-
-    protected override void OnInitialized()
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_pendingCount > 0)
     {
-        // Demo data — replace with Db.Timesheets query once wired
-        _timesheets =
-        [
-            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000001"), "Anna Svensson", "Mars 2026", "160,0", "168,5", "8,5", "Inskickad"),
-            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000002"), "Lisa Holm", "Mars 2026", "120,0", "118,0", "0", "Inskickad"),
-            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000003"), "Karl Berg", "Mars 2026", "160,0", "—", "—", "Sjuk"),
-            new(Guid.Parse("a1b2c3d4-0001-0001-0001-000000000004"), "Erik Johansson", "Februari 2026", "160,0", "162,0", "2,0", "Godkänd"),
-        ];
-
-        _pendingCount = _timesheets.Count(t => t.Status == "Inskickad");
+        <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.AccessTime">
+            <strong>@_pendingCount tidrapporter</strong> väntar på granskning.
+        </MudAlert>
     }
 
-    private static Color StatusFarg(string status) => status switch
+    @if (_timesheets.Count == 0)
     {
-        "Inskickad" => Color.Warning,
-        "Godkänd" => Color.Success,
-        "Avslagen" => Color.Error,
-        "Sjuk" => Color.Error,
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga tidrapporter registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Period</th><th>Planerade h</th><th>Faktiska h</th><th>Övertid</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var ts in _timesheets)
+                {
+                    <tr>
+                        <td><strong>@ts.Namn</strong></td>
+                        <td>@ts.Period</td>
+                        <td>@ts.Planerade.ToString("F1")</td>
+                        <td>@ts.Faktiska.ToString("F1")</td>
+                        <td>@(ts.Overtid > 0 ? ts.Overtid.ToString("F1") : "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(ts.Status)">@StatusText(ts.Status)</MudChip></td>
+                        <td>
+                            @if (ts.Status == TimesheetStatus.Inskickad)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                           Href="@($"/tidrapporter/{ts.Id}")" StartIcon="@Icons.Material.Filled.RateReview">Granska</MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                           Href="@($"/tidrapporter/{ts.Id}")">Visa</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<TimesheetVm> _timesheets = [];
+    private int _pendingCount;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var timesheets = await Db.Timesheets
+                .OrderByDescending(t => t.Ar).ThenByDescending(t => t.Manad)
+                .Take(50).ToListAsync();
+
+            var anstallIds = timesheets.Select(t => t.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _timesheets = timesheets.Select(t => new TimesheetVm(
+                t.Id,
+                names.GetValueOrDefault(t.AnstallId, "Okänd"),
+                $"{t.Ar}-{t.Manad:D2}",
+                t.PlaneradeTimmar, t.FaktiskaTimmar, t.Overtid, t.Status
+            )).ToList();
+
+            _pendingCount = timesheets.Count(t => t.Status == TimesheetStatus.Inskickad);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta tidrapporter: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string StatusText(TimesheetStatus s) => s switch
+    {
+        TimesheetStatus.Oppen => "Öppen",
+        TimesheetStatus.Inskickad => "Inskickad",
+        TimesheetStatus.Godkand => "Godkänd",
+        TimesheetStatus.Avslagen => "Avslagen",
+        _ => s.ToString()
+    };
+
+    private static Color StatusFarg(TimesheetStatus s) => s switch
+    {
+        TimesheetStatus.Inskickad => Color.Warning,
+        TimesheetStatus.Godkand => Color.Success,
+        TimesheetStatus.Avslagen => Color.Error,
         _ => Color.Default
     };
 
-    private record TimesheetRow(Guid Id, string Namn, string Period, string Planerade, string Faktiska, string Overtid, string Status);
+    private record TimesheetVm(Guid Id, string Namn, string Period, decimal Planerade, decimal Faktiska, decimal Overtid, TimesheetStatus Status);
 }

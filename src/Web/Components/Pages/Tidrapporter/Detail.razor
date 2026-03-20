@@ -1,67 +1,174 @@
 @page "/tidrapporter/{Id:guid}"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Tidrapport</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/tidrapporter" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Tidrapport — Mars 2026</MudText>
-<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Anna Svensson — Avdelning 32</MudText>
-
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">160,0</MudText><MudText Typo="Typo.body2">Planerade timmar</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">168,5</MudText><MudText Typo="Typo.body2">Faktiska timmar</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">8,5</MudText><MudText Typo="Typo.body2">Övertid</MudText></MudPaper></MudItem>
-</MudGrid>
-
-<!-- Week-by-week breakdown -->
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-4">
-    <thead><tr><th>Vecka</th><th>Planerat</th><th>Faktiskt</th><th>Övertid</th><th>Avvikelse</th></tr></thead>
-    <tbody>
-        <tr><td>V10</td><td>40,0</td><td>42,5</td><td>2,5</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+2,5h</MudChip></td></tr>
-        <tr><td>V11</td><td>40,0</td><td>44,0</td><td>4,0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+4,0h</MudChip></td></tr>
-        <tr><td>V12</td><td>40,0</td><td>42,0</td><td>2,0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">+2,0h</MudChip></td></tr>
-        <tr><td>V13</td><td>40,0</td><td>40,0</td><td>0</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
-
-@if (_showButtons)
+@if (_loading)
 {
-    <div class="d-flex gap-3">
-        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" Style="min-height: 56px;" OnClick="Godkann" StartIcon="@Icons.Material.Filled.Check">
-            Godkänn tidrapport
-        </MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large" Style="min-height: 56px;" OnClick="Avvisa" StartIcon="@Icons.Material.Filled.Close">
-            Avvisa — be om korrigering
-        </MudButton>
-    </div>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-@if (_godkand)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mt-4">Tidrapporten har godkänts.</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
 }
-@if (_avslagen)
+else if (_ts == null)
 {
-    <MudAlert Severity="Severity.Error" Class="mt-4">Tidrapporten har avslagits. Den anställde har underrättats om att korrigering behövs.</MudAlert>
+    <MudAlert Severity="Severity.Warning">Tidrapport hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Tidrapport — @_ts.Ar-@_ts.Manad.ToString("D2")</MudText>
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@_empName</MudText>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_ts.PlaneradeTimmar.ToString("F1")</MudText>
+                <MudText Typo="Typo.body2">Planerade timmar</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_ts.FaktiskaTimmar.ToString("F1")</MudText>
+                <MudText Typo="Typo.body2">Faktiska timmar</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="@(_ts.Overtid > 0 ? Color.Warning : Color.Default)" Style="font-weight: 700;">@_ts.Overtid.ToString("F1")</MudText>
+                <MudText Typo="Typo.body2">Övertid</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="@(_ts.Avvikelse > 0 ? Color.Warning : _ts.Avvikelse < 0 ? Color.Error : Color.Success)" Style="font-weight: 700;">
+                    @(_ts.Avvikelse >= 0 ? "+" : "")@_ts.Avvikelse.ToString("F1")
+                </MudText>
+                <MudText Typo="Typo.body2">Avvikelse</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="3" Class="mb-4">
+        <MudChip T="string" Size="Size.Medium" Color="@StatusFarg(_ts.Status)">@StatusText(_ts.Status)</MudChip>
+        @if (_ts.GodkandVid.HasValue)
+        {
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                @(_ts.Status == TimesheetStatus.Godkand ? "Godkänd" : "Avslagen") @_ts.GodkandVid.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+            </MudText>
+        }
+    </MudStack>
+
+    @if (_ts.Kommentar != null)
+    {
+        <MudAlert Severity="@(_ts.Status == TimesheetStatus.Avslagen ? Severity.Error : Severity.Info)" Variant="Variant.Text" Class="mb-4">
+            <strong>Kommentar:</strong> @_ts.Kommentar
+        </MudAlert>
+    }
+
+    @if (_ts.Status == TimesheetStatus.Inskickad)
+    {
+        @if (!Auth.EmployeeId.HasValue)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-4">Godkännande kräver en kopplad anställd — logga in med en personalprofil.</MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true" Style="min-height: 56px;"
+                               OnClick="GodkannTs" Disabled="_saving" StartIcon="@Icons.Material.Filled.Check">
+                        Godkänn tidrapport
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_avvisKommentar" Label="Kommentar vid avvisning" Variant="Variant.Outlined" Class="mb-2" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large" FullWidth="true" Style="min-height: 56px;"
+                               OnClick="AvvisaTs" Disabled="@(_saving || string.IsNullOrWhiteSpace(_avvisKommentar))" StartIcon="@Icons.Material.Filled.Close">
+                        Avvisa — be om korrigering
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        }
+    }
+
+    @if (_actionResult != null)
+    {
+        <MudAlert Severity="@_actionSeverity" Class="mt-4">@_actionResult</MudAlert>
+    }
 }
 
 @code {
     [Parameter] public Guid Id { get; set; }
-    private bool _showButtons = true;
-    private bool _godkand;
-    private bool _avslagen;
 
-    private void Godkann()
+    private Timesheet? _ts;
+    private string _empName = "";
+    private string _avvisKommentar = "";
+    private bool _loading = true, _saving;
+    private string? _error, _actionResult;
+    private Severity _actionSeverity;
+
+    protected override async Task OnInitializedAsync()
     {
-        _showButtons = false;
-        _godkand = true;
-        // Future: call Timesheet.Godkann(currentUserId) via service
+        try
+        {
+            _ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == Id);
+            if (_ts != null)
+            {
+                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id.Value == _ts.AnstallId);
+                _empName = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta tidrapport: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private void Avvisa()
+    private async Task GodkannTs()
     {
-        _showButtons = false;
-        _avslagen = true;
-        // Future: call Timesheet.Avvisa(currentUserId, kommentar) via service
+        if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
+        if (_ts == null) return;
+        _saving = true;
+        try
+        {
+            _ts.Godkann(Auth.EmployeeId.Value, null);
+            await Db.SaveChangesAsync();
+            _actionResult = "Tidrapporten har godkänts.";
+            _actionSeverity = Severity.Success;
+        }
+        catch (Exception ex) { _actionResult = $"Kunde inte godkänna: {ex.Message}"; _actionSeverity = Severity.Error; }
+        finally { _saving = false; }
     }
+
+    private async Task AvvisaTs()
+    {
+        if (!Auth.EmployeeId.HasValue) { _error = "Avvisning kräver kopplad anställd."; return; }
+        if (_ts == null || string.IsNullOrWhiteSpace(_avvisKommentar)) return;
+        _saving = true;
+        try
+        {
+            _ts.Avvisa(Auth.EmployeeId.Value, _avvisKommentar);
+            await Db.SaveChangesAsync();
+            _actionResult = "Tidrapporten har avslagits.";
+            _actionSeverity = Severity.Error;
+        }
+        catch (Exception ex) { _actionResult = $"Kunde inte avvisa: {ex.Message}"; _actionSeverity = Severity.Error; }
+        finally { _saving = false; }
+    }
+
+    private static string StatusText(TimesheetStatus s) => s switch
+    {
+        TimesheetStatus.Oppen => "Öppen", TimesheetStatus.Inskickad => "Inskickad",
+        TimesheetStatus.Godkand => "Godkänd", TimesheetStatus.Avslagen => "Avslagen", _ => s.ToString()
+    };
+    private static Color StatusFarg(TimesheetStatus s) => s switch
+    {
+        TimesheetStatus.Inskickad => Color.Warning, TimesheetStatus.Godkand => Color.Success,
+        TimesheetStatus.Avslagen => Color.Error, _ => Color.Default
+    };
 }

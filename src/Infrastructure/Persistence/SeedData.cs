@@ -734,6 +734,35 @@ public static class SeedData
             RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[0].Id.Value, policyIt.Version),     // Anna
             RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[2].Id.Value, policyIt.Version));    // Maria
 
+        // === Timesheets via domänens Skapa() + RegistreraTimmar() + SkickaIn() etc. ===
+        // Anna — Inskickad (mars)
+        var tsAnnaMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[0].Id.Value, 2026, 3, 160m);
+        tsAnnaMars.RegistreraTimmar(168.5m, 8.5m);
+        tsAnnaMars.SkickaIn();
+
+        // Erik — Inskickad (mars)
+        var tsErikMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[1].Id.Value, 2026, 3, 160m);
+        tsErikMars.RegistreraTimmar(162m, 2m);
+        tsErikMars.SkickaIn();
+
+        // Karl — Godkänd (februari)
+        var tsKarlFeb = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[3].Id.Value, 2026, 2, 160m);
+        tsKarlFeb.RegistreraTimmar(158m, 0m);
+        tsKarlFeb.SkickaIn();
+        tsKarlFeb.Godkann(employees[7].Id.Value, "Ser bra ut"); // Anders godkänner
+
+        // Maria — Avslagen (mars)
+        var tsMariaMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[2].Id.Value, 2026, 3, 120m);
+        tsMariaMars.RegistreraTimmar(135m, 15m);
+        tsMariaMars.SkickaIn();
+        tsMariaMars.Avvisa(employees[7].Id.Value, "Overtid ej forhandsanmald"); // Anders avvisar
+
+        // Sara — Öppen (mars, ej inskickad)
+        var tsSaraMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[4].Id.Value, 2026, 3, 120m);
+        tsSaraMars.RegistreraTimmar(100m, 0m);
+
+        db.Timesheets.AddRange(tsAnnaMars, tsErikMars, tsKarlFeb, tsMariaMars, tsSaraMars);
+
         await db.SaveChangesAsync();
     }
 }
