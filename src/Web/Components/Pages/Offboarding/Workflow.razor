@@ -1,167 +1,104 @@
 @page "/offboarding/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Offboarding.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
-@inject IJSRuntime JS
 
-<PageTitle>OpenHR - Offboarding</PageTitle>
+<PageTitle>OpenHR - Nytt offboarding-ärende</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/offboarding" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd slutar?</MudText>
-            <MudTextField @bind-Value="_sokterm" Label="Sök namn" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
-            <MudStack Spacing="2">
-                @foreach (var namn in new[] { "Karl Berg", "Per Gustafsson", "Helena Bergström" })
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _valdAnstalld = namn; _step = 1; })">@namn</MudButton>
-                }
-            </MudStack>
-            break;
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Nytt offboarding-ärende</MudText>
 
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Slutlön och semesterersättning</MudText>
-            <MudText Typo="Typo.body1" Class="mb-2">Systemet har beräknat följande för @_valdAnstalld:</MudText>
-            <MudPaper Class="pa-4 mb-4" Elevation="1">
-                <MudSimpleTable Dense="true">
-                    <tbody>
-                        <tr><td>Sista arbetsdag</td><td><strong>2026-04-30</strong></td></tr>
-                        <tr><td>Kvarvarande semester</td><td><strong>12 dagar</strong></td></tr>
-                        <tr><td>Semesterersättning (12%)</td><td><strong>18 240 kr</strong></td></tr>
-                        <tr><td>Slutlön (april)</td><td><strong>28 500 kr</strong></td></tr>
-                        <tr><td><strong>Total slutlig utbetalning</strong></td><td><strong>46 740 kr</strong></td></tr>
-                    </tbody>
-                </MudSimpleTable>
-            </MudPaper>
-            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Beloppen beräknas automatiskt baserat på anställningsdata och semestersaldo.</MudAlert>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 2)">Nästa</MudButton>
-            break;
-
-        case 2:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Tillgångar att återlämna</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4">Bocka av när @_valdAnstalld har lämnat tillbaka:</MudText>
-            <MudStack Spacing="2">
-                <MudCheckBox @bind-Value="_dator" Label="Dator/laptop" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
-                <MudCheckBox @bind-Value="_passerkort" Label="Passerkort/nyckelkort" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
-                <MudCheckBox @bind-Value="_telefon" Label="Tjänstemobil" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
-                <MudCheckBox @bind-Value="_nycklar" Label="Nycklar" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
-                <MudCheckBox @bind-Value="_klader" Label="Arbetskläder" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" />
-            </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" Class="mt-4" OnClick="@(() => _step = 3)">Nästa</MudButton>
-            break;
-
-        case 3:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Åtkomst att stänga</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4">Systemet stänger automatiskt:</MudText>
-            <MudStack Spacing="2">
-                <MudCheckBox T="bool" Value="true" Label="E-postkonto" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
-                <MudCheckBox T="bool" Value="true" Label="VPN-åtkomst" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
-                <MudCheckBox T="bool" Value="true" Label="Inloggning i OpenHR" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
-                <MudCheckBox T="bool" Value="true" Label="Teams/kommunikation" Color="Color.Primary" Dense="false" Style="font-size: 1.125rem;" Disabled="true" />
-            </MudStack>
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mt-4 mb-4">Åtkomst stängs automatiskt efter sista arbetsdag.</MudAlert>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => _step = 4)">Slutför offboarding</MudButton>
-            break;
-
-        case 4:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Offboarding klar — @_valdAnstalld</MudText>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Checklista</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td>AD-konto avaktiverat</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
-                            <tr><td>Passerkort indraget</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
-                            <tr><td>Utrustning återlämnad</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
-                            <tr><td>Behörigheter stängda</td><td><MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" /></td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Slutlön</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td>Semesterersättning (12 dagar)</td><td><strong>18 240 kr</strong></td></tr>
-                            <tr><td>Övertidsersättning</td><td><strong>3 450 kr</strong></td></tr>
-                            <tr><td>Avdrag (friskvårdsbidrag ej nyttjat)</td><td><strong>0 kr</strong></td></tr>
-                            <tr><td>Slutlön (april)</td><td><strong>28 500 kr</strong></td></tr>
-                            <tr><td style="border-top: 2px solid var(--mud-palette-lines-default);"><strong>Total utbetalning</strong></td><td style="border-top: 2px solid var(--mud-palette-lines-default);"><strong>50 190 kr</strong></td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="1">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Tjänstgöringsintyg</MudText>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="GenereraIntyg" Style="min-height: 56px;">
-                        Generera tjänstgöringsintyg (PDF)
-                    </MudButton>
-                    @if (_intygGenererat)
-                    {
-                        <MudAlert Severity="Severity.Success" Class="mt-3 mb-2">Tjänstgöringsintyg genererat!</MudAlert>
-                        <MudSimpleTable Dense="true" Class="mt-2">
-                            <tbody>
-                                <tr><td><strong>Namn</strong></td><td>@_valdAnstalld</td></tr>
-                                <tr><td><strong>Anställningsperiod</strong></td><td>2019-08-15 — 2026-04-30</td></tr>
-                                <tr><td><strong>Befattning</strong></td><td>Sjuksköterska, Medicinavdelning 3</td></tr>
-                                <tr><td><strong>Format</strong></td><td>PDF — redo att ladda ner</td></tr>
-                            </tbody>
-                        </MudSimpleTable>
-
-                        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2" Style="font-weight: 600;">Förhandsvisning</MudText>
-                        <MudPaper Class="pa-5" Elevation="1" Style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; background: #fdfdfd; border: 1px solid #d0d0d0; line-height: 1.7; border-radius: 8px;">@_intygPreview</MudPaper>
-                        <div class="d-flex gap-2 mt-3">
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Medium"
-                                       StartIcon="@Icons.Material.Filled.Print" OnClick="SkrivUt" Style="min-height: 44px;">
-                                Skriv ut
-                            </MudButton>
-                        </div>
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2" Dense="true">
-                            PDF-generering kräver QuestPDF-paketet. Installera med: dotnet add package QuestPDF
-                        </MudAlert>
-                    }
-                </MudPaper>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/offboarding" Style="min-height: 56px;">
-                    Tillbaka till offboarding
-                </MudButton>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_created)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Offboarding-ärende skapat</MudText>
+        <MudSimpleTable Dense="true" Class="mb-3">
+            <tbody>
+                <tr><td><strong>Anställd</strong></td><td>@_valdNamn</td></tr>
+                <tr><td><strong>Anledning</strong></td><td>@_case!.Anledning</td></tr>
+                <tr><td><strong>Sista arbetsdag</strong></td><td>@_case.SistaArbetsdag.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>Checklistepunkter</strong></td><td>@_case.Steg.Count</td></tr>
+            </tbody>
+        </MudSimpleTable>
+        <MudText Typo="Typo.h6" Class="mb-2">Checklista</MudText>
+        @foreach (var steg in _case!.Steg)
+        {
+            <MudText Typo="Typo.body2">☐ @steg.Beskrivning</MudText>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/offboarding" Class="mt-4">Tillbaka till offboarding</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="4">
+                <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _employees) { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="AvslutAnledning" @bind-Value="_formAnledning" Label="Anledning" Variant="Variant.Outlined">
+                    @foreach (var a in Enum.GetValues<AvslutAnledning>()) { <MudSelectItem Value="@a">@AnledningText(a)</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="_formSistaDag" Label="Sista arbetsdag" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;"
+                   OnClick="SkapaArende" Disabled="@(_formAnstallId == null || _formSistaDag == null || _saving)">
+            Skapa offboarding-ärende
+        </MudButton>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Anställd", "Slutlön", "Tillgångar", "Åtkomst", "Klart!"];
-    private int _step;
-    private string _valdAnstalld = "", _sokterm = "";
-    private bool _dator, _passerkort, _telefon, _nycklar, _klader;
-    private bool _intygGenererat;
-    private string _intygPreview = "";
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private OffboardingCase? _case;
+    private string _valdNamn = "";
+    private Guid? _formAnstallId;
+    private AvslutAnledning _formAnledning = AvslutAnledning.EgenBegaran;
+    private DateTime? _formSistaDag;
+    private bool _loading = true, _saving, _created;
+    private string? _error;
 
-    private async Task SkrivUt()
+    protected override async Task OnInitializedAsync()
     {
-        await JS.InvokeVoidAsync("window.print");
+        try { _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private void GenereraIntyg()
+    private async Task SkapaArende()
     {
-        var generator = new RegionHR.Infrastructure.Export.PdfGenerator();
-        var data = new RegionHR.Infrastructure.Export.TjanstgoringsintyData(
-            _valdAnstalld,
-            "19850612-XXXX",
-            "Västra Götalandsregionen",
-            "2019-08-15",
-            "2026-04-30",
-            "Sjuksköterska, Medicinavdelning 3",
-            "Tillsvidare",
-            "100%"
-        );
-        var bytes = generator.GenerateTjanstgoringsintyg(data);
-        _intygPreview = System.Text.Encoding.UTF8.GetString(bytes);
-        _intygGenererat = true;
+        if (_formAnstallId == null || _formSistaDag == null) return;
+        _saving = true; _error = null;
+        try
+        {
+            var emp = _employees.FirstOrDefault(e => e.Id.Value == _formAnstallId.Value);
+            _valdNamn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+
+            _case = OffboardingCase.Skapa(_formAnstallId.Value, _formAnledning, DateOnly.FromDateTime(_formSistaDag.Value));
+            _case.MarkeraSomPagar();
+            Db.OffboardingCases.Add(_case);
+            await Db.SaveChangesAsync();
+            _created = true;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
     }
+
+    private static string AnledningText(AvslutAnledning a) => a switch
+    {
+        AvslutAnledning.EgenBegaran => "Egen uppsägning", AvslutAnledning.Uppsagning => "Uppsägning",
+        AvslutAnledning.Pension => "Pension", AvslutAnledning.Vikariat_Slut => "Vikariat slut",
+        AvslutAnledning.Provanstallning_Avbruten => "Provanst. avbruten", AvslutAnledning.Overgang => "Övergång",
+        AvslutAnledning.Dodsfall => "Dödsfall", AvslutAnledning.Annat => "Annat", _ => a.ToString()
+    };
 }

@@ -1,87 +1,89 @@
 @page "/schema/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Skapa schema</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/schema" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/schema" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Skapa schema</MudText>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken period?</MudText>
-            <MudStack Spacing="3">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                           Style="min-height: 64px; font-size: 1.25rem;" OnClick="@(() => { _period = "April 2026"; _step = 1; })">
-                    April 2026
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                           Style="min-height: 56px;" OnClick="@(() => { _period = "Maj 2026"; _step = 1; })">
-                    Maj 2026
-                </MudButton>
-            </MudStack>
-            break;
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken enhet?</MudText>
-            <MudStack Spacing="3">
-                @foreach (var enhet in new[] { "Medicinkliniken (alla)", "Avdelning 32", "Avdelning 33", "Akutmottagningen", "IVA" })
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                               Style="min-height: 56px;" OnClick="@(() => { _enhet = enhet; _step = 2; })">
-                        @enhet
-                    </MudButton>
-                }
-            </MudStack>
-            break;
-        case 2:
-            <div style="text-align: center; padding: 2rem 0;">
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-                <MudText Typo="Typo.h6" Class="mt-4">Skapar schema för @_enhet — @_period</MudText>
-                <MudStack Spacing="1" Class="mt-3" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Kontrollerar vilka som kan jobba</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Kollar viloregler (ATL)</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">✅ Säkerställer minimibemanning</MudText>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">⏳ Optimerar...</MudText>
-                </MudStack>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-6"
-                           OnClick="@(() => _step = 3)">
-                    Visa resultat
-                </MudButton>
-            </div>
-            break;
-        case 3:
-            <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: 600;">Förslag till schema — @_period</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4">@_enhet</MudText>
-            <MudAlert Severity="Severity.Success" Class="mb-4">✅ 847 av 850 pass tillsatta. Alla lagkrav uppfyllda.</MudAlert>
-
-            <OhrSuggestionCard Title="Avd 32 — nattpass 15-17 april"
-                              Explanation="Det saknas 1 sjuksköterska. Förslag: Fråga Anna Svensson eller Karl Berg — de har inga pass de nätterna."
-                              Level="OhrSuggestionCard.SuggestionLevel.Warning"
-                              Actions="@(new Dictionary<string, string> { ["anna"] = "Fråga Anna", ["karl"] = "Fråga Karl" })" />
-
-            <OhrSuggestionCard Title="Erik Lindberg — vecka 16"
-                              Explanation="Han har redan jobbat 47 av max 48 timmar den veckan. Förslag: Flytta hans lördagspass till vecka 17."
-                              Level="OhrSuggestionCard.SuggestionLevel.Warning"
-                              Actions="@(new Dictionary<string, string> { ["flytta"] = "Flytta", ["behall"] = "Behåll ändå" })" />
-
-            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large" FullWidth="true"
-                       Style="min-height: 64px; font-size: 1.25rem;" Class="mt-4"
-                       Href="/schema">
-                Publicera schema
-            </MudButton>
-            <MudText Typo="Typo.body2" Class="mt-2 text-center" Style="color: var(--mud-palette-text-secondary);">
-                Alla anställda meddelas automatiskt.
-            </MudText>
-            break;
-    }
-</OhrConversationFlow>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_created)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Schema skapat</MudText>
+        <MudSimpleTable Dense="true" Class="mb-3">
+            <tbody>
+                <tr><td><strong>Namn</strong></td><td>@_schema!.Namn</td></tr>
+                <tr><td><strong>Enhet</strong></td><td>@_enhetNamn</td></tr>
+                <tr><td><strong>Period</strong></td><td>@_formFran?.ToString("yyyy-MM-dd") – @_formTill?.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Utkast</MudChip></td></tr>
+            </tbody>
+        </MudSimpleTable>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/schema">Till schemaöversikt</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid?" @bind-Value="_formEnhetId" Label="Enhet" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _enheter) { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Namn</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formNamn" Label="Schemanamn" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_formFran" Label="Startdatum" Variant="Variant.Outlined" Required="true" /></MudItem>
+            <MudItem xs="12" sm="6"><MudDatePicker @bind-Date="_formTill" Label="Slutdatum" Variant="Variant.Outlined" Required="true" /></MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;"
+                   OnClick="SkapaSchema" Disabled="@(_formEnhetId == null || string.IsNullOrWhiteSpace(_formNamn) || _formFran == null || _formTill == null || _saving)">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Skapa schema
+        </MudButton>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Period", "Enhet", "Genererar...", "Resultat"];
-    private int _step;
-    private string _period = "";
-    private string _enhet = "";
+    private List<RegionHR.Core.Domain.OrganizationUnit> _enheter = [];
+    private Schedule? _schema;
+    private string _enhetNamn = "", _formNamn = "";
+    private Guid? _formEnhetId;
+    private DateTime? _formFran, _formTill;
+    private bool _loading = true, _saving, _created;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _enheter = await Db.OrganizationUnits.ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta enheter: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaSchema()
+    {
+        if (_formEnhetId == null || _formFran == null || _formTill == null || string.IsNullOrWhiteSpace(_formNamn)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var enhet = _enheter.FirstOrDefault(e => e.Id.Value == _formEnhetId.Value);
+            _enhetNamn = enhet?.Namn ?? "Okänd";
+
+            _schema = Schedule.SkapaPeriodschema(
+                new OrganizationId(_formEnhetId.Value), _formNamn,
+                DateOnly.FromDateTime(_formFran.Value), DateOnly.FromDateTime(_formTill.Value));
+
+            Db.Schedules.Add(_schema);
+            await Db.SaveChangesAsync();
+            _created = true;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa schema: {ex.Message}"; }
+        finally { _saving = false; }
+    }
 }

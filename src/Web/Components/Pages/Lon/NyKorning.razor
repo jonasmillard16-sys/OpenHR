@@ -1,82 +1,95 @@
 @page "/lon/korning/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Payroll.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Ny lönekörning</PageTitle>
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Ny lönekörning</MudText>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken period?</MudText>
-            <MudStack Spacing="3">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                           Style="min-height: 64px; font-size: 1.25rem;" OnClick="@(() => { _period = "Mars 2026"; _step = 1; })">
-                    Mars 2026
+@if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+
+@if (_created)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h5" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Lönekörning skapad och beräknad</MudText>
+        <MudSimpleTable Dense="true" Class="mb-3">
+            <tbody>
+                <tr><td><strong>Period</strong></td><td>@_run!.Period</td></tr>
+                <tr><td><strong>Antal anställda</strong></td><td>@_run.AntalAnstallda</td></tr>
+                <tr><td><strong>Total brutto</strong></td><td>@_run.TotalBrutto.Amount.ToString("N0") kr</td></tr>
+                <tr><td><strong>Total skatt</strong></td><td>@_run.TotalSkatt.Amount.ToString("N0") kr</td></tr>
+                <tr><td><strong>Total netto</strong></td><td>@_run.TotalNetto.Amount.ToString("N0") kr</td></tr>
+                <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Beräknad</MudChip></td></tr>
+            </tbody>
+        </MudSimpleTable>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@($"/lon/korning/{_run!.Id.Value}")">Granska körning</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="4"><MudNumericField T="int" @bind-Value="_year" Label="År" Variant="Variant.Outlined" /></MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int" @bind-Value="_month" Label="Månad" Variant="Variant.Outlined">
+                    @for (var m = 1; m <= 12; m++) { var month = m; <MudSelectItem Value="@month">@System.Globalization.CultureInfo.GetCultureInfo("sv-SE").DateTimeFormat.GetMonthName(month)</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px; width: 100%;" OnClick="SkapaKorning" Disabled="_saving">
+                    @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                    Skapa och beräkna
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                           Style="min-height: 56px;" OnClick="@(() => { _period = "April 2026"; _step = 1; })">
-                    April 2026
-                </MudButton>
-            </MudStack>
-            break;
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Starta lönekörning för @_period?</MudText>
-            <MudText Typo="Typo.body1" Class="mb-4">Systemet beräknar löner för alla 5 023 anställda. Detta tar ca 3-5 minuter.</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                       Style="min-height: 64px; font-size: 1.25rem;" OnClick="@(() => _step = 2)">
-                Starta beräkning
-            </MudButton>
-            break;
-        case 2:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Lönekörning startad — @_period</MudText>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Beräkningsresultat</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td><strong>Antal anställda</strong></td><td>432</td></tr>
-                            <tr><td><strong>Bruttosumma</strong></td><td>14 200 000 kr</td></tr>
-                            <tr><td><strong>Skatt + arbetsgivaravgifter</strong></td><td>8 100 000 kr</td></tr>
-                            <tr><td><strong>Nettosumma</strong></td><td>6 100 000 kr</td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="1">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Processteg</MudText>
-                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.Center" Class="mb-2">
-                        <MudChip T="string" Color="Color.Success" Size="Size.Medium">Beräkning</MudChip>
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Medium">Granskning (pågår)</MudChip>
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-                        <MudChip T="string" Color="Color.Default" Size="Size.Medium">Godkännande</MudChip>
-                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
-                        <MudChip T="string" Color="Color.Default" Size="Size.Medium">Utbetalning</MudChip>
-                    </MudStack>
-                </MudPaper>
-
-                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-                    Lönefil genereras efter godkännande. Utbetalning sker den 25:e.
-                </MudAlert>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                           Href="/lon/korningar" Style="min-height: 56px;">
-                    Tillbaka till lönekörningar
-                </MudButton>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Välj period", "Bekräfta", "Beräknar..."];
-    private int _step;
-    private string _period = "";
+    private int _year = 2026, _month = DateTime.Today.Month;
+    private PayrollRun? _run;
+    private bool _saving, _created;
+    private string? _error;
+
+    private async Task SkapaKorning()
+    {
+        _saving = true; _error = null;
+        try
+        {
+            var run = PayrollRun.Skapa(_year, _month, "System");
+            run.Paborja();
+
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+
+            foreach (var emp in employees)
+            {
+                var anst = emp.AktivAnstallning(idag);
+                if (anst == null) continue;
+                var result = PayrollResult.Skapa(run.Id, emp.Id, anst.Id, _year, _month,
+                    anst.Manadslon, anst.Sysselsattningsgrad.Value, anst.Kollektivavtal);
+                var brutto = anst.Manadslon.Amount * (anst.Sysselsattningsgrad.Value / 100m);
+                result.Brutto = Money.SEK(Math.Round(brutto, 0));
+                result.Skatt = Money.SEK(Math.Round(brutto * 0.30m, 0));
+                result.Netto = Money.SEK(Math.Round(brutto * 0.70m, 0));
+                result.Arbetsgivaravgifter = Money.SEK(Math.Round(brutto * 0.3142m, 0));
+                result.ArbetsgivaravgiftSats = 31.42m;
+                run.LaggTillResultat(result);
+            }
+
+            run.MarkeraSomBeraknad();
+            Db.PayrollRuns.Add(run);
+            await Db.SaveChangesAsync();
+            _run = run;
+            _created = true;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa körning: {ex.Message}"; }
+        finally { _saving = false; }
+    }
 }
