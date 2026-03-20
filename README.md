@@ -6,67 +6,91 @@ OpenHR är ett personalhanteringssystem byggt för att ersätta HEROMA och andra
 
 ## Funktionsstatus
 
-### Production-ready
-Riktig backend-logik, beräkningar och/eller databaslagring:
+### Beräkningsmotorer (production-ready)
+Riktiga beräkningar med korrekt svensk lagstiftning:
 
-- **Personalregister** — anställda, organisationsträd, anställningar (PostgreSQL, EF Core migrationer)
-- **Svensk löneberäkning** — SwedishTaxCalculator: kommunalskatt, statlig skatt, arbetsgivaravgift
-- **Kollektivavtal AB/HOK** — KollektivavtalEngine: OB-tillägg, viloregler, övertid, semester per ålder
-- **Traktamentsberäkning** — TraktamentsCalculator: inrikes/utrikes enligt Skatteverkets regler
-- **LAS-uppföljning** — konverteringsflöde med fullständig konsekvensåterkoppling
-- **Integrationsformat** — AGI-XML (Skatteverket), pain.001 (Nordea) — genererar riktig XML/ISO 20022
-- **Schemaoptimering** — SchemaOptimizer med round-robin och balansindex
-- **Health checks** — /health endpoint, request logging middleware
-- **Säkerhet** — CSP headers, rate limiting (100 req/min), X-Frame-Options, CSRF
+- **SwedishTaxCalculator** — kommunalskatt, statlig skatt, arbetsgivaravgift (31,42%), reducerad avgift 66+
+- **KollektivavtalEngine** — OB-tillägg (kväll/natt/helg/storhelg), viloregler, övertid, semester per ålder (AB/HOK)
+- **TraktamentsCalculator** — inrikes/utrikes traktamente enligt Skatteverkets regler 2026
+- **SchemaOptimizer** — round-robin-tilldelning med balansindex
+- **Integrationsformat** — AGI-XML (Skatteverket), pain.001 (Nordea ISO 20022), CSV-export
 
-### Delvis implementerad
-Fungerande UI med viss backend-logik. Seeddata eller lokal state — inte production-ready:
+### Kärnmoduler (DB-backed, domänlogik)
+Fullständig datamodell med entities, domänmetoder, EF Core-konfiguration, migrationer och seed:
 
-- **Uppsägningsrisk (Flight Risk v1)** — regelbaserad heuristik, beräknad från riktig personaldata via FlightRiskService. 4 signaler: tenure, anställningsform, bristyrke (heuristik), deltid. Inte prediktiv AI. Begränsning: seeddata i DB.
-- **Skills/Kompetens (v1)** — normaliserad skills-katalog (Skill, EmployeeSkill, PositionSkillRequirement) med riktig EF-migration. Gap-analys via Position.InnehavareAnstallId → PositionSkillRequirement. Begränsning: seeddata, inget registrerings-UI.
-- **Identitetshantering (v1)** — lokal provisioneringslogg (ProvisioningEvent) och regelkonfiguration (ProvisioningRule) i DB. ProvisioningService beräknar åtgärder baserat på regler. LocalRecordingProvider registrerar i DB utan externa anrop. Ingen SCIM/AD/Entra-integration.
-- **Arbetsmiljö SAM (v1)** — tillbud, skyddsronder, riskbedömningar i DB med CRUD. RiskVärde beräknas on-the-fly. Seeddata.
-- **Medarbetarresor (Journeys v1)** — JourneyTemplate + JourneyInstance med owned step-entities. Steg kopieras som snapshot. Persisterad progress. Seeddata.
-- **Förmånsval (v1)** — förmånskatalog (Benefit) + anställds val (EmployeeBenefit) i DB. Registrering via domänens Anmala(), godkännande via Godkann(). Inte full open enrollment. Seeddata.
-- **HälsoSAM/Rehab (v1.5)** — rehabärenden från DB. Milstolpar från lagrade uppföljningsdatum. Seeddata.
-- **Arbetsmiljö SAM (v1)** — tillbud (Incident), skyddsronder (SafetyRound), riskbedömningar (RiskAssessment) i DB. CRUD via formulär. RiskVärde beräknas on-the-fly (Sannolikhet × Konsekvens), lagras ej. EnhetId är logisk koppling (inget FK). Seeddata.
-- **Rekrytering** — pipeline med statusflöde, men lokal state (ej DB)
-- **Lönekörningar (v2)** — PayrollRun + PayrollResult med riktig domänlogik (Skapa, Paborja, LaggTillResultat, MarkeraSomBeraknad, Godkann, MarkeraSomUtbetald). Körningslista och detalj med anomalidetektering (10% avvikelse) från DB. Lönehistorik per anställd från PayrollResult. Seeddata: 2 körningar, 4 resultat vardera. Inga demo-fallbacks.
-- **Rapporter** — Löneregister hämtar från DB, övriga 3 rapporter har realistiska beräkningar. CSV-export fungerar.
-- **Ledighetshantering (v2)** — LeaveRequest med riktig domänlogik (Skapa, SkickaIn, Godkann, Avvisa). VacationBalance med semestersaldo. Översikt, saldon, kalender, föräldraledighet och VAB alla DB-baserade. Ny-dialoger skapar riktiga LeaveRequests. Seeddata inkl. VAB + föräldraledighet. Kolumner som saknar modellstöd (barnnamn, FK-rapporteringsstatus, omfattning%) är borttagna — ej simulerade.
-- **HälsoSAM/Rehab (v1.5)** — rehabärenden läses från DB (RehabCase). Milstolpar (dag 14/90/180/365) lagras i domänmodellen, beräknade från ärendets skapandedatum. Nästa milstolpe visas baserat på dagens datum. Begränsning: seeddata, milstolpar är planerade uppföljningsdatum — inte verifierad sjukfallsstart. SickLeaveNotification ej kopplad i v1.5.
-- **Godkännanden (v1.5)** — väntande ärenden från DB (Case med owned CaseApproval). Godkänn via Case.Godkann(). Avslå via direkt property-set (domänmetod saknas). Seeddata.
-- **Ärenden (v2)** — ärendelista helt från DB (Case). KPI:er beräknade per CaseStatus. Employee name join. Seeddata: 3 ärenden.
-- **Granskningslogg (v2)** — audit trail från DB (AuditEntry). KPI:er (idag: skapa/ändra/ta bort) beräknade från riktiga poster. Seeddata: 5 audit entries.
-- **GDPR (v2)** — DSR-lista från DB (DataSubjectRequest). Försenade/väntande/efterlevnad-KPI:er beräknade. Registerutdrag-dialog hämtar riktig Employee-data. Anonymiseringskö visar tomt (ingen backing entity). Seeddata: 2 DSR.
-- **Positioner (v2)** — positionslista från DB (Position). Employee+OrgUnit name joins. KPI:er beräknade per PositionStatus. Riktig ny-dialog med OrgUnit-dropdown skapar via Position.Skapa(). Seeddata: 7 positioner (5 tillsatta, 1 vakant, 1 frusen).
-- **Chefsportal (v2)** — pending LeaveRequests från DB med employee name join. KPI:er (antal anställda, frånvarande idag) från DB. Godkänn/neka via domänmetoder. Frånvarokalender från LeaveRequests med per-vecka-filtrering. Teamvy visar alla anställda (adminvy — chefsfiltrering kräver auth). Bemanning från ScheduledShift per dag (utan krav-jämförelse). Seeddata: 6 ScheduledShift.
-- **Anstälda/Detalj (v2)** — alla flikar DB-baserade. Frånvaro: LeaveRequest per anställd. Kompetenser: EmployeeSkill + Skill name join. Certifieringar: Certification per anställd. Dokument: Document per anställd. Ändringshistorik: AuditEntry filtrerat på Employee. Seeddata: 3 Certification (Anna).
-- **Notiser (v1.5)** — in-app-notiser från DB via Notification-entity. Read/unread via MarkAsRead(). Testnotis skapar riktig DB-post. Ingen realtidspush. Seeddata.
-- **Dokumenthantering (v1.5)** — riktig filuppladdning via IFileStorageService + Document-metadata i DB. Kategori, anställd-koppling, storlek. Mallgenerering (read-only). Seeddata.
-- **Dashboard (v1.5)** — 5 KPI-kort helt från DB (headcount, LAS-alarm, vakanta positioner, godkännanden, bemanningsgrad). Bemanning per enhet från DB. Inga demo-fallbacks, ingen DemoDataModel. Sjukfrånvaro och händelselista borttagna (semantiskt ej möjliga utan ny entity).
-- **Autentisering (v2)** — rollbaserad med persistent session + EmployeeId-mappning. Vid login slås Employee upp via exakt namnmatchning mot DB. EmployeeId lagras i session och används av MinSida, Chef och Godkännanden. Demo-auth: 4 profiler (Anna Svensson/Anställd, Eva Nilsson/Chef, Karl Berg/HR, Admin). Admin har ingen Employee-koppling (EmployeeId=null). SITHS/BankID-simulering (inte riktig eID). Begränsning: namnbaserad mappning, inte en riktig identity-provider.
+| Modul | Entities | Domänflöde | Routes |
+|-------|----------|------------|--------|
+| **Personalregister** | Employee, Employment, OrganizationUnit | Skapa, anställ, organisationsträd | `/anstallda`, `/anstallda/ny`, `/organisation` |
+| **Ledighet** | LeaveRequest, VacationBalance, SickLeaveNotification | Skapa→SkickaIn→Godkänn/Avvisa | `/ledighet/*` (7 routes) |
+| **Lön/Payroll** | PayrollRun, PayrollResult, PayrollResultLine, SalaryCode | Skapa→Paborja→LaggTillResultat→Beraknad→Godkand→Utbetald | `/lon/*` (5 routes) |
+| **Schema/Tid** | Schedule, ScheduledShift, Timesheet, TimeClockEvent, ShiftSwapRequest, StaffingTemplate | Schema→Pass, Stämpla In/Ut, Tidrapport→Godkänn | `/schema/*`, `/tidrapporter/*`, `/stampling` |
+| **Ärenden** | Case, CaseApproval, CaseComment | SkapaFranvaroarende→Godkänn | `/arenden/*`, `/godkannanden` |
+| **MBL** | MBLNegotiation | Skapa→Paborja→Avsluta→RegistreraProtokoll | `/arenden/mbl` |
+| **LAS** | LASAccumulation, LASPeriod, LASEvent | Perioder, statusberäkning, företrädesrätt | `/las` |
+| **HälsoSAM/Rehab** | RehabCase, RehabUppfoljning | Skapa, milstolpar (dag 14/90/180/365) | `/halsosam/*` |
+| **Kompetens** | Skill, EmployeeSkill, PositionSkillRequirement, Certification, MandatoryTraining | Gap-analys, certifieringsstatus | `/kompetens/*` |
+| **Medarbetarsamtal** | PerformanceReview | Skapa→Självbedömning→Chefsbedömning→Genomförd | `/medarbetarsamtal/*` |
+| **360-feedback** | FeedbackRound, FeedbackResponse | Skapa→Oppna→Stang, betyg 1–5 | `/medarbetarsamtal/360` |
+| **Pulsundersökning** | PulseSurvey, PulseSurveyQuestion, PulseSurveyResponse, PulseSurveyAnswer | Skapa→Oppna→Svara→Stang. Anonyma svar. | `/admin/pulsundersokning/*` |
+| **Policyer** | Policy, PolicyConfirmation | Skapa→Publicera→Arkivera, bekräftelse per anställd | `/dokument/policyer/*` |
+| **Dokument** | Document, DocumentTemplate | Filuppladdning, metadata, mallgenerering | `/dokument/*` |
+| **Notiser** | Notification, NotificationTemplate | Skapa, MarkAsRead | `/notiser/*` |
+| **Positioner** | Position, PositionHistorik, HeadcountPlan | Skapa→Tillsatt/Vakant/Frys | `/positioner` |
+| **Successionsplanering** | SuccessionPlan | Position→Kandidat, beredskapsnivå | `/admin/succession` |
+| **Rekrytering** | Vacancy, Application, OnboardingChecklist, Scorecard, InterviewSchedule, ReferenceCheck | Publicera→TaEmotAnsokan→Pipeline→Tillsatt | `/rekrytering/*` |
+| **Resor** | TravelClaim, ExpenseItem | Skapa→SattTraktamente→SkickaIn→Attestera | `/resor` |
+| **Offboarding** | OffboardingCase, OffboardingItem | Skapa (auto 8 steg)→MarkeraSomPagar→Slutfor | `/offboarding/*` |
+| **Löneöversyn** | SalaryReviewRound, SalaryProposal | Skapa→FackligAvstemning→Godkand→Genomford | `/loneoversyn` |
+| **Benefits** | Benefit, EmployeeBenefit | Anmala→Godkann | `/formaner/*` |
+| **Friskvård** | WellnessClaim | Skapa→Godkann/Avvisa, max 5000 kr/år | `/formaner/friskvard` |
+| **Försäkringar** | InsuranceCoverage | TGL, AGS, TFA, AFA, PSA | `/formaner/forsakringar` |
+| **Anslagstavla** | Announcement | Skapa→Publicera→Arkivera, prioritetsnivåer | `/admin/anslagstavla` |
+| **Peer Recognition** | Recognition | Ge beröm till kollega med kategori | `/admin/berom` |
+| **Delegering** | DelegatedAccess | Skapa→ArGiltig→Avsluta | `/admin/delegering` |
+| **E-learning** | Course, CourseEnrollment, LearningPath | Anmala→Paborja→Genomford | `/utbildning/*` |
+| **GDPR** | DataSubjectRequest, RetentionRecord | Skapa→Tilldela→Slutfor, registerutdrag | `/gdpr` |
+| **Audit** | AuditEntry | Create/Update/Delete-logg | `/audit` |
+| **Talangpool** | TalentPoolEntry | Kandidater för framtida rekrytering | `/rekrytering/talangpool` |
+| **Flight Risk** | (beräknad tjänst) | 4 signaler: tenure, anställningsform, bristyrke, deltid | `/rapporter/flight-risk` |
+| **Workforce Planning** | HeadcountPlan | Budget per enhet per år | `/rapporter/workforce-plan` |
+| **Provisionering** | ProvisioningRule, ProvisioningEvent | Lokal registrering (ej extern AD/SCIM) | `/admin/provisionering` |
+| **Journeys** | JourneyTemplate, JourneyInstance | Onboarding/offboarding-mallar med steg | `/journeys/*` |
 
-### Prototyp/mock
-UI med fungerande navigation och demo-data. Ingen backend-persistens:
+### Rapporter & Analytics (DB-backed)
+Alla rapportvyer läser från verklig DB-data:
+- **Workforce Analytics** — headcount, anställningsformer, snittålder, per-enhet-breakdown
+- **Lönekartering** — löneskillnadsanalys per befattning (diskrimineringslagen)
+- **Kostnadssimulering** — total lönekostnad + AG-avgifter per enhet
+- **SCB-export** — personalstatistik i KLR-format (lokal förhandsvy)
+- **Lönestatistik** — PayrollRun-aggregering per månad
+- **Rekryteringsstatistik** — Vacancy/Application-aggregering
+- **Standardrapporter** — Personalförteckning, löneregister från DB
 
-- **Medarbetarresor (Journeys)** — se "Delvis implementerad" ovan
-- **Arbetsmiljö SAM** — se "Delvis implementerad" ovan
-- **Strategisk Workforce Planning** — se "Delvis implementerad" ovan
-- **AD/SCIM Provisionering** — lokal provisioneringslogg och regelkonfiguration. Se "Delvis implementerad" nedan.
-- **Benefits Enrollment** — se "Delvis implementerad" ovan
-- **Talangpool** — se "Delvis implementerad" ovan
-- **Policyer (v1)** — ny datamodell: Policy (aggregate root) med Status (Utkast/Publicerad/Arkiverad), Kategori, Version, KraverBekraftelse. PolicyConfirmation kopplar bekräftelse till verklig AnstallId (ingen Guid.Empty accepteras). Admin: skapa/publicera/arkivera, se bekräftelsestatus per policy (antal/total). Anställd: läsa policy och bekräfta via Auth.EmployeeId. Seeddata: 3 policyer + 5 bekräftelser. Schema: policy.
-- **Stämpling (v1)** — TimeClockEvent + ScheduledShift. Visar instämplingar idag med planerat vs faktiskt, sen/OK/saknas-status beräknad. Seeddata via befintliga ScheduledShift-poster.
-- **Schema (v1)** — Schedule-baserad veckoöversikt per enhet. Visar antal schemalagda pass per dag per enhet. Seeddata.
-- **Passbyten (v1)** — ShiftSwapRequest med domänlogik (Skapa, Erbjud, Acceptera, Godkann, Avvisa). Admin kan godkänna/neka med Auth.EmployeeId-guard. Seeddata: 2 passbyten.
-- **Resor (v1)** — TravelClaim med domänlogik (Skapa, SattTraktamente, SkickaIn, Attestera). Riktig lista + create-dialog. Traktamentsberäkning via TraktamentsCalculator (befintlig motor). Seeddata: 2 resekrav.
-- **Delegering (v1)** — DelegatedAccess med domänlogik (Skapa, Avsluta, ArGiltig). Lista med aktiv/kommande/utgången-status. Riktig create-dialog med employee-dropdowns. Seeddata: 2 delegeringar.
-- **Tidrapporter (v1)** — Timesheet med domänlogik (Skapa, RegistreraTimmar, SkickaIn, Godkann, Avvisa, AteroppnaEfterAvvisning). Lista och detaljvy DB-baserade. Godkänn/avvisa via domänmetoder med Auth.EmployeeId-guard. Seeddata: 5 tidrapporter i alla statusar. Begränsning: ingen vecko-/dagsuppdelning (modellen lagrar månadstotaler).
-- **Pulsundersökningar (v1)** — ny datamodell: PulseSurvey (aggregate root) + PulseSurveyQuestion (owned) + PulseSurveyResponse + PulseSurveyAnswer (owned). Schema: pulse. Admin skapar enkäter, lägger till frågor (1–5 skala), öppnar/stänger. Anonyma svar sparas i DB utan AnstallId. Resultatvy: snitt per fråga, antal svar. Begränsning: ingen deduplikering (samma person kan svara flera gånger), ingen automatisk utskick, ingen trendanalys.
-- **E-learning (v1.5)** — kurskatalog (Course) + kursanmälningar (CourseEnrollment) från DB. Anmälan via domänens Anmala(). Progress/status från modellen. Seeddata.
-- **Medarbetarsamtal (v1.5)** — PerformanceReview med domänlogik (Skapa, SattSjalvbedomning, SattChefsbedomning, Genomfor). Persisteras i DB. Seeddata i olika statusar.
-- **Förmåner** — friskvård, försäkringar, formulär utan DB-koppling
+### Auth & personalisering
+- **Demo-auth** med EmployeeId i session (4 profiler: Anna/Anställd, Eva/Chef, Karl/HR, Admin)
+- **MinSida** (6 personliga vyer) — schema, lön, ledighet, ärenden, profil, lönespecifikationer
+- **Chefsportal** — teamvy filtrerad på chefens enhet, frånvarokalender, godkännanden
+- **Auth-guards** — personalbundna actions (godkänn, avvisa, skapa) blockeras utan EmployeeId
+- **0 Guid.Empty** i personalbundna flöden
+
+### Infrastruktur
+- **CI/CD** — GitHub Actions (build + test + publish)
+- **Docker Compose** — PostgreSQL + app
+- **PWA** — service worker, offline-sida
+- **Säkerhet** — CSP headers, rate limiting, X-Frame-Options, CSRF
+- **Bakgrundsjobb** — NotificationReminder, RetentionCleanup, CertificationReminder, LASAlert
+
+### Uttryckligen utanför nuvarande scope
+Dessa kräver extern infrastruktur eller livekopplingar och är medvetet inte implementerade:
+- Riktig BankID/SITHS-inloggning (nuvarande auth är demo-simulering)
+- Externa integrationer: Försäkringskassan, AD/Entra, Platsbanken, SCB live, banker
+- Native mobilapp
+- Realtidspush via SignalR (infrastrukturen finns men ej aktiverad)
+
+### Kvarvarande begränsningar
+- **Notiser/Installningar** — personliga preferenser lagras i session, inte DB (kräver NotificationPreference entity)
+- **OhrAssistant** — regelbaserade svar, personliga fakta kräver ytterligare omskrivning
+- **Seeddata-beroende** — många vyer förlitar sig på seed för att visa data; i produktion behövs riktiga arbetsflöden
 
 ## Tech Stack
 
@@ -75,9 +99,10 @@ UI med fungerande navigation och demo-data. Ingen backend-persistens:
 | Backend | .NET 9, ASP.NET Core |
 | Frontend | Blazor Server, MudBlazor 9.1 |
 | Databas | PostgreSQL 17 |
-| Arkitektur | Modular Monolith (25 moduler) |
+| ORM | EF Core 9 med migrationer |
+| Arkitektur | Modular Monolith (30+ moduler) |
 | Tema | Nordic Refined (light/dark mode) |
-| Auth | SITHS/BankID (simulerad), rollbaserad |
+| Auth | Demo-auth med EmployeeId i session |
 | CI/CD | GitHub Actions |
 | Container | Docker Compose |
 | Licens | AGPL-3.0 |
@@ -100,37 +125,23 @@ dotnet run --project src/Web/RegionHR.Web.csproj
 ### Demo-användare
 | Användare | Roll | Ser |
 |-----------|------|-----|
-| Admin | Admin | Allt |
+| Admin | Admin | Allt (read-only för personalbundna actions) |
 | Karl Berg | HR | Personal, Lön, Admin |
 | Eva Nilsson | Chef | Team, Godkännanden |
-| Sara Andersson | Anställd | Min sida, Ledighet |
+| Anna Svensson | Anställd | Min sida, Ledighet |
+
+## Datamodell
+
+**77 domänentities** fördelade på 30+ moduler. Alla med EF Core-konfiguration, migrationer och seeddata.
+
+Nyckelentities: Employee, Employment, OrganizationUnit, PayrollRun, PayrollResult, LeaveRequest, VacationBalance, Case, ScheduledShift, Timesheet, Position, Vacancy, Policy, PulseSurvey, WellnessClaim, Announcement, Recognition, SuccessionPlan, FeedbackRound, MBLNegotiation, ReferenceCheck, InsuranceCoverage, DelegatedAccess, TravelClaim, OffboardingCase, RehabCase, LASAccumulation, Certification, Skill, Course, Notification, AuditEntry, Document.
 
 ## Utveckling
 
 ```bash
 dotnet build RegionHR.sln       # 0 errors
-dotnet test RegionHR.sln        # 494+ tester
+dotnet test RegionHR.sln        # 55+ tester, 0 failures
 dotnet run --project src/Web/RegionHR.Web.csproj
-```
-
-## Arkitektur
-
-```
-src/
-├── SharedKernel/          # Domänprimitiver (Personnummer, Money, EmployeeId)
-├── Modules/               # 25 domänmoduler
-│   ├── Core/              # Personalregister, organisation
-│   ├── Payroll/           # Löneberäkning, skatt
-│   ├── Scheduling/        # Schema, instämpling
-│   ├── CaseManagement/    # Ärenden, MBL
-│   ├── LAS/               # LAS-ackumulering
-│   ├── Competence/        # Skills, certifieringar, gap-analys
-│   ├── Recruitment/       # Vakanser, ansökningar
-│   └── ...                # 18 moduler till
-├── Infrastructure/        # EF Core, beräkningsmotorer, integrationer
-├── Web/                   # Blazor Server (106 sidor)
-├── Api/                   # REST API
-└── DesignSystem/          # Komponentbibliotek
 ```
 
 ## Licens
