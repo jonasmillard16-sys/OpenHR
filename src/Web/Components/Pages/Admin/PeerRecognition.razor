@@ -1,175 +1,110 @@
 @page "/admin/berom"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Communication.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
-<PageTitle>OpenHR - Ge beröm</PageTitle>
+<PageTitle>OpenHR - Beröm</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Ge beröm till en kollega</MudText>
-    <MudChip T="string" Size="Size.Large" Color="Color.Success">@_berom.Count beröm denna månad</MudChip>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Beröm och erkännande</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Star" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ge beröm</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_berom.Count</MudText>
-            <MudText Typo="Typo.body2">Beröm denna månad</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_unikaMottagare</MudText>
-            <MudText Typo="Typo.body2">Unika mottagare</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_popularasteKategori</MudText>
-            <MudText Typo="Typo.body2">Populäraste kategori</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_beromTotaltAr</MudText>
-            <MudText Typo="Typo.body2">Beröm totalt (2026)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);">
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skicka beröm</MudText>
-    <MudGrid Spacing="3">
-        <MudItem xs="12" md="6">
-            <MudAutocomplete T="string" Label="Sök kollega" @bind-Value="_valdMottagare"
-                             SearchFunc="@SokKollega" Variant="Variant.Outlined"
-                             AdornmentIcon="@Icons.Material.Filled.PersonSearch" Adornment="Adornment.Start" />
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudSelect T="string" Label="Kategori" @bind-Value="_valdKategori" Variant="Variant.Outlined">
-                @foreach (var kat in _kategorier)
-                {
-                    <MudSelectItem T="string" Value="@kat">@kat</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12">
-            <MudTextField @bind-Value="_meddelande" Label="Beröm — beskriv vad kollegan gjort bra"
-                          Variant="Variant.Outlined" Lines="3" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large"
-                       StartIcon="@Icons.Material.Filled.Favorite" Style="min-height: 48px;"
-                       OnClick="SkickaBerom"
-                       Disabled="@(string.IsNullOrWhiteSpace(_valdMottagare) || string.IsNullOrWhiteSpace(_meddelande) || string.IsNullOrWhiteSpace(_valdKategori))">
-                Skicka beröm
-            </MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
-
-@if (_skickadBekraftelse)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skickadBekraftelse = false)">
-        Beröm skickat till @_senastMottagare! Mottagaren får en notifikation.
-    </MudAlert>
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_items.Count</MudText><MudText Typo="Typo.body2">Beröm totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_items.Select(i => i.TillNamn).Distinct().Count()</MudText><MudText Typo="Typo.body2">Unika mottagare</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@(_items.GroupBy(i => i.Rec.Kategori).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key ?? "—")</MudText><MudText Typo="Typo.body2">Populäraste kategori</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_showForm && Auth.EmployeeId.HasValue)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ge beröm till en kollega</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_formTill" Label="Till kollega" Variant="Variant.Outlined" Required="true">
+                        @foreach (var e in _employees.Where(e => e.Id.Value != Auth.EmployeeId))
+                        { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_formKategori" Label="Kategori" Variant="Variant.Outlined">
+                        @foreach (var k in new[] { "Samarbete", "Hjälpsamhet", "Innovation", "Ledarskap" })
+                        { <MudSelectItem Value="@k">@k</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_formMeddelande" Label="Meddelande" Variant="Variant.Outlined" Lines="3" Required="true" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkickaBerom"
+                       Disabled="@(_formTill == null || string.IsNullOrWhiteSpace(_formMeddelande) || _saving)">Skicka</MudButton>
+        </MudPaper>
+    }
+    else if (_showForm) { <MudAlert Severity="Severity.Warning" Class="mb-4">Beröm kräver kopplad anställd.</MudAlert> }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @if (_items.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inget beröm registrerat ännu.</MudAlert> }
+    else
+    {
+        @foreach (var i in _items)
+        {
+            <MudPaper Class="pa-4 mb-3" Elevation="1">
+                <div class="d-flex justify-space-between align-center mb-1">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@i.FranNamn → @i.TillNamn</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@i.Rec.Kategori</MudChip>
+                </div>
+                <MudText Typo="Typo.body1" Class="mb-1">@i.Rec.Meddelande</MudText>
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@i.Rec.SkapadVid.ToLocalTime().ToString("yyyy-MM-dd")</MudText>
+            </MudPaper>
+        }
+    }
 }
 
-<MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 700;">Berömvägg</MudText>
-
-<MudStack Spacing="3">
-    @foreach (var b in _berom)
-    {
-        <MudPaper Class="pa-4" Elevation="2" Style="@($"border-left: 4px solid {KategoriFarg(b.Kategori)}")">
-            <div class="d-flex justify-space-between align-center mb-2">
-                <div class="d-flex align-center gap-2">
-                    <MudAvatar Color="Color.Primary" Size="Size.Small">@b.Mottagare[0]</MudAvatar>
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@b.Mottagare</MudText>
-                    <MudChip T="string" Size="Size.Small" Color="@KategoriChipFarg(b.Kategori)">@b.Kategori</MudChip>
-                </div>
-                <MudText Typo="Typo.caption">@b.Datum</MudText>
-            </div>
-            <MudText Typo="Typo.body2" Class="mb-1">@b.Meddelande</MudText>
-            <MudText Typo="Typo.caption" Style="font-style: italic;">— @b.Avsandare</MudText>
-        </MudPaper>
-    }
-</MudStack>
-
 @code {
-    private string _valdMottagare = "";
-    private string _valdKategori = "";
-    private string _meddelande = "";
-    private bool _skickadBekraftelse;
-    private string _senastMottagare = "";
-    private int _unikaMottagare = 12;
-    private string _popularasteKategori = "Samarbete";
-    private int _beromTotaltAr = 87;
-    private List<BeromPost> _berom = [];
+    private List<RecVm> _items = [];
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success, _formMeddelande = "", _formKategori = "Samarbete";
+    private Guid? _formTill;
 
-    private readonly List<string> _kategorier = ["Samarbete", "Hjälpsamhet", "Innovation", "Ledarskap"];
-
-    private readonly List<string> _kollegor =
-    [
-        "Anna Bergman", "Karl Lindqvist", "Lisa Ek", "Per Strand", "Maria Holm",
-        "Johan Falk", "Sara Andersson", "Erik Johansson", "Karin Nilsson", "Anders Svensson",
-        "Eva Pettersson", "Magnus Larsson", "Helena Gustafsson", "Fredrik Olsson", "Ingrid Persson"
-    ];
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _berom =
-        [
-            new("Lisa Ek", "Sara Andersson", "Samarbete", "2026-03-17",
-                "Lisa hoppade in och hjälpte till på akuten trots att hon egentligen var ledig. Fantastiskt engagemang och teamkänsla!"),
-            new("Erik Johansson", "Maria Holm", "Innovation", "2026-03-16",
-                "Erik föreslog och implementerade ett nytt triageflöde som kortat väntetiderna med 15 minuter. Imponerande initiativ!"),
-            new("Karin Nilsson", "Johan Falk", "Hjälpsamhet", "2026-03-15",
-                "Karin tog sig tid att handleda en ny kollega trots hög arbetsbelastning. Hennes tålamod och pedagogik är beundransvärd."),
-            new("Anders Svensson", "Anna Bergman", "Ledarskap", "2026-03-14",
-                "Anders ledde omorganiseringen av nattskiftet på ett föredömligt sätt. Alla kände sig sedda och delaktiga i processen."),
-            new("Helena Gustafsson", "Karl Lindqvist", "Samarbete", "2026-03-13",
-                "Helena koordinerade samarbetet mellan tre avdelningar under en krävande helg. Tack vare henne flöt allt smidigt!"),
-            new("Fredrik Olsson", "Per Strand", "Hjälpsamhet", "2026-03-12",
-                "Fredrik stannade kvar efter sitt pass för att hjälpa med en komplex patientöverföring. Ovanligt omtänksamt!"),
-        ];
+        try
+        {
+            var recs = await Db.Recognitions.OrderByDescending(r => r.SkapadVid).ToListAsync();
+            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            _items = recs.Select(r => new RecVm(names.GetValueOrDefault(r.FranAnstallId, "Okänd"), names.GetValueOrDefault(r.TillAnstallId, "Okänd"), r)).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private Task<IEnumerable<string>> SokKollega(string value, CancellationToken token)
+    private async Task SkickaBerom()
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult<IEnumerable<string>>(_kollegor);
-
-        var resultat = _kollegor.Where(k => k.Contains(value, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(resultat);
+        if (!Auth.EmployeeId.HasValue || _formTill == null || string.IsNullOrWhiteSpace(_formMeddelande)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var rec = Recognition.Skapa(Auth.EmployeeId.Value, _formTill.Value, _formKategori ?? "Samarbete", _formMeddelande!);
+            Db.Recognitions.Add(rec);
+            await Db.SaveChangesAsync();
+            var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            _items.Insert(0, new RecVm(Auth.UserName ?? "Jag", names.GetValueOrDefault(_formTill.Value, "Okänd"), rec));
+            _showForm = false; _success = "Beröm skickat!"; _formMeddelande = ""; _formTill = null;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skicka: {ex.Message}"; }
+        finally { _saving = false; }
     }
 
-    private void SkickaBerom()
-    {
-        if (string.IsNullOrWhiteSpace(_valdMottagare) || string.IsNullOrWhiteSpace(_meddelande) || string.IsNullOrWhiteSpace(_valdKategori))
-            return;
-
-        _berom.Insert(0, new BeromPost(_valdMottagare, "Du (inloggad)", _valdKategori, DateTime.Now.ToString("yyyy-MM-dd"), _meddelande));
-        _senastMottagare = _valdMottagare;
-        _skickadBekraftelse = true;
-        _valdMottagare = "";
-        _valdKategori = "";
-        _meddelande = "";
-    }
-
-    private static string KategoriFarg(string kategori) => kategori switch
-    {
-        "Samarbete" => "var(--mud-palette-primary)",
-        "Hjälpsamhet" => "var(--mud-palette-success)",
-        "Innovation" => "var(--mud-palette-warning)",
-        "Ledarskap" => "var(--mud-palette-info)",
-        _ => "var(--mud-palette-primary)"
-    };
-
-    private static Color KategoriChipFarg(string kategori) => kategori switch
-    {
-        "Samarbete" => Color.Primary,
-        "Hjälpsamhet" => Color.Success,
-        "Innovation" => Color.Warning,
-        "Ledarskap" => Color.Info,
-        _ => Color.Primary
-    };
-
-    private record BeromPost(string Mottagare, string Avsandare, string Kategori, string Datum, string Meddelande);
+    private record RecVm(string FranNamn, string TillNamn, Recognition Rec);
 }

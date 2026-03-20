@@ -138,6 +138,10 @@ public class RegionHRDbContext : DbContext
 
     // Communication (schema: communication)
     public DbSet<RegionHR.Communication.Domain.Announcement> Announcements => Set<RegionHR.Communication.Domain.Announcement>();
+    public DbSet<RegionHR.Communication.Domain.Recognition> Recognitions => Set<RegionHR.Communication.Domain.Recognition>();
+
+    // Succession (schema: positions)
+    public DbSet<RegionHR.Positions.Domain.SuccessionPlan> SuccessionPlans => Set<RegionHR.Positions.Domain.SuccessionPlan>();
 
     // Insurance (schema: insurance)
     public DbSet<RegionHR.Insurance.Domain.InsuranceCoverage> InsuranceCoverages => Set<RegionHR.Insurance.Domain.InsuranceCoverage>();

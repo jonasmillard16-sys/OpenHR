@@ -827,6 +827,18 @@ public static class SeedData
             RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.AFA, "AFA — Avtalsförsäkring", "AFA Försäkring", "Samlingsbegrepp"),
             RegionHR.Insurance.Domain.InsuranceCoverage.Skapa(RegionHR.Insurance.Domain.InsuranceType.PSA, "PSA — Avtal om ersättning vid personskada", "AFA Försäkring", "Personskadeförsäkring"));
 
+        // === Recognitions ===
+        db.Recognitions.AddRange(
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[0].Id.Value, employees[3].Id.Value, "Samarbete", "Karl hoppade in pa kort varsel och tacklade kvallspasset. Fantastiskt!"),
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[1].Id.Value, employees[6].Id.Value, "Innovation", "Helena foreslog nytt triageflode som kortat vantetiderna."),
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[4].Id.Value, employees[0].Id.Value, "Hjalpsamhet", "Anna tog sig tid att handleda en ny kollega trots hog belastning."));
+
+        // === SuccessionPlans ===
+        db.SuccessionPlans.AddRange(
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posVc.Id, employees[7].Id.Value, 2029, employees[0].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom1Ar, 75),
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posLakAkut.Id, employees[1].Id.Value, 2032, null, RegionHR.Positions.Domain.SuccessionReadiness.EjIdentifierad, 0),
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posSsk32.Id, employees[0].Id.Value, 2035, employees[4].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom2Ar, 40));
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 

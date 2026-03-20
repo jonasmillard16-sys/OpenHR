@@ -1,183 +1,91 @@
 @page "/admin/succession"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Positions.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Successionsplanering</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Successionsplanering</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = !_showForm)">Lägg till nyckelposition</MudButton>
-</div>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Successionsplanering</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_nyckelpositioner</MudText>
-            <MudText Typo="Typo.body2">Identifierade nyckelpositioner</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_medEftradare</MudText>
-            <MudText Typo="Typo.body2">Har identifierad efterträdare</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_utanEftradare</MudText>
-            <MudText Typo="Typo.body2">Saknar efterträdare</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_pensionsnara</MudText>
-            <MudText Typo="Typo.body2">Pensionsnära (≤3 år)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-@if (_showForm)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Lägg till nyckelposition</MudText>
-        <MudGrid Spacing="3">
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyPosition" Label="Position" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyInnehavare" Label="Nuvarande innehavare" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_nyEftradare" Label="Efterträdare" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" @bind-Value="_nyBeredskap" Label="Beredskap" Variant="Variant.Outlined">
-                    <MudSelectItem T="string" Value="@("Redo nu")">Redo nu</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Redo inom 1-2 år")">Redo inom 1-2 år</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Redo inom 3+ år")">Redo inom 3+ år</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12">
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LaggTillPosition"
-                               Disabled="@(string.IsNullOrWhiteSpace(_nyPosition) || string.IsNullOrWhiteSpace(_nyInnehavare))">Lägg till</MudButton>
-                    <MudButton Variant="Variant.Text" OnClick="@(() => _showForm = false)">Avbryt</MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_plans.Count</MudText><MudText Typo="Typo.body2">Nyckelpositioner</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_plans.Count(p => p.Plan.EftertradarKandidat.HasValue)</MudText><MudText Typo="Typo.body2">Med efterträdare</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_plans.Count(p => !p.Plan.EftertradarKandidat.HasValue)</MudText><MudText Typo="Typo.body2">Utan efterträdare</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_plans.Count(p => p.Plan.BeraknadPensionAr <= DateTime.Today.Year + 3)</MudText><MudText Typo="Typo.body2">Pensionsnära (3 år)</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_plans.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga successionsplaner registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Position</th><th>Nuvarande</th><th>Pension (år)</th><th>Efterträdare</th><th>Beredskap</th></tr></thead>
+            <tbody>
+                @foreach (var p in _plans)
+                {
+                    <tr>
+                        <td><strong>@p.PositionTitel</strong></td>
+                        <td>@(p.NuvarandeNamn ?? "—")</td>
+                        <td>@(p.Plan.BeraknadPensionAr?.ToString() ?? "—")</td>
+                        <td>@(p.KandidatNamn ?? "—")</td>
+                        <td>
+                            @if (p.Plan.EftertradarKandidat.HasValue)
+                            {
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudChip T="string" Size="Size.Small" Color="@BeredskapFarg(p.Plan.Beredskap)">@BeredskapText(p.Plan.Beredskap)</MudChip>
+                                    <MudText Typo="Typo.caption">@p.Plan.BeredskapProcent%</MudText>
+                                </MudStack>
+                            }
+                            else { <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">—</MudText> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
-<MudAlert Severity="Severity.Warning" Class="mb-4">
-    <strong>@_utanEftradare nyckelpositioner</strong> saknar identifierad efterträdare.
-    Prioritera dessa i kommande ledarutvecklingsprogram.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Nyckelpositioner och potentiella efterträdare</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Position</th>
-            <th>Nuvarande innehavare</th>
-            <th>Pensionsålder</th>
-            <th>Potentiell efterträdare</th>
-            <th>Beredskapsnivå</th>
-            <th>Utvecklingsplan</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _positioner)
-        {
-            <tr>
-                <td><strong>@rad.Position</strong></td>
-                <td>@rad.Innehavare</td>
-                <td>@rad.PensionsAr</td>
-                <td>@(string.IsNullOrEmpty(rad.Efterfoljare) ? "—" : rad.Efterfoljare)</td>
-                <td>
-                    @if (!string.IsNullOrEmpty(rad.Efterfoljare))
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="@rad.BeredskapFarg">@rad.BeredskapText</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Ej identifierad</MudChip>
-                    }
-                </td>
-                <td>
-                    @if (!string.IsNullOrEmpty(rad.Efterfoljare))
-                    {
-                        <MudProgressLinear Value="@rad.UtvecklingProcent" Color="Color.Info" Class="my-1" Style="min-width: 80px;" />
-                        <MudText Typo="Typo.caption">@rad.UtvecklingProcent % genomförd</MudText>
-                    }
-                </td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjPosition(rad))">Detaljer</MudButton></td>
-            </tr>
-            @if (_valdPosition == rad)
-            {
-                <tr>
-                    <td colspan="7">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Position</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Innehavare:</strong> @rad.Innehavare</MudText>
-                            <MudText Typo="Typo.body2"><strong>Pensionsår:</strong> @rad.PensionsAr</MudText>
-                            <MudText Typo="Typo.body2"><strong>Efterträdare:</strong> @(string.IsNullOrEmpty(rad.Efterfoljare) ? "Ej identifierad" : rad.Efterfoljare)</MudText>
-                            <MudText Typo="Typo.body2"><strong>Beredskap:</strong> @(string.IsNullOrEmpty(rad.Efterfoljare) ? "—" : rad.BeredskapText)</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdPosition = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
 @code {
-    private bool _showForm;
-    private string _nyPosition = "";
-    private string _nyInnehavare = "";
-    private string _nyEftradare = "";
-    private string _nyBeredskap = "";
-    private SuccessionsRad? _valdPosition;
+    private List<PlanVm> _plans = [];
+    private bool _loading = true;
+    private string? _error;
 
-    private void ValjPosition(SuccessionsRad rad) => _valdPosition = _valdPosition == rad ? null : rad;
-
-    private void LaggTillPosition()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyPosition) || string.IsNullOrWhiteSpace(_nyInnehavare)) return;
-        var farg = _nyBeredskap switch { "Redo nu" => Color.Success, "Redo inom 1-2 år" => Color.Warning, _ => Color.Info };
-        var procent = _nyBeredskap switch { "Redo nu" => 90, "Redo inom 1-2 år" => 50, _ => 20 };
-        _positioner.Insert(0, new SuccessionsRad(_nyPosition, _nyInnehavare, "—", _nyEftradare, string.IsNullOrWhiteSpace(_nyEftradare) ? "" : _nyBeredskap, farg, procent));
-        _nyckelpositioner++;
-        if (!string.IsNullOrWhiteSpace(_nyEftradare)) _medEftradare++; else _utanEftradare++;
-        _nyPosition = "";
-        _nyInnehavare = "";
-        _nyEftradare = "";
-        _nyBeredskap = "";
-        _showForm = false;
+        try
+        {
+            var plans = await Db.SuccessionPlans.ToListAsync();
+            var positions = await Db.Positions_Table.ToListAsync();
+            var employees = await Db.Employees.ToListAsync();
+            var posTitles = positions.ToDictionary(p => p.Id, p => p.Titel);
+            var empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _plans = plans.Select(p => new PlanVm(
+                posTitles.GetValueOrDefault(p.PositionId, "Okänd position"),
+                p.NuvarandeInnehavare.HasValue ? empNames.GetValueOrDefault(p.NuvarandeInnehavare.Value, "Okänd") : null,
+                p.EftertradarKandidat.HasValue ? empNames.GetValueOrDefault(p.EftertradarKandidat.Value, "Okänd") : null,
+                p
+            )).OrderBy(p => p.Plan.BeraknadPensionAr).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private int _nyckelpositioner = 14;
-    private int _medEftradare = 9;
-    private int _utanEftradare = 5;
-    private int _pensionsnara = 4;
-
-    private List<SuccessionsRad> _positioner = [];
-
-    protected override void OnInitialized()
+    private static string BeredskapText(SuccessionReadiness r) => r switch
     {
-        _positioner =
-        [
-            new("Verksamhetschef Medicin", "Björn Andersson", "2028", "Anna Svensson", "Redo inom 1 år", Color.Success, 75),
-            new("Chefläkare", "Margareta Ström", "2027", "Erik Johansson", "Redo inom 2 år", Color.Warning, 45),
-            new("HR-direktör", "Lars Pettersson", "2029", "Lisa Holm", "Redo nu", Color.Success, 95),
-            new("IT-chef", "Helena Kraft", "2030", "Per Gustafsson", "Redo inom 1 år", Color.Success, 60),
-            new("Ekonomichef", "Gunnar Löfgren", "2027", "", "", Color.Default, 0),
-            new("Chefssjuksköterska", "Ingrid Wallin", "2028", "Sara Karlsson", "Redo inom 2 år", Color.Warning, 35),
-            new("Forskningschef", "Ulf Bergström", "2029", "", "", Color.Default, 0),
-            new("Verksamhetschef Kirurgi", "Eva Nilsson", "2031", "Karl Berg", "Redo inom 1 år", Color.Success, 70),
-            new("Utvecklingschef", "Anders Ström", "2030", "Jonas Eriksson", "Redo inom 2 år", Color.Warning, 40),
-            new("Kommunikationschef", "Maria Lindström", "2032", "", "", Color.Default, 0),
-        ];
-    }
+        SuccessionReadiness.RedoNu => "Redo nu", SuccessionReadiness.RedoInom1Ar => "Redo inom 1 år",
+        SuccessionReadiness.RedoInom2Ar => "Redo inom 2 år", SuccessionReadiness.UnderUtveckling => "Under utveckling",
+        SuccessionReadiness.EjIdentifierad => "Ej identifierad", _ => r.ToString()
+    };
+    private static Color BeredskapFarg(SuccessionReadiness r) => r switch
+    {
+        SuccessionReadiness.RedoNu => Color.Success, SuccessionReadiness.RedoInom1Ar => Color.Success,
+        SuccessionReadiness.RedoInom2Ar => Color.Warning, _ => Color.Default
+    };
 
-    private record SuccessionsRad(string Position, string Innehavare, string PensionsAr, string Efterfoljare, string BeredskapText, Color BeredskapFarg, int UtvecklingProcent);
+    private record PlanVm(string PositionTitel, string? NuvarandeNamn, string? KandidatNamn, SuccessionPlan Plan);
 }
