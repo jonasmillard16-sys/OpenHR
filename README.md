@@ -34,7 +34,7 @@ Fullständig datamodell med entities, domänmetoder, EF Core-konfiguration, migr
 | **Pulsundersökning** | PulseSurvey, PulseSurveyQuestion, PulseSurveyResponse, PulseSurveyAnswer | Skapa→Oppna→Svara→Stang. Anonyma svar. | `/admin/pulsundersokning/*` |
 | **Policyer** | Policy, PolicyConfirmation | Skapa→Publicera→Arkivera, bekräftelse per anställd | `/dokument/policyer/*` |
 | **Dokument** | Document, DocumentTemplate | Filuppladdning, metadata, mallgenerering | `/dokument/*` |
-| **Notiser** | Notification, NotificationTemplate | Skapa, MarkAsRead | `/notiser/*` |
+| **Notiser** | Notification, NotificationTemplate, NotificationPreference | Skapa, MarkAsRead, personliga preferenser i DB | `/notiser/*` |
 | **Positioner** | Position, PositionHistorik, HeadcountPlan | Skapa→Tillsatt/Vakant/Frys | `/positioner` |
 | **Successionsplanering** | SuccessionPlan | Position→Kandidat, beredskapsnivå | `/admin/succession` |
 | **Rekrytering** | Vacancy, Application, OnboardingChecklist, Scorecard, InterviewSchedule, ReferenceCheck | Publicera→TaEmotAnsokan→Pipeline→Tillsatt | `/rekrytering/*` |
@@ -88,9 +88,8 @@ Dessa kräver extern infrastruktur eller livekopplingar och är medvetet inte im
 - Realtidspush via SignalR (infrastrukturen finns men ej aktiverad)
 
 ### Kvarvarande begränsningar
-- **Notiser/Installningar** — personliga preferenser lagras i session, inte DB (kräver NotificationPreference entity)
-- **OhrAssistant** — regelbaserade svar, personliga fakta kräver ytterligare omskrivning
 - **Seeddata-beroende** — många vyer förlitar sig på seed för att visa data; i produktion behövs riktiga arbetsflöden
+- **Demo-auth** — namnbaserad matchning mot seedade anställda, inte en riktig identity provider
 
 ## Tech Stack
 

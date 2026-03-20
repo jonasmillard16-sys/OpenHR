@@ -1,50 +1,91 @@
 @page "/notiser/installningar"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Notifications.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Notisinställningar</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Notisinställningar</MudText>
-<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
-    Notisinställningar sparas lokalt. Personlig preferensmodell kräver ytterligare datamodell.
-</MudAlert>
 
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Notistyp</th><th>Beskrivning</th><th>InApp</th><th>E-post</th></tr></thead>
-    <tbody>
-        @foreach (var inst in _installningar)
-        {
-            <tr>
-                <td><strong>@inst.Typ</strong></td>
-                <td>@inst.Beskrivning</td>
-                <td><MudCheckBox T="bool" @bind-Value="inst.InApp" Color="Color.Primary" /></td>
-                <td><MudCheckBox T="bool" @bind-Value="inst.Epost" Color="Color.Primary" /></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;" OnClick="@(() => _sparad = true)">Spara inställningar</MudButton>
-
-@if (_sparad)
+@if (!Auth.EmployeeId.HasValue)
 {
-    <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">Inställningar sparade (lokal session — ej persisterad i DB).</MudAlert>
+    <MudAlert Severity="Severity.Warning">Notisinställningar kräver kopplad anställd.</MudAlert>
+}
+else if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead><tr><th>Notistyp</th><th>InApp</th><th>E-post</th></tr></thead>
+        <tbody>
+            @foreach (var pref in _prefs)
+            {
+                <tr>
+                    <td><strong>@pref.NotisTyp</strong></td>
+                    <td><MudCheckBox T="bool" Value="@pref.InApp" ValueChanged="@(v => { pref.Uppdatera(v, pref.Epost); _dirty = true; })" Color="Color.Primary" /></td>
+                    <td><MudCheckBox T="bool" Value="@pref.Epost" ValueChanged="@(v => { pref.Uppdatera(pref.InApp, v); _dirty = true; })" Color="Color.Primary" /></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;"
+               OnClick="Spara" Disabled="@(!_dirty || _saving)">
+        @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+        Spara inställningar
+    </MudButton>
+
+    @if (_sparad) { <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">Inställningar sparade i databasen.</MudAlert> }
 }
 
 @code {
-    private bool _sparad;
-    private List<NotisInst> _installningar = [];
+    private static readonly string[] _defaultTyper = ["Ledighetsansökan", "Lönebesked", "Schemaändring", "Godkännande", "Certifiering", "Anslag"];
 
-    protected override void OnInitialized()
+    private List<NotificationPreference> _prefs = [];
+    private bool _loading = true, _saving, _sparad, _dirty;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
     {
-        _installningar =
-        [
-            new() { Typ = "Ledighetsansökan", Beskrivning = "Ny ansökan eller statusändring", InApp = true, Epost = true },
-            new() { Typ = "Lönebesked", Beskrivning = "Nytt lönebesked tillgängligt", InApp = true, Epost = true },
-            new() { Typ = "Schemaändring", Beskrivning = "Ändringar i ditt schema", InApp = true, Epost = true },
-            new() { Typ = "Godkännande", Beskrivning = "Åtgärd krävs", InApp = true, Epost = true },
-            new() { Typ = "Certifiering", Beskrivning = "Certifiering går ut snart", InApp = true, Epost = true },
-            new() { Typ = "Anslag", Beskrivning = "Organisationsmeddelanden", InApp = true, Epost = false },
-        ];
+        if (!Auth.EmployeeId.HasValue) { _loading = false; return; }
+        try
+        {
+            var empId = Auth.EmployeeId.Value;
+            _prefs = await Db.NotificationPreferences
+                .Where(p => p.AnstallId == empId)
+                .ToListAsync();
+
+            // Ensure all default types exist
+            foreach (var typ in _defaultTyper)
+            {
+                if (!_prefs.Any(p => p.NotisTyp == typ))
+                {
+                    var pref = NotificationPreference.Skapa(empId, typ);
+                    Db.NotificationPreferences.Add(pref);
+                    _prefs.Add(pref);
+                }
+            }
+            if (_prefs.Count > _defaultTyper.Length || Db.ChangeTracker.HasChanges())
+            {
+                await Db.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta inställningar: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private class NotisInst { public string Typ { get; set; } = ""; public string Beskrivning { get; set; } = ""; public bool InApp { get; set; } public bool Epost { get; set; } }
+    private async Task Spara()
+    {
+        _saving = true; _error = null;
+        try
+        {
+            await Db.SaveChangesAsync();
+            _sparad = true;
+            _dirty = false;
+        }
+        catch (Exception ex) { _error = $"Kunde inte spara: {ex.Message}"; }
+        finally { _saving = false; }
+    }
 }
