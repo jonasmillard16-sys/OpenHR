@@ -4,6 +4,8 @@
 
 OpenHR är ett personalhanteringssystem byggt för att ersätta HEROMA och andra proprietära HR-system inom svensk offentlig sektor. Byggt med öppen källkod (AGPL-3.0), svensk arbetsrätt, kollektivavtal och GDPR.
 
+> **OpenHR 2.0** — 36 moduler, ~157 sidor, 160+ domänentities, 847 tester. Se [2.0 Expansion](#20-expansion) nedan.
+
 ## Funktionsstatus
 
 ### Beräkningsmotorer (production-ready)
@@ -55,6 +57,16 @@ Fullständig datamodell med entities, domänmetoder, EF Core-konfiguration, migr
 | **Workforce Planning** | HeadcountPlan | Budget per enhet per år | `/rapporter/workforce-plan` |
 | **Provisionering** | ProvisioningRule, ProvisioningEvent | Lokal registrering (ej extern AD/SCIM) | `/admin/provisionering` |
 | **Journeys** | JourneyTemplate, JourneyInstance | Onboarding/offboarding-mallar med steg | `/journeys/*` |
+| **Migreringsmotor** | MigrationProject, MigrationMapping, MigrationRun, m.fl. | PAXml 2.0, HEROMA, Personec P, Hogia, Fortnox, SIE 4i, Workday, SAP, Oracle, generisk CSV | `/admin/migrering/*` |
+| **Automatiseringsramverk** | AutomationRule, AutomationExecution, AutomationSchedule | Notify/Suggest/Autopilot, 22 regler, konfigurerbar per kategori | `/admin/automatisering/*` |
+| **Pluggbara kollektivavtal** | CollectiveAgreement, AgreementRule, AgreementVersion | 10 avtal (AB, HÖK, Teknikavtalet, m.fl.), DB-driven | `/admin/avtal/*` |
+| **Compensation Suite** | SalaryBand, BonusProgram, TotalRewardsStatement, CompensationModel | Löneband, bonus, total rewards, modellering | `/kompensation/*` |
+| **Benefits Engine** | BenefitPlan, EligibilityRule, LifeEvent, EnrollmentWindow, BenefitStatement | Eligibility rules, life events, enrollment, statements | `/formaner/engine/*` |
+| **Enterprise Analytics** | KpiDefinition, PredictiveModel, AnalyticsDashboard | 10 KPIer, prediktiva modeller, self-service rapportbyggare | `/analytics/*` |
+| **VMS/Inhyrd personal** | Vendor, FrameworkAgreement, RateCard, ContingentWorker, SpendAnalytics | Leverantörer, ramavtal, rate cards, spend analytics | `/vms/*` |
+| **Avancerad WFM** | DemandForecast, FatigueScore, OptimizationRun, ShiftBid | Demand forecasting, fatigue scoring, optimering | `/schema/wfm/*` |
+| **Talent Marketplace** | CareerPath, InternalPosting, Mentorship, SkillIntelligence | Karriärvägar, intern mobilitet, mentorskap, skills intelligence | `/talang/*` |
+| **Plattform** | WebhookSubscription, WebhookDelivery, ApiKey, CustomObjectDefinition, MarketplacePlugin | Webhooks (HMAC-SHA256), API-nycklar, custom objects, marketplace | `/admin/plattform/*` |
 
 ### Rapporter & Analytics (DB-backed)
 Alla rapportvyer läser från verklig DB-data:
@@ -80,6 +92,29 @@ Alla rapportvyer läser från verklig DB-data:
 - **Säkerhet** — CSP headers, rate limiting, X-Frame-Options, CSRF
 - **Bakgrundsjobb** — NotificationReminder, RetentionCleanup, CertificationReminder, LASAlert
 
+### 2.0 Expansion
+
+OpenHR 2.0 Enterprise Expansion lägger till ~85 nya domänentities, 10 nya moduler och ~60 nya sidor i tre faser:
+
+**Fas A — Automation, Migrering & Avtal**
+- **Migreringsmotor** med 10 adaptrar: PAXml 2.0, HEROMA, Personec P, Hogia, Fortnox, SIE 4i, Workday, SAP, Oracle HCM och generisk CSV. Stöder fältmappning, validering, dry-run och rollback.
+- **Automatiseringsramverk** med tre åtgärdsnivåer (Notify, Suggest, Autopilot) och 22 fördefinierade regler (sjukfrånvaro-eskalering, LAS-varningar, certifiering-påminnelser, m.fl.). Konfigurerbar per kategori.
+- **Pluggbara kollektivavtal** — 10 seedade avtal (AB, HÖK 24, Teknikavtalet, Vårdförbundets avtal, m.fl.) med DB-driven regelmotor. Varje anställning knyts till ett avtal.
+
+**Fas B — Analytics, Compensation, Benefits, VMS, WFM & Talent**
+- **Compensation Suite** — löneband, bonusprogram, total rewards-utlåtanden och scenariomodellering.
+- **Benefits Engine** — planhantering, eligibility rules, life events, enrollment windows och statements.
+- **Enterprise Analytics** — 10 KPI-definitioner, prediktiva modeller (turnover, sjukfrånvaro), self-service rapportbyggare med drag-and-drop kolumner.
+- **VMS (Vendor Management System)** — leverantörsregister, ramavtal, rate cards, inhyrd personal och spend analytics.
+- **Avancerad WFM** — demand forecasting baserat på historisk data, fatigue scoring (EU-arbetstidsdirektivet), optimeringsalgoritm och skiftbudgivning.
+- **Talent Marketplace** — karriärvägar, interna utlysningar med matchningspoäng, mentorskapsprogram och skills intelligence.
+
+**Fas C — Plattform & Ekosystem**
+- **Webhooks** med HMAC-SHA256-signering, retry med exponential backoff och leveranslogg.
+- **API-nycklar** med scope-begränsning, hash-lagring och utgångsdatum.
+- **Custom Objects** — dynamiska entiteter med JSON Schema-validering.
+- **Marketplace** — pluginregister med installation, konfiguration och versionshantering.
+
 ### Uttryckligen utanför nuvarande scope
 Dessa kräver extern infrastruktur eller livekopplingar och är medvetet inte implementerade:
 - Riktig BankID/SITHS-inloggning (nuvarande auth är demo-simulering)
@@ -99,7 +134,7 @@ Dessa kräver extern infrastruktur eller livekopplingar och är medvetet inte im
 | Frontend | Blazor Server, MudBlazor 9.1 |
 | Databas | PostgreSQL 17 |
 | ORM | EF Core 9 med migrationer |
-| Arkitektur | Modular Monolith (30+ moduler) |
+| Arkitektur | Modular Monolith (36 moduler) |
 | Tema | Nordic Refined (light/dark mode) |
 | Auth | Demo-auth med EmployeeId i session |
 | CI/CD | GitHub Actions |
@@ -131,15 +166,15 @@ dotnet run --project src/Web/RegionHR.Web.csproj
 
 ## Datamodell
 
-**77 domänentities** fördelade på 30+ moduler. Alla med EF Core-konfiguration, migrationer och seeddata.
+**160+ domänentities** fördelade på 36 moduler. Alla med EF Core-konfiguration, migrationer och seeddata.
 
-Nyckelentities: Employee, Employment, OrganizationUnit, PayrollRun, PayrollResult, LeaveRequest, VacationBalance, Case, ScheduledShift, Timesheet, Position, Vacancy, Policy, PulseSurvey, WellnessClaim, Announcement, Recognition, SuccessionPlan, FeedbackRound, MBLNegotiation, ReferenceCheck, InsuranceCoverage, DelegatedAccess, TravelClaim, OffboardingCase, RehabCase, LASAccumulation, Certification, Skill, Course, Notification, AuditEntry, Document.
+Nyckelentities (urval): Employee, Employment, OrganizationUnit, PayrollRun, PayrollResult, LeaveRequest, VacationBalance, Case, ScheduledShift, Timesheet, Position, Vacancy, Policy, PulseSurvey, WellnessClaim, Announcement, Recognition, SuccessionPlan, FeedbackRound, MBLNegotiation, ReferenceCheck, InsuranceCoverage, DelegatedAccess, TravelClaim, OffboardingCase, RehabCase, LASAccumulation, Certification, Skill, Course, Notification, AuditEntry, Document, CollectiveAgreement, AutomationRule, MigrationProject, SalaryBand, BonusProgram, BenefitPlan, KpiDefinition, PredictiveModel, Vendor, FrameworkAgreement, DemandForecast, CareerPath, WebhookSubscription, ApiKey, CustomObjectDefinition, MarketplacePlugin.
 
 ## Utveckling
 
 ```bash
 dotnet build RegionHR.sln       # 0 errors
-dotnet test RegionHR.sln        # 55+ tester, 0 failures
+dotnet test RegionHR.sln        # 847 tester, 0 failures
 dotnet run --project src/Web/RegionHR.Web.csproj
 ```
 
