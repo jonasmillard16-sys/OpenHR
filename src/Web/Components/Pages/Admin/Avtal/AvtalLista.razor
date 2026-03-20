@@ -1,0 +1,120 @@
+@page "/admin/avtal"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Agreements.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR — Kollektivavtal</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-2">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Kollektivavtal</MudText>
+        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+            Hantera kollektivavtal med OB-tillägg, övertid, semester, pension och övriga villkor.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Disabled="true"
+               Style="min-height: 48px;">
+        Nytt avtal
+    </MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_avtal.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Inga kollektivavtal hittades.</MudAlert>
+}
+else
+{
+    <MudSimpleTable Hover="true" Elevation="2" Class="mt-4">
+        <thead>
+            <tr>
+                <th>Namn</th>
+                <th>Parter</th>
+                <th>Bransch</th>
+                <th>Giltig fr&#229;n</th>
+                <th>Giltig till</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in _avtal)
+            {
+                <tr style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo($"/admin/avtal/{a.Id.Value}"))">
+                    <td><strong>@a.Namn</strong></td>
+                    <td>@a.Parter</td>
+                    <td>@BranschText(a.Bransch)</td>
+                    <td>@a.GiltigFran.ToString("yyyy-MM-dd")</td>
+                    <td>@(a.GiltigTill?.ToString("yyyy-MM-dd") ?? "Tillsvidare")</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small"
+                                 Color="@StatusFarg(a.Status)">
+                            @StatusText(a.Status)
+                        </MudChip>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<CollectiveAgreement> _avtal = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _avtal = await Db.CollectiveAgreements
+                .OrderBy(a => a.Namn)
+                .ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta avtal: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static Color StatusFarg(AgreementStatus status) => status switch
+    {
+        AgreementStatus.Aktivt => Color.Success,
+        AgreementStatus.Kommande => Color.Warning,
+        AgreementStatus.Uppsagt => Color.Warning,
+        AgreementStatus.Historiskt => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string StatusText(AgreementStatus status) => status switch
+    {
+        AgreementStatus.Aktivt => "Aktivt",
+        AgreementStatus.Kommande => "Kommande",
+        AgreementStatus.Uppsagt => "Uppsagt",
+        AgreementStatus.Historiskt => "Historiskt",
+        _ => status.ToString()
+    };
+
+    private static string BranschText(IndustrySector bransch) => bransch switch
+    {
+        IndustrySector.KommunRegion => "Kommun/Region",
+        IndustrySector.Stat => "Stat",
+        IndustrySector.IndustriTeknik => "Industri & Teknik",
+        IndustrySector.Handel => "Handel",
+        IndustrySector.ITTelekom => "IT & Telekom",
+        IndustrySector.SjukvardPrivat => "Privat sjukvård",
+        IndustrySector.Transport => "Transport",
+        IndustrySector.HotellRestaurang => "Hotell & Restaurang",
+        IndustrySector.Tjanstemannaallman => "Tjänstemän allmän",
+        IndustrySector.Avtalslost => "Avtalslöst",
+        _ => bransch.ToString()
+    };
+}

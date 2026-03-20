@@ -1,0 +1,332 @@
+@page "/admin/avtal/{Id:guid}/redigera"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Agreements.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR — Redigera avtal</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="@($"/admin/avtal/{Id}")" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (!_laddad)
+{
+    <MudAlert Severity="Severity.Warning">Avtalet hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Redigera — @_namn</MudText>
+
+    @* Basic info *@
+    <MudPaper Class="pa-6 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-4">Grunduppgifter</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_namn" Label="Namn" Variant="Variant.Outlined" Class="mb-3" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_parter" Label="Parter" Variant="Variant.Outlined" Class="mb-3" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="IndustrySector" @bind-Value="_bransch" Label="Bransch" Variant="Variant.Outlined" Class="mb-3">
+                    @foreach (var b in Enum.GetValues<IndustrySector>())
+                    {
+                        <MudSelectItem Value="@b">@BranschText(b)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_giltigFran" Label="Giltig från" Variant="Variant.Outlined"
+                               DateFormat="yyyy-MM-dd" Class="mb-3" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_giltigTill" Label="Giltig till" Variant="Variant.Outlined"
+                               DateFormat="yyyy-MM-dd" Clearable="true" Class="mb-3" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="AgreementStatus" @bind-Value="_status" Label="Status" Variant="Variant.Outlined" Class="mb-3">
+                    @foreach (var s in Enum.GetValues<AgreementStatus>())
+                    {
+                        <MudSelectItem Value="@s">@StatusText(s)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* OB-satser inline editing *@
+    <MudPaper Class="pa-6 mb-4" Elevation="2">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">OB-satser</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="LaggTillOBSats">
+                Lägg till rad
+            </MudButton>
+        </div>
+        @if (_obRader.Count == 0)
+        {
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga OB-satser. Klicka "Lägg till rad" för att lägga till.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Hover="true" Dense="true">
+                <thead>
+                    <tr>
+                        <th>Tidstyp</th>
+                        <th>Belopp (kr/h)</th>
+                        <th>Giltig fr&#229;n</th>
+                        <th>Giltig till</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < _obRader.Count; i++)
+                    {
+                        var index = i;
+                        <tr>
+                            <td>
+                                <MudSelect T="OBCategory" @bind-Value="_obRader[index].Tidstyp" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                                    @foreach (var t in Enum.GetValues<OBCategory>())
+                                    {
+                                        <MudSelectItem Value="@t">@OBText(t)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </td>
+                            <td>
+                                <MudNumericField T="decimal" @bind-Value="_obRader[index].Belopp" Variant="Variant.Outlined" Margin="Margin.Dense" Min="0m" Step="1m" />
+                            </td>
+                            <td>
+                                <MudDatePicker @bind-Date="_obRader[index].GiltigFran" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM-dd" />
+                            </td>
+                            <td>
+                                <MudDatePicker @bind-Date="_obRader[index].GiltigTill" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="yyyy-MM-dd" Clearable="true" />
+                            </td>
+                            <td>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => TaBortOBSats(index))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+
+    @* Action buttons *@
+    <div class="d-flex gap-3 mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   Style="min-height: 48px;" OnClick="Spara" Disabled="_sparar">
+            @(_sparar ? "Sparar..." : "Spara ändringar")
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   Style="min-height: 48px;" Href="@($"/admin/avtal/{Id}")">
+            Avbryt
+        </MudButton>
+    </div>
+
+    @if (_sparad)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">Ändringarna har sparats.</MudAlert>
+    }
+    @if (_felmeddelande is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@_felmeddelande</MudAlert>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    // Basic info fields
+    private string _namn = "";
+    private string _parter = "";
+    private IndustrySector _bransch;
+    private DateTime? _giltigFran;
+    private DateTime? _giltigTill;
+    private AgreementStatus _status;
+
+    // OB-satser inline editing
+    private List<OBRad> _obRader = [];
+
+    // State
+    private bool _loading = true;
+    private bool _laddad;
+    private bool _sparar;
+    private bool _sparad;
+    private string? _error;
+    private string? _felmeddelande;
+
+    private class OBRad
+    {
+        public Guid? BefintligtId { get; set; }
+        public OBCategory Tidstyp { get; set; }
+        public decimal Belopp { get; set; }
+        public DateTime? GiltigFran { get; set; }
+        public DateTime? GiltigTill { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var avtalsId = CollectiveAgreementId.From(Id);
+
+            var avtal = await Db.CollectiveAgreements
+                .FirstOrDefaultAsync(a => a.Id == avtalsId);
+
+            if (avtal != null)
+            {
+                _namn = avtal.Namn;
+                _parter = avtal.Parter;
+                _bransch = avtal.Bransch;
+                _giltigFran = avtal.GiltigFran.ToDateTime(TimeOnly.MinValue);
+                _giltigTill = avtal.GiltigTill?.ToDateTime(TimeOnly.MinValue);
+                _status = avtal.Status;
+
+                var obSatser = await Db.AgreementOBRates
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .OrderBy(r => r.Tidstyp)
+                    .ToListAsync();
+
+                _obRader = obSatser.Select(ob => new OBRad
+                {
+                    BefintligtId = ob.Id,
+                    Tidstyp = ob.Tidstyp,
+                    Belopp = ob.Belopp,
+                    GiltigFran = ob.GiltigFran.ToDateTime(TimeOnly.MinValue),
+                    GiltigTill = ob.GiltigTill?.ToDateTime(TimeOnly.MinValue)
+                }).ToList();
+
+                _laddad = true;
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta avtal: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void LaggTillOBSats()
+    {
+        _obRader.Add(new OBRad
+        {
+            Tidstyp = OBCategory.VardagKvall,
+            Belopp = 0m,
+            GiltigFran = _giltigFran ?? DateTime.Today
+        });
+    }
+
+    private void TaBortOBSats(int index)
+    {
+        if (index >= 0 && index < _obRader.Count)
+            _obRader.RemoveAt(index);
+    }
+
+    private async Task Spara()
+    {
+        _sparar = true;
+        _sparad = false;
+        _felmeddelande = null;
+        StateHasChanged();
+
+        try
+        {
+            var avtalsId = CollectiveAgreementId.From(Id);
+
+            // Update basic info via EF tracked entity
+            var avtal = await Db.CollectiveAgreements
+                .FirstOrDefaultAsync(a => a.Id == avtalsId);
+
+            if (avtal == null)
+            {
+                _felmeddelande = "Avtalet hittades inte.";
+                return;
+            }
+
+            // Use EF entry to update properties on the sealed entity
+            var entry = Db.Entry(avtal);
+            entry.Property(a => a.Namn).CurrentValue = _namn;
+            entry.Property(a => a.Parter).CurrentValue = _parter;
+            entry.Property(a => a.Bransch).CurrentValue = _bransch;
+            entry.Property(a => a.GiltigFran).CurrentValue = _giltigFran.HasValue
+                ? DateOnly.FromDateTime(_giltigFran.Value)
+                : avtal.GiltigFran;
+            entry.Property(a => a.GiltigTill).CurrentValue = _giltigTill.HasValue
+                ? DateOnly.FromDateTime(_giltigTill.Value)
+                : (DateOnly?)null;
+            entry.Property(a => a.Status).CurrentValue = _status;
+
+            // Remove existing OB rates and re-add
+            var befintligaOB = await Db.AgreementOBRates
+                .Where(r => r.AvtalsId == avtalsId)
+                .ToListAsync();
+            Db.AgreementOBRates.RemoveRange(befintligaOB);
+
+            foreach (var rad in _obRader)
+            {
+                var giltigFran = rad.GiltigFran.HasValue
+                    ? DateOnly.FromDateTime(rad.GiltigFran.Value)
+                    : DateOnly.FromDateTime(DateTime.Today);
+                var giltigTill = rad.GiltigTill.HasValue
+                    ? DateOnly.FromDateTime(rad.GiltigTill.Value)
+                    : (DateOnly?)null;
+
+                avtal.LaggTillOBSats(rad.Tidstyp, rad.Belopp, giltigFran, giltigTill);
+            }
+
+            await Db.SaveChangesAsync();
+            _sparad = true;
+        }
+        catch (Exception ex)
+        {
+            _felmeddelande = $"Kunde inte spara: {ex.Message}";
+        }
+        finally
+        {
+            _sparar = false;
+        }
+    }
+
+    private static string StatusText(AgreementStatus status) => status switch
+    {
+        AgreementStatus.Aktivt => "Aktivt",
+        AgreementStatus.Kommande => "Kommande",
+        AgreementStatus.Uppsagt => "Uppsagt",
+        AgreementStatus.Historiskt => "Historiskt",
+        _ => status.ToString()
+    };
+
+    private static string BranschText(IndustrySector bransch) => bransch switch
+    {
+        IndustrySector.KommunRegion => "Kommun/Region",
+        IndustrySector.Stat => "Stat",
+        IndustrySector.IndustriTeknik => "Industri & Teknik",
+        IndustrySector.Handel => "Handel",
+        IndustrySector.ITTelekom => "IT & Telekom",
+        IndustrySector.SjukvardPrivat => "Privat sjukvård",
+        IndustrySector.Transport => "Transport",
+        IndustrySector.HotellRestaurang => "Hotell & Restaurang",
+        IndustrySector.Tjanstemannaallman => "Tjänstemän allmän",
+        IndustrySector.Avtalslost => "Avtalslöst",
+        _ => bransch.ToString()
+    };
+
+    private static string OBText(OBCategory kategori) => kategori switch
+    {
+        OBCategory.VardagKvall => "Vardag kväll",
+        OBCategory.VardagNatt => "Vardag natt",
+        OBCategory.Helg => "Helg",
+        OBCategory.Storhelg => "Storhelg",
+        OBCategory.Ingen => "Ingen",
+        _ => kategori.ToString()
+    };
+}

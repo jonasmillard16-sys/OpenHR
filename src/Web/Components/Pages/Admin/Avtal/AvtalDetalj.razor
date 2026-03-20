@@ -1,0 +1,411 @@
+@page "/admin/avtal/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Agreements.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR — Avtalsdetalj</PageTitle>
+
+<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+           Color="Color.Primary" Href="/admin/avtal" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+else if (_avtal == null)
+{
+    <MudAlert Severity="Severity.Warning">Avtalet hittades inte.</MudAlert>
+}
+else
+{
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">@_avtal.Namn</MudText>
+            <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">@_avtal.Parter</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Edit" Href="@($"/admin/avtal/{Id}/redigera")"
+                   Style="min-height: 48px;">
+            Redigera
+        </MudButton>
+    </div>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+        @* Tab: Översikt *@
+        <MudTabPanel Text="Översikt" Icon="@Icons.Material.Filled.Info">
+            <MudGrid Spacing="3" Class="pa-4">
+                <MudItem xs="12" md="6">
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr><td><strong>Namn</strong></td><td>@_avtal.Namn</td></tr>
+                            <tr><td><strong>Parter</strong></td><td>@_avtal.Parter</td></tr>
+                            <tr><td><strong>Bransch</strong></td><td>@BranschText(_avtal.Bransch)</td></tr>
+                            <tr><td><strong>Giltig fr&#229;n</strong></td><td>@_avtal.GiltigFran.ToString("yyyy-MM-dd")</td></tr>
+                            <tr><td><strong>Giltig till</strong></td><td>@(_avtal.GiltigTill?.ToString("yyyy-MM-dd") ?? "Tillsvidare")</td></tr>
+                            <tr>
+                                <td><strong>Status</strong></td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="@StatusFarg(_avtal.Status)">
+                                        @StatusText(_avtal.Status)
+                                    </MudChip>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        @* Tab: OB-tillägg *@
+        <MudTabPanel Text="OB-tillägg" Icon="@Icons.Material.Filled.NightsStay">
+            <div class="pa-4">
+                @if (_obSatser.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga OB-satser registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>Tidstyp</th>
+                                <th>Belopp (kr/h)</th>
+                                <th>Giltig fr&#229;n</th>
+                                <th>Giltig till</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ob in _obSatser)
+                            {
+                                <tr>
+                                    <td>@OBText(ob.Tidstyp)</td>
+                                    <td>@ob.Belopp.ToString("N2")</td>
+                                    <td>@ob.GiltigFran.ToString("yyyy-MM-dd")</td>
+                                    <td>@(ob.GiltigTill?.ToString("yyyy-MM-dd") ?? "Tillsvidare")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* Tab: Övertid *@
+        <MudTabPanel Text="Övertid" Icon="@Icons.Material.Filled.Timer">
+            <div class="pa-4">
+                @if (_overtidsRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga övertidsregler registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>Tröskel (h)</th>
+                                <th>Multiplikator</th>
+                                <th>Max per &#229;r (h)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ot in _overtidsRegler)
+                            {
+                                <tr>
+                                    <td>@ot.Troskel.ToString("N1")</td>
+                                    <td>@ot.Multiplikator.ToString("N2")x</td>
+                                    <td>@ot.MaxPerAr.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* Tab: Semester *@
+        <MudTabPanel Text="Semester" Icon="@Icons.Material.Filled.BeachAccess">
+            <div class="pa-4">
+                @if (_semesterRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga semesterregler registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>Basdagar</th>
+                                <th>Extra vid 40+</th>
+                                <th>Extra vid 50+</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _semesterRegler)
+                            {
+                                <tr>
+                                    <td>@s.BasDagar</td>
+                                    <td>@s.ExtraDagarVid40</td>
+                                    <td>@s.ExtraDagarVid50</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* Tab: Pension *@
+        <MudTabPanel Text="Pension" Icon="@Icons.Material.Filled.Savings">
+            <div class="pa-4">
+                @if (_pensionsRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga pensionsregler registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>Pensionstyp</th>
+                                <th>Sats under tak</th>
+                                <th>Sats &#246;ver tak</th>
+                                <th>Tak (kr)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in _pensionsRegler)
+                            {
+                                <tr>
+                                    <td>@PensionText(p.PensionsTyp)</td>
+                                    <td>@(p.SatsUnderTak.ToString("P2"))</td>
+                                    <td>@(p.SatsOverTak.ToString("P2"))</td>
+                                    <td>@p.Tak.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* Tab: Vila/Arbetstid *@
+        <MudTabPanel Text="Vila/Arbetstid" Icon="@Icons.Material.Filled.Schedule">
+            <div class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Viloregler</MudText>
+                @if (_viloRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Inga viloregler registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true" Class="mb-4">
+                        <thead>
+                            <tr>
+                                <th>Min dygnsvila (h)</th>
+                                <th>Min veckovila (h)</th>
+                                <th>Rast per pass (min)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _viloRegler)
+                            {
+                                <tr>
+                                    <td>@r.MinDygnsvila.ToString("N1")</td>
+                                    <td>@r.MinVeckovila.ToString("N1")</td>
+                                    <td>@r.RastPerPass.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+
+                <MudText Typo="Typo.h6" Class="mb-3">Arbetstidsregler</MudText>
+                @if (_arbetstidsRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga arbetstidsregler registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>Normal timmar/vecka</th>
+                                <th>Flexregler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in _arbetstidsRegler)
+                            {
+                                <tr>
+                                    <td>@a.NormalTimmarPerVecka.ToString("N1")</td>
+                                    <td>@a.FlexRegler</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* Tab: Försäkringar *@
+        <MudTabPanel Text="Försäkringar" Icon="@Icons.Material.Filled.Security">
+            <div class="pa-4">
+                @if (_forsakringsRegler.Count == 0)
+                {
+                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-secondary);">Inga försäkringspaket registrerade.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Hover="true" Dense="true">
+                        <thead>
+                            <tr>
+                                <th>TGL</th>
+                                <th>AGS</th>
+                                <th>TFA</th>
+                                <th>AFA</th>
+                                <th>PSA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in _forsakringsRegler)
+                            {
+                                <tr>
+                                    <td>@f.TGL</td>
+                                    <td>@f.AGS</td>
+                                    <td>@f.TFA</td>
+                                    <td>@f.AFA</td>
+                                    <td>@f.PSA</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CollectiveAgreement? _avtal;
+    private List<AgreementOBRate> _obSatser = [];
+    private List<AgreementOvertimeRule> _overtidsRegler = [];
+    private List<AgreementVacationRule> _semesterRegler = [];
+    private List<AgreementPensionRule> _pensionsRegler = [];
+    private List<AgreementRestRule> _viloRegler = [];
+    private List<AgreementWorkingHours> _arbetstidsRegler = [];
+    private List<AgreementInsurancePackage> _forsakringsRegler = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var avtalsId = CollectiveAgreementId.From(Id);
+
+            _avtal = await Db.CollectiveAgreements
+                .FirstOrDefaultAsync(a => a.Id == avtalsId);
+
+            if (_avtal != null)
+            {
+                _obSatser = await Db.AgreementOBRates
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .OrderBy(r => r.Tidstyp)
+                    .ToListAsync();
+
+                _overtidsRegler = await Db.AgreementOvertimeRules
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .OrderBy(r => r.Troskel)
+                    .ToListAsync();
+
+                _semesterRegler = await Db.AgreementVacationRules
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .ToListAsync();
+
+                _pensionsRegler = await Db.AgreementPensionRules
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .OrderBy(r => r.PensionsTyp)
+                    .ToListAsync();
+
+                _viloRegler = await Db.AgreementRestRules
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .ToListAsync();
+
+                _arbetstidsRegler = await Db.AgreementWorkingHours
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .ToListAsync();
+
+                _forsakringsRegler = await Db.AgreementInsurancePackages
+                    .Where(r => r.AvtalsId == avtalsId)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta avtal: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static Color StatusFarg(AgreementStatus status) => status switch
+    {
+        AgreementStatus.Aktivt => Color.Success,
+        AgreementStatus.Kommande => Color.Warning,
+        AgreementStatus.Uppsagt => Color.Warning,
+        AgreementStatus.Historiskt => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string StatusText(AgreementStatus status) => status switch
+    {
+        AgreementStatus.Aktivt => "Aktivt",
+        AgreementStatus.Kommande => "Kommande",
+        AgreementStatus.Uppsagt => "Uppsagt",
+        AgreementStatus.Historiskt => "Historiskt",
+        _ => status.ToString()
+    };
+
+    private static string BranschText(IndustrySector bransch) => bransch switch
+    {
+        IndustrySector.KommunRegion => "Kommun/Region",
+        IndustrySector.Stat => "Stat",
+        IndustrySector.IndustriTeknik => "Industri & Teknik",
+        IndustrySector.Handel => "Handel",
+        IndustrySector.ITTelekom => "IT & Telekom",
+        IndustrySector.SjukvardPrivat => "Privat sjukvård",
+        IndustrySector.Transport => "Transport",
+        IndustrySector.HotellRestaurang => "Hotell & Restaurang",
+        IndustrySector.Tjanstemannaallman => "Tjänstemän allmän",
+        IndustrySector.Avtalslost => "Avtalslöst",
+        _ => bransch.ToString()
+    };
+
+    private static string OBText(OBCategory kategori) => kategori switch
+    {
+        OBCategory.VardagKvall => "Vardag kväll",
+        OBCategory.VardagNatt => "Vardag natt",
+        OBCategory.Helg => "Helg",
+        OBCategory.Storhelg => "Storhelg",
+        OBCategory.Ingen => "Ingen",
+        _ => kategori.ToString()
+    };
+
+    private static string PensionText(PensionType typ) => typ switch
+    {
+        PensionType.SAFLO => "SAF-LO",
+        PensionType.ITP1 => "ITP1",
+        PensionType.ITP2 => "ITP2",
+        PensionType.KAPKL => "KAP-KL",
+        PensionType.AKAPKR => "AKAP-KR",
+        PensionType.PA16 => "PA 16",
+        PensionType.Custom => "Anpassad",
+        _ => typ.ToString()
+    };
+}
