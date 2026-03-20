@@ -603,8 +603,172 @@ Explicitly not included in this design:
 6. **AI/LLM assistant (D-level)** — future layer on top of Autopilot
 7. **Multi-tenant SaaS** — single-tenant by design, self-hosted
 
-## 15. Implementation Order
+## 15. Migration from Existing Entities & Conventions
+
+This section addresses how new entities relate to existing ones, resolving naming collisions, duplication, and migration strategies.
+
+### 15.1 Entity Modeling Convention
+
+New entities follow two patterns based on their role:
+
+**Aggregate Roots** (get strongly-typed IDs, private setters, factory methods):
+- `CollectiveAgreement` → `CollectiveAgreementId`
+- `MigrationJob` → `MigrationJobId`
+- `AutomationRule` → `AutomationRuleId`
+- `CompensationPlan` → `CompensationPlanId`
+- `BenefitPlan` → `BenefitPlanId`
+- `Vendor` → `VendorId`
+- `CareerPath` → `CareerPathId`
+- `DevelopmentPlan` → `DevelopmentPlanId`
+- `InternalOpportunity` → `InternalOpportunityId`
+- `CustomObject` → `CustomObjectId`
+- `Extension` → `ExtensionId`
+- `DemandForecast` → `DemandForecastId`
+- `SchedulingRun` → `SchedulingRunId`
+- `BonusPlan` → `BonusPlanId`
+- `FrameworkAgreement` → `FrameworkAgreementId`
+- `StaffingRequest` → `StaffingRequestId`
+
+All strongly-typed IDs follow the existing `readonly record struct` pattern with EF Core ValueConverters registered in `ConfigureConventions`.
+
+**Simple entities** (plain Guid Id, used as children or value-like records):
+- All `Agreement*` rate/rule entities (owned by CollectiveAgreement)
+- `MigrationMapping`, `MigrationValidationError`, `MigrationLog`
+- `AutomationExecution`, `AutomationSuggestion`
+- `KPISnapshot`, `EventDelivery`
+- `BenefitTransaction`, `ContingentTimeReport`
+- `SkillEndorsement`, `OpportunityApplication`
+
+### 15.2 Critical: Benefits Entity Migration (C1)
+
+**Existing entities:**
+- `Benefit` (schema `benefits`) — name, description, category enum (Friskvard/Pension/Forsakring/etc), `EligibilityRegler` JSON column
+- `EmployeeBenefit` — links employee to benefit, has `LivshandardAnledning`, `EnrollmentStatus` enum
+
+**Migration strategy:**
+1. `Benefit` is **renamed to `BenefitPlan`** via EF migration (table rename, not drop+create). The existing `EligibilityRegler` JSON column becomes the seed for the new `EligibilityRule` entities — during migration, JSON rules are parsed into proper `EligibilityRule` + `EligibilityCondition` records.
+2. `EmployeeBenefit` is **renamed to `BenefitEnrollment`**. The existing `EnrollmentStatus` enum is kept and extended.
+3. `WellnessClaim` is **kept as-is** but reclassified as a specific `BenefitTransaction` subtype. Over time, `BenefitTransaction` generalizes the pattern.
+4. The `BenefitCategory` enum moves from being on `Benefit` to being on `BenefitPlan`.
+5. No data loss — all existing seed data and runtime data survives the rename.
+
+### 15.3 Critical: Analytics/Reporting Entity Reconciliation (C2)
+
+**Existing entities:**
+- `analytics` schema: `SavedReport` (named queries with visualization), `Dashboard` (widget layout)
+- `reporting` schema: `ReportDefinition` (SQL template with `CronExpression`, `ArSchemalagd`, `MottagareEpost`), `ReportExecution` (cached results)
+
+**Migration strategy:**
+1. `ReportTemplate` (from spec) **replaces `ReportDefinition`** — same table, extended with self-service builder metadata (columns, filters, grouping, visualization type). Migration adds new columns.
+2. `ScheduledReport` is **extracted from `ReportDefinition`** — the `CronExpression`, `ArSchemalagd`, `MottagareEpost` fields move to a dedicated `ScheduledReport` entity that references a `ReportTemplate`. This is a proper normalization.
+3. `SavedReport` and `Dashboard` are **kept as-is** — they serve different purposes (user-saved ad-hoc queries vs. KPI dashboards).
+4. New entities (`KPIDefinition`, `KPISnapshot`, `PredictionModel`, `PredictionResult`, `BenchmarkDataset`) are purely additive — no collision.
+
+### 15.4 Critical: Competence SkillCategory Collision (C3)
+
+**Existing:**
+- `Skill` entity has a `SkillCategory` enum property (values: Klinisk, Teknisk, Ledarskap, Administration)
+- `EmployeeSkill`, `PositionSkillRequirement` reference `Skill`
+
+**Migration strategy:**
+1. The `SkillCategory` **enum is replaced by a `SkillCategory` entity** (new table in `competence` schema). Migration: create table, seed rows matching existing enum values (Klinisk, Teknisk, Ledarskap, Administration, plus new: Kommunikation, Regulatorisk), add FK column to `Skill`, populate FK from existing enum, drop enum column.
+2. `Skill`, `EmployeeSkill`, `PositionSkillRequirement` are **kept as-is** — all new entities (`InferredSkill`, `SkillRelation`, `SkillEndorsement`) reference the existing `Skill` entity.
+3. `InferredSkill` links to `EmployeeSkill` — when confirmed, it creates/updates an `EmployeeSkill` record.
+
+### 15.5 Critical: Employment CollectiveAgreement FK (C4)
+
+**Existing:**
+- `Employment` has `Kollektivavtal` property stored as string column (values: "AB", "HOK", "MBA", "PAN", "None")
+
+**Migration strategy:**
+1. Create `CollectiveAgreement` seed records matching existing enum values
+2. Add `CollectiveAgreementId` FK column to `Employment`
+3. Populate FK from existing string values: "AB" → AB record, "HOK" → HÖK record, etc.
+4. Keep `Kollektivavtal` string column as read-only computed property (for backward compatibility in reports/exports) for one release cycle, then remove.
+5. `OrganizationUnit` gets `DefaultCollectiveAgreementId` FK (new column, nullable).
+
+### 15.6 Important: SalaryCode Agreement Linkage (I1)
+
+`SalaryCode` currently uses `Kod` (string) as natural key. Strategy:
+- Add `CollectiveAgreementId` FK (nullable — salary codes can be agreement-agnostic)
+- Many-to-many not needed: a salary code belongs to one agreement or is universal (null FK)
+- `SalaryCode` keeps its current structure; no strongly-typed ID needed (it's a reference entity, not an aggregate)
+
+### 15.7 Important: Domain Event Dispatch Infrastructure (I3)
+
+The automation framework requires domain event dispatch. The existing codebase has `RaiseDomainEvent()` on aggregates and `ClearDomainEvents()` but no dispatcher. Required new infrastructure:
+
+1. `IDomainEventDispatcher` interface in SharedKernel
+2. `DomainEventDispatcher` implementation that routes events to `AutomationEngine`
+3. `SaveChanges` override in `RegionHRDbContext` (or `SaveChangesInterceptor`) that:
+   - Collects domain events from all changed aggregates before save
+   - Saves changes
+   - Dispatches events after successful save
+4. This is a prerequisite for Phase A and must be built first within the Automation Framework track.
+
+### 15.8 Important: WorkflowStep Name Collision (I5)
+
+Existing `WorkflowStep` class exists in `CaseManagement/Workflows/WorkflowEngine.cs` as a simple POCO.
+New platform workflow step entity is **renamed to `WorkflowNode`** to avoid collision.
+`WorkflowExecution` renamed to `WorkflowRunInstance`.
+
+### 15.9 Important: WFM Overlap with Existing Scheduling (I7)
+
+The existing `ConstraintScheduleSolver` with ATL validation, backtracking, and fairness scoring becomes the **core algorithm behind `SchedulingRun`**. `SchedulingRun` persists the inputs (constraints, demand forecast, availability) and outputs (generated shifts, cost analysis, compliance report) of `Solve()`. The solver is extended with:
+- Demand forecast input (from `DemandForecast`)
+- Fatigue constraints (from `FatigueScore`)
+- Competence matching (from `PositionSkillRequirement`)
+
+`FatigueScore` is recalculated in real-time after each schedule modification, and verified on a nightly batch for drift correction.
+
+### 15.10 Important: Pension Plan Detail (I4)
+
+ITP2 and PA 16 are complex defined-benefit plans that cannot be fully specified in a rate table. These receive separate calculation modules:
+- `ITP2Calculator` — implements the actual DB formula: 10% of salary ≤7.5 IBB, 65% between 7.5-20 IBB, 32.5% between 20-30 IBB
+- `PA16Calculator` — implements avd. I (DC: 4.5% + individual 2.5%) and avd. II (DB with complex rules)
+- Both are seeded as `AgreementPensionRule` entries with `CalculationModel = "ITP2"` / `"PA16"` that route to the dedicated calculators rather than using simple percentage rates.
+
+### 15.11 Suggestion: ML Library
+
+All predictive models use **ML.NET** (MIT license, ships with .NET). No external AI dependencies. This maintains the FOSS principle.
+
+### 15.12 Suggestion: Entity Count Correction
+
+Corrected count for Phase C (Extensibility): 12 entities (not 10). Grand total: **88 new entities** (not 86). Updated totals: ~77 existing + 88 new = **~165 entities**.
+
+### 15.13 Suggestion: Route Naming Convention
+
+User-facing routes use Swedish (consistent with existing codebase). Admin/platform routes may use English for technical terms with no natural Swedish equivalent:
+- `/admin/webhooks` (kept — "webbhookar" is awkward)
+- `/admin/api-nycklar` (Swedish)
+- `/admin/tillagg` (Swedish for marketplace/extensions)
+- `/custom/{objectName}` → `/anpassat/{objektNamn}` (Swedish)
+
+### 15.14 Suggestion: YAGNI Removals
+
+- `BenchmarkDataset` — **deferred to Phase C**. Requires external data source with no clear provider for self-hosted.
+- `ExtensionRating` — **removed**. No central aggregation point in FOSS/self-hosted model. Re-add if community repo emerges.
+- `VendorPerformance` — **kept but simplified**. Manual rating only (no auto-scoring), 1-5 score + comment. Auto-scoring deferred.
+
+## 16. Implementation Order
 
 Phase A tracks can be built in parallel. Phase B modules should be built after Phase A's automation framework is in place (so all new modules use it from day one). Phase C should wait until Phase B modules are mature.
 
-Recommended build order within Phase B: Analytics (provides KPIs for other modules) → Compensation (builds on agreements) → Benefits (builds on agreements + compensation) → WFM (builds on agreements + analytics) → VMS (independent) → Talent (builds on competence + analytics).
+### Phase A (parallel)
+1. **Domain Event Dispatch infrastructure** (prerequisite — see 15.7)
+2. **Automation Framework** (Section 3) — replaces existing background services
+3. **Migration Engine** (Section 1) — PAXml adapter first, then HEROMA, then others
+4. **Collective Agreements** (Section 2) — includes Employment FK migration (15.5)
+
+### Phase B (sequential, with dependencies)
+1. **Analytics** (Section 6) — provides KPI infrastructure for other modules. Includes ReportDefinition migration (15.3).
+2. **Compensation** (Section 4) — builds on agreements module
+3. **Benefits** (Section 5) — includes Benefit→BenefitPlan migration (15.2). Builds on agreements + compensation.
+4. **VMS** (Section 7) — independent, but built before WFM so WFM can use contingent fallback
+5. **WFM** (Section 8) — builds on agreements, analytics, VMS. Includes SchedulingRun integration (15.9).
+6. **Talent** (Section 9) — builds on competence (includes SkillCategory migration 15.4), analytics
+
+### Phase C (after Phase B is mature)
+1. **Event Bus + Webhooks + API** (Section 10 Layer 1)
+2. **Custom Objects + Workflows** (Section 10 Layer 2)
+3. **Marketplace** (Section 10 Layer 3)
