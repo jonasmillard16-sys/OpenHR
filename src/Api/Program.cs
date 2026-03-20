@@ -388,6 +388,11 @@ app.MapAgreementEndpoints();
 app.MapCompensationEndpoints();
 
 // ============================================================
+// Phase C Layer 2: Custom Objects + Workflow Nodes
+// ============================================================
+app.MapCustomObjectEndpoints();
+
+// ============================================================
 // Phase B4: VMS / Contingent Workforce
 // ============================================================
 app.MapVMSEndpoints();
@@ -401,6 +406,16 @@ app.MapWFMEndpoints();
 // Phase B6: Talent Marketplace & Skills Intelligence
 // ============================================================
 app.MapTalentEndpoints();
+
+// ============================================================
+// Phase C: Event Bus, Webhooks, API Keys
+// ============================================================
+app.MapPlatformEndpoints();
+
+// ============================================================
+// Phase C Layer 3: Marketplace Foundation
+// ============================================================
+app.MapMarketplaceEndpoints();
 
 // ============================================================
 // Integration Status

@@ -3,6 +3,7 @@ using RegionHR.Core.Domain;
 using RegionHR.Agreements.Domain;
 using RegionHR.Analytics.Domain;
 using RegionHR.Competence.Domain;
+using RegionHR.Configuration.Domain;
 using RegionHR.HalsoSAM.Domain;
 using RegionHR.Infrastructure.Journeys;
 using RegionHR.Positions.Domain;
@@ -1282,6 +1283,59 @@ public static class SeedData
         db.FatigueScores.AddRange(
             RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[1].Id, konsekutivaDagar: 5, nattpassSenaste7Dagar: 2, totalTimmarSenaste7Dagar: 42.5m, kortVila: 1, helgarbeteSenaste4Veckor: 3),
             RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[3].Id, konsekutivaDagar: 3, nattpassSenaste7Dagar: 1, totalTimmarSenaste7Dagar: 35.0m, kortVila: 0, helgarbeteSenaste4Veckor: 1));
+
+        // === Custom Objects (platform schema) ===
+        var utrustning = CustomObject.Skapa(
+            "Utrustning", "Utrustningar", "Register over utrustning tilldelad personal",
+            """[{"name":"Typ","type":"Dropdown","required":true,"options":["Dator","Telefon","Passerkort"]},{"name":"Serienummer","type":"Text","required":true,"options":null},{"name":"Tilldelad","type":"Text","required":false,"options":null},{"name":"Utlamnad","type":"Date","required":false,"options":null}]""",
+            """[{"entityType":"Employee","relationType":"OneToMany"}]""",
+            "Devices");
+        db.CustomObjects.Add(utrustning);
+
+        // 2 CustomObjectRecords for Utrustning
+        var record1 = CustomObjectRecord.Skapa(utrustning.Id,
+            """{"Typ":"Dator","Serienummer":"SN-2026-00142","Tilldelad":"Anna Svensson","Utlamnad":"2026-01-15"}""",
+            "System");
+        var record2 = CustomObjectRecord.Skapa(utrustning.Id,
+            """{"Typ":"Passerkort","Serienummer":"PK-2026-00087","Tilldelad":"Erik Johansson","Utlamnad":"2026-02-01"}""",
+            "System");
+        db.CustomObjectRecords.AddRange(record1, record2);
+
+        // === WorkflowNodes for existing Franvaro workflow ===
+        // Find the Franvaro workflow definition (seeded via Configuration)
+        var franvaroWf = await db.WorkflowDefinitions
+            .FirstOrDefaultAsync(w => w.TargetEntityType == "Franvaro");
+
+        if (franvaroWf != null)
+        {
+            db.WorkflowNodes.AddRange(
+                WorkflowNode.Skapa(franvaroWf.Id, 1, WorkflowNodeTyp.Approval, "Inskickat",
+                    """{"godkannareRoll":"Anstalld","beskrivning":"Den anstallde skickar in franvaroarende"}"""),
+                WorkflowNode.Skapa(franvaroWf.Id, 2, WorkflowNodeTyp.Approval, "Chefsgodkannande",
+                    """{"godkannareRoll":"Chef","beskrivning":"Narmaste chef godkanner eller avvisar"}"""),
+                WorkflowNode.Skapa(franvaroWf.Id, 3, WorkflowNodeTyp.FieldUpdate, "Verkstallande",
+                    """{"godkannareRoll":"System","beskrivning":"Systemet verkstaller beslutet automatiskt"}"""));
+        }
+
+        // === Platform — Sample webhook subscriptions (inactive/paused) ===
+        if (!await db.EventSubscriptions.AnyAsync())
+        {
+            var sub1 = RegionHR.Platform.Domain.EventSubscription.Skapa(
+                "HR Analytics Webhook",
+                "https://analytics.example.com/webhook/openhr",
+                "demo-secret-key-1",
+                """["employee.created","employee.updated"]""");
+            sub1.Pausa();
+
+            var sub2 = RegionHR.Platform.Domain.EventSubscription.Skapa(
+                "Extern Loneystem",
+                "https://payroll.example.com/api/events",
+                "demo-secret-key-2",
+                """["payroll.run.completed","payroll.run.created"]""");
+            sub2.Pausa();
+
+            db.EventSubscriptions.AddRange(sub1, sub2);
+        }
 
         await db.SaveChangesAsync();
     }

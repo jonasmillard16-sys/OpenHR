@@ -1,0 +1,245 @@
+@page "/anpassat/{ObjektNamn}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Configuration.Domain
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - @(_customObject?.PluralNamn ?? ObjektNamn)</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">@(_customObject?.PluralNamn ?? ObjektNamn)</MudText>
+        @if (_customObject != null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Default">@_customObject.Beskrivning</MudText>
+        }
+    </div>
+    <div class="d-flex gap-2">
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Href="/admin/custom-objects" StartIcon="@Icons.Material.Filled.ArrowBack">Tillbaka</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreate">Ny post</MudButton>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_customObject == null)
+{
+    <MudAlert Severity="Severity.Warning">Anpassat objekt '@ObjektNamn' hittades inte.</MudAlert>
+}
+else
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                @foreach (var field in _fields)
+                {
+                    <th>@field.Name @if (field.Required) { <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" /> }</th>
+                }
+                <th>Skapad</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_records.Count == 0)
+            {
+                <tr><td colspan="@(_fields.Count + 2)"><em>Inga poster annu.</em></td></tr>
+            }
+            @foreach (var record in _records)
+            {
+                <tr>
+                    @foreach (var field in _fields)
+                    {
+                        <td>@GetFieldValue(record.Data, field.Name)</td>
+                    }
+                    <td>@record.SkapadVid.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEdit(record))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => TaBortPost(record))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (_showForm)
+{
+    <MudDialog @bind-Visible="_showForm" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">@(_editRecord != null ? "Redigera post" : "Ny post")</MudText></TitleContent>
+        <DialogContent>
+            @foreach (var field in _fields)
+            {
+                @if (field.Type == "Dropdown" && field.Options != null)
+                {
+                    <MudSelect @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" Class="mb-2">
+                        @foreach (var opt in field.Options)
+                        {
+                            <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else if (field.Type == "YesNo")
+                {
+                    <MudCheckBox T="bool" Value="@(_formValues.GetValueOrDefault(field.Name) == "true")" ValueChanged="@(v => _formValues[field.Name] = v.ToString().ToLower())" Label="@field.Name" Class="mb-2" />
+                }
+                else if (field.Type == "Date")
+                {
+                    <MudTextField @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" InputType="InputType.Date" Class="mb-2" />
+                }
+                else if (field.Type == "Number")
+                {
+                    <MudTextField @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" InputType="InputType.Number" Class="mb-2" />
+                }
+                else if (field.Type == "Email")
+                {
+                    <MudTextField @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" InputType="InputType.Email" Class="mb-2" />
+                }
+                else if (field.Type == "Phone")
+                {
+                    <MudTextField @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" InputType="InputType.Telephone" Class="mb-2" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_formValues[field.Name]" Label="@field.Name" Required="@field.Required" Class="mb-2" />
+                }
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showForm = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SparaPost">Spara</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    [Parameter] public string ObjektNamn { get; set; } = "";
+
+    private CustomObject? _customObject;
+    private List<CustomObjectRecord> _records = new();
+    private List<FieldSchema> _fields = new();
+    private bool _loading = true;
+    private bool _showForm;
+    private string? _error;
+    private string? _success;
+    private Dictionary<string, string> _formValues = new();
+    private CustomObjectRecord? _editRecord;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _customObject = await Db.CustomObjects.FirstOrDefaultAsync(o => o.Namn == ObjektNamn);
+            if (_customObject != null)
+            {
+                _fields = ParseSchema(_customObject.FaltSchema);
+                _records = await Db.CustomObjectRecords
+                    .Where(r => r.CustomObjectId == _customObject.Id)
+                    .OrderByDescending(r => r.SkapadVid)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private List<FieldSchema> ParseSchema(string json)
+    {
+        try
+        {
+            var fields = new List<FieldSchema>();
+            using var doc = JsonDocument.Parse(json);
+            foreach (var el in doc.RootElement.EnumerateArray())
+            {
+                var f = new FieldSchema
+                {
+                    Name = el.GetProperty("name").GetString() ?? "",
+                    Type = el.GetProperty("type").GetString() ?? "Text",
+                    Required = el.TryGetProperty("required", out var req) && req.GetBoolean()
+                };
+                if (el.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+                    f.Options = opts.EnumerateArray().Select(o => o.GetString() ?? "").ToArray();
+                fields.Add(f);
+            }
+            return fields;
+        }
+        catch { return new(); }
+    }
+
+    private string GetFieldValue(string dataJson, string fieldName)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(dataJson);
+            if (doc.RootElement.TryGetProperty(fieldName, out var val))
+                return val.ToString();
+        }
+        catch { }
+        return "";
+    }
+
+    private void OpenCreate()
+    {
+        _editRecord = null;
+        _formValues = _fields.ToDictionary(f => f.Name, _ => "");
+        _showForm = true;
+    }
+
+    private void OpenEdit(CustomObjectRecord record)
+    {
+        _editRecord = record;
+        _formValues = new Dictionary<string, string>();
+        foreach (var field in _fields)
+            _formValues[field.Name] = GetFieldValue(record.Data, field.Name);
+        _showForm = true;
+    }
+
+    private async Task SparaPost()
+    {
+        var data = JsonSerializer.Serialize(_formValues);
+
+        if (_editRecord != null)
+        {
+            _editRecord.UppdateraData(data);
+            await Db.SaveChangesAsync();
+            _success = "Post uppdaterad";
+        }
+        else
+        {
+            var record = CustomObjectRecord.Skapa(_customObject!.Id, data, "System");
+            await Db.CustomObjectRecords.AddAsync(record);
+            await Db.SaveChangesAsync();
+            _records.Insert(0, record);
+            _success = "Ny post skapad";
+        }
+
+        _showForm = false;
+    }
+
+    private async Task TaBortPost(CustomObjectRecord record)
+    {
+        Db.CustomObjectRecords.Remove(record);
+        await Db.SaveChangesAsync();
+        _records.Remove(record);
+        _success = "Post borttagen";
+    }
+
+    private class FieldSchema
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "Text";
+        public bool Required { get; set; }
+        public string[]? Options { get; set; }
+    }
+}

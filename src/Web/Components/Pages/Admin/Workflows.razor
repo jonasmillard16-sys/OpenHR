@@ -1,0 +1,152 @@
+@page "/admin/workflows"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Configuration.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Arbetsfloden</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Arbetsfloden</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _showAddNode = true)">Lagg till nod</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_workflows.Count</MudText><MudText Typo="Typo.body2">Definitioner</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_nodes.Count</MudText><MudText Typo="Typo.body2">Noder totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_workflows.Count(w => w.ArAktiv)</MudText><MudText Typo="Typo.body2">Aktiva</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_runningInstances</MudText><MudText Typo="Typo.body2">Pagaende korningar</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @foreach (var wf in _workflows)
+    {
+        var wfNodes = _nodes.Where(n => n.WorkflowDefinitionId == wf.Id).OrderBy(n => n.Ordning).ToList();
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <div>
+                    <MudText Typo="Typo.h6">@wf.Namn</MudText>
+                    <MudText Typo="Typo.caption">@wf.TargetEntityType | @(wf.ArAktiv ? "Aktiv" : "Inaktiv")</MudText>
+                </div>
+                <MudButton Variant="Variant.Text" Color="Color.Info" Href="@($"/admin/workflows/{wf.Id}/korningar")" Size="Size.Small" StartIcon="@Icons.Material.Filled.PlayArrow">Korningar</MudButton>
+            </div>
+
+            @if (wfNodes.Count > 0)
+            {
+                <div class="d-flex align-center gap-2 flex-wrap">
+                    @foreach (var (node, idx) in wfNodes.Select((n, i) => (n, i)))
+                    {
+                        <MudPaper Elevation="1" Class="pa-2" Style="min-width: 160px;">
+                            <MudText Typo="Typo.subtitle2"><strong>@node.Ordning.</strong> @node.Namn</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@GetNodeTypeColor(node.Typ)">@node.Typ</MudChip>
+                        </MudPaper>
+                        @if (idx < wfNodes.Count - 1)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Color="Color.Default" />
+                        }
+                    }
+                </div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default"><em>Inga noder definierade.</em></MudText>
+            }
+        </MudPaper>
+    }
+}
+
+@if (_showAddNode)
+{
+    <MudDialog @bind-Visible="_showAddNode" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">Lagg till arbetsflodesnod</MudText></TitleContent>
+        <DialogContent>
+            <MudSelect @bind-Value="_selectedWfId" Label="Arbetsflode" Required="true" Class="mb-2">
+                @foreach (var wf in _workflows)
+                {
+                    <MudSelectItem Value="@wf.Id">@wf.Namn</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_newNodeNamn" Label="Nodnamn" Required="true" Class="mb-2" />
+            <MudSelect @bind-Value="_newNodeTyp" Label="Nodtyp" Required="true" Class="mb-2">
+                @foreach (var t in WorkflowNodeTyp.All)
+                {
+                    <MudSelectItem Value="@t">@t</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField @bind-Value="_newNodeOrdning" Label="Ordning" Min="1" Class="mb-2" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showAddNode = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LaggTillNod">Lagg till</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<WorkflowDefinition> _workflows = new();
+    private List<WorkflowNode> _nodes = new();
+    private int _runningInstances;
+    private bool _loading = true;
+    private bool _showAddNode;
+    private string? _error;
+    private string? _success;
+
+    // Add node form
+    private Guid _selectedWfId;
+    private string _newNodeNamn = "";
+    private string _newNodeTyp = "Approval";
+    private int _newNodeOrdning = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _workflows = await Db.WorkflowDefinitions.OrderBy(w => w.Namn).ToListAsync();
+            _nodes = await Db.WorkflowNodes.OrderBy(n => n.WorkflowDefinitionId).ThenBy(n => n.Ordning).ToListAsync();
+            _runningInstances = await Db.WorkflowRunInstances.CountAsync(i => i.Status == WorkflowRunStatus.Running);
+            if (_workflows.Any()) _selectedWfId = _workflows.First().Id;
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta arbetsfloden: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private Color GetNodeTypeColor(string typ) => typ switch
+    {
+        "Approval" => Color.Primary,
+        "Notification" => Color.Info,
+        "FieldUpdate" => Color.Success,
+        "ExternalCall" => Color.Warning,
+        "Condition" => Color.Secondary,
+        "Wait" => Color.Default,
+        _ => Color.Default
+    };
+
+    private async Task LaggTillNod()
+    {
+        if (string.IsNullOrWhiteSpace(_newNodeNamn) || _selectedWfId == Guid.Empty) return;
+
+        var node = WorkflowNode.Skapa(_selectedWfId, _newNodeOrdning, _newNodeTyp, _newNodeNamn);
+        await Db.WorkflowNodes.AddAsync(node);
+        await Db.SaveChangesAsync();
+
+        _nodes.Add(node);
+        _showAddNode = false;
+        _success = $"Nod '{_newNodeNamn}' tillagd";
+        _newNodeNamn = "";
+        _newNodeOrdning = 1;
+    }
+}

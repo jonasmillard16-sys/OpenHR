@@ -1,0 +1,100 @@
+@page "/admin/workflows/{Id:guid}/korningar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Configuration.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Arbetsflodeskornigar</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <div>
+        <MudText Typo="Typo.h4" Style="font-weight: 700;">Korningar</MudText>
+        @if (_workflow != null)
+        {
+            <MudText Typo="Typo.body2">Arbetsflode: @_workflow.Namn (@_workflow.TargetEntityType)</MudText>
+        }
+    </div>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default" Href="/admin/workflows" StartIcon="@Icons.Material.Filled.ArrowBack">Tillbaka</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_instances.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_instances.Count(i => i.Status == WorkflowRunStatus.Running)</MudText><MudText Typo="Typo.body2">Pagaende</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_instances.Count(i => i.Status == WorkflowRunStatus.Completed)</MudText><MudText Typo="Typo.body2">Slutforda</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_instances.Count(i => i.Status == WorkflowRunStatus.Failed)</MudText><MudText Typo="Typo.body2">Misslyckade</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Entitetstyp</th>
+                <th>Entitets-ID</th>
+                <th>Aktuellt steg</th>
+                <th>Startad</th>
+                <th>Avslutad</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_instances.Count == 0)
+            {
+                <tr><td colspan="6"><em>Inga korningar annu for detta arbetsflode.</em></td></tr>
+            }
+            @foreach (var inst in _instances)
+            {
+                <tr>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(inst.Status)">@inst.Status</MudChip>
+                    </td>
+                    <td>@inst.EntityTyp</td>
+                    <td><code>@inst.EntityId.ToString()[..8]...</code></td>
+                    <td>Steg @inst.AktuellNodeOrdning</td>
+                    <td>@inst.StartadVid.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(inst.AvslutadVid?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private WorkflowDefinition? _workflow;
+    private List<WorkflowRunInstance> _instances = new();
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _workflow = await Db.WorkflowDefinitions.FirstOrDefaultAsync(w => w.Id == Id);
+            _instances = await Db.WorkflowRunInstances
+                .Where(i => i.WorkflowDefinitionId == Id)
+                .OrderByDescending(i => i.StartadVid)
+                .ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta korningar: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Running" => Color.Primary,
+        "Completed" => Color.Success,
+        "Failed" => Color.Error,
+        "Cancelled" => Color.Warning,
+        _ => Color.Default
+    };
+}

@@ -33,6 +33,7 @@ using RegionHR.Agreements.Domain;
 using RegionHR.Migration.Domain;
 using RegionHR.Compensation.Domain;
 using RegionHR.VMS.Domain;
+using RegionHR.Platform.Domain;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -275,6 +276,13 @@ public class RegionHRDbContext : DbContext
     public DbSet<AgreementInsurancePackage> AgreementInsurancePackages => Set<AgreementInsurancePackage>();
     public DbSet<PrivateCompensationPlan> PrivateCompensationPlans => Set<PrivateCompensationPlan>();
 
+    // Platform (schema: platform)
+    public DbSet<CustomObject> CustomObjects => Set<CustomObject>();
+    public DbSet<CustomObjectRecord> CustomObjectRecords => Set<CustomObjectRecord>();
+    public DbSet<CustomObjectRelation> CustomObjectRelations => Set<CustomObjectRelation>();
+    public DbSet<WorkflowNode> WorkflowNodes => Set<WorkflowNode>();
+    public DbSet<WorkflowRunInstance> WorkflowRunInstances => Set<WorkflowRunInstance>();
+
     // VMS (schema: vms)
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<FrameworkAgreement> FrameworkAgreements => Set<FrameworkAgreement>();
@@ -285,6 +293,16 @@ public class RegionHRDbContext : DbContext
     public DbSet<VendorInvoice> VendorInvoices => Set<VendorInvoice>();
     public DbSet<VendorPerformance> VendorPerformances => Set<VendorPerformance>();
     public DbSet<SpendCategory> SpendCategories => Set<SpendCategory>();
+
+    // Platform — Event Bus & API Keys (schema: platform)
+    public DbSet<DomainEventRecord> DomainEventRecords => Set<DomainEventRecord>();
+    public DbSet<EventSubscription> EventSubscriptions => Set<EventSubscription>();
+    public DbSet<EventDelivery> EventDeliveries => Set<EventDelivery>();
+    public DbSet<RegionHR.Platform.Domain.ApiKey> ApiKeys => Set<RegionHR.Platform.Domain.ApiKey>();
+
+    // Platform — Marketplace (schema: platform)
+    public DbSet<RegionHR.Platform.Domain.Extension> Extensions => Set<RegionHR.Platform.Domain.Extension>();
+    public DbSet<RegionHR.Platform.Domain.ExtensionInstallation> ExtensionInstallations => Set<RegionHR.Platform.Domain.ExtensionInstallation>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

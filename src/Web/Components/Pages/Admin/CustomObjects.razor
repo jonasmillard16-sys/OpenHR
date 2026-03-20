@@ -1,0 +1,182 @@
+@page "/admin/custom-objects"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Configuration.Domain
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Anpassade objekt</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Anpassade objekt</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _showCreate = true)">Nytt objekt</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_objects.Count</MudText><MudText Typo="Typo.body2">Objekt</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_totalRecords</MudText><MudText Typo="Typo.body2">Poster totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_totalFields</MudText><MudText Typo="Typo.body2">Falt totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Ikon</th>
+                <th>Namn</th>
+                <th>Beskrivning</th>
+                <th>Falt</th>
+                <th>Poster</th>
+                <th>Skapad</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var obj in _objects)
+            {
+                <tr>
+                    <td><MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Small" /></td>
+                    <td><strong>@obj.Namn</strong> <MudText Typo="Typo.caption">(@obj.PluralNamn)</MudText></td>
+                    <td>@obj.Beskrivning</td>
+                    <td>@GetFieldCount(obj.FaltSchema)</td>
+                    <td>@GetRecordCount(obj.Id)</td>
+                    <td>@obj.SkapadVid.ToString("yyyy-MM-dd")</td>
+                    <td><MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/anpassat/{obj.Namn}")" Size="Size.Small">Visa poster</MudButton></td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (_showCreate)
+{
+    <MudDialog @bind-Visible="_showCreate" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+        <TitleContent><MudText Typo="Typo.h6">Skapa nytt anpassat objekt</MudText></TitleContent>
+        <DialogContent>
+            <MudGrid Spacing="2">
+                <MudItem xs="6"><MudTextField @bind-Value="_newNamn" Label="Namn (singular)" Required="true" /></MudItem>
+                <MudItem xs="6"><MudTextField @bind-Value="_newPluralNamn" Label="Namn (plural)" Required="true" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_newBeskrivning" Label="Beskrivning" Lines="2" /></MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Faltdefinitioner</MudText>
+            @foreach (var (field, index) in _newFields.Select((f, i) => (f, i)))
+            {
+                <MudGrid Spacing="1" Class="mb-2">
+                    <MudItem xs="3"><MudTextField @bind-Value="field.Name" Label="Faltnamn" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="2">
+                        <MudSelect @bind-Value="field.Type" Label="Typ" Margin="Margin.Dense">
+                            @foreach (var t in CustomObjectFieldType.All)
+                            {
+                                <MudSelectItem Value="@t">@t</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="3"><MudTextField @bind-Value="field.Options" Label="Alternativ (komma-sep)" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="2"><MudCheckBox @bind-Value="field.Required" Label="Obligatorisk" Size="Size.Small" /></MudItem>
+                    <MudItem xs="2"><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => _newFields.RemoveAt(index))" /></MudItem>
+                </MudGrid>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _newFields.Add(new FieldDef()))">Lagg till falt</MudButton>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showCreate = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SkapaObjekt">Skapa</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<CustomObject> _objects = new();
+    private Dictionary<Guid, int> _recordCounts = new();
+    private bool _loading = true;
+    private bool _showCreate;
+    private string? _error;
+    private string? _success;
+    private int _totalRecords;
+    private int _totalFields;
+
+    // New object form
+    private string _newNamn = "";
+    private string _newPluralNamn = "";
+    private string _newBeskrivning = "";
+    private List<FieldDef> _newFields = new() { new FieldDef() };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _objects = await Db.CustomObjects.OrderBy(o => o.Namn).ToListAsync();
+            var counts = await Db.CustomObjectRecords
+                .GroupBy(r => r.CustomObjectId)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToListAsync();
+            _recordCounts = counts.ToDictionary(c => c.Key, c => c.Count);
+            _totalRecords = counts.Sum(c => c.Count);
+            _totalFields = _objects.Sum(o => GetFieldCount(o.FaltSchema));
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta anpassade objekt: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private int GetFieldCount(string schema)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(schema);
+            return doc.RootElement.GetArrayLength();
+        }
+        catch { return 0; }
+    }
+
+    private int GetRecordCount(Guid objectId) => _recordCounts.GetValueOrDefault(objectId, 0);
+
+    private async Task SkapaObjekt()
+    {
+        if (string.IsNullOrWhiteSpace(_newNamn) || _newFields.Count == 0) return;
+
+        var schemaFields = _newFields.Where(f => !string.IsNullOrWhiteSpace(f.Name)).Select(f => new
+        {
+            name = f.Name,
+            type = f.Type,
+            required = f.Required,
+            options = string.IsNullOrWhiteSpace(f.Options) ? (string[]?)null : f.Options.Split(',').Select(o => o.Trim()).ToArray()
+        });
+
+        var schema = JsonSerializer.Serialize(schemaFields);
+
+        var obj = CustomObject.Skapa(_newNamn, _newPluralNamn, _newBeskrivning, schema);
+        await Db.CustomObjects.AddAsync(obj);
+        await Db.SaveChangesAsync();
+
+        _objects.Add(obj);
+        _showCreate = false;
+        _success = $"Anpassat objekt '{_newNamn}' skapat";
+        _newNamn = "";
+        _newPluralNamn = "";
+        _newBeskrivning = "";
+        _newFields = new() { new FieldDef() };
+    }
+
+    private class FieldDef
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "Text";
+        public bool Required { get; set; }
+        public string Options { get; set; } = "";
+    }
+}

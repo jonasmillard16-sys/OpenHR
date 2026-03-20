@@ -8,5 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Configuration\RegionHR.Configuration.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\RegionHR.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Api\RegionHR.Api.csproj" />
   </ItemGroup>
 </Project>
