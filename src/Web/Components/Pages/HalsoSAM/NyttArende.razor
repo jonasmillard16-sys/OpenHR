@@ -1,78 +1,87 @@
 @page "/halsosam/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
-@using RegionHR.Web.Components.Shared
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.HalsoSAM.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Nytt rehabärende</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/halsosam" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
-<OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">
-    @switch (_step)
-    {
-        case 0:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vilken anställd gäller det?</MudText>
-            <MudTextField @bind-Value="_sokterm" Label="Sök namn eller personnummer" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" />
-            <MudStack Spacing="2">
-                @foreach (var namn in new[] { "Karl Berg", "Helena Bergström", "Per Gustafsson" })
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 48px;" OnClick="@(() => { _valdAnstalld = namn; _step = 1; })">@namn</MudButton>
-                }
-            </MudStack>
-            break;
-        case 1:
-            <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">Vad är orsaken?</MudText>
-            <MudStack Spacing="3">
-                @foreach (var orsak in new[] { "Upprepad korttidsfrånvaro", "Långtidssjuk >14 dagar", "Sjukfrånvaro >6 tillfällen/12 mån", "Arbetsrelaterad ohälsa" })
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 56px;" OnClick="@(() => { _orsak = orsak; _step = 2; })">@orsak</MudButton>
-                }
-            </MudStack>
-            break;
-        case 2:
-            <div style="padding: 1rem 0;">
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-4" Style="display: block; margin: 0 auto;" />
-                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700; text-align: center;" Class="mb-4">Rehabärende skapat</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Nytt rehabärende</MudText>
 
-                <MudPaper Class="pa-4 mb-4" Elevation="2">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Ärendeuppgifter</MudText>
-                    <MudSimpleTable Dense="true">
-                        <tbody>
-                            <tr><td><strong>Anställd</strong></td><td>@_valdAnstalld</td></tr>
-                            <tr><td><strong>Ärendetyp</strong></td><td>@_orsak</td></tr>
-                            <tr><td><strong>Ansvarig HR</strong></td><td>Lisa Holm</td></tr>
-                            <tr><td><strong>Startdatum</strong></td><td>@DateTime.Now.ToString("yyyy-MM-dd")</td></tr>
-                            <tr><td><strong>Ärendenummer</strong></td><td>@_arendenummer</td></tr>
-                        </tbody>
-                    </MudSimpleTable>
-                </MudPaper>
-
-                <MudPaper Class="pa-4 mb-4" Elevation="1">
-                    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Nästa steg</MudText>
-                    <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Event">Boka uppföljningsmöte (schemalagt om 14 dagar)</MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Phone">Kontakta Försäkringskassan vid behov</MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Description">Dokumentera samtalsanteckningar i ärendet</MudListItem>
-                    </MudList>
-                </MudPaper>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Href="/halsosam" Style="min-height: 56px;">
-                    Tillbaka till Hälso-SAM
-                </MudButton>
-            </div>
-            break;
-    }
-</OhrConversationFlow>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_created)
+{
+    <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Rehabärende skapat</MudText>
+        <MudText Typo="Typo.body1" Class="mb-3">Ärende för @_valdAnstallNamn — @_valdOrsak</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/halsosam">Tillbaka till översikt</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-5" Elevation="2">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid?" @bind-Value="_formAnstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                    @foreach (var e in _employees)
+                    { <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem> }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" @bind-Value="_valdOrsak" Label="Orsak / Trigger" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem Value="@("Upprepad korttidsfrånvaro")">Upprepad korttidsfrånvaro</MudSelectItem>
+                    <MudSelectItem Value="@("Långtidssjuk >14 dagar")">Långtidssjuk >14 dagar</MudSelectItem>
+                    <MudSelectItem Value="@("Sjukfrånvaro >6 tillfällen/12 mån")">Sjukfrånvaro >6 tillfällen/12 mån</MudSelectItem>
+                    <MudSelectItem Value="@("Arbetsrelaterad ohälsa")">Arbetsrelaterad ohälsa</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;"
+                   OnClick="Skapa" Disabled="@(_formAnstallId == null || string.IsNullOrWhiteSpace(_valdOrsak) || _saving)">
+            Skapa rehabärende
+        </MudButton>
+    </MudPaper>
+}
 
 @code {
-    private readonly List<string> _steps = ["Anställd", "Orsak", "Klart!"];
-    private int _step;
-    private string _valdAnstalld = "";
-    private string _orsak = "";
-    private string _sokterm = "";
-    private string _arendenummer = "";
+    private List<RegionHR.Core.Domain.Employee> _employees = [];
+    private Guid? _formAnstallId;
+    private string _valdOrsak = "", _valdAnstallNamn = "";
+    private bool _loading = true, _saving, _created;
+    private string? _error;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _arendenummer = $"SAM-{DateTime.Now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
+        try { _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task Skapa()
+    {
+        if (_formAnstallId == null || string.IsNullOrWhiteSpace(_valdOrsak)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var emp = _employees.FirstOrDefault(e => e.Id.Value == _formAnstallId.Value);
+            _valdAnstallNamn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+            var trigger = _valdOrsak switch
+            {
+                "Upprepad korttidsfrånvaro" => RehabTrigger.MonsterDetekterat,
+                "Långtidssjuk >14 dagar" => RehabTrigger.FjortonSammanhangandeDagar,
+                "Sjukfrånvaro >6 tillfällen/12 mån" => RehabTrigger.SexTillfallenTolvManader,
+                _ => RehabTrigger.ChefInitierat
+            };
+            var rehab = RehabCase.Skapa(new RegionHR.SharedKernel.Domain.EmployeeId(_formAnstallId.Value), trigger);
+            Db.RehabCases.Add(rehab);
+            await Db.SaveChangesAsync();
+            _created = true;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
     }
 }

@@ -1,190 +1,69 @@
 @page "/rapporter/kostnadssimulering"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Kostnadssimulering</PageTitle>
-<div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Kostnadssimulering</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Calculate" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Ny simulering</MudButton>
-</div>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kostnadssimulering</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalLonekostnad</MudText>
-            <MudText Typo="Typo.body2">Total lönekostnad/mån</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_agAvgifter</MudText>
-            <MudText Typo="Typo.body2">AG-avgifter/mån</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_pensionskostnad</MudText>
-            <MudText Typo="Typo.body2">Pensionskostnad/mån</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_totalPersonalkostnad</MudText>
-            <MudText Typo="Typo.body2">Total personalkostnad/mån</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    Kostnadssimuleringen beräknar total anställningskostnad inklusive bruttolön, arbetsgivaravgifter (31,42 %),
-    tjänstepension (KAP-KL/AKAP-KR), OB-tillägg och övriga kollektivavtalade tillägg.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Kostnadsnedbrytning per enhet</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Enhet</th>
-            <th>Antal</th>
-            <th>Bruttolön</th>
-            <th>AG-avgifter (31,42 %)</th>
-            <th>Pension</th>
-            <th>OB-tillägg</th>
-            <th>Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _enheter)
-        {
-            <tr>
-                <td><strong>@rad.Enhet</strong></td>
-                <td>@rad.Antal</td>
-                <td>@rad.Bruttolon</td>
-                <td>@rad.AgAvgifter</td>
-                <td>@rad.Pension</td>
-                <td>@rad.OB</td>
-                <td><strong>@rad.Total</strong></td>
-            </tr>
-        }
-        <tr style="font-weight: 700; background: var(--mud-palette-background-grey);">
-            <td><strong>Totalt</strong></td>
-            <td>1 254</td>
-            <td>52,3 Mkr</td>
-            <td>16,4 Mkr</td>
-            <td>5,8 Mkr</td>
-            <td>3,2 Mkr</td>
-            <td><strong>77,7 Mkr</strong></td>
-        </tr>
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Simuleringsscenarier</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Scenario</th>
-            <th>Beskrivning</th>
-            <th>Löneökning</th>
-            <th>Ändring personal</th>
-            <th>Beräknad kostnadspåverkan</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var sim in _simuleringar)
-        {
-            <tr>
-                <td><strong>@sim.Namn</strong></td>
-                <td>@sim.Beskrivning</td>
-                <td>@sim.Loneokning</td>
-                <td>@sim.AntalAndring</td>
-                <td>
-                    <MudChip T="string" Size="Size.Small" Color="@(sim.KostnadAndring.StartsWith("+") ? Color.Error : Color.Success)">@sim.KostnadAndring</MudChip>
-                </td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjSimulering(sim))">Visa detaljer</MudButton></td>
-            </tr>
-            @if (_valdSimulering == sim)
-            {
-                <tr>
-                    <td colspan="6">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@sim.Namn</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Beskrivning:</strong> @sim.Beskrivning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Löneökning:</strong> @sim.Loneokning</MudText>
-                            <MudText Typo="Typo.body2"><strong>Personaländring:</strong> @sim.AntalAndring</MudText>
-                            <MudText Typo="Typo.body2"><strong>Beräknad kostnadspåverkan:</strong> @sim.KostnadAndring</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdSimulering = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny kostnadssimulering</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyNamn" Label="Simuleringsnamn" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyScenario" Label="Scenario (t.ex. +5% lön)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="SkapaSimulering">Skapa</MudButton>
-    </MudPaper>
-}
-@if (_skapad != null)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Total lönekostnad/mån</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_totalLonekostnad)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">AG-avgifter/mån</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_totalAg)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Totalkostnad/mån</MudText><MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@FormatKr(_totalLonekostnad + _totalAg)</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.caption">Budgeterade positioner</MudText><MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_budgeteradePositioner)</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Per enhet</MudText>
+    @if (_perEnhet.Count > 0)
+    {
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Enhet</th><th>Anställda</th><th>Total lön/mån</th><th>AG-avgifter</th><th>Totalkostnad</th></tr></thead>
+            <tbody>
+                @foreach (var e in _perEnhet)
+                {
+                    var ag = e.TotalLon * 0.3142m;
+                    <tr><td><strong>@e.Namn</strong></td><td>@e.Antal</td><td>@FormatKr(e.TotalLon)</td><td>@FormatKr(ag)</td><td>@FormatKr(e.TotalLon + ag)</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyNamn = "", _nyScenario = "";
+    private decimal _totalLonekostnad, _totalAg, _budgeteradePositioner;
+    private List<EnhetKostnad> _perEnhet = [];
+    private bool _loading = true;
+    private string? _error;
 
-    private void SkapaSimulering()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyNamn)) return;
-        _skapad = $"Simulering {_nyNamn} skapad. Beräkning pågår...";
-        _nyNamn = ""; _nyScenario = ""; _visaNyDialog = false;
-    }
-    private SimuleringRad? _valdSimulering;
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+            var positions = await Db.Positions_Table.ToListAsync();
 
-    private void ValjSimulering(SimuleringRad sim) => _valdSimulering = _valdSimulering == sim ? null : sim;
+            _perEnhet = employees.Where(e => e.AktivAnstallning(idag) != null)
+                .GroupBy(e => e.AktivAnstallning(idag)!.EnhetId.Value)
+                .Select(g => new EnhetKostnad(enhetNamn.GetValueOrDefault(g.Key, "Okänd"), g.Count(), g.Sum(e => e.AktivAnstallning(idag)!.Manadslon.Amount)))
+                .OrderByDescending(e => e.TotalLon).ToList();
 
-    private string _totalLonekostnad = "52,3 Mkr";
-    private string _agAvgifter = "16,4 Mkr";
-    private string _pensionskostnad = "5,8 Mkr";
-    private string _totalPersonalkostnad = "77,7 Mkr";
-
-    private List<EnhetsKostnad> _enheter = [];
-    private List<SimuleringRad> _simuleringar = [];
-
-    protected override void OnInitialized()
-    {
-        _enheter =
-        [
-            new("Medicinkliniken", 210, "8,9 Mkr", "2,8 Mkr", "1,0 Mkr", "0,6 Mkr", "13,3 Mkr"),
-            new("Kirurgkliniken", 180, "7,8 Mkr", "2,5 Mkr", "0,9 Mkr", "0,5 Mkr", "11,7 Mkr"),
-            new("Akutmottagningen", 145, "6,4 Mkr", "2,0 Mkr", "0,7 Mkr", "0,8 Mkr", "9,9 Mkr"),
-            new("Psykiatri", 120, "5,1 Mkr", "1,6 Mkr", "0,6 Mkr", "0,4 Mkr", "7,7 Mkr"),
-            new("Primärvård Centrum", 95, "3,9 Mkr", "1,2 Mkr", "0,4 Mkr", "0,2 Mkr", "5,7 Mkr"),
-            new("Röntgen", 65, "3,0 Mkr", "0,9 Mkr", "0,3 Mkr", "0,2 Mkr", "4,4 Mkr"),
-            new("IT-avdelningen", 45, "2,5 Mkr", "0,8 Mkr", "0,3 Mkr", "0,0 Mkr", "3,6 Mkr"),
-            new("HR-avdelningen", 28, "1,4 Mkr", "0,5 Mkr", "0,2 Mkr", "0,0 Mkr", "2,1 Mkr"),
-            new("Övriga enheter", 366, "13,3 Mkr", "4,1 Mkr", "1,4 Mkr", "0,5 Mkr", "19,3 Mkr"),
-        ];
-
-        _simuleringar =
-        [
-            new("Löneöversyn 2026", "Generell löneökning enligt AB 2026", "2,8 %", "0", "+1,5 Mkr/mån"),
-            new("Nyanställningar Q2", "15 sjuksköterskor, 5 läkare", "—", "+20", "+1,2 Mkr/mån"),
-            new("Pensionsavgångar", "Beräknade avgångar 2026", "—", "−28", "−1,8 Mkr/mån"),
-            new("OB-höjning", "Nya OB-nivåer per avtal", "—", "0", "+0,4 Mkr/mån"),
-        ];
+            _totalLonekostnad = _perEnhet.Sum(e => e.TotalLon);
+            _totalAg = _totalLonekostnad * 0.3142m;
+            _budgeteradePositioner = positions.Sum(p => p.BudgeteradManadslon);
+        }
+        catch (Exception ex) { _error = $"Kunde inte beräkna kostnader: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record EnhetsKostnad(string Enhet, int Antal, string Bruttolon, string AgAvgifter, string Pension, string OB, string Total);
-    private record SimuleringRad(string Namn, string Beskrivning, string Loneokning, string AntalAndring, string KostnadAndring);
+    private static string FormatKr(decimal v) => $"{v:N0} kr";
+    private record EnhetKostnad(string Namn, int Antal, decimal TotalLon);
 }

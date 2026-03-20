@@ -1,213 +1,74 @@
 @page "/rapporter/analytics"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Positions.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Workforce Analytics</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Workforce Analytics</MudText>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalAnstallda</MudText>
-            <MudText Typo="Typo.body2">Totalt anställda</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_pensionsavgang5ar</MudText>
-            <MudText Typo="Typo.body2">Pensionsavgång (5 år)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_personalomsattning %</MudText>
-            <MudText Typo="Typo.body2">Personalomsättning (12 mån)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_genomsnittAnstTid år</MudText>
-            <MudText Typo="Typo.body2">Genomsnittlig anställningstid</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalAnstallda</MudText><MudText Typo="Typo.body2">Anställda</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_tillsvidareanstallda</MudText><MudText Typo="Typo.body2">Tillsvidareanställda</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vikarier</MudText><MudText Typo="Typo.body2">Vikarier/SAVA</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_snittalder</MudText><MudText Typo="Typo.body2">Snittålder</MudText></MudPaper></MudItem>
+    </MudGrid>
 
-<MudText Typo="Typo.h6" Class="mb-3">Åldersfördelning</MudText>
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="12" sm="6">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudChart T="double" ChartType="ChartType.Pie" ChartSeries="@_alderSeries" ChartLabels="@_alderLabels" Width="300px" Height="300px" />
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" sm="6">
-        <MudPaper Class="pa-4" Elevation="2">
-            <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Antal anställda per åldersgrupp</MudText>
-            <MudSimpleTable Dense="true">
-                <thead><tr><th>Åldersgrupp</th><th>Antal</th><th>Andel</th></tr></thead>
-                <tbody>
-                    @for (int i = 0; i < _alderLabels.Length; i++)
-                    {
-                        <tr>
-                            <td>@_alderLabels[i]</td>
-                            <td>@((int)_alderData[i])</td>
-                            <td>@((_alderData[i] / _alderData.Sum() * 100).ToString("F1")) %</td>
-                        </tr>
-                    }
-                </tbody>
-            </MudSimpleTable>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mb-3">Personalutveckling (12 månader)</MudText>
-<MudPaper Class="pa-4 mb-6" Elevation="2">
-    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_headcountSeries" ChartLabels="@_headcountLabels" Width="100%" Height="350px" />
-</MudPaper>
-
-<MudText Typo="Typo.h6" Class="mb-3">Personalomsättning per enhet</MudText>
-<MudPaper Class="pa-4 mb-6" Elevation="2">
-    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_omsattningBarSeries" ChartLabels="@_omsattningBarLabels" Width="100%" Height="350px" />
-</MudPaper>
-
-<MudText Typo="Typo.h6" Class="mb-3">Pensionsavgångsprognos per år</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>År</th>
-            <th>Beräknade pensionsavgångar</th>
-            <th>Andel av total</th>
-            <th>Mest drabbade enheter</th>
-            <th>Risk</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _pensionsprognos)
-        {
-            <tr>
-                <td><strong>@rad.Ar</strong></td>
-                <td>@rad.Antal</td>
-                <td>
-                    <MudProgressLinear Value="@rad.Procent" Color="@rad.RiskFarg" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@rad.Procent %</MudText>
-                </td>
-                <td>@rad.Enheter</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.RiskFarg">@rad.RiskText</MudChip></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Personalomsättning per enhet (senaste 12 mån)</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Enhet</th>
-            <th>Antal anställda</th>
-            <th>Avgångar</th>
-            <th>Nyanställningar</th>
-            <th>Nettoutveckling</th>
-            <th>Omsättning</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _omsattning)
-        {
-            <tr>
-                <td><strong>@rad.Enhet</strong></td>
-                <td>@rad.Anstallda</td>
-                <td>@rad.Avgangar</td>
-                <td>@rad.Nyanstallningar</td>
-                <td style="color: @(rad.Netto >= 0 ? "green" : "red");">@(rad.Netto >= 0 ? "+" : "")@rad.Netto</td>
-                <td>
-                    <MudChip T="string" Size="Size.Small" Color="@(rad.OmsattningProcent > 15 ? Color.Error : rad.OmsattningProcent > 10 ? Color.Warning : Color.Success)">@rad.OmsattningProcent %</MudChip>
-                </td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mb-3">Antal anställda per månad (trend)</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Månad</th>
-            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Maj</th><th>Jun</th>
-            <th>Jul</th><th>Aug</th><th>Sep</th><th>Okt</th><th>Nov</th><th>Dec</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>2025</strong></td>
-            <td>1 230</td><td>1 228</td><td>1 235</td><td>1 240</td><td>1 242</td><td>1 245</td>
-            <td>1 238</td><td>1 250</td><td>1 255</td><td>1 252</td><td>1 248</td><td>1 245</td>
-        </tr>
-        <tr>
-            <td><strong>2026</strong></td>
-            <td>1 247</td><td>1 250</td><td>1 254</td><td>—</td><td>—</td><td>—</td>
-            <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
-        </tr>
-    </tbody>
-</MudSimpleTable>
+    <MudText Typo="Typo.h6" Class="mb-3">Per enhet</MudText>
+    @if (_perEnhet.Count > 0)
+    {
+        <MudSimpleTable Hover="true" Elevation="1">
+            <thead><tr><th>Enhet</th><th>Antal</th><th>Tillsvidare</th><th>Vikarier</th></tr></thead>
+            <tbody>
+                @foreach (var e in _perEnhet) { <tr><td><strong>@e.Namn</strong></td><td>@e.Antal</td><td>@e.Tillsvidare</td><td>@e.Vikarier</td></tr> }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
 @code {
-    private int _totalAnstallda = 1254;
-    private int _pensionsavgang5ar = 187;
-    private double _personalomsattning = 8.4;
-    private double _genomsnittAnstTid = 11.2;
+    private int _totalAnstallda, _tillsvidareanstallda, _vikarier, _snittalder;
+    private List<EnhetAnalys> _perEnhet = [];
+    private bool _loading = true;
+    private string? _error;
 
-    private List<PensionsRad> _pensionsprognos = [];
-    private List<OmsattningRad> _omsattning = [];
-
-    // Chart data - age distribution (pie chart + table)
-    private double[] _alderData = [68, 185, 312, 298, 224, 167];
-    private List<ChartSeries<double>> _alderSeries = [new ChartSeries<double> { Name = "Åldersfördelning", Data = new ChartData<double>(new double[] { 68, 185, 312, 298, 224, 167 }) }];
-    private string[] _alderLabels = ["< 25", "25-34", "35-44", "45-54", "55-64", "65+"];
-
-    // Chart data - headcount trend (line chart)
-    private List<ChartSeries<double>> _headcountSeries = [];
-    private string[] _headcountLabels = ["Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec", "Jan", "Feb", "Mar"];
-
-    // Chart data - turnover per unit (bar chart)
-    private List<ChartSeries<double>> _omsattningBarSeries = [];
-    private string[] _omsattningBarLabels = [];
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _pensionsprognos =
-        [
-            new("2026", 28, 2, "Medicinkliniken, Labb", "Låg", Color.Success),
-            new("2027", 42, 3, "Kirurgi, Röntgen", "Medel", Color.Warning),
-            new("2028", 51, 4, "Medicinkliniken, Akuten", "Hög", Color.Error),
-            new("2029", 38, 3, "IT, HR, Ekonomi", "Medel", Color.Warning),
-            new("2030", 28, 2, "Primärvård, Psykiatri", "Låg", Color.Success),
-        ];
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            _totalAnstallda = employees.Count;
+            _tillsvidareanstallda = employees.Count(e => e.AktivAnstallning(idag)?.ArTillsvidareanstallning == true);
+            _vikarier = employees.Count(e => e.AktivAnstallning(idag)?.ArTidsbegransad == true);
 
-        _omsattning =
-        [
-            new("Akutmottagningen", 145, 18, 22, 4, 12),
-            new("Medicinkliniken", 210, 12, 15, 3, 6),
-            new("Kirurgkliniken", 180, 25, 20, -5, 14),
-            new("Primärvård Centrum", 95, 8, 10, 2, 8),
-            new("Psykiatri", 120, 22, 18, -4, 18),
-            new("IT-avdelningen", 45, 3, 5, 2, 7),
-            new("HR-avdelningen", 28, 2, 3, 1, 7),
-            new("Röntgen", 65, 5, 4, -1, 8),
-        ];
+            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
+            _perEnhet = employees
+                .Where(e => e.AktivAnstallning(idag) != null)
+                .GroupBy(e => e.AktivAnstallning(idag)!.EnhetId.Value)
+                .Select(g => new EnhetAnalys(
+                    enhetNamn.GetValueOrDefault(g.Key, "Okänd"),
+                    g.Count(),
+                    g.Count(e => e.AktivAnstallning(idag)!.ArTillsvidareanstallning),
+                    g.Count(e => e.AktivAnstallning(idag)!.ArTidsbegransad)))
+                .OrderByDescending(e => e.Antal).ToList();
 
-        // Headcount trend series
-        _headcountSeries =
-        [
-            new ChartSeries<double> { Name = "Anställda", Data = new ChartData<double>(new double[] { 1240, 1242, 1245, 1238, 1250, 1255, 1252, 1248, 1245, 1247, 1250, 1254 }) }
-        ];
-
-        // Turnover per unit bar chart
-        _omsattningBarLabels = _omsattning.Select(o => o.Enhet).ToArray();
-        _omsattningBarSeries =
-        [
-            new ChartSeries<double> { Name = "Avgångar", Data = new ChartData<double>(_omsattning.Select(o => (double)o.Avgangar).ToArray()) },
-            new ChartSeries<double> { Name = "Nyanställningar", Data = new ChartData<double>(_omsattning.Select(o => (double)o.Nyanstallningar).ToArray()) }
-        ];
+            // Approximate age from personnummer
+            var ages = employees.Select(e =>
+            {
+                try { return DateTime.Today.Year - int.Parse(e.Personnummer.ToString()[..4]); } catch { return 0; }
+            }).Where(a => a > 0 && a < 100).ToList();
+            _snittalder = ages.Count > 0 ? (int)ages.Average() : 0;
+        }
+        catch (Exception ex) { _error = $"Kunde inte beräkna analytics: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record PensionsRad(string Ar, int Antal, int Procent, string Enheter, string RiskText, Color RiskFarg);
-    private record OmsattningRad(string Enhet, int Anstallda, int Avgangar, int Nyanstallningar, int Netto, int OmsattningProcent);
+    private record EnhetAnalys(string Namn, int Antal, int Tillsvidare, int Vikarier);
 }
