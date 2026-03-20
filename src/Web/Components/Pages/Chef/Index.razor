@@ -20,6 +20,10 @@
 {
     <MudPaper Class="pa-4 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
         <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Väntande godkännanden (@_approvals.Count)</MudText>
+        @if (!_canApprove)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">Godkännande kräver en kopplad anställd — logga in med en personalprofil.</MudAlert>
+        }
         <MudStack Spacing="2">
             @foreach (var item in _approvals)
             {
@@ -30,8 +34,8 @@
                             <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@item.Detalj</MudText>
                         </div>
                         <div class="d-flex gap-2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Godkann(item))">Godkänn</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Neka(item))">Nej</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Godkann(item))" Disabled="@(!_canApprove)">Godkänn</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Medium" Style="min-height: 44px;" OnClick="@(() => Neka(item))" Disabled="@(!_canApprove)">Nej</MudButton>
                         </div>
                     </div>
                 </MudPaper>
@@ -118,7 +122,7 @@ else if (!_loading)
     }
 
     [Inject] private RegionHR.Web.Services.AuthService Auth { get; set; } = default!;
-    private Guid _currentChefId => Auth.EmployeeId ?? Guid.Empty;
+    private bool _canApprove => Auth.EmployeeId.HasValue;
 
     private async Task Godkann(ApprovalItem item)
     {
@@ -128,7 +132,7 @@ else if (!_loading)
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
-                req.Godkann(_currentChefId, null);
+                req.Godkann(Auth.EmployeeId!.Value, null);
                 await Db.SaveChangesAsync();
             }
             _approvals.Remove(item);
@@ -144,7 +148,7 @@ else if (!_loading)
             {
                 var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
-                req.Avvisa(_currentChefId, "Nekad av chef");
+                req.Avvisa(Auth.EmployeeId!.Value, "Nekad av chef");
                 await Db.SaveChangesAsync();
             }
             _approvals.Remove(item);

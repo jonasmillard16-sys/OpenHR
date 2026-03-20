@@ -5,6 +5,7 @@
 @using RegionHR.Infrastructure.Persistence
 @inject RegionHRDbContext Db
 @inject NavigationManager Nav
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Jag är sjuk</PageTitle>
 
@@ -137,15 +138,21 @@
 
     private async Task SubmitSickLeave(DateOnly? endDate)
     {
+        if (!Auth.EmployeeId.HasValue)
+        {
+            _currentStep = 2; // Show confirmation but nothing saved
+            return;
+        }
+
         try
         {
-            // Create SickLeaveNotification
-            var notification = SickLeaveNotification.Skapa(Guid.Empty, _startDate);
+            var anstallId = Auth.EmployeeId.Value;
+
+            var notification = SickLeaveNotification.Skapa(anstallId, _startDate);
             await Db.SickLeaveNotifications.AddAsync(notification);
 
-            // Create LeaveRequest
             var request = LeaveRequest.Skapa(
-                Guid.Empty,
+                anstallId,
                 LeaveType.Sjukfranvaro,
                 _startDate,
                 endDate ?? _startDate.AddDays(1),
@@ -155,9 +162,9 @@
 
             await Db.SaveChangesAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            // Demo mode - proceed to confirmation anyway
+            System.Diagnostics.Debug.WriteLine($"Sjukanmälan: {ex.Message}");
         }
 
         _currentStep = 2;

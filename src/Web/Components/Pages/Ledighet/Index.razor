@@ -35,7 +35,7 @@
                 <td>@row.Dagar</td>
                 <td><MudChip T="string" Size="Size.Small" Color="@row.StatusFarg">@row.StatusText</MudChip></td>
                 <td>
-                    @if (row.KanGodkannas)
+                    @if (row.KanGodkannas && _canApprove)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
                                    OnClick="@(() => Godkann(row))">Godkänn</MudButton>
@@ -54,7 +54,7 @@
     private string? _error;
 
     [Inject] private RegionHR.Web.Services.AuthService Auth { get; set; } = default!;
-    private Guid _currentChefId => Auth.EmployeeId ?? Guid.Empty;
+    private bool _canApprove => Auth.EmployeeId.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,7 +106,7 @@
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
-            req.Godkann(_currentChefId, null);
+            req.Godkann(Auth.EmployeeId!.Value, null);
             await Db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
@@ -129,7 +129,7 @@
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
-            req.Avvisa(_currentChefId, "Nekad av chef");
+            req.Avvisa(Auth.EmployeeId!.Value, "Nekad av chef");
             await Db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);

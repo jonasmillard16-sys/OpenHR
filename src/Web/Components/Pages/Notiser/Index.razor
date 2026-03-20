@@ -5,6 +5,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 @inject ISnackbar Snackbar
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR — Notiser</PageTitle>
 
@@ -17,9 +18,12 @@
                 Markera alla som lästa
             </MudButton>
         }
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SkapaTestNotis">
-            Skapa testnotis
-        </MudButton>
+        @if (Auth.EmployeeId.HasValue)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SkapaTestNotis">
+                Skapa testnotis
+            </MudButton>
+        }
     </div>
 </div>
 
@@ -126,8 +130,9 @@ else
     private async Task SkapaTestNotis()
     {
         _testCount++;
+        if (!Auth.EmployeeId.HasValue) return;
         var notis = Notification.Create(
-            Guid.Empty, // UserId — auth saknar EmployeeId-mapping
+            Auth.EmployeeId.Value,
             $"Testnotis #{_testCount}",
             $"Skapad {DateTime.Now:HH:mm:ss} via Skapa testnotis-knappen.",
             NotificationType.Info);
