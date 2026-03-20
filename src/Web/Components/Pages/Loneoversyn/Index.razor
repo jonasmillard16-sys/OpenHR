@@ -1,5 +1,10 @@
 @page "/loneoversyn"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.SalaryReview.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Löneöversyn</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -7,83 +12,87 @@
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny runda</MudButton>
 </div>
 
-@if (_showForm)
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
 {
-    <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny löneöversynsrunda</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
-        </div>
-        <MudTextField @bind-Value="_newAr" Label="År" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newAvtal" Label="Avtalsområde" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_newBudget" Label="Budget (kr)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                   Style="min-height: 48px;" OnClick="SkapaRunda">Skapa</MudButton>
-    </MudPaper>
-}
-
-@if (_skapad)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = false)">Löneöversynsrunda skapad!</MudAlert>
-}
-
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Runda</th><th>År</th><th>Avtalsområde</th><th>Budget</th><th>Status</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Ar</td>
-                <td>@rad.Avtal</td>
-                <td>@rad.Budget</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@rad.StatusFarg">@rad.StatusText</MudChip></td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Valj(rad))">@(rad.StatusText == "Pågår" ? "Öppna" : "Visa")</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="6">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Avtalsområde:</strong> @rad.Avtal</MudText>
-                            <MudText Typo="Typo.body2"><strong>Budget:</strong> @rad.Budget</MudText>
-                            <MudText Typo="Typo.body2"><strong>Status:</strong> @rad.StatusText</MudText>
-                            <MudText Typo="Typo.body2" Class="mt-2">Löneöversynen omfattar alla tillsvidareanställda inom avtalsområdet.</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-@code {
-    private bool _showForm;
-    private bool _skapad;
-    private string _newAr = "";
-    private string _newAvtal = "";
-    private string _newBudget = "";
-
-    private void SkapaRunda()
+    @if (_showForm)
     {
-        _showForm = false;
-        _skapad = true;
-        _newAr = "";
-        _newAvtal = "";
-        _newBudget = "";
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny löneöversynsrunda</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="3"><MudTextField @bind-Value="_formNamn" Label="Namn" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="3"><MudNumericField T="int" @bind-Value="_formAr" Label="År" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="CollectiveAgreementType" @bind-Value="_formAvtal" Label="Avtalsområde" Variant="Variant.Outlined">
+                        @foreach (var a in Enum.GetValues<CollectiveAgreementType>()) { <MudSelectItem Value="@a">@a</MudSelectItem> }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3"><MudNumericField T="decimal" @bind-Value="_formBudget" Label="Budget (kr)" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaRunda"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formNamn) || _saving)">Skapa</MudButton>
+        </MudPaper>
     }
 
-    private LoneoversynRad? _valdRad;
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
 
-    private void Valj(LoneoversynRad rad) => _valdRad = _valdRad == rad ? null : rad;
+    @if (_rundor.Count == 0) { <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga löneöversynsrundor registrerade.</MudAlert> }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Runda</th><th>År</th><th>Avtal</th><th>Budget</th><th>Fördelad</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rundor)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td>@r.Ar</td>
+                        <td>@r.Avtalsomrade</td>
+                        <td>@r.TotalBudget.Amount.ToString("N0") kr</td>
+                        <td>@r.FordeladBudget.Amount.ToString("N0") kr</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
 
-    private List<LoneoversynRad> _rader =
-    [
-        new("Löneöversyn 2026", "2026", "AB", "12 500 000 kr", "Pågår", Color.Warning),
-        new("Löneöversyn 2025", "2025", "AB", "11 800 000 kr", "Genomförd", Color.Success),
-    ];
+@code {
+    private List<SalaryReviewRound> _rundor = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success, _formNamn = "";
+    private int _formAr = 2026;
+    private CollectiveAgreementType _formAvtal = CollectiveAgreementType.AB;
+    private decimal _formBudget = 10000000m;
 
-    private record LoneoversynRad(string Namn, string Ar, string Avtal, string Budget, string StatusText, Color StatusFarg);
+    protected override async Task OnInitializedAsync()
+    {
+        try { _rundor = await Db.SalaryReviewRounds.OrderByDescending(r => r.Ar).ToListAsync(); }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaRunda()
+    {
+        if (string.IsNullOrWhiteSpace(_formNamn)) return;
+        _saving = true; _error = null;
+        try
+        {
+            var runda = SalaryReviewRound.Skapa(_formNamn!, _formAr, _formAvtal, Money.SEK(_formBudget), DateOnly.FromDateTime(DateTime.Today.AddMonths(2)));
+            Db.SalaryReviewRounds.Add(runda);
+            await Db.SaveChangesAsync();
+            _rundor.Insert(0, runda);
+            _showForm = false; _success = $"Löneöversynsrunda \"{_formNamn}\" skapad."; _formNamn = "";
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private static string StatusText(SalaryReviewStatus s) => s switch { SalaryReviewStatus.Planering => "Planering", SalaryReviewStatus.FackligAvstemning => "Facklig avstämning", SalaryReviewStatus.Godkand => "Godkänd", SalaryReviewStatus.Genomford => "Genomförd", _ => s.ToString() };
+    private static Color StatusFarg(SalaryReviewStatus s) => s switch { SalaryReviewStatus.Genomford => Color.Success, SalaryReviewStatus.Godkand => Color.Success, SalaryReviewStatus.FackligAvstemning => Color.Warning, _ => Color.Info };
 }

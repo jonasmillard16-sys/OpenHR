@@ -3,32 +3,31 @@
 
 <PageTitle>OpenHR - Integrationer</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Integrationer</MudText>
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+    OpenHR har inbyggda lokala generatorer för AGI-XML (Skatteverket) och pain.001 (bankfil). Externa livekopplingar kräver konfiguration mot respektive system.
+</MudAlert>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);"><MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">14</MudText><MudText Typo="Typo.body2">OK</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);"><MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">1</MudText><MudText Typo="Typo.body2">Varning</MudText></MudPaper></MudItem>
-    <MudItem xs="4"><MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-error);"><MudText Typo="Typo.h3" Color="Color.Error" Style="font-weight: 700;">1</MudText><MudText Typo="Typo.body2">Fel</MudText></MudPaper></MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mb-3">Adapterstatus</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Adapter</th><th>Protokoll/Format</th><th>Riktning</th><th>Senaste sync</th><th>Status</th></tr></thead>
+<MudText Typo="Typo.h6" Class="mb-3">Interna generatorer (lokala)</MudText>
+<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+    <thead><tr><th>Generator</th><th>Format</th><th>Riktning</th><th>Status</th></tr></thead>
     <tbody>
-        <tr><td><strong>Skatteverket</strong></td><td>AGI XML</td><td>Ut</td><td>2026-03-17 06:00</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Nordea</strong></td><td>ISO 20022</td><td>Ut</td><td>2026-03-17 07:30</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Försäkringskassan</strong></td><td>SSBTEK</td><td>Båda</td><td>2026-03-17 08:00</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Kronofogden</strong></td><td>SFTP/XML</td><td>In</td><td>2026-03-17 06:15</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Skandia (pension)</strong></td><td>SFTP/CSV</td><td>Ut</td><td>2026-03-17 06:12</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Varning</MudChip></td></tr>
-        <tr><td><strong>SKR (statistik)</strong></td><td>REST API</td><td>Ut</td><td>2026-03-17 07:00</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>SCB/KLR</strong></td><td>REST API</td><td>Ut</td><td>2026-03-17 07:00</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Raindance</strong></td><td>SFTP/Flat file</td><td>Båda</td><td>2026-03-17 07:45</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>KOLL/HOSP</strong></td><td>SOAP/XML</td><td>In</td><td>2026-03-17 08:10</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Epassi</strong></td><td>REST API</td><td>Ut</td><td>2026-03-17 07:15</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Troman</strong></td><td>REST API</td><td>Båda</td><td>2026-03-17 06:45</td><td><MudChip T="string" Size="Size.Small" Color="Color.Error">Fel</MudChip></td></tr>
-        <tr><td><strong>PowerBI</strong></td><td>OData</td><td>Ut</td><td>2026-03-17 08:00</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Grade (LMS)</strong></td><td>REST API</td><td>Båda</td><td>2026-03-17 07:30</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Min kompetens</strong></td><td>REST API</td><td>Båda</td><td>2026-03-17 07:30</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Diver</strong></td><td>ODBC</td><td>Ut</td><td>2026-03-17 08:15</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
-        <tr><td><strong>Microweb (arkiv)</strong></td><td>SOAP/XML</td><td>Ut</td><td>2026-03-17 07:50</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip></td></tr>
+        <tr><td><strong>AGI-XML (Skatteverket)</strong></td><td>XML</td><td>Generering</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillgänglig</MudChip></td></tr>
+        <tr><td><strong>pain.001 (Nordea)</strong></td><td>ISO 20022 XML</td><td>Generering</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillgänglig</MudChip></td></tr>
+        <tr><td><strong>SCB-export</strong></td><td>CSV/XML</td><td>Generering</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">Lokal</MudChip></td></tr>
+        <tr><td><strong>PDF-generering</strong></td><td>PDF</td><td>Generering</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillgänglig</MudChip></td></tr>
+        <tr><td><strong>CSV-export</strong></td><td>CSV</td><td>Generering</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Tillgänglig</MudChip></td></tr>
+    </tbody>
+</MudSimpleTable>
+
+<MudText Typo="Typo.h6" Class="mb-3">Externa integrationer (kräver konfiguration)</MudText>
+<MudSimpleTable Hover="true" Elevation="1">
+    <thead><tr><th>System</th><th>Protokoll</th><th>Riktning</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>Försäkringskassan</td><td>SSBTEK</td><td>Båda</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
+        <tr><td>AD / Entra ID</td><td>SCIM 2.0</td><td>Ut</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
+        <tr><td>Platsbanken</td><td>REST API</td><td>Ut</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
+        <tr><td>Bank (löneutbetalning)</td><td>pain.001</td><td>Ut</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
+        <tr><td>E-post (SMTP)</td><td>MailKit</td><td>Ut</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
+        <tr><td>SMS-gateway</td><td>HTTP</td><td>Ut</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Ej konfigurerad</MudChip></td></tr>
     </tbody>
 </MudSimpleTable>

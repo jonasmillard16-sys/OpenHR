@@ -1,172 +1,91 @@
 @page "/admin/import"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Core.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
-<PageTitle>OpenHR - Bulkimport</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bulkimport</MudText>
+<PageTitle>OpenHR - Import</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">CSV-import av anställda</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Klistra in CSV-data med kolumner: Personnummer;Förnamn;Efternamn;Epost (semikolon-separerat).
+</MudText>
 
-<MudGrid Spacing="3" Class="mb-6">
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-6" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-3">Steg 1 — Välj importtyp</MudText>
-            <MudSelect T="string" @bind-Value="_importTyp" Label="Importtyp" Variant="Variant.Outlined" Class="mb-4">
-                <MudSelectItem T="string" Value="@("Anställda")">Anställda (personalregister)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Lönedata")">Lönedata (lönearter)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Organisation")">Organisation (enheter)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Scheman")">Scheman (schemamallar)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Kompetenser")">Kompetenser (certifikat)</MudSelectItem>
-            </MudSelect>
+@if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
 
-            <MudText Typo="Typo.h6" Class="mb-3">Steg 2 — Ladda upp fil</MudText>
-            <MudFileUpload T="IBrowserFile" Accept=".csv,.xlsx,.xls" MaximumFileCount="1" OnFilesChanged="OnFileSelected">
-                <CustomContent>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" Style="min-height: 64px; font-size: 1.1rem;" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="@context.OpenFilePickerAsync">
-                        Välj CSV- eller Excel-fil
-                    </MudButton>
-                </CustomContent>
-            </MudFileUpload>
-            @if (_filnamn != null)
-            {
-                <MudAlert Severity="Severity.Info" Class="mt-3">Vald fil: @_filnamn (@_filStorlek)</MudAlert>
-            }
-
-            <MudDivider Class="my-4" />
-
-            <MudText Typo="Typo.h6" Class="mb-3">Steg 3 — Validera och importera</MudText>
-            <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_filnamn == null)" OnClick="@Validera" StartIcon="@Icons.Material.Filled.FactCheck">Validera</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="@(!_valideringKlar)" OnClick="@Importera" StartIcon="@Icons.Material.Filled.PlayArrow">Starta import</MudButton>
-            </MudStack>
-        </MudPaper>
-    </MudItem>
-
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-6" Elevation="2" Style="min-height: 100%;">
-            <MudText Typo="Typo.h6" Class="mb-3">Valideringsresultat</MudText>
-            @if (!_valideringKlar && _valideringsRader.Count == 0)
-            {
-                <MudAlert Severity="Severity.Normal">Ladda upp en fil och klicka Validera för att se resultat.</MudAlert>
-            }
-            else if (_valideringKlar)
-            {
-                <MudAlert Severity="@(_antalFel > 0 ? Severity.Error : Severity.Success)" Class="mb-3">
-                    @_antalRader rader analyserade: @_antalOk ok, @_antalVarningar varningar, @_antalFel fel
-                </MudAlert>
-                <MudSimpleTable Hover="true" Elevation="0" Dense="true">
-                    <thead><tr><th>Rad</th><th>Fält</th><th>Typ</th><th>Meddelande</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in _valideringsRader)
-                        {
-                            <tr>
-                                <td>@r.Rad</td>
-                                <td>@r.Falt</td>
-                                <td><MudChip T="string" Size="Size.Small" Color="@(r.Typ == "Fel" ? Color.Error : Color.Warning)">@r.Typ</MudChip></td>
-                                <td>@r.Meddelande</td>
-                            </tr>
-                        }
-                    </tbody>
-                </MudSimpleTable>
-            }
-
-            @if (_importKlar)
-            {
-                <MudAlert Severity="Severity.Success" Class="mt-4">Import slutförd! @_antalImporterade av @_antalRader poster importerade.</MudAlert>
-            }
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Importhistorik</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Datum</th><th>Typ</th><th>Fil</th><th>Poster</th><th>Utfört av</th><th>Status</th></tr></thead>
-    <tbody>
-        <tr><td>2026-03-10 14:22</td><td>Anställda</td><td>nyanstallda_mars.xlsx</td><td>48</td><td>Johan Eriksson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
-        <tr><td>2026-02-28 09:15</td><td>Lönedata</td><td>lonearter_feb.csv</td><td>4 210</td><td>Maria Lindqvist</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
-        <tr><td>2026-02-15 11:30</td><td>Organisation</td><td>enheter_uppdatering.xlsx</td><td>12</td><td>Johan Eriksson</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Klar</MudChip></td></tr>
-        <tr><td>2026-01-20 08:45</td><td>Kompetenser</td><td>legitimationer_jan.csv</td><td>312</td><td>Anna Ström</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">Delvis (3 fel)</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
-
-@if (_mallMeddelande is not null)
+@if (_imported > 0)
 {
-    <MudAlert Severity="Severity.Info" Class="mt-4 mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _mallMeddelande = null)">@_mallMeddelande</MudAlert>
+    <MudAlert Severity="Severity.Success" Class="mb-4">@_imported anställda importerade till databasen.</MudAlert>
 }
 
-<MudPaper Class="pa-4 mt-6" Elevation="1">
-    <MudText Typo="Typo.h6" Class="mb-2">Mallnedladdning</MudText>
-    <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Ladda ner importmallar i CSV- eller Excel-format med korrekta kolumner och exempeldata.</MudText>
-    <MudStack Row="true" Spacing="2">
-        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => LaddaNerMall("Anställda"))">Anställda (CSV)</MudButton>
-        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => LaddaNerMall("Lönedata"))">Lönedata (CSV)</MudButton>
-        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => LaddaNerMall("Organisation"))">Organisation (CSV)</MudButton>
-        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => LaddaNerMall("Scheman"))">Scheman (CSV)</MudButton>
-        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => LaddaNerMall("Kompetenser"))">Kompetenser (CSV)</MudButton>
-    </MudStack>
+<MudPaper Class="pa-5" Elevation="2">
+    <MudTextField @bind-Value="_csvData" Label="CSV-data" Variant="Variant.Outlined" Lines="8"
+                  Placeholder="198501151234;Anna;Svensson;anna@region.se" Class="mb-3" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+               OnClick="Importera" Disabled="@(string.IsNullOrWhiteSpace(_csvData) || _saving)">
+        @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+        Importera
+    </MudButton>
 </MudPaper>
 
+@if (_valideringsfel.Count > 0)
+{
+    <MudAlert Severity="Severity.Warning" Class="mt-4">
+        <MudText Typo="Typo.subtitle2">Valideringsfel:</MudText>
+        @foreach (var f in _valideringsfel) { <MudText Typo="Typo.body2">@f</MudText> }
+    </MudAlert>
+}
+
 @code {
-    private string _importTyp = "Anställda";
-    private string? _filnamn;
-    private string? _filStorlek;
-    private bool _valideringKlar;
-    private bool _importKlar;
-    private int _antalRader;
-    private int _antalOk;
-    private int _antalVarningar;
-    private int _antalFel;
-    private int _antalImporterade;
-    private List<ValideringsRad> _valideringsRader = [];
+    private string _csvData = "";
+    private int _imported;
+    private bool _saving;
+    private string? _error;
+    private List<string> _valideringsfel = [];
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
+    private async Task Importera()
     {
-        var file = e.File;
-        _filnamn = file.Name;
-        _filStorlek = file.Size < 1024 * 1024 ? $"{file.Size / 1024} KB" : $"{file.Size / 1024 / 1024} MB";
-        _valideringKlar = false;
-        _importKlar = false;
-        _valideringsRader = [];
-    }
-
-    private void Validera()
-    {
-        _antalRader = 48;
-        _antalOk = 45;
-        _antalVarningar = 2;
-        _antalFel = 1;
-        _valideringsRader =
-        [
-            new(12, "Personnummer", "Fel", "Ogiltigt personnummer: kontrollsiffra stämmer ej"),
-            new(23, "E-post", "Varning", "E-postadress saknas — kan inte skicka välkomstmail"),
-            new(37, "Enhet", "Varning", "Enhetskod 'XY99' finns ej — tilldelas standardenhet"),
-        ];
-        _valideringKlar = true;
-        _importKlar = false;
-    }
-
-    private void Importera()
-    {
-        _antalImporterade = _antalOk + _antalVarningar;
-        _importKlar = true;
-    }
-
-    private string? _mallMeddelande;
-
-    private void LaddaNerMall(string typ)
-    {
-        var mall = typ switch
+        _saving = true; _error = null; _valideringsfel = []; _imported = 0;
+        try
         {
-            "Anställda" => "Personnummer;Förnamn;Efternamn;Enhet;Befattning;Anställningsform;Startdatum;Sysselsättningsgrad\n19850115-1234;Anna;Svensson;Avdelning 32;Sjuksköterska;Tillsvidare;2020-01-15;100",
-            "Schema" => "Personnummer;Datum;Startklockslag;Slutklockslag;Passtyp\n19850115-1234;2026-04-01;07:00;16:00;Dag",
-            "Lönearter" => "Personnummer;Löneart;Belopp;Enhet;Period\n19850115-1234;OB-kväll;460;kr;2026-03",
-            _ => "Kolumn1;Kolumn2;Kolumn3"
-        };
-        _mallMeddelande = $"Mall för {typ} (CSV-format, semikolonseparerad):\n\n{mall}\n\nKopiera och klistra in i Excel eller spara som .csv-fil.";
-    }
+            var lines = _csvData.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var created = new List<Employee>();
 
-    private class ValideringsRad(int rad, string falt, string typ, string meddelande)
-    {
-        public int Rad { get; set; } = rad;
-        public string Falt { get; set; } = falt;
-        public string Typ { get; set; } = typ;
-        public string Meddelande { get; set; } = meddelande;
+            foreach (var line in lines)
+            {
+                var parts = line.Split(';');
+                if (parts.Length < 3)
+                {
+                    _valideringsfel.Add($"Rad \"{line}\" har för få kolumner (behöver minst Pnr;Förnamn;Efternamn).");
+                    continue;
+                }
+
+                try
+                {
+                    var pnr = Personnummer.CreateValidated(parts[0].Trim());
+                    var emp = Employee.Skapa(pnr, parts[1].Trim(), parts[2].Trim());
+                    if (parts.Length >= 4 && !string.IsNullOrWhiteSpace(parts[3]))
+                    {
+                        emp.UppdateraKontaktuppgifter(parts[3].Trim(), null, null);
+                    }
+                    Db.Employees.Add(emp);
+                    created.Add(emp);
+                }
+                catch (Exception ex)
+                {
+                    _valideringsfel.Add($"Rad \"{line}\": {ex.Message}");
+                }
+            }
+
+            if (created.Count > 0)
+            {
+                await Db.SaveChangesAsync();
+                _imported = created.Count;
+                _csvData = "";
+            }
+        }
+        catch (Exception ex) { _error = $"Import misslyckades: {ex.Message}"; }
+        finally { _saving = false; }
     }
 }

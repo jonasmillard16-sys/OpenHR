@@ -1,38 +1,59 @@
 @page "/admin/konfiguration"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - Konfiguration</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Systemkonfiguration</MudText>
 
-<MudText Typo="Typo.h6" Class="mb-3">Tenantinställningar</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Inställning</th><th>Värde</th><th>Beskrivning</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Organisationsnamn</strong></td><td>Region Västra Götaland</td><td>Visas i sidhuvud och rapporter</td></tr>
-        <tr><td><strong>Organisationsnummer</strong></td><td>232100-0131</td><td>Används i AGI-rapportering</td></tr>
-        <tr><td><strong>Kollektivavtal</strong></td><td>AB + HOK</td><td>Primära avtal för löneberäkning</td></tr>
-        <tr><td><strong>Löneperiod</strong></td><td>Månad (25:e)</td><td>Utbetalningsdatum</td></tr>
-        <tr><td><strong>Standardspråk</strong></td><td>Svenska (sv-SE)</td><td>Systemspråk och format</td></tr>
-    </tbody>
-</MudSimpleTable>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudText Typo="Typo.h6" Class="mb-3">Systemstatus</MudText>
+    <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+        <thead><tr><th>Parameter</th><th>Värde</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Anställda i systemet</strong></td><td>@_antalAnstallda</td></tr>
+            <tr><td><strong>Organisationsenheter</strong></td><td>@_antalEnheter</td></tr>
+            <tr><td><strong>Positioner</strong></td><td>@_antalPositioner</td></tr>
+            <tr><td><strong>Lönekörningar</strong></td><td>@_antalKorningar</td></tr>
+            <tr><td><strong>Lönearter</strong></td><td>@_antalLonearter</td></tr>
+            <tr><td><strong>Policyer</strong></td><td>@_antalPolicyer</td></tr>
+        </tbody>
+    </MudSimpleTable>
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Arbetsflödesdefinitioner</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Arbetsflöde</th><th>Steg</th><th>Aktiv</th><th>Senast ändrad</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Ledighetsansökan</strong></td><td>Ansökan &rarr; Chef &rarr; Godkänd</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-01-15</td></tr>
-        <tr><td><strong>Lönekörning</strong></td><td>Förbered &rarr; Granska &rarr; Godkänn &rarr; Utbetala</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-02-01</td></tr>
-        <tr><td><strong>Nyanställning</strong></td><td>Rekrytering &rarr; HR &rarr; IT &rarr; Klar</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2025-12-10</td></tr>
-        <tr><td><strong>Offboarding</strong></td><td>Uppsägning &rarr; Chef &rarr; HR &rarr; IT &rarr; Avslutat</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td><td>2026-01-20</td></tr>
-    </tbody>
-</MudSimpleTable>
+    <MudText Typo="Typo.h6" Class="mb-3">Systemparametrar</MudText>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Systeminställningar lagras i TenantConfiguration. Ändring kräver admin-behörighet.</MudAlert>
+    <MudSimpleTable Hover="true" Elevation="1">
+        <thead><tr><th>Inställning</th><th>Värde</th><th>Beskrivning</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Kollektivavtal</strong></td><td>AB + HOK</td><td>Primära avtal för löneberäkning</td></tr>
+            <tr><td><strong>Löneperiod</strong></td><td>Månad (25:e)</td><td>Utbetalningsdatum</td></tr>
+            <tr><td><strong>AG-avgift</strong></td><td>31,42%</td><td>Standard arbetsgivaravgift</td></tr>
+            <tr><td><strong>Kommunalskatt</strong></td><td>32,13%</td><td>Standard kommunalskatt Göteborg</td></tr>
+        </tbody>
+    </MudSimpleTable>
+}
 
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Anpassade fält</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead><tr><th>Fältnamn</th><th>Entitet</th><th>Typ</th><th>Obligatorisk</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Legitimationsnummer</strong></td><td>Anställd</td><td>Text</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td></tr>
-        <tr><td><strong>Parkeringstillstånd</strong></td><td>Anställd</td><td>Boolean</td><td><MudChip T="string" Size="Size.Small" Color="Color.Default">Nej</MudChip></td></tr>
-        <tr><td><strong>Kostnadsställe</strong></td><td>Enhet</td><td>Text</td><td><MudChip T="string" Size="Size.Small" Color="Color.Success">Ja</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
+@code {
+    private int _antalAnstallda, _antalEnheter, _antalPositioner, _antalKorningar, _antalLonearter, _antalPolicyer;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _antalAnstallda = await Db.Employees.CountAsync();
+            _antalEnheter = await Db.OrganizationUnits.CountAsync();
+            _antalPositioner = await Db.Positions_Table.CountAsync();
+            _antalKorningar = await Db.PayrollRuns.CountAsync();
+            _antalLonearter = await Db.SalaryCodes.CountAsync();
+            _antalPolicyer = await Db.Policies.CountAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta systemstatus: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+}

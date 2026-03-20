@@ -1,18 +1,83 @@
 @page "/schema/atl"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
 
 <PageTitle>OpenHR - ATL-efterlevnad</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">ATL-efterlevnad</MudText>
-<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Arbetstidslagens efterlevnad per anställd</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Arbetstidslagens efterlevnad baserad på schemalagda pass (senaste 4 veckor).</MudText>
 
-<MudAlert Severity="Severity.Success" Class="mb-4">✅ Inga aktiva ATL-överträdelser</MudAlert>
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    @if (_overtraders.Count == 0)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">Inga ATL-överträdelser eller varningar.</MudAlert>
+    }
+    else
+    {
+        <MudText Typo="Typo.h6" Class="mb-3">Nära gränsvärden / överträdelser</MudText>
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Regel</th><th>Gräns</th><th>Aktuellt</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in _overtraders)
+                {
+                    <tr>
+                        <td><strong>@r.Namn</strong></td>
+                        <td>Veckoarbetstid (4v snitt)</td>
+                        <td>48h</td>
+                        <td>@r.SnittTimmarPerVecka.ToString("F1")h</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@(r.SnittTimmarPerVecka >= 48 ? Color.Error : r.SnittTimmarPerVecka >= 45 ? Color.Warning : Color.Success)">
+                            @(r.SnittTimmarPerVecka >= 48 ? "Överträder" : r.SnittTimmarPerVecka >= 45 ? $"{(48 - r.SnittTimmarPerVecka):F1}h kvar" : "OK")
+                        </MudChip></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 
-<MudText Typo="Typo.h6" Class="mb-3">Nära gränsvärden</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Regel</th><th>Gräns</th><th>Aktuellt</th><th>Marginal</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Erik Lindberg</strong></td><td>Veckoarbetstid (4v snitt)</td><td>48h</td><td>47h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">1h kvar</MudChip></td></tr>
-        <tr><td><strong>Sara Karlsson</strong></td><td>Årsövertid</td><td>200h</td><td>185h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Warning">15h kvar</MudChip></td></tr>
-        <tr><td><strong>Anders Olsson</strong></td><td>Dygnsvila</td><td>11h (9h sjukvård)</td><td>9,5h</td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">OK (sjukvårdsundantag)</MudChip></td></tr>
-    </tbody>
-</MudSimpleTable>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4" Dense="true">
+        ATL: max 48h/vecka i snitt över 4-veckorsperiod. Dygnsvila min 11h (9h med sjukvårdsundantag). Veckovila min 36h sammanhängande.
+    </MudAlert>
+}
+
+@code {
+    private List<ATLRad> _overtraders = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var idag = DateOnly.FromDateTime(DateTime.Today);
+            var fyraVeckorSedan = idag.AddDays(-28);
+
+            var shifts = await Db.ScheduledShifts
+                .Where(s => s.Datum >= fyraVeckorSedan && s.Datum <= idag && s.Status != ShiftStatus.Avbokad)
+                .ToListAsync();
+
+            var employees = await Db.Employees.ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            var perEmployee = shifts.GroupBy(s => s.AnstallId.Value);
+            foreach (var g in perEmployee)
+            {
+                var totalTimmar = g.Sum(s => (decimal)s.PlaneradeTimmar);
+                var snitt = totalTimmar / 4m;
+                if (snitt >= 40)
+                {
+                    _overtraders.Add(new ATLRad(names.GetValueOrDefault(g.Key, "Okänd"), snitt));
+                }
+            }
+            _overtraders = _overtraders.OrderByDescending(r => r.SnittTimmarPerVecka).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte beräkna ATL: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private record ATLRad(string Namn, decimal SnittTimmarPerVecka);
+}

@@ -69,6 +69,7 @@ else if (_result != null)
 @code {
     [Parameter] public string Namn { get; set; } = "";
     private bool _running = true;
+    private string? _error;
     private List<string> _headers = [];
     private List<List<string>> _result = [];
 
@@ -92,7 +93,7 @@ else if (_result != null)
                         e.Anstallningar.FirstOrDefault()?.Giltighetsperiod.Start.ToString() ?? "-"
                     }).ToList();
                 }
-                catch { _result = [["Anna Svensson", "198506XX-XXXX", "Avd 32", "Sjuksköterska", "2015-08-01"]]; }
+                catch (Exception ex) { _error = $"Kunde inte hämta personalförteckning: {ex.Message}"; }
                 break;
 
             case "Löneregister":
@@ -115,17 +116,7 @@ else if (_result != null)
                         };
                     }).ToList();
                 }
-                catch
-                {
-                    _result =
-                    [
-                        ["Anna Svensson", "198503XX-XXXX", "Sjuksköterska", "34 500 kr", "-11 084 kr", "23 416 kr", "10 840 kr"],
-                        ["Erik Johansson", "197806XX-XXXX", "Läkare", "62 000 kr", "-22 424 kr", "39 576 kr", "19 480 kr"],
-                        ["Maria Lindgren", "199001XX-XXXX", "Undersköterska", "27 800 kr", "-8 896 kr", "18 904 kr", "8 735 kr"],
-                        ["Karl Berg", "198207XX-XXXX", "Sjuksköterska", "35 200 kr", "-11 264 kr", "23 936 kr", "11 060 kr"],
-                        ["Sara Karlsson", "199504XX-XXXX", "Undersköterska", "27 500 kr", "-8 800 kr", "18 700 kr", "8 641 kr"],
-                    ];
-                }
+                catch (Exception ex) { _error = $"Kunde inte hämta löneregister: {ex.Message}"; }
                 break;
 
             case "Frånvarostatistik":
