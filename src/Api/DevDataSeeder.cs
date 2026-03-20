@@ -7,6 +7,7 @@ using RegionHR.Travel.Domain;
 using RegionHR.SalaryReview.Domain;
 using RegionHR.CaseManagement.Domain;
 using RegionHR.Compensation.Domain;
+using RegionHR.Benefits.Domain;
 
 namespace RegionHR.Api;
 
@@ -153,6 +154,47 @@ public static class DevDataSeeder
             MaxHojningProcent = 6.0m
         });
         db.CompensationPlans.Add(compPlan);
+
+        // ============================================================
+        // Benefits Engine (Phase B3)
+        // ============================================================
+
+        // Seed Benefits (the existing entity) for the engine to reference
+        var friskvard = Benefit.Skapa("Friskvårdsbidrag", "Bidrag för friskvårdsaktiviteter, max 5 000 kr/år", BenefitCategory.Friskvard, 5000m, 100m, false);
+        var tjanstebil = Benefit.Skapa("Tjänstebil", "Förmånsbil via arbetsgivaren", BenefitCategory.Tjanstebil, 8000m, 60m, true);
+        var sjukvard = Benefit.Skapa("Sjukvårdsförsäkring", "Privat sjukvårdsförsäkring", BenefitCategory.Sjukvard, 3500m, 100m, false);
+        db.Benefits.AddRange(friskvard, tjanstebil, sjukvard);
+
+        // LifeEvents (3 seeded)
+        var leNyanstallning = LifeEvent.Skapa("Nyanställning", "Nyanstallning", 30, """["ValFriskvard","ValSjukvard"]""");
+        var leBarnFott = LifeEvent.Skapa("Barn fött", "BarnFott", 60, """["AnpassaForsakring","ExtraLedighet"]""");
+        var leAvslut = LifeEvent.Skapa("Avslut av anställning", "Avslut", 0, """["AvslutaAllaFormaner"]""");
+        db.LifeEvents.AddRange(leNyanstallning, leBarnFott, leAvslut);
+
+        // EligibilityRules (2 rules with conditions)
+        var regelFriskvard = EligibilityRule.Skapa(friskvard.Id, "Friskvård — Tillsvidare + 50%", "AND");
+        regelFriskvard.LaggTillVillkor("AnstallningsForm", "IN", """["Tillsvidare"]""");
+        regelFriskvard.LaggTillVillkor("Sysselsattningsgrad", "GE", """50""");
+        db.EligibilityRules.Add(regelFriskvard);
+
+        var regelTjanstebil = EligibilityRule.Skapa(tjanstebil.Id, "Tjänstebil — Chef + Privat avtal", "AND");
+        regelTjanstebil.LaggTillVillkor("Befattningskategori", "IN", """["Chef","Verksamhetschef"]""");
+        regelTjanstebil.LaggTillVillkor("CollectiveAgreement", "EQ", """"Privat"""");
+        db.EligibilityRules.Add(regelTjanstebil);
+
+        // EnrollmentPeriod (Öppet val 2026)
+        var oppetVal = EnrollmentPeriod.Skapa("Öppet val 2026", new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30),
+            System.Text.Json.JsonSerializer.Serialize(new[] { friskvard.Id, tjanstebil.Id, sjukvard.Id }));
+        oppetVal.Oppna();
+        db.EnrollmentPeriods.Add(oppetVal);
+
+        // BenefitEnrollments for seeded employees
+        var enrollAnna = BenefitEnrollment.Skapa(anna.Id.Value, friskvard.Id, new DateOnly(2026, 1, 1), "Standard");
+        enrollAnna.Aktivera();
+        var enrollErik = BenefitEnrollment.Skapa(erik.Id.Value, sjukvard.Id, new DateOnly(2026, 1, 1), "Grund");
+        enrollErik.Aktivera();
+        var enrollMaria = BenefitEnrollment.Skapa(maria.Id.Value, friskvard.Id, new DateOnly(2026, 3, 1));
+        db.BenefitEnrollments.AddRange(enrollAnna, enrollErik, enrollMaria);
 
         db.SaveChanges();
     }

@@ -1,0 +1,207 @@
+@page "/formaner/val"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+
+<PageTitle>OpenHR — Öppet val</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Öppet förmånsval</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @* Active enrollment period *@
+    @if (_activePeriod != null)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4" Dense="true">
+            <strong>@_activePeriod.Namn</strong> — @_activePeriod.StartDatum.ToString("yyyy-MM-dd") till @_activePeriod.SlutDatum.ToString("yyyy-MM-dd")
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ml-2">Öppet</MudChip>
+        </MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mb-4">
+            Det finns ingen aktiv valperiod just nu. Kontakta HR om du behöver göra ändringar.
+        </MudAlert>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* KPI Cards *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_benefits.Count(b => b.ArAktiv)</MudText>
+                <MudText Typo="Typo.body2">Tillgängliga förmåner</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_myEnrollments.Count</MudText>
+                <MudText Typo="Typo.body2">Mina val</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == "Active")</MudText>
+                <MudText Typo="Typo.body2">Aktiva</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == "Pending")</MudText>
+                <MudText Typo="Typo.body2">Väntar</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Available benefits *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Tillgängliga förmåner</MudText>
+    <MudGrid Spacing="3" Class="mb-6">
+        @foreach (var b in _benefits.Where(b => b.ArAktiv))
+        {
+            var isEnrolled = _myEnrollments.Any(e => e.BenefitId == b.Id && e.Status is "Active" or "Pending");
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@b.Namn</MudText>
+                            <MudChip T="string" Size="Size.Small">@b.Kategori</MudChip>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mb-2">@b.Beskrivning</MudText>
+                        <MudText Typo="Typo.body2"><strong>Maxbelopp:</strong> @(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</MudText>
+                        <MudText Typo="Typo.body2"><strong>Arbetsgivarandel:</strong> @b.ArbetsgivarAndel%</MudText>
+                        <MudText Typo="Typo.body2"><strong>Skattepliktig:</strong> @(b.ArSkattepliktig ? "Ja" : "Nej")</MudText>
+                        @if (isEnrolled)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="mt-2">Anmäld</MudChip>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        @if (!isEnrolled)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       OnClick="@(() => AnmalForman(b))">Anmäl</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => AvbrytForman(b))">Avbryt</MudButton>
+                        }
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @* My enrollments *@
+    @if (_myEnrollments.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Mina förmånsval</MudText>
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Förmån</th><th>Status</th><th>Startdatum</th><th>Vald nivå</th></tr></thead>
+            <tbody>
+                @foreach (var e in _myEnrollments.OrderByDescending(x => x.SkapadVid))
+                {
+                    <tr>
+                        <td><strong>@GetBenefitName(e.BenefitId)</strong></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@EnrollmentStatusColor(e.Status)">@EnrollmentStatusText(e.Status)</MudChip></td>
+                        <td>@e.StartDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@(e.ValdNiva ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<Benefit> _benefits = [];
+    private List<BenefitEnrollment> _myEnrollments = [];
+    private EnrollmentPeriod? _activePeriod;
+    private bool _loading = true;
+    private string? _error, _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
+
+            _activePeriod = await Db.EnrollmentPeriods
+                .FirstOrDefaultAsync(p => p.Status == "Open");
+
+            if (Auth.EmployeeId.HasValue)
+            {
+                _myEnrollments = await Db.BenefitEnrollments
+                    .Where(e => e.AnstallId == Auth.EmployeeId.Value)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task AnmalForman(Benefit benefit)
+    {
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver inloggad anställd."; return; }
+        try
+        {
+            var enrollment = BenefitEnrollment.Skapa(Auth.EmployeeId.Value, benefit.Id, DateOnly.FromDateTime(DateTime.Today));
+            Db.BenefitEnrollments.Add(enrollment);
+            await Db.SaveChangesAsync();
+            _myEnrollments.Add(enrollment);
+            _success = $"Anmäld till {benefit.Namn}. Väntar på aktivering.";
+        }
+        catch (Exception ex) { _error = $"Kunde inte anmäla: {ex.Message}"; }
+    }
+
+    private async Task AvbrytForman(Benefit benefit)
+    {
+        if (!Auth.EmployeeId.HasValue) return;
+        var enrollment = _myEnrollments.FirstOrDefault(e => e.BenefitId == benefit.Id && e.Status is "Active" or "Pending");
+        if (enrollment is null) return;
+        try
+        {
+            enrollment.Avbryt();
+            await Db.SaveChangesAsync();
+            _success = $"Förmånsval för {benefit.Namn} avbrutet.";
+        }
+        catch (Exception ex) { _error = $"Kunde inte avbryta: {ex.Message}"; }
+    }
+
+    private string GetBenefitName(Guid id) => _benefits.FirstOrDefault(b => b.Id == id)?.Namn ?? "Okänd";
+
+    private static Color EnrollmentStatusColor(string s) => s switch
+    {
+        "Active" => Color.Success,
+        "Pending" => Color.Warning,
+        "Cancelled" => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string EnrollmentStatusText(string s) => s switch
+    {
+        "Active" => "Aktiv",
+        "Pending" => "Väntar",
+        "Cancelled" => "Avbruten",
+        _ => s
+    };
+}

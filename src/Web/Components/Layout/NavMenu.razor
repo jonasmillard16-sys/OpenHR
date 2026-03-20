@@ -67,6 +67,9 @@
                      Expanded="@_formanerOpen" ExpandedChanged="@(v => _formanerOpen = v)">
             <MudNavLink Href="/formaner">Översikt</MudNavLink>
             <MudNavLink Href="/formaner/enrollment">Förmånsval</MudNavLink>
+            <MudNavLink Href="/formaner/val">Öppet val</MudNavLink>
+            <MudNavLink Href="/formaner/livshandelse">Livshändelse</MudNavLink>
+            <MudNavLink Href="/formaner/sammanstallning">Sammanställning</MudNavLink>
         </MudNavGroup>
         <MudNavGroup Title="@L["Reports"]" Icon="@Icons.Material.Filled.BarChart"
                      Expanded="@_rapporterOpen" ExpandedChanged="@(v => _rapporterOpen = v)">
@@ -98,6 +101,12 @@
         <MudNavLink Href="/admin/automatisering" Icon="@Icons.Material.Filled.SmartToy">Automatisering</MudNavLink>
         <MudNavLink Href="/admin/kollektivavtal" Icon="@Icons.Material.Filled.Handshake">Kollektivavtal</MudNavLink>
         <MudNavLink Href="/admin/rapporter/schema" Icon="@Icons.Material.Filled.Schedule">Schemalagda rapporter</MudNavLink>
+        <MudNavGroup Title="Förmånsadmin" Icon="@Icons.Material.Filled.AdminPanelSettings"
+                     Expanded="@_formanerAdminOpen" ExpandedChanged="@(v => _formanerAdminOpen = v)">
+            <MudNavLink Href="/admin/formaner/planer">Planer</MudNavLink>
+            <MudNavLink Href="/admin/formaner/regler">Behörighetsregler</MudNavLink>
+            <MudNavLink Href="/admin/formaner/perioder">Valperioder</MudNavLink>
+        </MudNavGroup>
         <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
         <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>
     }
@@ -117,4 +126,5 @@
     private bool _karriarOpen;
     private bool _rapporterOpen;
     private bool _vmsOpen;
+    private bool _formanerAdminOpen;
 }

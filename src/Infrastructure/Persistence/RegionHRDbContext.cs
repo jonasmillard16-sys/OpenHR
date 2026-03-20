@@ -60,6 +60,16 @@ public class RegionHRDbContext : DbContext
     public DbSet<ShiftSwapRequest> ShiftSwapRequests => Set<ShiftSwapRequest>();
     public DbSet<Timesheet> Timesheets => Set<Timesheet>();
 
+    // WFM — Advanced Scheduling (schema: scheduling)
+    public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
+    public DbSet<DemandPattern> DemandPatterns => Set<DemandPattern>();
+    public DbSet<DemandEvent> DemandEvents => Set<DemandEvent>();
+    public DbSet<SchedulingConstraint> SchedulingConstraints => Set<SchedulingConstraint>();
+    public DbSet<ShiftCoverageRequest> ShiftCoverageRequests => Set<ShiftCoverageRequest>();
+    public DbSet<EmployeeAvailability> EmployeeAvailabilities => Set<EmployeeAvailability>();
+    public DbSet<FatigueScore> FatigueScores => Set<FatigueScore>();
+    public DbSet<SchedulingRun> SchedulingRuns => Set<SchedulingRun>();
+
     // Case Management (schema: case_mgmt)
     public DbSet<Case> Cases => Set<Case>();
 
@@ -125,9 +135,30 @@ public class RegionHRDbContext : DbContext
     public DbSet<EmployeeSkill> EmployeeSkills => Set<EmployeeSkill>();
     public DbSet<PositionSkillRequirement> PositionSkillRequirements => Set<PositionSkillRequirement>();
 
+    // Talent Marketplace (schema: competence)
+    public DbSet<SkillCategoryEntity> SkillCategories => Set<SkillCategoryEntity>();
+    public DbSet<SkillRelation> SkillRelations => Set<SkillRelation>();
+    public DbSet<InferredSkill> InferredSkills => Set<InferredSkill>();
+    public DbSet<CareerPath> CareerPaths => Set<CareerPath>();
+    public DbSet<CareerPathStep> CareerPathSteps => Set<CareerPathStep>();
+    public DbSet<DevelopmentPlan> DevelopmentPlans => Set<DevelopmentPlan>();
+    public DbSet<DevelopmentMilestone> DevelopmentMilestones => Set<DevelopmentMilestone>();
+    public DbSet<InternalOpportunity> InternalOpportunities => Set<InternalOpportunity>();
+    public DbSet<OpportunityApplication> OpportunityApplications => Set<OpportunityApplication>();
+    public DbSet<MentorRelation> MentorRelations => Set<MentorRelation>();
+    public DbSet<SkillEndorsement> SkillEndorsements => Set<SkillEndorsement>();
+
     // Benefits (schema: benefits)
     public DbSet<Benefit> Benefits => Set<Benefit>();
     public DbSet<EmployeeBenefit> EmployeeBenefits => Set<EmployeeBenefit>();
+    public DbSet<EligibilityRule> EligibilityRules => Set<EligibilityRule>();
+    public DbSet<EligibilityCondition> EligibilityConditions => Set<EligibilityCondition>();
+    public DbSet<LifeEvent> LifeEvents => Set<LifeEvent>();
+    public DbSet<LifeEventOccurrence> LifeEventOccurrences => Set<LifeEventOccurrence>();
+    public DbSet<EnrollmentPeriod> EnrollmentPeriods => Set<EnrollmentPeriod>();
+    public DbSet<BenefitEnrollment> BenefitEnrollments => Set<BenefitEnrollment>();
+    public DbSet<BenefitStatement> BenefitStatements => Set<BenefitStatement>();
+    public DbSet<BenefitTransaction> BenefitTransactions => Set<BenefitTransaction>();
 
     // LMS (schema: lms)
     public DbSet<Course> Courses => Set<Course>();
@@ -277,6 +308,11 @@ public class RegionHRDbContext : DbContext
         configurationBuilder.Properties<VendorId>().HaveConversion<VendorIdConverter>();
         configurationBuilder.Properties<StaffingRequestId>().HaveConversion<StaffingRequestIdConverter>();
         configurationBuilder.Properties<FrameworkAgreementId>().HaveConversion<FrameworkAgreementIdConverter>();
+        configurationBuilder.Properties<CareerPathId>().HaveConversion<CareerPathIdConverter>();
+        configurationBuilder.Properties<DevelopmentPlanId>().HaveConversion<DevelopmentPlanIdConverter>();
+        configurationBuilder.Properties<InternalOpportunityId>().HaveConversion<InternalOpportunityIdConverter>();
+        configurationBuilder.Properties<DemandForecastId>().HaveConversion<DemandForecastIdConverter>();
+        configurationBuilder.Properties<SchedulingRunId>().HaveConversion<SchedulingRunIdConverter>();
         configurationBuilder.Properties<Money>().HaveConversion<MoneyConverter>();
         configurationBuilder.Properties<Percentage>().HaveConversion<PercentageConverter>();
     }
@@ -381,4 +417,29 @@ public class StaffingRequestIdConverter : Microsoft.EntityFrameworkCore.Storage.
 public class FrameworkAgreementIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<FrameworkAgreementId, Guid>
 {
     public FrameworkAgreementIdConverter() : base(v => v.Value, v => FrameworkAgreementId.From(v)) { }
+}
+
+public class CareerPathIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<CareerPathId, Guid>
+{
+    public CareerPathIdConverter() : base(v => v.Value, v => CareerPathId.From(v)) { }
+}
+
+public class DevelopmentPlanIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DevelopmentPlanId, Guid>
+{
+    public DevelopmentPlanIdConverter() : base(v => v.Value, v => DevelopmentPlanId.From(v)) { }
+}
+
+public class InternalOpportunityIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<InternalOpportunityId, Guid>
+{
+    public InternalOpportunityIdConverter() : base(v => v.Value, v => InternalOpportunityId.From(v)) { }
+}
+
+public class DemandForecastIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DemandForecastId, Guid>
+{
+    public DemandForecastIdConverter() : base(v => v.Value, v => DemandForecastId.From(v)) { }
+}
+
+public class SchedulingRunIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<SchedulingRunId, Guid>
+{
+    public SchedulingRunIdConverter() : base(v => v.Value, v => SchedulingRunId.From(v)) { }
 }

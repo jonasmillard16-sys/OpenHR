@@ -358,6 +358,7 @@ app.MapOffboardingEndpoints();
 // Wave 5: Förmåner, Utbildning (LMS)
 // ============================================================
 app.MapBenefitsEndpoints();
+app.MapBenefitsExpandedEndpoints();
 app.MapLMSEndpoints();
 
 // ============================================================
@@ -390,6 +391,16 @@ app.MapCompensationEndpoints();
 // Phase B4: VMS / Contingent Workforce
 // ============================================================
 app.MapVMSEndpoints();
+
+// ============================================================
+// Phase B5: Advanced WFM
+// ============================================================
+app.MapWFMEndpoints();
+
+// ============================================================
+// Phase B6: Talent Marketplace & Skills Intelligence
+// ============================================================
+app.MapTalentEndpoints();
 
 // ============================================================
 // Integration Status

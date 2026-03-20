@@ -1,0 +1,178 @@
+@page "/admin/formaner/perioder"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Valperioder</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Valperioder</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showForm = !_showForm)">Ny period</MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Hantera perioder för öppet förmånsval. Under en öppen period kan anställda anmäla sig till eller ändra sina förmåner.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny valperiod</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_formNamn" Label="Namn" Variant="Variant.Outlined" Required="true"
+                                  Placeholder="T.ex. Öppet val 2027" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudDatePicker @bind-Date="_formStartDatum" Label="Startdatum" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudDatePicker @bind-Date="_formSlutDatum" Label="Slutdatum" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Size="Size.Large"
+                       Style="min-height: 48px;" OnClick="SkapaPeriod"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formNamn) || _formStartDatum == null || _formSlutDatum == null)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* KPI *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_periods.Count</MudText>
+                <MudText Typo="Typo.body2">Totalt</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_periods.Count(p => p.Status == "Open")</MudText>
+                <MudText Typo="Typo.body2">Öppna</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_periods.Count(p => p.Status == "Upcoming")</MudText>
+                <MudText Typo="Typo.body2">Kommande</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_periods.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga valperioder skapade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Period</th><th>Start</th><th>Slut</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in _periods)
+                {
+                    <tr>
+                        <td><strong>@p.Namn</strong></td>
+                        <td>@p.StartDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@p.SlutDatum.ToString("yyyy-MM-dd")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@PeriodStatusColor(p.Status)">@PeriodStatusText(p.Status)</MudChip></td>
+                        <td>
+                            @if (p.Status == "Upcoming")
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(async () => await OppnaPeriod(p))">Öppna</MudButton>
+                            }
+                            else if (p.Status == "Open")
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning" OnClick="@(async () => await StangPeriod(p))">Stäng</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<EnrollmentPeriod> _periods = [];
+    private bool _loading = true, _showForm;
+    private string? _error, _success;
+    private string _formNamn = "";
+    private DateTime? _formStartDatum, _formSlutDatum;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _periods = await Db.EnrollmentPeriods.OrderByDescending(p => p.StartDatum).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaPeriod()
+    {
+        if (string.IsNullOrWhiteSpace(_formNamn) || _formStartDatum == null || _formSlutDatum == null) return;
+        try
+        {
+            var period = EnrollmentPeriod.Skapa(_formNamn,
+                DateOnly.FromDateTime(_formStartDatum.Value),
+                DateOnly.FromDateTime(_formSlutDatum.Value));
+            Db.EnrollmentPeriods.Add(period);
+            await Db.SaveChangesAsync();
+            _periods.Insert(0, period);
+            _showForm = false;
+            _success = $"Valperiod '{_formNamn}' skapad.";
+            _formNamn = ""; _formStartDatum = null; _formSlutDatum = null;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+    }
+
+    private async Task OppnaPeriod(EnrollmentPeriod p)
+    {
+        try { p.Oppna(); await Db.SaveChangesAsync(); _success = $"Period '{p.Namn}' öppnad."; }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+    }
+
+    private async Task StangPeriod(EnrollmentPeriod p)
+    {
+        try { p.Stang(); await Db.SaveChangesAsync(); _success = $"Period '{p.Namn}' stängd."; }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+    }
+
+    private static Color PeriodStatusColor(string s) => s switch
+    {
+        "Open" => Color.Success,
+        "Upcoming" => Color.Warning,
+        "Closed" => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string PeriodStatusText(string s) => s switch
+    {
+        "Open" => "Öppen",
+        "Upcoming" => "Kommande",
+        "Closed" => "Stängd",
+        _ => s
+    };
+}

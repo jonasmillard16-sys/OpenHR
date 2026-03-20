@@ -1,0 +1,198 @@
+@page "/admin/formaner/planer"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Administrera förmånsplaner</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmånsplaner</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showForm = !_showForm)">Ny förmånsplan</MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Hantera alla förmånsplaner. Aktivera/inaktivera, granska anmälningar och ställ in egenskaper.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny förmånsplan</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_formNamn" Label="Namn" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_formKategori" Label="Kategori" Variant="Variant.Outlined">
+                        @foreach (var k in Enum.GetNames<BenefitCategory>())
+                        {
+                            <MudSelectItem T="string" Value="@k">@k</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_formBeskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudNumericField T="decimal" @bind-Value="_formMaxBelopp" Label="Maxbelopp (kr)" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudNumericField T="decimal" @bind-Value="_formArbetsgivarAndel" Label="Arbetsgivarandel (%)" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudCheckBox T="bool" @bind-Value="_formSkattepliktig" Label="Skattepliktig" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Size="Size.Large"
+                       Style="min-height: 48px;" OnClick="SkapaPlan"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formNamn) || string.IsNullOrWhiteSpace(_formKategori))">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* KPI *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_benefits.Count</MudText>
+                <MudText Typo="Typo.body2">Totalt</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_benefits.Count(b => b.ArAktiv)</MudText>
+                <MudText Typo="Typo.body2">Aktiva</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_enrollmentCounts.Values.Sum()</MudText>
+                <MudText Typo="Typo.body2">Anmälningar</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_rules.Count</MudText>
+                <MudText Typo="Typo.body2">Behörighetsregler</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Förmån</th>
+                <th>Kategori</th>
+                <th>Maxbelopp</th>
+                <th>Arb.givarandel</th>
+                <th>Skattepliktig</th>
+                <th>Anmälda</th>
+                <th>Regler</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in _benefits)
+            {
+                <tr>
+                    <td><strong>@b.Namn</strong><br /><MudText Typo="Typo.caption">@b.Beskrivning</MudText></td>
+                    <td><MudChip T="string" Size="Size.Small">@b.Kategori</MudChip></td>
+                    <td>@(b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</td>
+                    <td>@b.ArbetsgivarAndel%</td>
+                    <td>@(b.ArSkattepliktig ? "Ja" : "Nej")</td>
+                    <td>@(_enrollmentCounts.GetValueOrDefault(b.Id, 0))</td>
+                    <td>@(_rules.Count(r => r.BenefitId == b.Id))</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="@(b.ArAktiv ? Color.Success : Color.Default)">@(b.ArAktiv ? "Aktiv" : "Inaktiv")</MudChip></td>
+                    <td>
+                        @if (b.ArAktiv)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning" OnClick="@(async () => await ToggleStatus(b))">Inaktivera</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success" OnClick="@(async () => await ToggleStatus(b))">Aktivera</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<Benefit> _benefits = [];
+    private List<EligibilityRule> _rules = [];
+    private Dictionary<Guid, int> _enrollmentCounts = [];
+    private bool _loading = true, _showForm;
+    private string? _error, _success;
+    private string _formNamn = "", _formBeskrivning = "", _formKategori = "";
+    private decimal _formMaxBelopp, _formArbetsgivarAndel = 100;
+    private bool _formSkattepliktig;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
+            _rules = await Db.EligibilityRules.ToListAsync();
+
+            var counts = await Db.BenefitEnrollments
+                .Where(e => e.Status == "Active" || e.Status == "Pending")
+                .GroupBy(e => e.BenefitId)
+                .Select(g => new { BenefitId = g.Key, Count = g.Count() })
+                .ToListAsync();
+            _enrollmentCounts = counts.ToDictionary(c => c.BenefitId, c => c.Count);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaPlan()
+    {
+        try
+        {
+            if (!Enum.TryParse<BenefitCategory>(_formKategori, out var kategori)) { _error = "Ogiltig kategori."; return; }
+            var benefit = Benefit.Skapa(_formNamn, _formBeskrivning, kategori, _formMaxBelopp, _formArbetsgivarAndel, _formSkattepliktig);
+            Db.Benefits.Add(benefit);
+            await Db.SaveChangesAsync();
+            _benefits.Add(benefit);
+            _showForm = false;
+            _success = $"Förmånsplan '{_formNamn}' skapad.";
+            _formNamn = ""; _formBeskrivning = ""; _formKategori = ""; _formMaxBelopp = 0; _formArbetsgivarAndel = 100; _formSkattepliktig = false;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+    }
+
+    private async Task ToggleStatus(Benefit b)
+    {
+        try
+        {
+            if (b.ArAktiv) b.Inaktivera(); else b.Aktivera();
+            await Db.SaveChangesAsync();
+            _success = $"Status för '{b.Namn}' uppdaterad.";
+        }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+    }
+}

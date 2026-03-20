@@ -1,0 +1,137 @@
+@page "/formaner/sammanstallning"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+
+<PageTitle>OpenHR — Förmånssammanställning</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmånssammanställning @_year</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (!Auth.EmployeeId.HasValue)
+{
+    <MudAlert Severity="Severity.Warning">Du behöver vara inloggad som en anställd för att se din sammanställning.</MudAlert>
+}
+else
+{
+    @* Statement summary *@
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_activeEnrollments.Count</MudText>
+                <MudText Typo="Typo.body2">Aktiva förmåner</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@(_totalValue.ToString("N0")) kr</MudText>
+                <MudText Typo="Typo.body2">Totalt värde</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudPaper Class="pa-4 text-center" Elevation="2">
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_transactions.Count</MudText>
+                <MudText Typo="Typo.body2">Transaktioner i år</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Active benefits *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Aktiva förmåner</MudText>
+    @if (_activeEnrollments.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga aktiva förmåner.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
+            <thead><tr><th>Förmån</th><th>Kategori</th><th>Maxbelopp</th><th>Startdatum</th><th>Nivå</th></tr></thead>
+            <tbody>
+                @foreach (var e in _activeEnrollments)
+                {
+                    var b = _benefits.FirstOrDefault(x => x.Id == e.BenefitId);
+                    <tr>
+                        <td><strong>@(b?.Namn ?? "Okänd")</strong></td>
+                        <td>@(b?.Kategori.ToString() ?? "—")</td>
+                        <td>@(b != null && b.MaxBelopp > 0 ? $"{b.MaxBelopp:N0} kr" : "—")</td>
+                        <td>@e.StartDatum.ToString("yyyy-MM-dd")</td>
+                        <td>@(e.ValdNiva ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+
+    @* Transactions *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Transaktioner</MudText>
+    @if (_transactions.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga transaktioner under @_year.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Datum</th><th>Förmån</th><th>Typ</th><th>Belopp</th><th>Beskrivning</th></tr></thead>
+            <tbody>
+                @foreach (var t in _transactions.OrderByDescending(x => x.Datum))
+                {
+                    var b = _benefits.FirstOrDefault(x => x.Id == t.BenefitId);
+                    <tr>
+                        <td>@t.Datum.ToString("yyyy-MM-dd")</td>
+                        <td>@(b?.Namn ?? "Okänd")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@(t.Typ == "Claim" ? Color.Info : Color.Warning)">@t.Typ</MudChip></td>
+                        <td>@t.Belopp.ToString("N0") kr</td>
+                        <td>@t.Beskrivning</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private int _year = DateTime.UtcNow.Year;
+    private List<Benefit> _benefits = [];
+    private List<BenefitEnrollment> _activeEnrollments = [];
+    private List<BenefitTransaction> _transactions = [];
+    private decimal _totalValue;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!Auth.EmployeeId.HasValue) { _loading = false; return; }
+            var anstallId = Auth.EmployeeId.Value;
+
+            _benefits = await Db.Benefits.ToListAsync();
+
+            _activeEnrollments = await Db.BenefitEnrollments
+                .Where(e => e.AnstallId == anstallId && e.Status == "Active")
+                .ToListAsync();
+
+            _transactions = await Db.BenefitTransactions
+                .Where(t => t.AnstallId == anstallId && t.Datum.Year == _year)
+                .ToListAsync();
+
+            var activeBenefitIds = _activeEnrollments.Select(e => e.BenefitId).Distinct().ToList();
+            _totalValue = _benefits.Where(b => activeBenefitIds.Contains(b.Id)).Sum(b => b.MaxBelopp);
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+}

@@ -1,0 +1,190 @@
+@page "/admin/formaner/regler"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Benefits.Domain
+@using RegionHR.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR — Behörighetsregler</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Behörighetsregler</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;"
+               OnClick="@(() => _showForm = !_showForm)">Ny regel</MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Definiera villkor som avgör vilka anställda som är berättigade till respektive förmån.
+    Varje regel har ett eller flera villkor som kombineras med AND eller OR.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Skapa ny behörighetsregel</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid?" @bind-Value="_formBenefitId" Label="Förmån" Variant="Variant.Outlined">
+                        @foreach (var b in _benefits)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)b.Id)">@b.Namn</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_formNamn" Label="Regelnamn" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_formKombination" Label="Kombination" Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("AND")">AND (alla villkor)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("OR")">OR (minst ett villkor)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2" Style="font-weight: 600;">Villkor</MudText>
+            @foreach (var v in _formVillkor)
+            {
+                <MudGrid Spacing="2" Class="mb-2">
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="string" @bind-Value="v.Falt" Label="Fält" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var f in _giltigaFalt)
+                            {
+                                <MudSelectItem T="string" Value="@f">@f</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudSelect T="string" @bind-Value="v.Operator" Label="Operator" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var op in _giltigaOperatorer)
+                            {
+                                <MudSelectItem T="string" Value="@op">@op</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudTextField @bind-Value="v.Varde" Label="Värde (JSON)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Placeholder=@("""["Tillsvidare"] eller "50" """) />
+                    </MudItem>
+                </MudGrid>
+            }
+            <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => _formVillkor.Add(new VillkorForm()))">Lägg till villkor</MudButton>
+
+            <div class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;"
+                           Disabled="@(!_formBenefitId.HasValue || string.IsNullOrWhiteSpace(_formNamn))"
+                           OnClick="SkapaRegel">Skapa regel</MudButton>
+            </div>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @* Rules list grouped by benefit *@
+    @foreach (var benefitGroup in _rules.GroupBy(r => r.BenefitId))
+    {
+        var benefit = _benefits.FirstOrDefault(b => b.Id == benefitGroup.Key);
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2" Style="font-weight: 600;">@(benefit?.Namn ?? "Okänd förmån")</MudText>
+            @foreach (var rule in benefitGroup)
+            {
+                <MudPaper Class="pa-3 mb-2" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                        <MudText Typo="Typo.subtitle1"><strong>@rule.Namn</strong></MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@(rule.Kombination == "AND" ? Color.Primary : Color.Secondary)">@rule.Kombination</MudChip>
+                    </div>
+                    @if (rule.Villkor.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Inga villkor definierade (alla berättigade)</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var v in rule.Villkor)
+                        {
+                            <MudText Typo="Typo.body2">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@v.Falt</MudChip>
+                                <strong>@v.Operator</strong> @v.Varde
+                            </MudText>
+                        }
+                    }
+                </MudPaper>
+            }
+        </MudPaper>
+    }
+
+    @if (_rules.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga behörighetsregler definierade.</MudAlert>
+    }
+}
+
+@code {
+    private List<Benefit> _benefits = [];
+    private List<EligibilityRule> _rules = [];
+    private bool _loading = true, _showForm;
+    private string? _error, _success;
+    private Guid? _formBenefitId;
+    private string _formNamn = "", _formKombination = "AND";
+    private List<VillkorForm> _formVillkor = [new()];
+
+    private static readonly string[] _giltigaFalt =
+        ["AnstallningsForm", "Sysselsattningsgrad", "Anstallningstid", "Alder", "Befattningskategori", "CollectiveAgreement", "OrganizationUnit"];
+    private static readonly string[] _giltigaOperatorer =
+        ["IN", "NOT_IN", "GE", "LE", "EQ", "BETWEEN"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _benefits = await Db.Benefits.OrderBy(b => b.Namn).ToListAsync();
+            _rules = await Db.EligibilityRules.Include(r => r.Villkor).OrderBy(r => r.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task SkapaRegel()
+    {
+        if (!_formBenefitId.HasValue || string.IsNullOrWhiteSpace(_formNamn)) return;
+        try
+        {
+            var regel = EligibilityRule.Skapa(_formBenefitId.Value, _formNamn, _formKombination);
+            foreach (var v in _formVillkor.Where(v => !string.IsNullOrWhiteSpace(v.Falt) && !string.IsNullOrWhiteSpace(v.Operator) && !string.IsNullOrWhiteSpace(v.Varde)))
+            {
+                regel.LaggTillVillkor(v.Falt, v.Operator, v.Varde);
+            }
+            Db.EligibilityRules.Add(regel);
+            await Db.SaveChangesAsync();
+            _rules.Add(regel);
+            _showForm = false;
+            _success = $"Behörighetsregel '{_formNamn}' skapad.";
+            _formNamn = ""; _formKombination = "AND"; _formBenefitId = null; _formVillkor = [new()];
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+    }
+
+    private class VillkorForm
+    {
+        public string Falt { get; set; } = "";
+        public string Operator { get; set; } = "";
+        public string Varde { get; set; } = "";
+    }
+}
