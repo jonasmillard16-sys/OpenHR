@@ -1,0 +1,166 @@
+@page "/admin/webhooks"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Platform.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Webhooks</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Webhooks</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny prenumeration</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_subscriptions.Count(s => s.Status == EventSubscriptionStatus.Active)</MudText><MudText Typo="Typo.body2">Aktiva</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_subscriptions.Count(s => s.Status == EventSubscriptionStatus.Paused)</MudText><MudText Typo="Typo.body2">Pausade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_subscriptions.Count(s => s.Status == EventSubscriptionStatus.Failed)</MudText><MudText Typo="Typo.body2">Misslyckade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_subscriptions.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny webhook-prenumeration</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formNamn" Label="Namn" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formUrl" Label="Webhook URL" Variant="Variant.Outlined" Required="true" Placeholder="https://..." /></MudItem>
+                <MudItem xs="12" sm="6"><MudTextField @bind-Value="_formSecret" Label="Hemlig nyckel (HMAC)" Variant="Variant.Outlined" Required="true" InputType="InputType.Password" /></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Event-filter" MultiSelection="true" SelectedValues="_selectedEvents" SelectedValuesChanged="@(v => _selectedEvents = v)" Variant="Variant.Outlined">
+                        @foreach (var ev in _availableEventTypes)
+                        {
+                            <MudSelectItem T="string" Value="@ev">@ev</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaWebhook"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formNamn) || string.IsNullOrWhiteSpace(_formUrl) || string.IsNullOrWhiteSpace(_formSecret) || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @if (!_subscriptions.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga webhook-prenumerationer registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Namn</th><th>URL</th><th>Event-filter</th><th>Status</th><th>Misslyckanden</th><th>Skapad</th><th>Atgarder</th></tr></thead>
+            <tbody>
+                @foreach (var sub in _subscriptions)
+                {
+                    var statusColor = sub.Status switch { EventSubscriptionStatus.Active => Color.Success, EventSubscriptionStatus.Paused => Color.Warning, _ => Color.Error };
+                    <tr>
+                        <td><strong>@sub.Namn</strong></td>
+                        <td><MudText Typo="Typo.body2" Style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@sub.Url</MudText></td>
+                        <td><MudText Typo="Typo.body2">@(sub.EventFilter == "[]" ? "Alla" : sub.EventFilter)</MudText></td>
+                        <td><MudChip T="string" Color="@statusColor" Size="Size.Small">@sub.Status.ToString()</MudChip></td>
+                        <td>@sub.KonsekutivaMisslyckanden</td>
+                        <td>@sub.SkapadVid.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (sub.Status == EventSubscriptionStatus.Active)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Pause" Size="Size.Small" OnClick="@(() => PauseSubscription(sub))" aria-label="Pausa" />
+                            }
+                            else
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" OnClick="@(() => ActivateSubscription(sub))" aria-label="Aktivera" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteSubscription(sub))" aria-label="Ta bort" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private List<EventSubscription> _subscriptions = new();
+
+    // Form fields
+    private string _formNamn = "";
+    private string _formUrl = "";
+    private string _formSecret = "";
+    private IReadOnlyCollection<string> _selectedEvents = Array.Empty<string>();
+
+    private readonly string[] _availableEventTypes = new[]
+    {
+        "employee.created", "employee.updated", "payroll.run.completed",
+        "payroll.run.created", "leave.request.created", "leave.request.approved",
+        "case.created", "case.updated", "document.created", "schedule.published"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubscriptions();
+        _loading = false;
+    }
+
+    private async Task LoadSubscriptions()
+    {
+        _subscriptions = await Db.EventSubscriptions.OrderByDescending(s => s.SkapadVid).ToListAsync();
+    }
+
+    private async Task SkapaWebhook()
+    {
+        _saving = true;
+        var filter = _selectedEvents.Any()
+            ? "[" + string.Join(",", _selectedEvents.Select(e => $"\"{e}\"")) + "]"
+            : "[]";
+
+        var sub = EventSubscription.Skapa(_formNamn, _formUrl, _formSecret, filter);
+        Db.EventSubscriptions.Add(sub);
+        await Db.SaveChangesAsync();
+        _success = $"Webhook '{_formNamn}' skapad.";
+        _formNamn = ""; _formUrl = ""; _formSecret = "";
+        _selectedEvents = Array.Empty<string>();
+        _showForm = false;
+        _saving = false;
+        await LoadSubscriptions();
+    }
+
+    private async Task PauseSubscription(EventSubscription sub)
+    {
+        sub.Pausa();
+        await Db.SaveChangesAsync();
+        _success = $"Webhook '{sub.Namn}' pausad.";
+        await LoadSubscriptions();
+    }
+
+    private async Task ActivateSubscription(EventSubscription sub)
+    {
+        sub.Aktivera();
+        await Db.SaveChangesAsync();
+        _success = $"Webhook '{sub.Namn}' aktiverad.";
+        await LoadSubscriptions();
+    }
+
+    private async Task DeleteSubscription(EventSubscription sub)
+    {
+        Db.EventSubscriptions.Remove(sub);
+        await Db.SaveChangesAsync();
+        _success = $"Webhook '{sub.Namn}' borttagen.";
+        await LoadSubscriptions();
+    }
+}

@@ -60,6 +60,7 @@
     <ProjectReference Include="..\Modules\Migration\RegionHR.Migration.csproj" />
     <ProjectReference Include="..\Modules\Compensation\RegionHR.Compensation.csproj" />
     <ProjectReference Include="..\Modules\VMS\RegionHR.VMS.csproj" />
+    <ProjectReference Include="..\Modules\Platform\RegionHR.Platform.csproj" />
   </ItemGroup>
 
 </Project>

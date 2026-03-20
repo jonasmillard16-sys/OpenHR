@@ -127,11 +127,17 @@ public static class DependencyInjection
         // Automation engine
         services.AddScoped<IAutomationEngine, AutomationEngineService>();
 
+        // Extension package service (marketplace)
+        services.AddScoped<ExtensionPackageService>();
+
         // Migration engine
         services.AddScoped<IMigrationAdapter, PAXmlAdapter>();
         services.AddScoped<IMigrationAdapter, HeromaAdapter>();
         services.AddScoped<IMigrationAdapter, GenericCSVAdapter>();
         services.AddScoped<MigrationEngineService>();
+
+        // Webhook delivery (HttpClient for outbound webhook calls)
+        services.AddHttpClient<WebhookDeliveryService>();
 
         // Background services
         services.AddHostedService<NotificationReminderService>();

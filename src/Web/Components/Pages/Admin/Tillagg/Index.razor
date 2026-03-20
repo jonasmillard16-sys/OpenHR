@@ -1,0 +1,228 @@
+@page "/admin/tillagg"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Platform.Domain
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@inject RegionHRDbContext Db
+@inject ExtensionPackageService PackageService
+
+<PageTitle>OpenHR - Tillagg</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Tillagg &amp; Marknadsplats</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload" OnClick="@(() => _visaImport = !_visaImport)">Importera .openhr</MudButton>
+</div>
+
+@if (_visaImport)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-2">Importera tillggspaket</MudText>
+        <InputFile OnChange="OnImportFilChanged" accept=".openhr,.zip" style="display:none" id="tillaggImportInput" />
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" HtmlTag="label" for="tillaggImportInput"
+                   StartIcon="@Icons.Material.Filled.AttachFile">Valj .openhr-fil</MudButton>
+        @if (_importerar)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2" />
+        }
+    </MudPaper>
+}
+
+@if (_success != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+}
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">@_error</MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_extensions.Count</MudText>
+                <MudText Typo="Typo.body2">Tillgangliga tillagg</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_installerade</MudText>
+                <MudText Typo="Typo.body2">Installerade</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_inaktiva</MudText>
+                <MudText Typo="Typo.body2">Inaktiverade</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_ejInstallerade</MudText>
+                <MudText Typo="Typo.body2">Ej installerade</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudSimpleTable Hover="true" Elevation="2">
+        <thead>
+            <tr>
+                <th>Tillagg</th>
+                <th>Version</th>
+                <th>Typ</th>
+                <th>Forfattare</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var vm in _extensions)
+            {
+                <tr>
+                    <td>
+                        <MudLink Href="@($"/admin/tillagg/{vm.Extension.Id}")">
+                            <strong>@vm.Extension.Namn</strong>
+                        </MudLink>
+                        <br />
+                        <MudText Typo="Typo.caption">@vm.Extension.Beskrivning</MudText>
+                    </td>
+                    <td>@vm.Extension.Version</td>
+                    <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@vm.Extension.Typ</MudChip></td>
+                    <td>@vm.Extension.Forfattare</td>
+                    <td>
+                        @if (vm.Installation is not null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="@(vm.Installation.Status == InstallationStatus.Active ? Color.Success : Color.Default)">
+                                @(vm.Installation.Status == InstallationStatus.Active ? "Aktiv" : "Inaktiverad")
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Ej installerad</MudChip>
+                        }
+                    </td>
+                    <td>
+                        @if (vm.Installation is null)
+                        {
+                            <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Primary" OnClick="@(() => Installera(vm))">Installera</MudButton>
+                        }
+                        else if (vm.Installation.Status == InstallationStatus.Active)
+                        {
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" OnClick="@(() => Inaktivera(vm))">Inaktivera</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Success" OnClick="@(() => Aktivera(vm))">Aktivera</MudButton>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private List<ExtensionVm> _extensions = [];
+    private int _installerade, _inaktiva, _ejInstallerade;
+    private bool _loading = true;
+    private bool _visaImport;
+    private bool _importerar;
+    private string? _success, _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LaddaData();
+    }
+
+    private async Task LaddaData()
+    {
+        try
+        {
+            var exts = await Db.Extensions.OrderBy(e => e.Namn).ToListAsync();
+            var installs = await Db.ExtensionInstallations.ToListAsync();
+
+            _extensions = exts.Select(e => new ExtensionVm(
+                e,
+                installs.FirstOrDefault(i => i.ExtensionId == e.Id)
+            )).ToList();
+
+            _installerade = installs.Count(i => i.Status == InstallationStatus.Active);
+            _inaktiva = installs.Count(i => i.Status == InstallationStatus.Disabled);
+            _ejInstallerade = exts.Count - installs.Count;
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta tillagg: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task Installera(ExtensionVm vm)
+    {
+        try
+        {
+            var installation = ExtensionInstallation.Installera(vm.Extension.Id, vm.Extension.Version);
+            await Db.ExtensionInstallations.AddAsync(installation);
+            await Db.SaveChangesAsync();
+            _success = $"'{vm.Extension.Namn}' installerat.";
+            _loading = true;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Inaktivera(ExtensionVm vm)
+    {
+        try
+        {
+            vm.Installation!.Inaktivera();
+            await Db.SaveChangesAsync();
+            _success = $"'{vm.Extension.Namn}' inaktiverat.";
+            _loading = true;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Aktivera(ExtensionVm vm)
+    {
+        try
+        {
+            vm.Installation!.Aktivera();
+            await Db.SaveChangesAsync();
+            _success = $"'{vm.Extension.Namn}' aktiverat.";
+            _loading = true;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task OnImportFilChanged(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _importerar = true;
+        _error = null;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            var extension = await PackageService.ImportAsync(ms);
+            _success = $"Paket '{extension.Namn}' v{extension.Version} importerat.";
+            _visaImport = false;
+            _loading = true;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = $"Import misslyckades: {ex.Message}"; }
+        finally { _importerar = false; }
+    }
+
+    private record ExtensionVm(Extension Extension, ExtensionInstallation? Installation);
+}

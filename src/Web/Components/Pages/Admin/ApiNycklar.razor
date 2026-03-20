@@ -1,0 +1,143 @@
+@page "/admin/api-nycklar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Platform.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - API-nycklar</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">API-nycklar</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.VpnKey" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny API-nyckel</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_keys.Count(k => k.ArAktiv)</MudText><MudText Typo="Typo.body2">Aktiva</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Default" Style="font-weight: 700;">@_keys.Count(k => !k.ArAktiv)</MudText><MudText Typo="Typo.body2">Inaktiverade</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_keys.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny API-nyckel</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_formNamn" Label="Namn" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_formScope" Label="Scope (JSON)" Variant="Variant.Outlined" Placeholder=@("""{"core":"read","payroll":"write"}""") /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_formExpiry" Label="Utgar (valfritt)" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaNyckel"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formNamn) || _saving)">Skapa</MudButton>
+        </MudPaper>
+    }
+
+    @if (_newPlaintext != null)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _newPlaintext = null)">
+            <MudText Typo="Typo.body1"><strong>Ny API-nyckel skapad!</strong> Kopiera den nu, den visas bara en gang:</MudText>
+            <MudTextField Value="@_newPlaintext" ReadOnly="true" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy" Class="mt-2" Style="font-family: monospace;" />
+        </MudAlert>
+    }
+
+    @if (_success != null && _newPlaintext == null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @if (!_keys.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga API-nycklar registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Namn</th><th>Prefix</th><th>Scope</th><th>Skapad av</th><th>Skapad</th><th>Senast anvand</th><th>Utgar</th><th>Status</th><th>Atgarder</th></tr></thead>
+            <tbody>
+                @foreach (var key in _keys)
+                {
+                    var statusColor = key.ArAktiv ? Color.Success : Color.Default;
+                    <tr>
+                        <td><strong>@key.Namn</strong></td>
+                        <td><MudText Typo="Typo.body2" Style="font-family: monospace;">@key.NyckelPrefix...</MudText></td>
+                        <td><MudText Typo="Typo.body2" Style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">@key.Scope</MudText></td>
+                        <td>@key.SkapadAv</td>
+                        <td>@key.SkapadVid.ToString("yyyy-MM-dd")</td>
+                        <td>@(key.SenastAnvand?.ToString("yyyy-MM-dd HH:mm") ?? "Aldrig")</td>
+                        <td>@(key.UtgarDatum?.ToString("yyyy-MM-dd") ?? "Aldrig")</td>
+                        <td><MudChip T="string" Color="@statusColor" Size="Size.Small">@(key.ArAktiv ? "Aktiv" : "Inaktiv")</MudChip></td>
+                        <td>
+                            @if (key.ArAktiv)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" OnClick="@(() => InaktiveraNyckel(key))" aria-label="Inaktivera" />
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private string? _newPlaintext;
+    private List<RegionHR.Platform.Domain.ApiKey> _keys = new();
+
+    // Form fields
+    private string _formNamn = "";
+    private string _formScope = "";
+    private DateTime? _formExpiry;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadKeys();
+        _loading = false;
+    }
+
+    private async Task LoadKeys()
+    {
+        _keys = await Db.ApiKeys.OrderByDescending(k => k.SkapadVid).ToListAsync();
+    }
+
+    private async Task SkapaNyckel()
+    {
+        _saving = true;
+        var scope = string.IsNullOrWhiteSpace(_formScope) ? "{}" : _formScope;
+        var (entity, plaintext) = RegionHR.Platform.Domain.ApiKey.Skapa(
+            _formNamn,
+            "Admin",
+            scope,
+            _formExpiry);
+
+        Db.ApiKeys.Add(entity);
+        await Db.SaveChangesAsync();
+
+        _newPlaintext = plaintext;
+        _success = $"API-nyckel '{_formNamn}' skapad.";
+        _formNamn = ""; _formScope = ""; _formExpiry = null;
+        _showForm = false;
+        _saving = false;
+        await LoadKeys();
+    }
+
+    private async Task InaktiveraNyckel(RegionHR.Platform.Domain.ApiKey key)
+    {
+        key.Inaktivera();
+        await Db.SaveChangesAsync();
+        _success = $"API-nyckel '{key.Namn}' inaktiverad.";
+        _newPlaintext = null;
+        await LoadKeys();
+    }
+}

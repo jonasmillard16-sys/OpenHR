@@ -1,0 +1,198 @@
+@page "/admin/tillagg/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Platform.Domain
+@using Microsoft.EntityFrameworkCore
+@using System.Text.Json
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Tillggsdetalj</PageTitle>
+
+<MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/tillagg" Class="mb-2">Tillbaka</MudButton>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_extension != null)
+{
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        <MudItem xs="8">
+            <MudPaper Class="pa-4" Elevation="2">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h4" Style="font-weight: 700;">@_extension.Namn</MudText>
+                    <MudChip T="string" Color="@(_extension.Typ == ExtensionTyp.CustomObject ? Color.Info : _extension.Typ == ExtensionTyp.Workflow ? Color.Secondary : Color.Default)">
+                        @_extension.Typ
+                    </MudChip>
+                </div>
+
+                <MudText Typo="Typo.body1" Class="mb-4">@_extension.Beskrivning</MudText>
+
+                <MudDivider Class="my-3" />
+
+                <MudText Typo="Typo.h6" Class="mb-2">Innehall</MudText>
+                @if (_customObjects.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Anpassade objekt</MudText>
+                    @foreach (var co in _customObjects)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mr-1 mb-1">@co</MudChip>
+                    }
+                }
+                @if (_workflows.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">Arbetsfloden</MudText>
+                    @foreach (var wf in _workflows)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="mr-1 mb-1">@wf</MudChip>
+                    }
+                }
+                @if (_reports.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">Rapporter</MudText>
+                    @foreach (var r in _reports)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Tertiary" Class="mr-1 mb-1">@r</MudChip>
+                    }
+                }
+                @if (_customObjects.Count == 0 && _workflows.Count == 0 && _reports.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">Inget innehall definierat.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Information</MudText>
+
+                <MudText Typo="Typo.caption">Version</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_extension.Version</MudText>
+
+                <MudText Typo="Typo.caption">Forfattare</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_extension.Forfattare</MudText>
+
+                <MudText Typo="Typo.caption">Licens</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_extension.Licens</MudText>
+
+                <MudText Typo="Typo.caption">Kompatibilitet</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_extension.Kompatibilitet</MudText>
+
+                <MudText Typo="Typo.caption">Skapad</MudText>
+                <MudText Typo="Typo.body1" Class="mb-3">@_extension.SkapadVid.ToString("yyyy-MM-dd HH:mm")</MudText>
+
+                <MudDivider Class="my-3" />
+
+                <MudText Typo="Typo.h6" Class="mb-2">Installationsstatus</MudText>
+                @if (_installation != null)
+                {
+                    <MudChip T="string" Color="@(_installation.Status == InstallationStatus.Active ? Color.Success : Color.Default)" Class="mb-2">
+                        @(_installation.Status == InstallationStatus.Active ? "Aktiv" : "Inaktiverad")
+                    </MudChip>
+                    <MudText Typo="Typo.caption">Installerad</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@_installation.InstallationsDatum.ToString("yyyy-MM-dd HH:mm")</MudText>
+
+                    @if (_installation.Status == InstallationStatus.Active)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true" OnClick="VaxlaStatus">Inaktivera</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick="VaxlaStatus">Aktivera</MudButton>
+                    }
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Class="mb-2">Ej installerad</MudChip>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="Installera">Installera</MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Extension? _extension;
+    private ExtensionInstallation? _installation;
+    private List<string> _customObjects = [];
+    private List<string> _workflows = [];
+    private List<string> _reports = [];
+    private bool _loading = true;
+    private string? _error, _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _extension = await Db.Extensions.FirstOrDefaultAsync(e => e.Id == Id);
+            if (_extension is null)
+            {
+                _error = "Tillagget hittades inte.";
+                return;
+            }
+
+            _installation = await Db.ExtensionInstallations.FirstOrDefaultAsync(i => i.ExtensionId == Id);
+
+            ParseInnehall();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private void ParseInnehall()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(_extension!.Innehall);
+            if (doc.RootElement.TryGetProperty("customObjects", out var co))
+                _customObjects = co.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => s.Length > 0).ToList();
+            if (doc.RootElement.TryGetProperty("workflows", out var wf))
+                _workflows = wf.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => s.Length > 0).ToList();
+            if (doc.RootElement.TryGetProperty("reports", out var rp))
+                _reports = rp.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => s.Length > 0).ToList();
+        }
+        catch { /* Invalid JSON — ignore */ }
+    }
+
+    private async Task VaxlaStatus()
+    {
+        try
+        {
+            if (_installation!.Status == InstallationStatus.Active)
+            {
+                _installation.Inaktivera();
+                _success = "Tillagget inaktiverat.";
+            }
+            else
+            {
+                _installation.Aktivera();
+                _success = "Tillagget aktiverat.";
+            }
+            await Db.SaveChangesAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Installera()
+    {
+        try
+        {
+            _installation = ExtensionInstallation.Installera(_extension!.Id, _extension.Version);
+            await Db.ExtensionInstallations.AddAsync(_installation);
+            await Db.SaveChangesAsync();
+            _success = "Tillagget installerat.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+}

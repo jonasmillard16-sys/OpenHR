@@ -1,0 +1,80 @@
+@page "/admin/webhooks/logg"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Platform.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Webhook-leveranslogg</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Webhook-leveranslogg</MudText>
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/webhooks" StartIcon="@Icons.Material.Filled.ArrowBack">Tillbaka till webhooks</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_deliveries.Count(d => d.Status == EventDeliveryStatus.Delivered)</MudText><MudText Typo="Typo.body2">Levererade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_deliveries.Count(d => d.Status == EventDeliveryStatus.Pending)</MudText><MudText Typo="Typo.body2">Ventande</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_deliveries.Count(d => d.Status == EventDeliveryStatus.Failed)</MudText><MudText Typo="Typo.body2">Misslyckade</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_deliveries.Count</MudText><MudText Typo="Typo.body2">Totalt</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudSelect T="string" @bind-Value="_statusFilter" Label="Filtrera status" Variant="Variant.Outlined" Class="mb-4" Style="max-width: 250px;">
+        <MudSelectItem T="string" Value="@("")">Alla</MudSelectItem>
+        <MudSelectItem T="string" Value="@("Pending")">Ventande</MudSelectItem>
+        <MudSelectItem T="string" Value="@("Delivered")">Levererade</MudSelectItem>
+        <MudSelectItem T="string" Value="@("Failed")">Misslyckade</MudSelectItem>
+    </MudSelect>
+
+    @if (!FilteredDeliveries.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga leveranser registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Event-ID</th><th>Prenumeration</th><th>Status</th><th>HTTP-kod</th><th>Forsok</th><th>Nasta retry</th><th>Skapad</th><th>Levererad</th></tr></thead>
+            <tbody>
+                @foreach (var d in FilteredDeliveries)
+                {
+                    var statusColor = d.Status switch { EventDeliveryStatus.Delivered => Color.Success, EventDeliveryStatus.Pending => Color.Warning, _ => Color.Error };
+                    <tr>
+                        <td><MudText Typo="Typo.body2" Style="font-family: monospace;">@d.DomainEventRecordId.ToString()[..8]...</MudText></td>
+                        <td><MudText Typo="Typo.body2" Style="font-family: monospace;">@d.EventSubscriptionId.ToString()[..8]...</MudText></td>
+                        <td><MudChip T="string" Color="@statusColor" Size="Size.Small">@d.Status.ToString()</MudChip></td>
+                        <td>@(d.HttpStatusKod?.ToString() ?? "-")</td>
+                        <td>@d.AntalForsok</td>
+                        <td>@(d.NastaRetry?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                        <td>@d.SkapadVid.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(d.LeveradVid?.ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private List<EventDelivery> _deliveries = new();
+    private string _statusFilter = "";
+
+    private IEnumerable<EventDelivery> FilteredDeliveries =>
+        string.IsNullOrEmpty(_statusFilter)
+            ? _deliveries
+            : _deliveries.Where(d => d.Status.ToString() == _statusFilter);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _deliveries = await Db.EventDeliveries
+            .OrderByDescending(d => d.SkapadVid)
+            .Take(200)
+            .ToListAsync();
+        _loading = false;
+    }
+}

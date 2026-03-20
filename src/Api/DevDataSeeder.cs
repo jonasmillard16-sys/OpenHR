@@ -8,6 +8,7 @@ using RegionHR.SalaryReview.Domain;
 using RegionHR.CaseManagement.Domain;
 using RegionHR.Compensation.Domain;
 using RegionHR.Benefits.Domain;
+using RegionHR.Platform.Domain;
 
 namespace RegionHR.Api;
 
@@ -195,6 +196,35 @@ public static class DevDataSeeder
         enrollErik.Aktivera();
         var enrollMaria = BenefitEnrollment.Skapa(maria.Id.Value, friskvard.Id, new DateOnly(2026, 3, 1));
         db.BenefitEnrollments.AddRange(enrollAnna, enrollErik, enrollMaria);
+
+        // ============================================================
+        // Marketplace — Extensions (Phase C Layer 3)
+        // ============================================================
+
+        var extUtrustning = Extension.Skapa(
+            "openhr-utrustning",
+            "1.0.0",
+            "OpenHR Community",
+            "Utrustningshantering - spara vilken utrustning (dator, telefon, passerkort) som tilldelats medarbetare.",
+            ExtensionTyp.CustomObject,
+            "AGPL-3.0",
+            ">=2.0.0",
+            """{"customObjects":["utrustning.json"],"workflows":[],"reports":[]}""");
+
+        var extNyckelkvittens = Extension.Skapa(
+            "openhr-nyckelkvittens",
+            "1.0.0",
+            "OpenHR Community",
+            "Nyckelkvittens-workflow - automatiserat flode for utlamning och retur av nycklar.",
+            ExtensionTyp.Workflow,
+            "AGPL-3.0",
+            ">=2.0.0",
+            """{"customObjects":[],"workflows":["nyckelkvittens.json"],"reports":[]}""");
+
+        db.Extensions.AddRange(extUtrustning, extNyckelkvittens);
+
+        var installUtrustning = ExtensionInstallation.Installera(extUtrustning.Id, "1.0.0");
+        db.ExtensionInstallations.Add(installUtrustning);
 
         db.SaveChanges();
     }
