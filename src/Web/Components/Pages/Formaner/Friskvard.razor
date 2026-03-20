@@ -1,184 +1,139 @@
 @page "/formaner/friskvard"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Wellness.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Friskvårdsbidrag</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Friskvårdsbidrag</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _visaNyDialog = true)">Registrera kvitto</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny ansökan</MudButton>
 </div>
 
-<MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">5 000 kr</MudText>
-            <MudText Typo="Typo.body2">Max per anställd/år</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_antalUtnyttjat</MudText>
-            <MudText Typo="Typo.body2">Har utnyttjat (helt/delvis)</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText>
-            <MudText Typo="Typo.body2">Väntar godkännande</MudText>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="3">
-        <MudPaper Class="pa-3 text-center" Elevation="1">
-            <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_totalUtbetalt kr</MudText>
-            <MudText Typo="Typo.body2">Totalt utbetalt (YTD)</MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
-
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    Friskvårdsbidraget är skattefritt upp till 5 000 kr per anställd och kalenderår.
-    Giltiga aktiviteter: gym, simhall, yoga, massage, styrketräning m.m. enligt Skatteverkets riktlinjer.
-</MudAlert>
-
-<MudText Typo="Typo.h6" Class="mb-3">Friskvårdsbidrag per anställd</MudText>
-<MudSimpleTable Hover="true" Elevation="2">
-    <thead>
-        <tr>
-            <th>Anställd</th>
-            <th>Enhet</th>
-            <th>Tilldelat</th>
-            <th>Använt</th>
-            <th>Kvar</th>
-            <th>Utnyttjandegrad</th>
-            <th>Senaste kvitto</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var rad in _rader)
-        {
-            <tr>
-                <td><strong>@rad.Namn</strong></td>
-                <td>@rad.Enhet</td>
-                <td>@rad.Tilldelat kr</td>
-                <td>@rad.Anvant kr</td>
-                <td>@rad.Kvar kr</td>
-                <td>
-                    <MudProgressLinear Value="@rad.Procent" Color="@rad.ProcentFarg" Class="my-1" Style="min-width: 80px;" />
-                    <MudText Typo="Typo.caption">@rad.Procent %</MudText>
-                </td>
-                <td>@rad.SenasteKvitto</td>
-                <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ValjRad(rad))">Visa</MudButton></td>
-            </tr>
-            @if (_valdRad == rad)
-            {
-                <tr>
-                    <td colspan="8">
-                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>@rad.Namn — Friskvårdsbidrag</strong></MudText>
-                            <MudText Typo="Typo.body2"><strong>Enhet:</strong> @rad.Enhet</MudText>
-                            <MudText Typo="Typo.body2"><strong>Tilldelat:</strong> @rad.Tilldelat kr</MudText>
-                            <MudText Typo="Typo.body2"><strong>Använt:</strong> @rad.Anvant kr</MudText>
-                            <MudText Typo="Typo.body2"><strong>Kvar:</strong> @rad.Kvar kr</MudText>
-                            <MudText Typo="Typo.body2"><strong>Utnyttjandegrad:</strong> @rad.Procent %</MudText>
-                            <MudText Typo="Typo.body2"><strong>Senaste kvitto:</strong> @rad.SenasteKvitto</MudText>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _valdRad = null)" Class="mt-2">Stäng</MudButton>
-                        </MudPaper>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</MudSimpleTable>
-
-<MudText Typo="Typo.h6" Class="mt-6 mb-3">Senaste kvitton</MudText>
-<MudSimpleTable Hover="true" Elevation="1">
-    <thead>
-        <tr>
-            <th>Datum</th>
-            <th>Anställd</th>
-            <th>Aktivitet</th>
-            <th>Belopp</th>
-            <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var k in _kvitton)
-        {
-            <tr>
-                <td>@k.Datum</td>
-                <td><strong>@k.Namn</strong></td>
-                <td>@k.Aktivitet</td>
-                <td>@k.Belopp kr</td>
-                <td><MudChip T="string" Size="Size.Small" Color="@k.StatusFarg">@k.StatusText</MudChip></td>
-            </tr>
-        }
-    </tbody>
-</MudSimpleTable>
-
-@if (_visaNyDialog)
+@if (_loading)
 {
-    <MudPaper Class="pa-6 mb-4 mt-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
-        <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">Registrera friskvårdskvitto</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visaNyDialog = false)" />
-        </div>
-        <MudTextField @bind-Value="_nyAktivitet" Label="Aktivitet (t.ex. Gym)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_nyBelopp" Label="Belopp (kr)" Variant="Variant.Outlined" Class="mb-3" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="RegistreraKvitto">Skapa</MudButton>
-    </MudPaper>
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-@if (_skapad != null)
+else if (_error != null)
 {
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _skapad = null)">@_skapad</MudAlert>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_claims.Count</MudText><MudText Typo="Typo.body2">Ansökningar totalt</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_claims.Count(c => c.Claim.Status == WellnessClaimStatus.Godkand)</MudText><MudText Typo="Typo.body2">Godkända</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_claims.Count(c => c.Claim.Status == WellnessClaimStatus.Inskickad)</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+        Friskvårdsbidrag: max 5 000 kr per kalenderår. Gäller aktiviteter som motion, massage, simning m.m.
+    </MudAlert>
+
+    @if (_showForm && Auth.EmployeeId.HasValue)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Ny friskvårdsansökan</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="4"><MudTextField @bind-Value="_formAktivitet" Label="Aktivitet" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" sm="4"><MudNumericField T="decimal" @bind-Value="_formBelopp" Label="Belopp (kr)" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" sm="4"><MudDatePicker @bind-Date="_formDatum" Label="Datum" Variant="Variant.Outlined" /></MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaAnsokan"
+                       Disabled="@(string.IsNullOrWhiteSpace(_formAktivitet) || _formBelopp <= 0 || _formDatum == null || _saving)">Skicka in</MudButton>
+        </MudPaper>
+    }
+    else if (_showForm)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">Ansökan kräver kopplad anställd.</MudAlert>
+    }
+
+    @if (_success != null)
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert>
+    }
+
+    @if (_claims.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga friskvårdsansökningar registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Aktivitet</th><th>Belopp</th><th>Datum</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var c in _claims)
+                {
+                    <tr>
+                        <td><strong>@c.Namn</strong></td>
+                        <td>@c.Claim.Aktivitet</td>
+                        <td>@c.Claim.Belopp.ToString("N0") kr</td>
+                        <td>@c.Claim.Datum.ToString("yyyy-MM-dd")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(c.Claim.Status)">@StatusText(c.Claim.Status)</MudChip></td>
+                        <td>
+                            @if (c.Claim.Status == WellnessClaimStatus.Inskickad && Auth.EmployeeId.HasValue)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => GodkannClaim(c))">Godkänn</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
 }
 
 @code {
-    private bool _visaNyDialog;
-    private string? _skapad;
-    private string _nyAktivitet = "", _nyBelopp = "";
+    private List<ClaimVm> _claims = [];
+    private bool _loading = true, _saving, _showForm;
+    private string? _error, _success;
+    private string _formAktivitet = "";
+    private decimal _formBelopp = 0;
+    private DateTime? _formDatum;
 
-    private void RegistreraKvitto()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(_nyAktivitet)) return;
-        _skapad = $"Kvitto registrerat: {_nyAktivitet}, {_nyBelopp} kr. Granskas inom 5 arbetsdagar.";
-        _nyAktivitet = ""; _nyBelopp = ""; _visaNyDialog = false;
-    }
-    private FriskvardRad? _valdRad;
-
-    private void ValjRad(FriskvardRad rad) => _valdRad = _valdRad == rad ? null : rad;
-
-    private int _antalUtnyttjat = 87;
-    private int _vantar = 4;
-    private string _totalUtbetalt = "218 400";
-
-    private List<FriskvardRad> _rader = [];
-    private List<KvittoRad> _kvitton = [];
-
-    protected override void OnInitialized()
-    {
-        _rader =
-        [
-            new("Anna Svensson", "Kardiologi", "5 000", "5 000", "0", 100, Color.Success, "2026-02-15"),
-            new("Karl Berg", "Ortopedi", "5 000", "3 200", "1 800", 64, Color.Info, "2026-03-10"),
-            new("Erik Johansson", "Akutmottagningen", "5 000", "2 500", "2 500", 50, Color.Info, "2026-01-20"),
-            new("Lisa Holm", "HR-avdelningen", "5 000", "4 800", "200", 96, Color.Success, "2026-03-14"),
-            new("Per Gustafsson", "IT-drift", "5 000", "1 500", "3 500", 30, Color.Warning, "2026-02-28"),
-            new("Sara Karlsson", "Vårdcentral Centrum", "5 000", "0", "5 000", 0, Color.Default, "—"),
-            new("Maria Lindström", "Kirurgi", "5 000", "3 800", "1 200", 76, Color.Info, "2026-03-05"),
-            new("Jonas Eriksson", "Barnmottagningen", "5 000", "5 000", "0", 100, Color.Success, "2026-03-01"),
-        ];
-
-        _kvitton =
-        [
-            new("2026-03-14", "Lisa Holm", "Gymkort (SATS)", "1 200", "Godkänd", Color.Success),
-            new("2026-03-10", "Karl Berg", "Simkort (Lundbybadet)", "800", "Godkänd", Color.Success),
-            new("2026-03-05", "Maria Lindström", "Yogaklass", "1 400", "Väntar", Color.Warning),
-            new("2026-03-01", "Jonas Eriksson", "Gymkort (Friskis)", "2 500", "Godkänd", Color.Success),
-            new("2026-02-28", "Per Gustafsson", "Massagebehandling", "750", "Godkänd", Color.Success),
-            new("2026-02-15", "Anna Svensson", "Personlig träning", "2 000", "Godkänd", Color.Success),
-        ];
+        try
+        {
+            var claims = await Db.WellnessClaims.OrderByDescending(c => c.SkapadVid).ToListAsync();
+            var empIds = claims.Select(c => c.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+            _claims = claims.Select(c => new ClaimVm(names.GetValueOrDefault(c.AnstallId, "Okänd"), c)).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
     }
 
-    private record FriskvardRad(string Namn, string Enhet, string Tilldelat, string Anvant, string Kvar, int Procent, Color ProcentFarg, string SenasteKvitto);
-    private record KvittoRad(string Datum, string Namn, string Aktivitet, string Belopp, string StatusText, Color StatusFarg);
+    private async Task SkapaAnsokan()
+    {
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
+        _saving = true; _error = null;
+        try
+        {
+            var claim = WellnessClaim.Skapa(Auth.EmployeeId.Value, _formAktivitet, _formBelopp, DateOnly.FromDateTime(_formDatum!.Value));
+            Db.WellnessClaims.Add(claim);
+            await Db.SaveChangesAsync();
+            _claims.Insert(0, new ClaimVm(Auth.UserName ?? "Jag", claim));
+            _showForm = false; _success = "Friskvårdsansökan inskickad."; _formAktivitet = ""; _formBelopp = 0;
+        }
+        catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
+        finally { _saving = false; }
+    }
+
+    private async Task GodkannClaim(ClaimVm vm)
+    {
+        if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
+        try { vm.Claim.Godkann(Auth.EmployeeId.Value); await Db.SaveChangesAsync(); _success = "Ansökan godkänd."; }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+    }
+
+    private static string StatusText(WellnessClaimStatus s) => s switch { WellnessClaimStatus.Inskickad => "Inskickad", WellnessClaimStatus.Godkand => "Godkänd", WellnessClaimStatus.Avslagen => "Avslagen", _ => s.ToString() };
+    private static Color StatusFarg(WellnessClaimStatus s) => s switch { WellnessClaimStatus.Inskickad => Color.Warning, WellnessClaimStatus.Godkand => Color.Success, WellnessClaimStatus.Avslagen => Color.Error, _ => Color.Default };
+    private record ClaimVm(string Namn, WellnessClaim Claim);
 }

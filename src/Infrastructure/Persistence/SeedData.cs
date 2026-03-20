@@ -794,6 +794,17 @@ public static class SeedData
         swap2.Erbjud(employees[6].Id);
         db.ShiftSwapRequests.AddRange(swap1, swap2);
 
+        // === WellnessClaims via domänens Skapa() ===
+        var friskvardAnna = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
+            employees[0].Id.Value, "Personlig traning", 2000m, DateOnly.FromDateTime(DateTime.Today.AddDays(-15)));
+        friskvardAnna.Godkann(employees[8].Id.Value, "Godkant");
+        var friskvardKarl = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
+            employees[3].Id.Value, "Yoga", 1500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)));
+        var friskvardErik = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
+            employees[1].Id.Value, "Simkort arskort", 3500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-30)));
+        friskvardErik.Godkann(employees[8].Id.Value);
+        db.WellnessClaims.AddRange(friskvardAnna, friskvardKarl, friskvardErik);
+
         // === SalaryCodes via SalaryCodeSeed ===
         db.SalaryCodes.AddRange(RegionHR.Payroll.Domain.SalaryCodeSeed.GetAll());
 
