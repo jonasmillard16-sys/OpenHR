@@ -1,13 +1,15 @@
+using RegionHR.Agreements.Domain;
 using RegionHR.SharedKernel.Domain;
 
 namespace RegionHR.Payroll.Domain;
 
 /// <summary>
-/// Interface för regelmotorn som hanterar kollektivavtalsregler.
-/// Regler lagras som versionerad JSONB i databasen.
+/// Interface for the rules engine that handles collective agreement rules.
+/// Supports both legacy enum-based lookup and DB-backed CollectiveAgreement entities.
 /// </summary>
 public interface ICollectiveAgreementRulesEngine
 {
+    // Legacy enum-based methods (backward compatible)
     Task<decimal> GetOBRateAsync(CollectiveAgreementType agreement, OBCategory category, DateOnly date, CancellationToken ct = default);
     Task<OvertimeRules> GetOvertimeRulesAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default);
     Task<VacationRules> GetVacationRulesAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default);
@@ -16,18 +18,24 @@ public interface ICollectiveAgreementRulesEngine
     Task<JourRegler> GetJourReglerAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default);
     Task<BeredskapsRegler> GetBeredskapsReglerAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default);
     Task<ForaldraloneRegler> GetForaldraloneReglerAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default);
+
+    // DB-backed overloads using CollectiveAgreement entity
+    decimal GetOBRate(CollectiveAgreement avtal, OBCategory category, DateOnly date);
+    OvertimeRules GetOvertimeRules(CollectiveAgreement avtal);
+    VacationRules GetVacationRules(CollectiveAgreement avtal, DateOnly date, int? fodelseAr = null);
 }
 
 /// <summary>
-/// Standardimplementation av kollektivavtalsregler.
-/// I produktion läser denna från JSONB i PostgreSQL.
+/// Standard implementation of collective agreement rules.
+/// Supports both hardcoded enum-based lookup (backward compatible)
+/// and DB-backed CollectiveAgreement entity queries.
 /// </summary>
 public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEngine
 {
-    // OB-tillägg per AB (2025 satser)
+    // OB-tillagg per AB (2025 satser) — legacy hardcoded rates
     private static readonly Dictionary<(CollectiveAgreementType, OBCategory), decimal> OBRates = new()
     {
-        // AB - Allmänna bestämmelser
+        // AB - Allmanna bestammelser
         { (CollectiveAgreementType.AB, OBCategory.VardagKvall), 126.50m },
         { (CollectiveAgreementType.AB, OBCategory.VardagNatt), 152.00m },
         { (CollectiveAgreementType.AB, OBCategory.Helg), 89.00m },
@@ -40,6 +48,8 @@ public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEn
         { (CollectiveAgreementType.HOK, OBCategory.Storhelg), 185.00m },
     };
 
+    // === Legacy enum-based methods (backward compatible) ===
+
     public Task<decimal> GetOBRateAsync(CollectiveAgreementType agreement, OBCategory category, DateOnly date, CancellationToken ct = default)
     {
         if (category == OBCategory.Ingen)
@@ -51,8 +61,8 @@ public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEn
 
     public Task<OvertimeRules> GetOvertimeRulesAsync(CollectiveAgreementType agreement, DateOnly date, CancellationToken ct = default)
     {
-        // AB 25: Enkel övertid = 180% total, tillägg = 0.8x timlön
-        // Kvalificerad övertid = 240% total, tillägg = 1.4x timlön
+        // AB 25: Enkel overtid = 180% total, tillagg = 0.8x timlon
+        // Kvalificerad overtid = 240% total, tillagg = 1.4x timlon
         return Task.FromResult(new OvertimeRules
         {
             EnkelOvertidFaktor = agreement == CollectiveAgreementType.AB ? 0.8m : 0.8m,
@@ -71,7 +81,7 @@ public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEn
 
     public Task<VacationRules> GetVacationRulesAsync(CollectiveAgreementType agreement, DateOnly date, int? fodelseAr, CancellationToken ct = default)
     {
-        // AB 25: Semesterdagar baserat på ålder under semesteråret
+        // AB 25: Semesterdagar baserat pa alder under semesteraret
         var dagarPerAr = 25;
         if (agreement == CollectiveAgreementType.AB && fodelseAr.HasValue)
         {
@@ -84,8 +94,8 @@ public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEn
             };
         }
 
-        // AB 25: Semestertillägg 0.43% per dag av månadslön
-        // AB 25: 12% av total variabel lön under intjänandeåret
+        // AB 25: Semestertillagg 0.43% per dag av manadslon
+        // AB 25: 12% av total variabel lon under intjanandearet
         return Task.FromResult(new VacationRules
         {
             DagarPerAr = dagarPerAr,
@@ -172,6 +182,75 @@ public sealed class CollectiveAgreementRulesEngine : ICollectiveAgreementRulesEn
             }
         });
     }
+
+    // === DB-backed overloads using CollectiveAgreement entity ===
+
+    /// <summary>Get OB rate from a DB-loaded CollectiveAgreement entity</summary>
+    public decimal GetOBRate(CollectiveAgreement avtal, OBCategory category, DateOnly date)
+    {
+        if (category == OBCategory.Ingen)
+            return 0m;
+
+        return avtal.HamtaOBSats(category, date);
+    }
+
+    /// <summary>Get overtime rules from a DB-loaded CollectiveAgreement entity</summary>
+    public OvertimeRules GetOvertimeRules(CollectiveAgreement avtal)
+    {
+        var regel = avtal.OvertidsRegler.FirstOrDefault();
+        if (regel is null)
+        {
+            return new OvertimeRules
+            {
+                EnkelOvertidFaktor = 0.8m,
+                KvalificeradOvertidFaktor = 1.4m,
+                MaxOvertidPerVecka = 48m,
+                MaxOvertidPerManad = 50m,
+                MaxOvertidPerAr = 200m,
+                KomptidFaktor = 1.5m
+            };
+        }
+
+        return new OvertimeRules
+        {
+            EnkelOvertidFaktor = regel.Multiplikator - 1.0m, // Convert total multiplier to addon
+            KvalificeradOvertidFaktor = 1.4m,
+            MaxOvertidPerVecka = 48m,
+            MaxOvertidPerManad = 50m,
+            MaxOvertidPerAr = regel.MaxPerAr,
+            KomptidFaktor = 1.5m
+        };
+    }
+
+    /// <summary>Get vacation rules from a DB-loaded CollectiveAgreement entity</summary>
+    public VacationRules GetVacationRules(CollectiveAgreement avtal, DateOnly date, int? fodelseAr = null)
+    {
+        var regel = avtal.SemesterRegler.FirstOrDefault();
+        var dagarPerAr = regel?.BasDagar ?? 25;
+
+        if (regel is not null && fodelseAr.HasValue)
+        {
+            var alder = date.Year - fodelseAr.Value;
+            dagarPerAr = alder switch
+            {
+                >= 50 => regel.ExtraDagarVid50,
+                >= 40 => regel.ExtraDagarVid40,
+                _ => regel.BasDagar
+            };
+        }
+
+        return new VacationRules
+        {
+            DagarPerAr = dagarPerAr,
+            SammaloneregelProcent = 0.80m,
+            SemestertillaggProcent = 0.43m,
+            VariabelLonSemesterProcent = 12.0m,
+            MaxSparadeDagar = 5,
+            TotalMaxSparade = 40,
+            IntjanandeArStart = new DateOnly(date.Year - 1, 4, 1),
+            IntjanandeArSlut = new DateOnly(date.Year, 3, 31)
+        };
+    }
 }
 
 public sealed class OvertimeRules
@@ -188,9 +267,9 @@ public sealed class VacationRules
 {
     public int DagarPerAr { get; set; }
     public decimal SammaloneregelProcent { get; set; }
-    /// <summary>Semestertillägg i procent per semesterdag av månadslön (AB 25: 0.43%)</summary>
+    /// <summary>Semestertillagg i procent per semesterdag av manadslon (AB 25: 0.43%)</summary>
     public decimal SemestertillaggProcent { get; set; }
-    /// <summary>Procentsats för semesterlön på variabel lön (AB 25: 12%)</summary>
+    /// <summary>Procentsats for semesterlon pa variabel lon (AB 25: 12%)</summary>
     public decimal VariabelLonSemesterProcent { get; set; }
     public int MaxSparadeDagar { get; set; }
     public int TotalMaxSparade { get; set; }
@@ -208,45 +287,45 @@ public sealed class SickPayRules
 }
 
 /// <summary>
-/// Regler för jourersättning per kollektivavtal.
-/// Passiv jour: väntetid med förpliktelse att kunna börja arbeta på kort tid.
-/// Aktiv jour: faktiskt utfört arbete under jourpass.
+/// Regler for jourersattning per kollektivavtal.
+/// Passiv jour: vantetid med forpliktelse att kunna borja arbeta pa kort tid.
+/// Aktiv jour: faktiskt utfort arbete under jourpass.
 /// </summary>
 public sealed class JourRegler
 {
-    /// <summary>Faktor av timlön för passiv jourtid (AB: 0.40)</summary>
+    /// <summary>Faktor av timlon for passiv jourtid (AB: 0.40)</summary>
     public decimal PassivTimlonFaktor { get; set; }
 
-    /// <summary>Faktor av timlön för aktiv jourtid (AB: 1.5)</summary>
+    /// <summary>Faktor av timlon for aktiv jourtid (AB: 1.5)</summary>
     public decimal AktivTimlonFaktor { get; set; }
 }
 
 /// <summary>
-/// Regler för beredskapsersättning per kollektivavtal.
-/// Beredskap: arbetstagaren ska vara anträffbar och kunna infinna sig inom viss tid.
-/// AB 25: Högre ersättning efter 125 timmars kumulativ beredskap.
+/// Regler for beredskapsersattning per kollektivavtal.
+/// Beredskap: arbetstagaren ska vara antraffbar och kunna infinna sig inom viss tid.
+/// AB 25: Hogre ersattning efter 125 timmars kumulativ beredskap.
 /// </summary>
 public sealed class BeredskapsRegler
 {
-    /// <summary>Faktor av timlön för beredskapstid (AB: 0.20)</summary>
+    /// <summary>Faktor av timlon for beredskapstid (AB: 0.20)</summary>
     public decimal PassivTimlonFaktor { get; set; }
 
-    /// <summary>Antal kumulativa beredskapstimmar innan högre sats aktiveras (AB 25: 125h)</summary>
+    /// <summary>Antal kumulativa beredskapstimmar innan hogre sats aktiveras (AB 25: 125h)</summary>
     public decimal HogNivaTimgrans { get; set; } = 125m;
 
-    /// <summary>Faktor av timlön för beredskapstid efter tröskel uppnåtts (AB 25: 0.28)</summary>
+    /// <summary>Faktor av timlon for beredskapstid efter troskel uppnatts (AB 25: 0.28)</summary>
     public decimal HogNivaPassivTimlonFaktor { get; set; } = 0.28m;
 }
 
 /// <summary>
-/// Regler för föräldralöneutfyllnad per kollektivavtal.
-/// Utfyllnad utöver Försäkringskassans ersättning (80%) under föräldraledighet.
+/// Regler for foraldralonautfyllnad per kollektivavtal.
+/// Utfyllnad utover Forsakringskassans ersattning (80%) under foraldraledighet.
 /// </summary>
 public sealed class ForaldraloneRegler
 {
-    /// <summary>Antal dagar med rätt till utfyllnad (AB: 180)</summary>
+    /// <summary>Antal dagar med ratt till utfyllnad (AB: 180)</summary>
     public int DagarMedUtfyllnad { get; set; }
 
-    /// <summary>Utfyllnadsprocent av dagslön (AB: 10%)</summary>
+    /// <summary>Utfyllnadsprocent av dagslon (AB: 10%)</summary>
     public decimal UtfyllnadProcent { get; set; }
 }

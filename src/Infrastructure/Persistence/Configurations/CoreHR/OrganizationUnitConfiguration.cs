@@ -29,6 +29,10 @@ public class OrganizationUnitConfiguration : IEntityTypeConfiguration<Organizati
             .HasConversion(id => id == null ? (Guid?)null : id.Value.Value, v => v == null ? null : EmployeeId.From(v.Value))
             .HasColumnName("chef_id");
 
+        builder.Property(e => e.DefaultAvtalsId)
+            .HasConversion(id => id == null ? (Guid?)null : id.Value.Value, v => v == null ? null : CollectiveAgreementId.From(v.Value))
+            .HasColumnName("default_avtals_id");
+
         builder.OwnsOne(e => e.Giltighet, dr =>
         {
             dr.Property(x => x.Start).HasColumnName("giltig_fran");

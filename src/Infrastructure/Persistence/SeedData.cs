@@ -47,6 +47,128 @@ public static class SeedData
 
         db.OrganizationUnits.AddRange(region, sjukhus, avd32, avd33, akuten, iva);
 
+        // === Collective Agreements (10 avtal) ===
+        var giltigFran = new DateOnly(2025, 4, 1);
+
+        // 1. AB — Allmanna bestammelser (kommun/region)
+        var ab = CollectiveAgreement.Skapa("AB 2025", "SKR och Kommunal", giltigFran, IndustrySector.KommunRegion);
+        ab.LaggTillOBSats(OBCategory.VardagKvall, 126.50m, giltigFran);
+        ab.LaggTillOBSats(OBCategory.VardagNatt, 152.00m, giltigFran);
+        ab.LaggTillOBSats(OBCategory.Helg, 89.00m, giltigFran);
+        ab.LaggTillOBSats(OBCategory.Storhelg, 195.00m, giltigFran);
+        ab.LaggTillOvertidsRegel(1.0m, 1.8m, 200m);
+        ab.LaggTillSemesterRegel(25, 31, 32);
+        ab.LaggTillPensionsRegel(PensionType.AKAPKR, 6.0m, 31.5m, 599500m, "{\"IBB\":599500,\"TakMultipel\":7.5}");
+        ab.LaggTillViloRegel(11m, 36m, 0.5m);
+        ab.LaggTillArbetstidsRegel(38.25m, "{\"MaxFlexSaldo\":40}");
+        ab.LaggTillUppságningsRegel(0, 1);
+        ab.LaggTillUppságningsRegel(24, 2);
+        ab.LaggTillUppságningsRegel(72, 3);
+        ab.LaggTillForsakringspaket("{\"Belopp\":285000}", "{\"DagErsattning\":810}", "{\"Omfattning\":\"Full\"}", "{\"Typ\":\"AFA\"}", "{\"Omfattning\":\"Standard\"}");
+        ab.LaggTillLonestruktur("{\"Underskoterska\":25500,\"Sjukskoterska\":29000,\"Lakare\":42000}", "[]");
+
+        // 2. HOK — Huvudoverenskommelse
+        var hok = CollectiveAgreement.Skapa("HOK 2025", "SKR och OFR/S,P,O", giltigFran, IndustrySector.KommunRegion);
+        hok.LaggTillOBSats(OBCategory.VardagKvall, 120.00m, giltigFran);
+        hok.LaggTillOBSats(OBCategory.VardagNatt, 145.00m, giltigFran);
+        hok.LaggTillOBSats(OBCategory.Helg, 85.00m, giltigFran);
+        hok.LaggTillOBSats(OBCategory.Storhelg, 185.00m, giltigFran);
+        hok.LaggTillOvertidsRegel(1.0m, 1.7m, 200m);
+        hok.LaggTillSemesterRegel(25, 31, 32);
+        hok.LaggTillPensionsRegel(PensionType.AKAPKR, 6.0m, 31.5m, 599500m, "{\"IBB\":599500,\"TakMultipel\":7.5}");
+        hok.LaggTillViloRegel(11m, 36m, 0.5m);
+        hok.LaggTillArbetstidsRegel(38.25m, "{\"MaxFlexSaldo\":40}");
+
+        // 3. Teknikavtalet
+        var teknik = CollectiveAgreement.Skapa("Teknikavtalet 2025", "Teknikarbetsgivarna och IF Metall", giltigFran, IndustrySector.IndustriTeknik);
+        teknik.LaggTillOBSats(OBCategory.VardagKvall, 58.70m, giltigFran);
+        teknik.LaggTillOBSats(OBCategory.VardagNatt, 78.50m, giltigFran);
+        teknik.LaggTillOBSats(OBCategory.Helg, 44.00m, giltigFran);
+        teknik.LaggTillOBSats(OBCategory.Storhelg, 105.00m, giltigFran);
+        teknik.LaggTillOvertidsRegel(1.0m, 1.5m, 200m);
+        teknik.LaggTillSemesterRegel(25, 27, 28);
+        teknik.LaggTillPensionsRegel(PensionType.SAFLO, 4.5m, 30.0m, 599500m, "{\"IBB\":599500,\"TakMultipel\":7.5}");
+        teknik.LaggTillViloRegel(11m, 36m, 0.5m);
+        teknik.LaggTillArbetstidsRegel(40.0m, "{}");
+
+        // 4. Handelsavtalet
+        var handel = CollectiveAgreement.Skapa("Handelsavtalet 2025", "Svensk Handel och Handels", giltigFran, IndustrySector.Handel);
+        handel.LaggTillOBSats(OBCategory.VardagKvall, 42.00m, giltigFran);
+        handel.LaggTillOBSats(OBCategory.VardagNatt, 72.00m, giltigFran);
+        handel.LaggTillOBSats(OBCategory.Helg, 55.00m, giltigFran);
+        handel.LaggTillOBSats(OBCategory.Storhelg, 115.00m, giltigFran);
+        handel.LaggTillOvertidsRegel(1.0m, 1.5m, 150m);
+        handel.LaggTillSemesterRegel(25, 27, 28);
+        handel.LaggTillPensionsRegel(PensionType.SAFLO, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        handel.LaggTillViloRegel(11m, 36m, 0.5m);
+        handel.LaggTillArbetstidsRegel(40.0m, "{}");
+
+        // 5. IT/Telekomavtalet
+        var itTelekom = CollectiveAgreement.Skapa("IT/Telekomavtalet 2025", "Almega IT och Unionen", giltigFran, IndustrySector.ITTelekom);
+        itTelekom.LaggTillOBSats(OBCategory.VardagKvall, 35.00m, giltigFran);
+        itTelekom.LaggTillOBSats(OBCategory.VardagNatt, 65.00m, giltigFran);
+        itTelekom.LaggTillOBSats(OBCategory.Helg, 45.00m, giltigFran);
+        itTelekom.LaggTillOBSats(OBCategory.Storhelg, 95.00m, giltigFran);
+        itTelekom.LaggTillOvertidsRegel(1.0m, 1.5m, 200m);
+        itTelekom.LaggTillSemesterRegel(25, 28, 30);
+        itTelekom.LaggTillPensionsRegel(PensionType.ITP1, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        itTelekom.LaggTillViloRegel(11m, 36m, 0.5m);
+        itTelekom.LaggTillArbetstidsRegel(40.0m, "{\"MaxFlexSaldo\":80,\"KarnTidStart\":\"10:00\",\"KarnTidSlut\":\"15:00\"}");
+        itTelekom.LaggTillPrivatErsattningsPlan("{\"MaxProcent\":15}", "{}", "{\"ESOP\":true}", "{\"MaxBelopp\":8000}");
+
+        // 6. Vardforetagaravtalet
+        var vardforetag = CollectiveAgreement.Skapa("Vardforetagaravtalet 2025", "Vardforetagarna och Kommunal", giltigFran, IndustrySector.SjukvardPrivat);
+        vardforetag.LaggTillOBSats(OBCategory.VardagKvall, 110.00m, giltigFran);
+        vardforetag.LaggTillOBSats(OBCategory.VardagNatt, 135.00m, giltigFran);
+        vardforetag.LaggTillOBSats(OBCategory.Helg, 80.00m, giltigFran);
+        vardforetag.LaggTillOBSats(OBCategory.Storhelg, 170.00m, giltigFran);
+        vardforetag.LaggTillOvertidsRegel(1.0m, 1.7m, 200m);
+        vardforetag.LaggTillSemesterRegel(25, 30, 31);
+        vardforetag.LaggTillPensionsRegel(PensionType.SAFLO, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        vardforetag.LaggTillViloRegel(11m, 36m, 0.5m);
+        vardforetag.LaggTillArbetstidsRegel(38.25m, "{}");
+
+        // 7. Transportavtalet
+        var transport = CollectiveAgreement.Skapa("Transportavtalet 2025", "Biltrafikens Arbetsgivareforb. och Transport", giltigFran, IndustrySector.Transport);
+        transport.LaggTillOBSats(OBCategory.VardagKvall, 48.00m, giltigFran);
+        transport.LaggTillOBSats(OBCategory.VardagNatt, 85.00m, giltigFran);
+        transport.LaggTillOBSats(OBCategory.Helg, 60.00m, giltigFran);
+        transport.LaggTillOBSats(OBCategory.Storhelg, 125.00m, giltigFran);
+        transport.LaggTillOvertidsRegel(1.0m, 1.5m, 200m);
+        transport.LaggTillSemesterRegel(25, 27, 28);
+        transport.LaggTillPensionsRegel(PensionType.SAFLO, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        transport.LaggTillViloRegel(11m, 36m, 0.75m);
+        transport.LaggTillArbetstidsRegel(40.0m, "{}");
+
+        // 8. HRF-avtalet (Hotell och restaurang)
+        var hrf = CollectiveAgreement.Skapa("HRF-avtalet 2025", "Visita och HRF", giltigFran, IndustrySector.HotellRestaurang);
+        hrf.LaggTillOBSats(OBCategory.VardagKvall, 38.50m, giltigFran);
+        hrf.LaggTillOBSats(OBCategory.VardagNatt, 58.00m, giltigFran);
+        hrf.LaggTillOBSats(OBCategory.Helg, 48.00m, giltigFran);
+        hrf.LaggTillOBSats(OBCategory.Storhelg, 98.00m, giltigFran);
+        hrf.LaggTillOvertidsRegel(1.0m, 1.5m, 150m);
+        hrf.LaggTillSemesterRegel(25, 26, 27);
+        hrf.LaggTillPensionsRegel(PensionType.SAFLO, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        hrf.LaggTillViloRegel(11m, 36m, 0.5m);
+        hrf.LaggTillArbetstidsRegel(40.0m, "{}");
+
+        // 9. Tjanstemannaavtalet
+        var tjansteman = CollectiveAgreement.Skapa("Tjanstemannaavtalet 2025", "Almega och Unionen", giltigFran, IndustrySector.Tjanstemannaallman);
+        tjansteman.LaggTillOBSats(OBCategory.VardagKvall, 32.00m, giltigFran);
+        tjansteman.LaggTillOBSats(OBCategory.VardagNatt, 55.00m, giltigFran);
+        tjansteman.LaggTillOBSats(OBCategory.Helg, 42.00m, giltigFran);
+        tjansteman.LaggTillOBSats(OBCategory.Storhelg, 88.00m, giltigFran);
+        tjansteman.LaggTillOvertidsRegel(1.0m, 1.5m, 200m);
+        tjansteman.LaggTillSemesterRegel(25, 28, 30);
+        tjansteman.LaggTillPensionsRegel(PensionType.ITP1, 4.5m, 30.0m, 599500m, "{\"IBB\":599500}");
+        tjansteman.LaggTillViloRegel(11m, 36m, 0.5m);
+        tjansteman.LaggTillArbetstidsRegel(40.0m, "{\"MaxFlexSaldo\":40}");
+
+        // 10. Avtalslost — tomt avtal for privat utan kollektivavtal
+        var avtalslost = CollectiveAgreement.Skapa("Avtalslost", "Ingen", giltigFran, IndustrySector.Avtalslost);
+
+        db.CollectiveAgreements.AddRange(ab, hok, teknik, handel, itTelekom, vardforetag, transport, hrf, tjansteman, avtalslost);
+
         // === Employees ===
         var seedEmployees = new (string Fornamn, string Efternamn, string Pnr, string Befattning, OrganizationId Enhet, Money Lon)[]
         {
@@ -76,6 +198,7 @@ public static class SeedData
                 enhetId, EmploymentType.Tillsvidare, CollectiveAgreementType.AB,
                 lon, Percentage.FullTime, startdatum);
             employment.SattBefattning(befattning);
+            employment.SattKollektivavtal(ab.Id);
             db.Employees.Add(employee);
             employees.Add(employee);
             employments.Add(employment);

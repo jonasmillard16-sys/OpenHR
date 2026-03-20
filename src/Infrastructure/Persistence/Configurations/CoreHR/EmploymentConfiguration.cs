@@ -49,6 +49,10 @@ public class EmploymentConfiguration : IEntityTypeConfiguration<Employment>
             dr.Property(x => x.End).HasColumnName("slut_datum");
         });
 
+        builder.Property(e => e.AvtalsId)
+            .HasConversion(id => id == null ? (Guid?)null : id.Value.Value, v => v == null ? null : CollectiveAgreementId.From(v.Value))
+            .HasColumnName("avtals_id");
+
         builder.Property(e => e.BESTAKod).HasColumnName("besta_kod").HasMaxLength(10);
         builder.Property(e => e.AIDKod).HasColumnName("aid_kod").HasMaxLength(10);
         builder.Property(e => e.Befattningstitel).HasColumnName("befattningstitel").HasMaxLength(200);

@@ -1,4 +1,5 @@
 using Xunit;
+using RegionHR.Agreements.Domain;
 using RegionHR.Core.Contracts;
 using RegionHR.Payroll.Domain;
 using RegionHR.Payroll.Engine;
@@ -782,6 +783,40 @@ public class PayrollCalculationEngineTests
                 DagarMedUtfyllnad = 180,
                 UtfyllnadProcent = 0.10m
             });
+        }
+
+        public decimal GetOBRate(CollectiveAgreement avtal, OBCategory category, DateOnly date)
+        {
+            if (category == OBCategory.Ingen) return 0m;
+            return avtal.HamtaOBSats(category, date);
+        }
+
+        public OvertimeRules GetOvertimeRules(CollectiveAgreement avtal)
+        {
+            return new OvertimeRules
+            {
+                EnkelOvertidFaktor = 0.8m,
+                KvalificeradOvertidFaktor = 1.4m,
+                MaxOvertidPerVecka = 48m,
+                MaxOvertidPerManad = 50m,
+                MaxOvertidPerAr = 200m,
+                KomptidFaktor = 1.5m
+            };
+        }
+
+        public VacationRules GetVacationRules(CollectiveAgreement avtal, DateOnly date, int? fodelseAr = null)
+        {
+            return new VacationRules
+            {
+                DagarPerAr = 25,
+                SammaloneregelProcent = 0.80m,
+                SemestertillaggProcent = 0.43m,
+                VariabelLonSemesterProcent = 12.0m,
+                MaxSparadeDagar = 5,
+                TotalMaxSparade = 40,
+                IntjanandeArStart = new DateOnly(date.Year - 1, 4, 1),
+                IntjanandeArSlut = new DateOnly(date.Year, 3, 31)
+            };
         }
     }
 

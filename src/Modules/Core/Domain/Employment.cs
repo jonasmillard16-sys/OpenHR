@@ -20,6 +20,9 @@ public sealed class Employment : Entity<EmploymentId>
     // Befattning
     public string? Befattningstitel { get; private set; }
 
+    // Kollektivavtals-referens (DB-backed)
+    public CollectiveAgreementId? AvtalsId { get; private set; }
+
     // LAS-relevant
     public bool ArTillsvidareanstallning => Anstallningsform == EmploymentType.Tillsvidare;
     public bool ArTidsbegransad => Anstallningsform is EmploymentType.Vikariat or EmploymentType.SAVA or EmploymentType.Sasongsanstallning;
@@ -76,6 +79,12 @@ public sealed class Employment : Entity<EmploymentId>
     public void AvslutaAnstallning(DateOnly slutdatum)
     {
         Giltighetsperiod = new DateRange(Giltighetsperiod.Start, slutdatum);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SattKollektivavtal(CollectiveAgreementId avtalsId)
+    {
+        AvtalsId = avtalsId;
         UpdatedAt = DateTime.UtcNow;
     }
 

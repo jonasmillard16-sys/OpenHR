@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\SharedKernel\RegionHR.SharedKernel.csproj" />
     <ProjectReference Include="..\Core\RegionHR.Core.csproj" />
+    <ProjectReference Include="..\Agreements\RegionHR.Agreements.csproj" />
   </ItemGroup>
 
 </Project>

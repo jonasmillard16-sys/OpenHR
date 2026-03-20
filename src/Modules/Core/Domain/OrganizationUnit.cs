@@ -11,6 +11,7 @@ public sealed class OrganizationUnit : AggregateRoot<OrganizationId>
     public string Kostnadsstalle { get; private set; } = string.Empty;
     public string? CFARKod { get; private set; }
     public EmployeeId? ChefId { get; private set; }
+    public CollectiveAgreementId? DefaultAvtalsId { get; private set; }
     public DateRange Giltighet { get; private set; } = null!;
 
     private readonly List<OrganizationUnit> _underenheter = [];
@@ -41,6 +42,12 @@ public sealed class OrganizationUnit : AggregateRoot<OrganizationId>
     public void TilldelaChef(EmployeeId chefId)
     {
         ChefId = chefId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SattDefaultKollektivavtal(CollectiveAgreementId avtalsId)
+    {
+        DefaultAvtalsId = avtalsId;
         UpdatedAt = DateTime.UtcNow;
     }
 
