@@ -107,7 +107,7 @@
             if (Db is not null)
                 UnreadCount = await Db.Notifications.CountAsync(n => !n.IsRead);
         }
-        catch { }
+        catch { /* Notification count non-critical — continue with 0 */ }
     }
 
     private static readonly Dictionary<string, string> _navSuggestions = new()
@@ -196,7 +196,7 @@
                     .ToListAsync(ct);
                 results.AddRange(employees);
             }
-            catch { }
+            catch { /* Search non-critical — return partial results */ }
         }
 
         return results;

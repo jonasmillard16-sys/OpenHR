@@ -102,7 +102,7 @@ else
                 _kyrkoavgiftssats = emp.Kyrkoavgiftssats;
             }
         }
-        catch { }
+        catch (Exception ex) { _felmeddelande = $"Kunde inte ladda data: {ex.Message}"; }
         _laddad = true;
     }
 

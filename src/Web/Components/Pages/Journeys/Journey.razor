@@ -97,6 +97,7 @@ else
     [Parameter] public Guid InstanceId { get; set; }
     private JourneyInstance? _instance;
     private bool _loading = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,7 +107,7 @@ else
                 .Include("Steg")
                 .FirstOrDefaultAsync(i => i.Id == InstanceId);
         }
-        catch { }
+        catch (Exception ex) { _error = $"Kunde inte ladda journey: {ex.Message}"; }
         finally { _loading = false; }
     }
 
