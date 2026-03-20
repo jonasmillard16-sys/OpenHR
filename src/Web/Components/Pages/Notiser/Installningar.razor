@@ -3,124 +3,48 @@
 
 <PageTitle>OpenHR - Notisinställningar</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Notisinställningar</MudText>
-
-@if (_sparad)
-{
-    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">
-        Inställningar sparade!
-    </MudAlert>
-}
-
-<MudAlert Severity="Severity.Info" Class="mb-4">
-    Konfigurera vilka notifieringar du vill ta emot och via vilken kanal.
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+    Notisinställningar sparas lokalt. Personlig preferensmodell kräver ytterligare datamodell.
 </MudAlert>
 
-<MudText Typo="Typo.h6" Class="mb-3">Notifieringskanaler per händelsetyp</MudText>
-<MudSimpleTable Hover="true" Elevation="2" Class="mb-6">
-    <thead>
-        <tr>
-            <th>Händelsetyp</th>
-            <th>Beskrivning</th>
-            <th style="text-align: center;">I appen</th>
-            <th style="text-align: center;">E-post</th>
-            <th style="text-align: center;">SMS</th>
-        </tr>
-    </thead>
+<MudSimpleTable Hover="true" Elevation="2">
+    <thead><tr><th>Notistyp</th><th>Beskrivning</th><th>InApp</th><th>E-post</th></tr></thead>
     <tbody>
         @foreach (var inst in _installningar)
         {
             <tr>
                 <td><strong>@inst.Typ</strong></td>
                 <td>@inst.Beskrivning</td>
-                <td style="text-align: center;"><MudCheckBox T="bool" Value="@inst.InApp" ValueChanged="@(v => inst.InApp = v)" Color="Color.Primary" /></td>
-                <td style="text-align: center;"><MudCheckBox T="bool" Value="@inst.Epost" ValueChanged="@(v => inst.Epost = v)" Color="Color.Primary" /></td>
-                <td style="text-align: center;"><MudCheckBox T="bool" Value="@inst.SMS" ValueChanged="@(v => inst.SMS = v)" Color="Color.Primary" /></td>
+                <td><MudCheckBox T="bool" @bind-Value="inst.InApp" Color="Color.Primary" /></td>
+                <td><MudCheckBox T="bool" @bind-Value="inst.Epost" Color="Color.Primary" /></td>
             </tr>
         }
     </tbody>
 </MudSimpleTable>
 
-<MudText Typo="Typo.h6" Class="mb-3">Tyst period</MudText>
-<MudPaper Class="pa-4 mb-6" Elevation="1">
-    <MudGrid>
-        <MudItem xs="4">
-            <MudCheckBox T="bool" @bind-Value="_tystPeriodAktiv" Color="Color.Primary" Label="Aktivera tyst period" />
-        </MudItem>
-        <MudItem xs="4">
-            <MudTimePicker Label="Från" @bind-Time="_tystFran" Disabled="@(!_tystPeriodAktiv)" />
-        </MudItem>
-        <MudItem xs="4">
-            <MudTimePicker Label="Till" @bind-Time="_tystTill" Disabled="@(!_tystPeriodAktiv)" />
-        </MudItem>
-    </MudGrid>
-    <MudText Typo="Typo.caption" Class="mt-2">Under tyst period skickas inga SMS eller e-postnotifieringar. Notiser i appen visas som vanligt.</MudText>
-</MudPaper>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" Style="min-height: 48px;" OnClick="@(() => _sparad = true)">Spara inställningar</MudButton>
 
-<MudText Typo="Typo.h6" Class="mb-3">Sammanfattningsmail</MudText>
-<MudPaper Class="pa-4 mb-4" Elevation="1">
-    <MudGrid>
-        <MudItem xs="6">
-            <MudCheckBox T="bool" @bind-Value="_sammanfattningAktiv" Color="Color.Primary" Label="Skicka daglig sammanfattning via e-post" />
-        </MudItem>
-        <MudItem xs="6">
-            <MudTimePicker Label="Skickas kl." @bind-Time="_sammanfattningTid" Disabled="@(!_sammanfattningAktiv)" />
-        </MudItem>
-    </MudGrid>
-</MudPaper>
-
-<div class="d-flex justify-end">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="min-height: 48px;" OnClick="Spara">Spara inställningar</MudButton>
-</div>
+@if (_sparad)
+{
+    <MudAlert Severity="Severity.Success" Class="mt-4" ShowCloseIcon="true" CloseIconClicked="@(() => _sparad = false)">Inställningar sparade (lokal session — ej persisterad i DB).</MudAlert>
+}
 
 @code {
-    private bool _tystPeriodAktiv = true;
-    private TimeSpan? _tystFran = new TimeSpan(22, 0, 0);
-    private TimeSpan? _tystTill = new TimeSpan(7, 0, 0);
-    private bool _sammanfattningAktiv = true;
-    private TimeSpan? _sammanfattningTid = new TimeSpan(8, 0, 0);
-
-    private List<NotisInstallning> _installningar = [];
+    private bool _sparad;
+    private List<NotisInst> _installningar = [];
 
     protected override void OnInitialized()
     {
         _installningar =
         [
-            new("Ledighetsansökan", "Ny ansökan eller statusändring", true, true, false),
-            new("Lönebesked", "Nytt lönebesked tillgängligt", true, true, false),
-            new("Schemaändring", "Ändringar i ditt schema", true, true, true),
-            new("Medarbetarsamtal", "Inbjudan eller påminnelse", true, true, false),
-            new("Ärende", "Nytt ärende eller uppdatering", true, true, false),
-            new("Certifiering", "Certifiering som går ut snart", true, true, true),
-            new("Godkännande", "Åtgärd krävs – godkänn/avslå", true, true, true),
-            new("Utbildning", "Påminnelse om obligatorisk utbildning", true, true, false),
-            new("Systemmeddelande", "Driftstatus och underhåll", true, false, false),
-            new("Anslag", "Nya organisationsmeddelanden", true, false, false),
+            new() { Typ = "Ledighetsansökan", Beskrivning = "Ny ansökan eller statusändring", InApp = true, Epost = true },
+            new() { Typ = "Lönebesked", Beskrivning = "Nytt lönebesked tillgängligt", InApp = true, Epost = true },
+            new() { Typ = "Schemaändring", Beskrivning = "Ändringar i ditt schema", InApp = true, Epost = true },
+            new() { Typ = "Godkännande", Beskrivning = "Åtgärd krävs", InApp = true, Epost = true },
+            new() { Typ = "Certifiering", Beskrivning = "Certifiering går ut snart", InApp = true, Epost = true },
+            new() { Typ = "Anslag", Beskrivning = "Organisationsmeddelanden", InApp = true, Epost = false },
         ];
     }
 
-    private bool _sparad;
-
-    private void Spara()
-    {
-        _sparad = true;
-        // In production: save to DB via user preferences service
-    }
-
-    private class NotisInstallning
-    {
-        public string Typ { get; set; }
-        public string Beskrivning { get; set; }
-        public bool InApp { get; set; }
-        public bool Epost { get; set; }
-        public bool SMS { get; set; }
-
-        public NotisInstallning(string typ, string beskrivning, bool inApp, bool epost, bool sms)
-        {
-            Typ = typ;
-            Beskrivning = beskrivning;
-            InApp = inApp;
-            Epost = epost;
-            SMS = sms;
-        }
-    }
+    private class NotisInst { public string Typ { get; set; } = ""; public string Beskrivning { get; set; } = ""; public bool InApp { get; set; } public bool Epost { get; set; } }
 }
