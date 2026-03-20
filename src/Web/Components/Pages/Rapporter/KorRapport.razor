@@ -120,42 +120,46 @@ else if (_result != null)
                 break;
 
             case "Frånvarostatistik":
-                _headers = ["Enhet", "Sjukfrånvaro (%)", "Sjukdagar", "VAB (dagar)", "Semester (dagar)", "Övrig frånvaro", "Totalt"];
-                _result =
-                [
-                    ["Avdelning 32", "4,2%", "126", "45", "312", "18", "501"],
-                    ["Avdelning 33", "5,1%", "89", "32", "245", "12", "378"],
-                    ["Akutmottagningen", "3,8%", "105", "28", "298", "22", "453"],
-                    ["IVA", "6,3%", "142", "51", "267", "31", "491"],
-                    ["Administration", "2,1%", "34", "18", "189", "8", "249"],
-                    ["Totalt", "4,2%", "496", "174", "1 311", "91", "2 072"],
-                ];
+                _headers = ["Typ", "Antal ansökningar", "Totalt dagar"];
+                try
+                {
+                    var leaves = await Db.LeaveRequests.ToListAsync();
+                    _result = leaves.GroupBy(l => l.Typ).Select(g => new List<string>
+                        { g.Key.ToString(), g.Count().ToString(), g.Sum(l => l.AntalDagar).ToString() }).ToList();
+                }
+                catch (Exception ex) { _error = $"Kunde inte hämta frånvarostatistik: {ex.Message}"; }
                 break;
 
             case "LAS-status":
-                _headers = ["Namn", "Anställningsform", "Ackumulerade dagar", "Gräns", "Kvar till gräns", "Prognos konvertering", "Varningsnivå"];
-                _result =
-                [
-                    ["Maria Lindgren", "SAVA", "348", "365", "17", "2026-04-12", "Kritisk"],
-                    ["Johan Nilsson", "Vikariat", "342", "365", "23", "2026-04-18", "Kritisk"],
-                    ["Sara Karlsson", "SAVA", "335", "365", "30", "2026-04-25", "Kritisk"],
-                    ["Anders Olsson", "Vikariat", "315", "365", "50", "2026-05-20", "Varning"],
-                    ["Helena Bergström", "SAVA", "308", "365", "57", "2026-05-28", "Varning"],
-                    ["Lisa Ekström", "Vikariat", "245", "365", "120", "2026-08-15", "Under gräns"],
-                    ["Per Strand", "SAVA", "189", "365", "176", "2026-11-01", "Under gräns"],
-                ];
+                _headers = ["Namn", "Anställningsform", "Ackumulerade dagar", "Status"];
+                try
+                {
+                    var accs = await Db.LASAccumulations.ToListAsync();
+                    var lasEmpIds = accs.Select(a => a.AnstallId.Value).Distinct().ToList();
+                    var lasEmps = await Db.Employees.Where(e => lasEmpIds.Contains(e.Id.Value)).ToListAsync();
+                    var lasNames = lasEmps.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+                    _result = accs.OrderByDescending(a => a.AckumuleradeDagar).Select(a => new List<string>
+                        { lasNames.GetValueOrDefault(a.AnstallId.Value, "Okänd"), a.Anstallningsform.ToString(), a.AckumuleradeDagar.ToString(), a.Status.ToString() }).ToList();
+                }
+                catch (Exception ex) { _error = $"Kunde inte hämta LAS-status: {ex.Message}"; }
                 break;
 
             case "Bemanningsanalys":
-                _headers = ["Enhet", "Planerad bemanning", "Faktisk bemanning", "Bemanningsgrad", "Dag", "Kväll", "Natt", "Avvikelse"];
-                _result =
-                [
-                    ["Avdelning 32", "8", "8", "100%", "3", "3", "2", "0"],
-                    ["Avdelning 33", "6", "5", "83%", "2", "2", "1", "-1"],
-                    ["Akutmottagningen", "12", "12", "100%", "5", "4", "3", "0"],
-                    ["IVA", "10", "7", "70%", "3", "2", "2", "-3"],
-                    ["Totalt", "36", "32", "89%", "13", "11", "8", "-4"],
-                ];
+                _headers = ["Enhet", "Dag", "Kväll", "Natt", "Totalt"];
+                try
+                {
+                    var idagBem = DateOnly.FromDateTime(DateTime.Today);
+                    var todayShifts = await Db.ScheduledShifts.Where(s => s.Datum == idagBem).ToListAsync();
+                    var bemEmps = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+                    var empEnhBem = new Dictionary<Guid, Guid>();
+                    foreach (var be in bemEmps) { var ba = be.AktivAnstallning(idagBem); if (ba != null) empEnhBem[be.Id.Value] = ba.EnhetId.Value; }
+                    var enhBem = await Db.OrganizationUnits.ToListAsync();
+                    _result = enhBem.Select(enhet => {
+                        var es = todayShifts.Where(s => empEnhBem.GetValueOrDefault(s.AnstallId.Value) == enhet.Id.Value).ToList();
+                        return new List<string> { enhet.Namn, es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Dag).ToString(), es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Kvall).ToString(), es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Natt).ToString(), es.Count.ToString() };
+                    }).Where(r => int.Parse(r[4]) > 0).ToList();
+                }
+                catch (Exception ex) { _error = $"Kunde inte hämta bemanningsanalys: {ex.Message}"; }
                 break;
 
             default:

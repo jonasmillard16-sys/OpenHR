@@ -183,8 +183,9 @@
             System.Diagnostics.Debug.WriteLine($"Kompetens cert load: {ex.Message}");
         }
 
-        // Mandatory training completion data (demo data until backend aggregation exists)
-        _mandatoryRows = GenerateMandatoryRows();
+        // Mandatory training from DB
+        var mandatoryTrainings = await Db.MandatoryTrainings.ToListAsync();
+        _mandatoryRows = mandatoryTrainings.Select(m => new MandatoryRow(m.UtbildningNamn, m.RollNamn, 0, 0)).ToList();
     }
 
     private void HandleExpiryAction(string actionKey)
@@ -192,21 +193,7 @@
         // Future: route to booking system or send reminder notification
     }
 
-    private static List<MandatoryRow> GenerateMandatoryRows() =>
-    [
-        new("HLR", "Akutmottagningen", 45, 48),
-        new("HLR", "Kirurgen", 38, 42),
-        new("HLR", "Medicin", 30, 35),
-        new("Brandskydd", "Akutmottagningen", 47, 48),
-        new("Brandskydd", "Kirurgen", 40, 42),
-        new("Brandskydd", "Medicin", 28, 35),
-        new("Hygien", "Akutmottagningen", 44, 48),
-        new("Hygien", "Kirurgen", 39, 42),
-        new("Hygien", "Medicin", 33, 35),
-        new("Första hjälpen", "Akutmottagningen", 42, 48),
-        new("Första hjälpen", "Kirurgen", 36, 42),
-        new("Första hjälpen", "Medicin", 31, 35),
-    ];
+    // MandatoryRows now loaded from Db.MandatoryTrainings in OnInitializedAsync
 
     private static Color ProgressColor(double pct) => pct switch
     {

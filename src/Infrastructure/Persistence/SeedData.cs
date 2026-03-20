@@ -876,6 +876,13 @@ public static class SeedData
             EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(60)));
         db.Vacancies.AddRange(vakSsk, vakUsk, vakLak);
 
+        // === MandatoryTrainings ===
+        db.MandatoryTrainings.AddRange(
+            RegionHR.Competence.Domain.MandatoryTraining.Skapa("Sjukskoterska", "HLR", 12, "Hjartstoppsutbildning"),
+            RegionHR.Competence.Domain.MandatoryTraining.Skapa("Sjukskoterska", "Brandskydd", 24, "Grundutbildning brandsakerhet"),
+            RegionHR.Competence.Domain.MandatoryTraining.Skapa("Alla", "Hygien", 12, "Basala hygienrutiner"),
+            RegionHR.Competence.Domain.MandatoryTraining.Skapa("Underskoterska", "Forsta hjalpen", 24));
+
         // === ReferenceChecks ===
         var refCheck1 = RegionHR.Recruitment.Domain.ReferenceCheck.Skapa(vakSsk.Id, "Anna Bergman", "Lars Svensson", "Tidigare chef");
         refCheck1.Genomfor("Mycket positiva omdomen. Rekommenderas starkt.", true);

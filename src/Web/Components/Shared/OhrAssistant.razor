@@ -1,5 +1,6 @@
 @namespace RegionHR.Web.Components.Shared
 @using RegionHR.Infrastructure.Persistence
+@using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 
 <div style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;">
@@ -63,34 +64,45 @@
 
     [Inject] private NavigationManager? Nav { get; set; }
     [Inject] private RegionHRDbContext? Db { get; set; }
+    [Inject] private RegionHR.Web.Services.AuthService? Auth { get; set; }
 
-    // Simulated user data (TODO: replace with auth context)
-    private string _userName = "Anna";
-    private int _semesterKvar = 18;
-    private int _semesterTotalt = 25;
-    private int _semesterUttagna = 7;
-    private string _nastaPass = "Måndag 17/3, Dag 07:00–16:00";
-    private decimal _senasteLon = 27650m;
-    private decimal _senasteBrutto = 32400m;
+    private string _userName = "";
+    private int _semesterKvar;
+    private int _semesterTotalt;
+    private int _semesterUttagna;
+    private string _nastaPass = "—";
+    private decimal _senasteLon;
+    private decimal _senasteBrutto;
 
     protected override async Task OnInitializedAsync()
     {
-        // Try to load real data
         try
         {
-            if (Db != null)
+            if (Db == null) return;
+            var empId = Auth?.EmployeeId;
+            if (empId.HasValue)
             {
+                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id == EmployeeId.From(empId.Value));
+                if (emp != null) _userName = emp.Fornamn;
+
                 var year = DateTime.Today.Year;
-                var balance = await Db.VacationBalances.FirstOrDefaultAsync(b => b.Ar == year);
-                if (balance != null)
-                {
-                    _semesterKvar = balance.TillgangligaDagar;
-                    _semesterTotalt = balance.Tilldelning;
-                    _semesterUttagna = balance.UttagnaDagar;
-                }
+                var balance = await Db.VacationBalances.FirstOrDefaultAsync(b => b.AnstallId == empId.Value && b.Ar == year);
+                if (balance != null) { _semesterKvar = balance.TillgangligaDagar; _semesterTotalt = balance.Tilldelning; _semesterUttagna = balance.UttagnaDagar; }
+
+                var idag = DateOnly.FromDateTime(DateTime.Today);
+                var nastaShift = await Db.ScheduledShifts
+                    .Where(s => s.AnstallId == EmployeeId.From(empId.Value) && s.Datum >= idag)
+                    .OrderBy(s => s.Datum).FirstOrDefaultAsync();
+                if (nastaShift != null) _nastaPass = $"{nastaShift.Datum:ddd d/M} {nastaShift.PassTyp} {nastaShift.PlaneradStart:HH:mm}–{nastaShift.PlaneradSlut:HH:mm}";
+
+                var senasteLon = await Db.PayrollResults
+                    .Where(r => r.AnstallId == EmployeeId.From(empId.Value))
+                    .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
+                    .FirstOrDefaultAsync();
+                if (senasteLon != null) { _senasteLon = senasteLon.Netto.Amount; _senasteBrutto = senasteLon.Brutto.Amount; }
             }
         }
-        catch { /* DB unavailable — assistant uses default values */ }
+        catch { /* DB unavailable — assistant uses zero defaults */ }
     }
 
     private void HandleKey(KeyboardEventArgs e)
