@@ -20,6 +20,7 @@ using RegionHR.Infrastructure.Integrations;
 using RegionHR.Infrastructure.Reporting;
 using RegionHR.Infrastructure.Payroll;
 using RegionHR.Infrastructure.Scheduling;
+using RegionHR.Infrastructure.Events;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -30,24 +31,28 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, bool useInMemory = false)
     {
+        // Domain event infrastructure
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<DomainEventInterceptor>();
+
         // Audit interceptor
         var auditInterceptor = new AuditInterceptor();
 
         // DbContext
         if (useInMemory)
         {
-            services.AddDbContext<RegionHRDbContext>(options =>
+            services.AddDbContext<RegionHRDbContext>((sp, options) =>
                 options.UseInMemoryDatabase("RegionHR-Dev")
-                    .AddInterceptors(auditInterceptor));
+                    .AddInterceptors(auditInterceptor, sp.GetRequiredService<DomainEventInterceptor>()));
         }
         else
         {
-            services.AddDbContext<RegionHRDbContext>(options =>
+            services.AddDbContext<RegionHRDbContext>((sp, options) =>
                 options.UseNpgsql(connectionString, npgsql =>
                 {
                     npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "public");
                 })
-                .AddInterceptors(auditInterceptor));
+                .AddInterceptors(auditInterceptor, sp.GetRequiredService<DomainEventInterceptor>()));
         }
 
         // Repositories
