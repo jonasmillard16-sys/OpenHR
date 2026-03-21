@@ -3,17 +3,19 @@
 @using RegionHR.Leave.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR — Ny ledighetsansökan</PageTitle>
+<PageTitle>OpenHR — @L["NewLeaveRequest"]</PageTitle>
 
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
+           Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">@L["Back"]</MudButton>
 
-<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Ny ledighetsansökan</MudText>
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">@L["NewLeaveRequest"]</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Ansökan sparas i databasen via LeaveRequest.Skapa() + SkickaIn().
+    @L["LeaveRequestSaved"]
 </MudText>
 
 @if (_loading)
@@ -27,24 +29,24 @@ else if (_error != null)
 else if (_created != null)
 {
     <MudPaper Class="pa-5" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
-        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">Ansökan inskickad</MudText>
+        <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;" Class="mb-3">@L["ApplicationSubmitted"]</MudText>
         <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
             <tbody>
-                <tr><td><strong>Anställd</strong></td><td>@GetEmployeeName(_created.AnstallId)</td></tr>
-                <tr><td><strong>Typ</strong></td><td>@_created.Typ</td></tr>
-                <tr><td><strong>Från</strong></td><td>@_created.FranDatum.ToString("yyyy-MM-dd")</td></tr>
-                <tr><td><strong>Till</strong></td><td>@_created.TillDatum.ToString("yyyy-MM-dd")</td></tr>
-                <tr><td><strong>Arbetsdagar</strong></td><td>@_created.AntalDagar</td></tr>
-                <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">@_created.Status</MudChip></td></tr>
+                <tr><td><strong>@L["Employee"]</strong></td><td>@GetEmployeeName(_created.AnstallId)</td></tr>
+                <tr><td><strong>@L["Type"]</strong></td><td>@_created.Typ</td></tr>
+                <tr><td><strong>@L["From"]</strong></td><td>@_created.FranDatum.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>@L["To"]</strong></td><td>@_created.TillDatum.ToString("yyyy-MM-dd")</td></tr>
+                <tr><td><strong>@L["WorkDays"]</strong></td><td>@_created.AntalDagar</td></tr>
+                <tr><td><strong>@L["Status"]</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">@_created.Status</MudChip></td></tr>
                 @if (_created.Beskrivning != null)
                 {
-                    <tr><td><strong>Beskrivning</strong></td><td>@_created.Beskrivning</td></tr>
+                    <tr><td><strong>@L["Description"]</strong></td><td>@_created.Beskrivning</td></tr>
                 }
             </tbody>
         </MudSimpleTable>
         <div class="d-flex gap-2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/ledighet">Tillbaka till översikt</MudButton>
-            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Reset">Skapa ytterligare</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/ledighet">@L["BackToOverview"]</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Reset">@L["CreateAnother"]</MudButton>
         </div>
     </MudPaper>
 }
@@ -53,7 +55,7 @@ else
     <MudPaper Class="pa-5" Elevation="2">
         <MudGrid Spacing="3">
             <MudItem xs="12" sm="6">
-                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="Anställd" Variant="Variant.Outlined" Required="true">
+                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="@L["Employee"]" Variant="Variant.Outlined" Required="true">
                     @foreach (var e in _employees)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
@@ -61,7 +63,7 @@ else
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect T="LeaveType" @bind-Value="_typ" Label="Ledighetstyp" Variant="Variant.Outlined">
+                <MudSelect T="LeaveType" @bind-Value="_typ" Label="@L["LeaveType"]" Variant="Variant.Outlined">
                     @foreach (var t in Enum.GetValues<LeaveType>())
                     {
                         <MudSelectItem Value="@t">@TypText(t)</MudSelectItem>
@@ -69,21 +71,21 @@ else
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_franDatum" Label="Från" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker @bind-Date="_franDatum" Label="@L["From"]" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_tillDatum" Label="Till" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker @bind-Date="_tillDatum" Label="@L["To"]" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_beskrivning" Label="Beskrivning (valfritt)" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_beskrivning" Label="@L["DescriptionOptional"]" Variant="Variant.Outlined" />
             </MudItem>
         </MudGrid>
 
         @if (_anstallId != null && _balans != null)
         {
             <MudAlert Severity="Severity.Info" Class="mt-3" Variant="Variant.Text" Dense="true">
-                Semestersaldo @_balans.Ar: @_balans.TillgangligaDagar dagar tillgängliga
-                (tilldelning @_balans.Tilldelning, uttagna @_balans.UttagnaDagar, sparade @_balans.SparadeDagar)
+                @L["VacationBalance"] @_balans.Ar: @_balans.TillgangligaDagar @L["DaysAvailable"]
+                (@L["Allocation"] @_balans.Tilldelning, @L["DaysTaken"] @_balans.UttagnaDagar, @L["DaysSaved"] @_balans.SparadeDagar)
             </MudAlert>
         }
 
@@ -94,7 +96,7 @@ else
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            Skicka in ansökan
+            @L["SubmitApplication"]
         </MudButton>
     </MudPaper>
 }
@@ -122,7 +124,7 @@ else
                 .ToListAsync();
             _balansPerAnstall = balances.ToDictionary(b => b.AnstallId);
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingData"]}: {ex.Message}"; }
         finally { _loading = false; }
     }
 
@@ -143,7 +145,7 @@ else
                 _anstallId.Value, _typ, from, to,
                 string.IsNullOrWhiteSpace(_beskrivning) ? null : _beskrivning);
 
-            // 2. Skicka in (Utkast → Inskickad)
+            // 2. Skicka in (Utkast -> Inskickad)
             request.SkickaIn();
 
             // 3. Persistera
@@ -152,7 +154,7 @@ else
 
             _created = request;
         }
-        catch (Exception ex) { _error = $"Kunde inte skapa ansökan: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorCreatingRequest"]}: {ex.Message}"; }
         finally { _saving = false; }
     }
 
@@ -183,18 +185,18 @@ else
     private string GetEmployeeName(Guid id)
     {
         var emp = _employees.FirstOrDefault(e => e.Id.Value == id);
-        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+        return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : L["Unknown"].Value;
     }
 
-    private static string TypText(LeaveType t) => t switch
+    private string TypText(LeaveType t) => t switch
     {
-        LeaveType.Semester => "Semester",
-        LeaveType.Sjukfranvaro => "Sjukfrånvaro",
-        LeaveType.Foraldraledighet => "Föräldraledighet",
-        LeaveType.VAB => "VAB",
-        LeaveType.Tjanstledighet => "Tjänstledighet",
-        LeaveType.Komptid => "Komptid",
-        LeaveType.Utbildning => "Utbildning",
+        LeaveType.Semester => L["Vacation"],
+        LeaveType.Sjukfranvaro => L["SickLeave"],
+        LeaveType.Foraldraledighet => L["ParentalLeave"],
+        LeaveType.VAB => L["ChildCareLeave"],
+        LeaveType.Tjanstledighet => L["LeaveOfAbsence"],
+        LeaveType.Komptid => L["CompTime"],
+        LeaveType.Utbildning => L["Education"],
         _ => t.ToString()
     };
 }

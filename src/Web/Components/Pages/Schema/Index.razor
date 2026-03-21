@@ -3,14 +3,16 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Schemaöversikt</PageTitle>
+<PageTitle>OpenHR - @L["ScheduleOverview"]</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Schemaöversikt</MudText>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["ScheduleOverview"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-               StartIcon="@Icons.Material.Filled.Add" Href="/schema/ny" Style="min-height: 48px;">Skapa schema</MudButton>
+               StartIcon="@Icons.Material.Filled.Add" Href="/schema/ny" Style="min-height: 48px;">@L["CreateSchedule"]</MudButton>
 </div>
 
 @if (_loading)
@@ -24,19 +26,19 @@ else if (_error != null)
 else
 {
     <MudGrid Spacing="3" Class="mb-6">
-        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPass</MudText><MudText Typo="Typo.body2">Pass denna vecka</MudText></MudPaper></MudItem>
-        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_enheter.Count</MudText><MudText Typo="Typo.body2">Enheter</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalPass</MudText><MudText Typo="Typo.body2">@L["ShiftsThisWeek"]</MudText></MudPaper></MudItem>
+        <MudItem xs="6" sm="3"><MudPaper Class="pa-4 text-center" Elevation="2"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_enheter.Count</MudText><MudText Typo="Typo.body2">@L["Units"]</MudText></MudPaper></MudItem>
     </MudGrid>
 
-    <MudText Typo="Typo.h6" Class="mb-3">Vecka @_veckonummer — Schemalagda pass per enhet</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3">@L["Week"] @_veckonummer — @L["WeekScheduledShiftsPerUnit"]</MudText>
     @if (_enhetData.Count == 0)
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga schemalagda pass denna vecka.</MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">@L["NoScheduledShifts"]</MudAlert>
     }
     else
     {
         <MudSimpleTable Hover="true" Elevation="2">
-            <thead><tr><th>Enhet</th>@foreach (var d in _veckodagar) { <th>@d.ToString("ddd d/M", _sv)</th> }</tr></thead>
+            <thead><tr><th>@L["Unit"]</th>@foreach (var d in _veckodagar) { <th>@d.ToString("ddd d/M", _sv)</th> }</tr></thead>
             <tbody>
                 @foreach (var e in _enhetData)
                 {
@@ -80,7 +82,7 @@ else
             _enheter = await Db.OrganizationUnits.ToListAsync();
             var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
-            // Get employees to map shift → unit
+            // Get employees to map shift -> unit
             var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
             var employees = await Db.Employees.Include(e => e.Anstallningar)
                 .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
@@ -103,7 +105,7 @@ else
                 .Where(e => e.DagAntal.Any(c => c > 0))
                 .ToList();
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta schemadata: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingSchedule"]}: {ex.Message}"; }
         finally { _loading = false; }
     }
 

@@ -2,11 +2,13 @@
 @layout RegionHR.Web.Components.Layout.EmptyLayout
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject NavigationManager Nav
 @inject RegionHR.Web.Services.AuthService Auth
 @inject RegionHRDbContext Db
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Logga in — OpenHR</PageTitle>
+<PageTitle>@L["Login"] — OpenHR</PageTitle>
 
 <MudThemeProvider Theme="_loginTheme" />
 <MudPopoverProvider />
@@ -24,7 +26,7 @@
                     OpenHR
                 </MudText>
                 <MudText Typo="Typo.body2" Style="color: #6b7280;">
-                    HR-system för regionen
+                    @L["AppTagline"]
                 </MudText>
             </div>
 
@@ -38,7 +40,7 @@
             @if (_step == Step.ChooseMethod)
             {
                 <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-4" Style="font-weight: 600;">
-                    Välj inloggningsmetod
+                    @L["ChooseLoginMethod"]
                 </MudText>
 
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
@@ -48,8 +50,8 @@
                     <div class="d-flex align-center" style="width: 100%;">
                         <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid" Class="mr-3" />
                         <div>
-                            <MudText Typo="Typo.body1" Style="font-weight: 600;">BankID</MudText>
-                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Alla anställda</MudText>
+                            <MudText Typo="Typo.body1" Style="font-weight: 600;">@L["BankID"]</MudText>
+                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">@L["BankIDAllEmployees"]</MudText>
                         </div>
                     </div>
                 </MudButton>
@@ -61,8 +63,8 @@
                     <div class="d-flex align-center" style="width: 100%;">
                         <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-3" />
                         <div>
-                            <MudText Typo="Typo.body1" Style="font-weight: 600;">SITHS-kort</MudText>
-                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Vårdpersonal med kortläsare</MudText>
+                            <MudText Typo="Typo.body1" Style="font-weight: 600;">@L["SITHSCard"]</MudText>
+                            <MudText Typo="Typo.caption" Style="color: #94a3b8;">@L["SITHSCardHealthcare"]</MudText>
                         </div>
                     </div>
                 </MudButton>
@@ -72,9 +74,9 @@
             @if (_step == Step.BankID_OpenApp)
             {
                 <div class="d-flex flex-column align-center">
-                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">BankID</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">@L["BankID"]</MudText>
                     <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                        Starta BankID-appen och tryck på "Skanna QR-kod"
+                        @L["StartBankIDApp"]
                     </MudText>
 
                     @* Animerad QR-kod *@
@@ -93,14 +95,14 @@
                     </div>
 
                     <MudText Typo="Typo.caption" Style="color: #94a3b8;" Class="mb-2">
-                        QR-koden uppdateras automatiskt (@_bankIdTimer sek)
+                        @L["QRCodeUpdates"] (@_bankIdTimer sek)
                     </MudText>
                     <MudProgressLinear Color="Color.Primary" Value="@_bankIdProgress" Class="mb-4"
                                        Style="width: 100%; border-radius: 4px;" />
 
                     <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
                                Style="text-transform: none;" OnClick="CancelAuth">
-                        Avbryt
+                        @L["Cancel"]
                     </MudButton>
                 </div>
             }
@@ -110,12 +112,12 @@
             {
                 <div class="d-flex flex-column align-center">
                     <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
-                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">Skriv in din säkerhetskod</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">@L["EnterSecurityCode"]</MudText>
                     <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                        Ange din personliga säkerhetskod i BankID-appen
+                        @L["EnterSecurityCodeDesc"]
                     </MudText>
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" Class="mb-4" />
-                    <MudText Typo="Typo.caption" Style="color: #94a3b8;">Väntar på bekräftelse...</MudText>
+                    <MudText Typo="Typo.caption" Style="color: #94a3b8;">@L["WaitingForConfirmation"]</MudText>
                 </div>
             }
 
@@ -124,7 +126,7 @@
             {
                 <div class="d-flex flex-column align-center py-4">
                     <MudProgressCircular Color="Color.Success" Indeterminate="true" Size="Size.Large" Class="mb-4" />
-                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Verifierar identitet...</MudText>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@L["VerifyingIdentity"]</MudText>
                 </div>
             }
 
@@ -132,9 +134,9 @@
             @if (_step == Step.SITHS_Reading)
             {
                 <div class="d-flex flex-column align-center">
-                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">SITHS-kort</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">@L["SITHSCard"]</MudText>
                     <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                        Sätt in ditt SITHS-kort i kortläsaren
+                        @L["InsertSITHSCard"]
                     </MudText>
 
                     <div style="width: 120px; height: 80px; border: 2px solid #0e7490; border-radius: 12px;
@@ -150,14 +152,14 @@
                     </div>
 
                     <MudText Typo="Typo.body2" Style="@($"font-weight: 600; color: {(_sithsCardInserted ? "#059669" : "#6b7280")};")" Class="mb-2">
-                        @(_sithsCardInserted ? "Kort detekterat — läser certifikat..." : "Väntar på kort...")
+                        @(_sithsCardInserted ? L["CardDetectedReadingCert"] : L["WaitingForCard"])
                     </MudText>
                     <MudProgressLinear Color="@(_sithsCardInserted ? Color.Success : Color.Primary)"
                                        Indeterminate="true" Style="width: 100%; border-radius: 4px;" Class="mb-4" />
 
                     <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
                                Style="text-transform: none;" OnClick="CancelAuth">
-                        Avbryt
+                        @L["Cancel"]
                     </MudButton>
                 </div>
             }
@@ -167,16 +169,16 @@
             {
                 <div class="d-flex flex-column align-center">
                     <MudIcon Icon="@Icons.Material.Filled.Pin" Style="font-size: 2.5rem; color: #0e7490;" Class="mb-3" />
-                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">Ange PIN-kod</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight: 700;" Class="mb-2">@L["EnterPIN"]</MudText>
                     <MudText Typo="Typo.body2" Style="color: #6b7280;" Class="mb-4">
-                        Ange din SITHS-korts PIN-kod
+                        @L["EnterSITHSPIN"]
                     </MudText>
-                    <MudTextField @bind-Value="_sithsPin" Label="PIN-kod" Variant="Variant.Outlined"
+                    <MudTextField @bind-Value="_sithsPin" Label="@L["PINCode"]" Variant="Variant.Outlined"
                                   InputType="InputType.Password" Style="width: 200px;" Class="mb-4"
                                   OnKeyUp="@(async (e) => { if (e.Key == "Enter") await VerifySithsPin(); })" />
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                                Style="border-radius: 12px; text-transform: none; min-width: 200px;"
-                               OnClick="VerifySithsPin">Verifiera</MudButton>
+                               OnClick="VerifySithsPin">@L["Verify"]</MudButton>
                 </div>
             }
 
@@ -185,11 +187,11 @@
             {
                 <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.VerifiedUser"
                           Style="border-radius: 12px;">
-                    <strong>Identitet verifierad!</strong><br />
-                    @_verifiedName via @(_method == EidMethod.BankID ? "BankID" : "SITHS-kort")
+                    <strong>@L["IdentityVerified"]</strong><br />
+                    @_verifiedName via @(_method == EidMethod.BankID ? L["BankID"] : L["SITHSCard"])
                 </MudAlert>
 
-                <MudSelect T="string" @bind-Value="_selectedUser" Label="Välj profil"
+                <MudSelect T="string" @bind-Value="_selectedUser" Label="@L["SelectProfile"]"
                            Variant="Variant.Outlined" Class="mb-4" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var user in _demoUsers)
                     {
@@ -204,20 +206,20 @@
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                     }
-                    Logga in
+                    @L["Login"]
                 </MudButton>
 
                 <MudButton Variant="Variant.Text" Color="Color.Default" FullWidth="true"
                            Class="mt-2" Style="text-transform: none;" OnClick="CancelAuth">
-                    Byt inloggningsmetod
+                    @L["ChangeLoginMethod"]
                 </MudButton>
 
                 <MudDivider Class="my-4" />
                 <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #94a3b8;">
-                    Demoinloggning — välj en profil ovan
+                    @L["DemoLoginSelectProfile"]
                 </MudText>
                 <MudSimpleTable Dense="true" Class="mt-2" Style="font-size: 0.8rem;" Elevation="0">
-                    <thead><tr><th style="padding: 4px 8px;">Profil</th><th style="padding: 4px 8px;">Roll</th></tr></thead>
+                    <thead><tr><th style="padding: 4px 8px;">@L["Profile"]</th><th style="padding: 4px 8px;">@L["Role"]</th></tr></thead>
                     <tbody>
                         @foreach (var u in _demoUsers)
                         {
@@ -326,7 +328,7 @@
     {
         if (string.IsNullOrWhiteSpace(_sithsPin))
         {
-            _errorMessage = "Ange PIN-kod.";
+            _errorMessage = L["EnterPINError"];
             return;
         }
 
@@ -344,7 +346,7 @@
     {
         if (string.IsNullOrEmpty(_selectedUser))
         {
-            _errorMessage = "Välj en profil.";
+            _errorMessage = L["SelectProfileError"];
             return;
         }
         _isLoggingIn = true;

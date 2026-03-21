@@ -3,14 +3,16 @@
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @using RegionHR.SharedKernel.Domain
+@using Microsoft.Extensions.Localization
 @inject SelfServiceApiClient SelfService
 @inject AuthService Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Min sida</PageTitle>
+<PageTitle>OpenHR - @L["MyPage"]</PageTitle>
 
 @if (Auth.EmployeeId == null)
 {
-    <MudAlert Severity="Severity.Warning" Class="mb-4">Ingen anställd kopplad till ditt konto. Personliga uppgifter kan inte visas.</MudAlert>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">@L["NoEmployeeLinked"]</MudAlert>
 }
 else if (_error != null)
 {
@@ -19,7 +21,7 @@ else if (_error != null)
 else
 {
     <MudText Typo="Typo.h4" Class="mb-6" Style="font-weight: 700;">
-        Hej @_data.Fornamn!
+        @L["HelloUser"] @_data.Fornamn!
     </MudText>
 
     @if (_tips.Count > 0)
@@ -34,28 +36,28 @@ else
 
     <MudGrid Spacing="4">
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="📅" Title="Mitt schema" Description="Se när du jobbar"
+            <OhrBigCard Icon="📅" Title="@L["MySchedule"]" Description="@L["MyScheduleDesc"]"
                         BadgeValue="@(_data.NastaPass != "-" ? $"{_data.NastaPass} {_data.NastaPassTid}" : null)"
                         Href="/minsida/schema" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="🌴" Title="Jag vill ha ledigt" Description="Ansök om semester"
-                        BadgeValue="@($"{_data.SemesterdagarKvar} dagar kvar")"
+            <OhrBigCard Icon="🌴" Title="@L["MyLeave"]" Description="@L["MyLeaveDesc"]"
+                        BadgeValue="@($"{_data.SemesterdagarKvar} {L["DaysLeft"]}")"
                         Href="/minsida/ledighet" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="💰" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" />
+            <OhrBigCard Icon="💰" Title="@L["MySalary"]" Description="@L["MySalaryDesc"]" Href="/minsida/lon" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="😷" Title="Jag är sjuk" Description="Meddela att du inte kan jobba" Href="/minsida/sjukanmalan" />
+            <OhrBigCard Icon="😷" Title="@L["ImSick"]" Description="@L["ImSickDesc"]" Href="/minsida/sjukanmalan" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="📋" Title="Mina pågående saker" Description="Se status på dina ärenden"
-                        BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} öppna" : null)"
+            <OhrBigCard Icon="📋" Title="@L["MyThings"]" Description="@L["MyThingsDesc"]"
+                        BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} {L["OpenItems"]}" : null)"
                         Href="/minsida/arenden" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="👤" Title="Om mig" Description="Min adress, telefon och uppgifter" Href="/minsida/profil" />
+            <OhrBigCard Icon="👤" Title="@L["AboutMe"]" Description="@L["AboutMeDesc"]" Href="/minsida/profil" />
         </MudItem>
     </MudGrid>
 }
@@ -72,13 +74,13 @@ else
         {
             _data = await SelfService.GetDashboardAsync(EmployeeId.From(Auth.EmployeeId.Value));
             if (_data.SemesterdagarKvar > 15)
-                _tips.Add(new(Severity.Info, $"Du har {_data.SemesterdagarKvar} semesterdagar kvar. Dags att planera semester?"));
+                _tips.Add(new(Severity.Info, $"{L["HelloUser"].Value.Split(' ')[0]} har {_data.SemesterdagarKvar} {L["TipVacationDays"]}"));
             if (_data.OppnaArenden > 0)
-                _tips.Add(new(Severity.Warning, $"Du har {_data.OppnaArenden} öppna ärenden som väntar."));
+                _tips.Add(new(Severity.Warning, $"{L["HelloUser"].Value.Split(' ')[0]} har {_data.OppnaArenden} {L["TipOpenCases"]}"));
             if (_tips.Count == 0)
-                _tips.Add(new(Severity.Success, "Allt ser bra ut! Inga ärenden väntar."));
+                _tips.Add(new(Severity.Success, L["TipAllGood"].Value));
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingData"]}: {ex.Message}"; }
     }
 
     private record TipData(Severity Severity, string Text);

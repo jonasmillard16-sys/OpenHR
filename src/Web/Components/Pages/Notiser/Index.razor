@@ -3,32 +3,34 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Notifications.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
 @inject ISnackbar Snackbar
 @inject RegionHR.Web.Services.AuthService Auth
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR — Notiser</PageTitle>
+<PageTitle>OpenHR — @L["Notifications"]</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Notiser</MudText>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["Notifications"]</MudText>
     <div class="d-flex gap-2">
         @if (_notiser.Any(n => !n.IsRead))
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="MarkeraAllaLasta">
-                Markera alla som lästa
+                @L["MarkAllRead"]
             </MudButton>
         }
         @if (Auth.EmployeeId.HasValue)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="SkapaTestNotis">
-                Skapa testnotis
+                @L["CreateTestNotification"]
             </MudButton>
         }
     </div>
 </div>
 
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    In-app-notiser från databasen. Ingen realtidspush i v1.5 — sidan läser vid laddning.
+    @L["NotificationsDesc"]
 </MudText>
 
 @if (_loading)
@@ -41,7 +43,7 @@ else if (_error != null)
 }
 else if (_notiser.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga notiser.</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">@L["NoNotifications"]</MudAlert>
 }
 else
 {
@@ -49,13 +51,13 @@ else
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3 text-center" Elevation="2">
                 <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_notiser.Count(n => !n.IsRead)</MudText>
-                <MudText Typo="Typo.body2">Olästa</MudText>
+                <MudText Typo="Typo.body2">@L["Unread"]</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3 text-center" Elevation="2">
                 <MudText Typo="Typo.h4" Style="font-weight: 700;">@_notiser.Count</MudText>
-                <MudText Typo="Typo.body2">Totalt</MudText>
+                <MudText Typo="Typo.body2">@L["Total"]</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -80,12 +82,12 @@ else
                     @if (!n.IsRead)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                   OnClick="@(async () => await MarkeraLast(n))">Markera läst</MudButton>
+                                   OnClick="@(async () => await MarkeraLast(n))">@L["MarkAsRead"]</MudButton>
                     }
                     @if (n.ActionUrl != null)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                   Href="@n.ActionUrl">Öppna</MudButton>
+                                   Href="@n.ActionUrl">@L["Open"]</MudButton>
                     }
                 </div>
             </div>
@@ -108,7 +110,7 @@ else
                 .Take(50)
                 .ToListAsync();
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta notiser: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingNotifications"]}: {ex.Message}"; }
         finally { _loading = false; }
     }
 
@@ -124,7 +126,7 @@ else
         foreach (var n in unread)
             n.MarkAsRead();
         await Db.SaveChangesAsync();
-        Snackbar.Add($"{unread.Count} notiser markerade som lästa.", MudBlazor.Severity.Success);
+        Snackbar.Add($"{unread.Count} {L["NotificationsMarkedAsRead"]}", MudBlazor.Severity.Success);
     }
 
     private async Task SkapaTestNotis()
@@ -134,12 +136,12 @@ else
         var notis = Notification.Create(
             Auth.EmployeeId.Value,
             $"Testnotis #{_testCount}",
-            $"Skapad {DateTime.Now:HH:mm:ss} via Skapa testnotis-knappen.",
+            $"Skapad {DateTime.Now:HH:mm:ss} via {L["CreateTestNotification"]}.",
             NotificationType.Info);
         Db.Notifications.Add(notis);
         await Db.SaveChangesAsync();
         _notiser.Insert(0, notis);
-        Snackbar.Add("Testnotis skapad och sparad i databasen.", MudBlazor.Severity.Info);
+        Snackbar.Add(L["TestNotificationCreated"].Value, MudBlazor.Severity.Info);
     }
 
     private static MudBlazor.Color TypeColor(NotificationType t) => t switch

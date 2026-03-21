@@ -6,25 +6,27 @@
 @using RegionHR.SharedKernel.Domain
 @using RegionHR.CaseManagement.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR — Dashboard</PageTitle>
+<PageTitle>OpenHR — @L["Dashboard"]</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Dashboard</MudText>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["Dashboard"]</MudText>
     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                StartIcon="@Icons.Material.Filled.Tune"
-               OnClick="@(() => _showCustomize = !_showCustomize)">Anpassa</MudButton>
+               OnClick="@(() => _showCustomize = !_showCustomize)">@L["Customize"]</MudButton>
 </div>
 
 @if (_showCustomize)
 {
     <MudPaper Class="pa-4 mb-4" Elevation="2">
-        <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Visa sektioner</MudText>
+        <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">@L["ShowSections"]</MudText>
         <MudStack Row="true" Spacing="4">
-            <MudCheckBox T="bool" @bind-Value="_showKpi" Label="KPI-kort" Color="Color.Primary" />
-            <MudCheckBox T="bool" @bind-Value="_showBemanning" Label="Bemanning per enhet" Color="Color.Primary" />
+            <MudCheckBox T="bool" @bind-Value="_showKpi" Label="@L["KPICards"]" Color="Color.Primary" />
+            <MudCheckBox T="bool" @bind-Value="_showBemanning" Label="@L["StaffingPerUnit"]" Color="Color.Primary" />
         </MudStack>
     </MudPaper>
 }
@@ -40,31 +42,31 @@
         <MudItem xs="6" sm="2">
             <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/anstallda"))">
                 <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_headcount</MudText>
-                <MudText Typo="Typo.body2">Anställda</MudText>
+                <MudText Typo="Typo.body2">@L["Employees"]</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="2">
             <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/las"))">
                 <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_lasAlarm</MudText>
-                <MudText Typo="Typo.body2">LAS-alarm</MudText>
+                <MudText Typo="Typo.body2">@L["LASAlarm"]</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="2">
             <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/positioner"))">
                 <MudText Typo="Typo.h4" Style="font-weight: 700;">@_vakantaPositioner</MudText>
-                <MudText Typo="Typo.body2">Vakanta positioner</MudText>
+                <MudText Typo="Typo.body2">@L["VacantPositions"]</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="2">
             <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/godkannanden"))">
                 <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_godkannanden</MudText>
-                <MudText Typo="Typo.body2">Väntar godkännande</MudText>
+                <MudText Typo="Typo.body2">@L["AwaitingApproval"]</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="2">
             <MudPaper Class="pa-4 text-center" Elevation="2" Style="cursor: pointer;" @onclick="@(() => Nav.NavigateTo("/rapporter/workforce-plan"))">
                 <MudText Typo="Typo.h4" Color="@(_bemanningsgrad >= 90 ? Color.Success : _bemanningsgrad >= 70 ? Color.Warning : Color.Error)" Style="font-weight: 700;">@_bemanningsgrad%</MudText>
-                <MudText Typo="Typo.body2">Bemanningsgrad</MudText>
+                <MudText Typo="Typo.body2">@L["StaffingRate"]</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -73,9 +75,9 @@
 @if (_showBemanning && _bemanningPerEnhet.Count > 0)
 {
     <MudPaper Class="pa-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Bemanning per enhet</MudText>
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">@L["StaffingPerUnit"]</MudText>
         <MudSimpleTable Dense="true">
-            <thead><tr><th>Enhet</th><th>Aktiva</th><th>Vakanta</th><th>Status</th></tr></thead>
+            <thead><tr><th>@L["Unit"]</th><th>@L["Active"]</th><th>@L["Vacant"]</th><th>@L["Status"]</th></tr></thead>
             <tbody>
                 @foreach (var e in _bemanningPerEnhet)
                 {
@@ -98,7 +100,7 @@
 }
 else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga positioner registrerade i databasen.</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">@L["NoPositionsRegistered"]</MudAlert>
 }
 
 @code {
@@ -152,7 +154,7 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
             _bemanningPerEnhet = positions
                 .GroupBy(p => p.EnhetId)
                 .Select(g => new EnhetBemanningVm(
-                    enhetNamn.TryGetValue(g.Key, out var namn) ? namn : "Okänd enhet",
+                    enhetNamn.TryGetValue(g.Key, out var namn) ? namn : L["UnknownUnit"].Value,
                     g.Count(p => p.Status == PositionStatus.Aktiv),
                     g.Count(p => p.Status == PositionStatus.Vakant)))
                 .OrderByDescending(e => e.Vakanta)
@@ -160,7 +162,7 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
         }
         catch (Exception ex)
         {
-            _error = $"Kunde inte hämta dashboard-data: {ex.Message}";
+            _error = $"{L["ErrorLoadingDashboard"]}: {ex.Message}";
         }
         finally { _loading = false; }
     }

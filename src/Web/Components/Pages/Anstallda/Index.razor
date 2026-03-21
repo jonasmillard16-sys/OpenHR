@@ -1,15 +1,17 @@
 @page "/anstallda"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Export
+@using Microsoft.Extensions.Localization
 @inject RegionHR.Web.Services.AnstallningService Service
 @inject NavigationManager Nav
 @inject ExportService Export
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Anställda</PageTitle>
+<PageTitle>OpenHR - @L["Employees"]</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Anställda</MudText>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["Employees"]</MudText>
     <div class="d-flex gap-2">
         <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
                    StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="ExporteraCsv"
@@ -19,34 +21,34 @@
         <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
                    StartIcon="@Icons.Material.Filled.Download" OnClick="ExporteraExcel"
                    Style="min-height: 48px;">
-            Exportera Excel
+            @L["ExportExcel"]
         </MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                    StartIcon="@Icons.Material.Filled.Add" Href="/anstallda/ny" Style="min-height: 48px;">
-            Ny anställd
+            @L["NewEmployee"]
         </MudButton>
     </div>
 </div>
 
-<MudTextField @bind-Value="_sokterm" Label="Sök namn..." Variant="Variant.Outlined"
+<MudTextField @bind-Value="_sokterm" Label="@L["SearchName"]" Variant="Variant.Outlined"
               Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
               Immediate="true" DebounceInterval="300"
               @bind-Value:after="@(() => Sok(_sokterm))" Class="mb-4" />
 
 @if (_anstallda.Count == 0 && !_loading)
 {
-    <MudAlert Severity="Severity.Info">Inga anställda hittades.</MudAlert>
+    <MudAlert Severity="Severity.Info">@L["NoEmployeesFound"]</MudAlert>
 }
 else
 {
     <MudSimpleTable Hover="true" Elevation="2">
         <thead>
             <tr>
-                <th>Namn</th>
-                <th>Personnummer</th>
-                <th>Befattning</th>
-                <th>Form</th>
-                <th>Grad</th>
+                <th>@L["Name"]</th>
+                <th>@L["PersonalNumber"]</th>
+                <th>@L["JobTitle"]</th>
+                <th>@L["EmploymentForm"]</th>
+                <th>@L["EmploymentRate"]</th>
                 <th></th>
             </tr>
         </thead>
@@ -59,7 +61,7 @@ else
                     <td>@a.Befattning</td>
                     <td>@a.Anstallningsform</td>
                     <td>@a.Sysselsattningsgrad%</td>
-                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Nav.NavigateTo($"/anstallda/{a.Id.Value}"))">Öppna</MudButton></td>
+                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Nav.NavigateTo($"/anstallda/{a.Id.Value}"))">@L["Open"]</MudButton></td>
                 </tr>
             }
         </tbody>
@@ -75,17 +77,17 @@ else
 {
     <MudPaper Class="pa-4 mt-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-primary);">
         <div class="d-flex justify-space-between align-center mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 600;">CSV-export — Anställda</MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">@L["CSVExport"] — @L["Employees"]</MudText>
             <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _visarCsv = false)" />
         </div>
         <MudTextField T="string" Value="@_csvInnehall" Variant="Variant.Outlined" Lines="10"
                       Style="font-family: 'Courier New', monospace; font-size: 0.8rem;" ReadOnly="true" />
         <div class="d-flex gap-2 mt-3">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="KopieraCsv">
-                @(_kopierad ? "Kopierat!" : "Kopiera till urklipp")
+                @(_kopierad ? L["Copied"] : L["CopyToClipboard"])
             </MudButton>
             <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download" OnClick="LaddaNerCsv">
-                Ladda ner CSV
+                @L["DownloadCSV"]
             </MudButton>
         </div>
     </MudPaper>
@@ -128,7 +130,7 @@ else
     private void ExporteraCsv()
     {
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Förnamn;Efternamn;Personnummer;Befattning;Anställningsform;Sysselsättningsgrad (%)");
+        sb.AppendLine($"{L["FirstName"]};{L["LastName"]};{L["PersonalNumber"]};{L["JobTitle"]};{L["EmploymentForm"]};{L["EmploymentRate"]} (%)");
         foreach (var a in _anstallda)
             sb.AppendLine($"{a.Fornamn};{a.Efternamn};{a.PersonnummerMaskerat};{a.Befattning};{a.Anstallningsform};{a.Sysselsattningsgrad}");
         _csvInnehall = sb.ToString();
@@ -151,11 +153,11 @@ else
 
     private async Task ExporteraExcel()
     {
-        var headers = new[] { "Förnamn", "Efternamn", "Personnummer", "Befattning", "Anställningsform", "Sysselsättningsgrad (%)" };
+        var headers = new[] { L["FirstName"].Value, L["LastName"].Value, L["PersonalNumber"].Value, L["JobTitle"].Value, L["EmploymentForm"].Value, $"{L["EmploymentRate"]} (%)" };
 
         var excelBytes = Export.ToExcel(
             _anstallda,
-            "Anställda",
+            L["Employees"].Value,
             headers,
             a => new object[]
             {

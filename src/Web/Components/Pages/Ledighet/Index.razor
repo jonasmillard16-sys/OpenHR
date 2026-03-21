@@ -3,12 +3,14 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Ledighetshantering</PageTitle>
+<PageTitle>OpenHR - @L["LeaveManagement"]</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Ledighetshantering</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/ledighet/ny" Style="min-height: 48px;">Ny ansökan</MudButton>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["LeaveManagement"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/ledighet/ny" Style="min-height: 48px;">@L["NewApplication"]</MudButton>
 </div>
 
 @if (_error != null)
@@ -17,14 +19,14 @@
 }
 
 <MudGrid Spacing="3" Class="mb-4">
-    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_godkanda</MudText><MudText Typo="Typo.body2">Godkända (denna månad)</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjuk</MudText><MudText Typo="Typo.body2">Sjukfrånvaro (aktiv)</MudText></MudPaper></MudItem>
-    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_vab</MudText><MudText Typo="Typo.body2">VAB (aktiv)</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">@L["AwaitingApproval"]</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_godkanda</MudText><MudText Typo="Typo.body2">@L["ApprovedThisMonth"]</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Error" Style="font-weight: 700;">@_sjuk</MudText><MudText Typo="Typo.body2">@L["SickLeaveActive"]</MudText></MudPaper></MudItem>
+    <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Style="font-weight: 700;">@_vab</MudText><MudText Typo="Typo.body2">@L["ChildCareLeaveActive"]</MudText></MudPaper></MudItem>
 </MudGrid>
 
 <MudSimpleTable Hover="true" Elevation="2">
-    <thead><tr><th>Anställd</th><th>Typ</th><th>Period</th><th>Dagar</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>@L["Employee"]</th><th>@L["Type"]</th><th>@L["Period"]</th><th>@L["Days"]</th><th>@L["Status"]</th><th></th></tr></thead>
     <tbody>
         @foreach (var row in _rader)
         {
@@ -38,9 +40,9 @@
                     @if (row.KanGodkannas && _canApprove)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                   OnClick="@(() => Godkann(row))">Godkänn</MudButton>
+                                   OnClick="@(() => Godkann(row))">@L["Approve"]</MudButton>
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" Class="ml-1"
-                                   OnClick="@(() => Neka(row))">Nej</MudButton>
+                                   OnClick="@(() => Neka(row))">@L["Reject"]</MudButton>
                     }
                 </td>
             </tr>
@@ -73,7 +75,7 @@
 
             _rader = requests.Select(r => new LedighetRad(
                 r.Id,
-                employees.GetValueOrDefault(r.AnstallId, "Okänd"),
+                employees.GetValueOrDefault(r.AnstallId, L["Unknown"].Value),
                 MapTyp(r.Typ),
                 $"{r.FranDatum:d/M} - {r.TillDatum:d/M}",
                 r.AntalDagar.ToString(),
@@ -96,13 +98,13 @@
         }
         catch (Exception ex)
         {
-            _error = $"Kunde inte hämta ledighetsdata: {ex.Message}";
+            _error = $"{L["ErrorLoadingLeave"]}: {ex.Message}";
         }
     }
 
     private async Task Godkann(LedighetRad row)
     {
-        if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
+        if (!Auth.EmployeeId.HasValue) { _error = L["ApprovalRequiresEmployee"]; return; }
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
@@ -113,59 +115,59 @@
             var idx = _rader.IndexOf(row);
             if (idx >= 0)
             {
-                _rader[idx] = row with { StatusText = "Godkänd", StatusFarg = Color.Success, KanGodkannas = false };
+                _rader[idx] = row with { StatusText = L["Approved"], StatusFarg = Color.Success, KanGodkannas = false };
                 _vantar = Math.Max(0, _vantar - 1);
                 _godkanda++;
             }
         }
         catch (Exception ex)
         {
-            _error = $"Kunde inte godkänna: {ex.Message}";
+            _error = $"{L["ErrorApproving"]}: {ex.Message}";
         }
     }
 
     private async Task Neka(LedighetRad row)
     {
-        if (!Auth.EmployeeId.HasValue) { _error = "Avslag kräver kopplad anställd."; return; }
+        if (!Auth.EmployeeId.HasValue) { _error = L["RejectionRequiresEmployee"]; return; }
         try
         {
             var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
-            req.Avvisa(Auth.EmployeeId.Value, "Nekad av chef");
+            req.Avvisa(Auth.EmployeeId.Value, L["RejectedByManager"]);
             await Db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
             if (idx >= 0)
             {
-                _rader[idx] = row with { StatusText = "Avslagen", StatusFarg = Color.Error, KanGodkannas = false };
+                _rader[idx] = row with { StatusText = L["Rejected"], StatusFarg = Color.Error, KanGodkannas = false };
                 _vantar = Math.Max(0, _vantar - 1);
             }
         }
         catch (Exception ex)
         {
-            _error = $"Kunde inte avslå: {ex.Message}";
+            _error = $"{L["ErrorRejecting"]}: {ex.Message}";
         }
     }
 
-    private static string MapTyp(LeaveType typ) => typ switch
+    private string MapTyp(LeaveType typ) => typ switch
     {
-        LeaveType.Semester => "Semester",
-        LeaveType.Sjukfranvaro => "Sjukfrånvaro",
-        LeaveType.Foraldraledighet => "Föräldraledighet",
-        LeaveType.VAB => "VAB",
-        LeaveType.Tjanstledighet => "Tjänstledighet",
-        LeaveType.Komptid => "Komptid",
-        LeaveType.Utbildning => "Utbildning",
+        LeaveType.Semester => L["Vacation"],
+        LeaveType.Sjukfranvaro => L["SickLeave"],
+        LeaveType.Foraldraledighet => L["ParentalLeave"],
+        LeaveType.VAB => L["ChildCareLeave"],
+        LeaveType.Tjanstledighet => L["LeaveOfAbsence"],
+        LeaveType.Komptid => L["CompTime"],
+        LeaveType.Utbildning => L["Education"],
         _ => typ.ToString()
     };
 
-    private static string MapStatusText(LeaveRequestStatus status) => status switch
+    private string MapStatusText(LeaveRequestStatus status) => status switch
     {
-        LeaveRequestStatus.Utkast => "Utkast",
-        LeaveRequestStatus.Inskickad => "Väntar",
-        LeaveRequestStatus.Godkand => "Godkänd",
-        LeaveRequestStatus.Avslagen => "Avslagen",
-        LeaveRequestStatus.Aterkallad => "Återkallad",
+        LeaveRequestStatus.Utkast => L["Draft"],
+        LeaveRequestStatus.Inskickad => L["Waiting"],
+        LeaveRequestStatus.Godkand => L["Approved"],
+        LeaveRequestStatus.Avslagen => L["Rejected"],
+        LeaveRequestStatus.Aterkallad => L["Withdrawn"],
         _ => status.ToString()
     };
 

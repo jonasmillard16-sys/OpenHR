@@ -4,12 +4,14 @@
 @using RegionHR.CaseManagement.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Ärenden</PageTitle>
+<PageTitle>OpenHR - @L["Cases"]</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Ärenden</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/arenden/nytt" Style="min-height: 48px;">Nytt ärende</MudButton>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["Cases"]</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/arenden/nytt" Style="min-height: 48px;">@L["NewCase"]</MudButton>
 </div>
 
 @if (_loading)
@@ -23,19 +25,19 @@ else if (_error != null)
 else
 {
     <MudGrid Spacing="3" Class="mb-4">
-        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">Väntar godkännande</MudText></MudPaper></MudItem>
-        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_underBehandling</MudText><MudText Typo="Typo.body2">Under behandling</MudText></MudPaper></MudItem>
-        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutadeYtd</MudText><MudText Typo="Typo.body2">Avslutade (YTD)</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_vantar</MudText><MudText Typo="Typo.body2">@L["AwaitingApproval"]</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_underBehandling</MudText><MudText Typo="Typo.body2">@L["UnderReview"]</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_avslutadeYtd</MudText><MudText Typo="Typo.body2">@L["CompletedYTD"]</MudText></MudPaper></MudItem>
     </MudGrid>
 
     @if (_rader.Count == 0)
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga ärenden registrerade.</MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">@L["NoCases"]</MudAlert>
     }
     else
     {
         <MudSimpleTable Hover="true" Elevation="2">
-            <thead><tr><th>Typ</th><th>Anställd</th><th>Beskrivning</th><th>Status</th><th>Skapad</th></tr></thead>
+            <thead><tr><th>@L["Type"]</th><th>@L["Employee"]</th><th>@L["Description"]</th><th>@L["Status"]</th><th>@L["Created"]</th></tr></thead>
             <tbody>
                 @foreach (var r in _rader)
                 {
@@ -75,7 +77,7 @@ else
 
             _rader = cases.Select(c => new ArendeRad(
                 MapTyp(c.Typ),
-                names.TryGetValue(c.AnstallId, out var n) ? n : "Okänd",
+                names.TryGetValue(c.AnstallId, out var n) ? n : L["Unknown"].Value,
                 c.Beskrivning,
                 MapStatus(c.Status),
                 MapStatusColor(c.Status),
@@ -87,28 +89,28 @@ else
             _underBehandling = cases.Count(c => c.Status == CaseStatus.UnderBehandling);
             _avslutadeYtd = cases.Count(c => c.Status == CaseStatus.Avslutad && c.CreatedAt.Year == idag.Year);
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta ärenden: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingCases"]}: {ex.Message}"; }
         finally { _loading = false; }
     }
 
-    private static string MapTyp(CaseType t) => t switch
+    private string MapTyp(CaseType t) => t switch
     {
-        CaseType.Franvaro => "Frånvaro",
-        CaseType.Anstallningsandring => "Anställningsändring",
-        CaseType.Lonandring => "Löneändring",
-        CaseType.Omplacering => "Omplacering",
-        CaseType.Rehabilitering => "Rehabilitering",
-        CaseType.LAS => "LAS",
+        CaseType.Franvaro => L["CaseTypeAbsence"],
+        CaseType.Anstallningsandring => L["CaseTypeEmploymentChange"],
+        CaseType.Lonandring => L["CaseTypeSalaryChange"],
+        CaseType.Omplacering => L["CaseTypeRelocation"],
+        CaseType.Rehabilitering => L["CaseTypeRehabilitation"],
+        CaseType.LAS => L["CaseTypeLAS"],
         _ => t.ToString()
     };
 
-    private static string MapStatus(CaseStatus s) => s switch
+    private string MapStatus(CaseStatus s) => s switch
     {
-        CaseStatus.Oppnad => "Öppnad",
-        CaseStatus.UnderBehandling => "Under behandling",
-        CaseStatus.VantarGodkannande => "Väntar godkännande",
-        CaseStatus.Godkand => "Godkänd",
-        CaseStatus.Avslutad => "Avslutad",
+        CaseStatus.Oppnad => L["Opened"],
+        CaseStatus.UnderBehandling => L["UnderReview"],
+        CaseStatus.VantarGodkannande => L["AwaitingApproval"],
+        CaseStatus.Godkand => L["Approved"],
+        CaseStatus.Avslutad => L["Completed"],
         _ => s.ToString()
     };
 

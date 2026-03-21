@@ -4,16 +4,18 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Localization
 @inject RegionHRDbContext Db
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>OpenHR - Lönekörningar</PageTitle>
+<PageTitle>OpenHR - @L["PayRuns"]</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
-    <MudText Typo="Typo.h4" Style="font-weight: 700;">Lönekörningar</MudText>
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">@L["PayRuns"]</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                StartIcon="@Icons.Material.Filled.Add" Href="/lon/korning/ny"
                Style="min-height: 48px;">
-        Ny körning
+        @L["NewPayrollRun"]
     </MudButton>
 </div>
 
@@ -27,12 +29,12 @@ else if (_error != null)
 }
 else if (_korningar.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga lönekörningar registrerade.</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">@L["NoPayrollRuns"]</MudAlert>
 }
 else
 {
     <MudSimpleTable Hover="true" Elevation="2">
-        <thead><tr><th>Period</th><th>Status</th><th>Anställda</th><th>Total brutto</th><th>Total netto</th><th></th></tr></thead>
+        <thead><tr><th>@L["Period"]</th><th>@L["Status"]</th><th>@L["Employees"]</th><th>@L["TotalGross"]</th><th>@L["TotalNet"]</th><th></th></tr></thead>
         <tbody>
             @foreach (var k in _korningar)
             {
@@ -42,7 +44,7 @@ else
                     <td>@k.Antal</td>
                     <td>@k.Brutto</td>
                     <td>@k.Netto</td>
-                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/lon/korning/{k.Id}")">Öppna</MudButton></td>
+                    <td><MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Href="@($"/lon/korning/{k.Id}")">@L["Open"]</MudButton></td>
                 </tr>
             }
         </tbody>
@@ -74,21 +76,21 @@ else
                 MapStatusColor(r.Status)
             )).ToList();
         }
-        catch (Exception ex) { _error = $"Kunde inte hämta lönekörningar: {ex.Message}"; }
+        catch (Exception ex) { _error = $"{L["ErrorLoadingPayroll"]}: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private static string FormatMoney(Money m) => $"{m.Amount:N0} kr";
 
-    private static string MapStatus(PayrollRunStatus status) => status switch
+    private string MapStatus(PayrollRunStatus status) => status switch
     {
-        PayrollRunStatus.Skapad => "Skapad",
-        PayrollRunStatus.Paborjad => "Pågående",
-        PayrollRunStatus.Beraknad => "Beräknad",
-        PayrollRunStatus.Granskad => "Granskad",
-        PayrollRunStatus.Godkand => "Godkänd",
-        PayrollRunStatus.Utbetald => "Utbetald",
-        PayrollRunStatus.Felaktig => "Felaktig",
+        PayrollRunStatus.Skapad => L["PayrollCreated"],
+        PayrollRunStatus.Paborjad => L["PayrollInProgress"],
+        PayrollRunStatus.Beraknad => L["PayrollCalculated"],
+        PayrollRunStatus.Granskad => L["PayrollReviewed"],
+        PayrollRunStatus.Godkand => L["PayrollApproved"],
+        PayrollRunStatus.Utbetald => L["PayrollPaid"],
+        PayrollRunStatus.Felaktig => L["PayrollError"],
         _ => status.ToString()
     };
 
