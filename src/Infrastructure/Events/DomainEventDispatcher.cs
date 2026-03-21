@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using RegionHR.Automation.Domain;
 using RegionHR.Infrastructure.Services;
 using RegionHR.SharedKernel.Abstractions;
 
@@ -29,6 +30,26 @@ public sealed class DomainEventDispatcher : IDomainEventDispatcher
                 var method = handlerType.GetMethod("HandleAsync");
                 if (method is null) continue;
                 await (Task)method.Invoke(handler, new object[] { domainEvent, ct })!;
+            }
+
+            // After in-process handlers, evaluate automation rules
+            try
+            {
+                var automationEngine = _serviceProvider.GetService<IAutomationEngine>();
+                if (automationEngine is not null)
+                {
+                    await automationEngine.EvaluateAsync(domainEvent, ct);
+                }
+            }
+            catch (AutomationBlockException)
+            {
+                throw; // Block exceptions must propagate to prevent the triggering action
+            }
+            catch (Exception ex)
+            {
+                // Automation failures should not break the main flow
+                var logger = _serviceProvider.GetService<ILogger<DomainEventDispatcher>>();
+                logger?.LogWarning(ex, "Automation evaluation failed for event {EventType}", eventType.Name);
             }
 
             // After in-process handlers, deliver to external webhooks

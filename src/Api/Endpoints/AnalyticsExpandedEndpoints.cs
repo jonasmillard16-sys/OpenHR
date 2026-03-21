@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RegionHR.Infrastructure.Persistence;
+using RegionHR.Infrastructure.Services;
 using RegionHR.Analytics.Domain;
 using RegionHR.Reporting.Domain;
 
@@ -85,6 +86,33 @@ public static class AnalyticsExpandedEndpoints
                 })
             });
         }).WithName("GetKPIHistory");
+
+        // ============================================================
+        // Beräkna KPI:er (trigga manuell beräkning)
+        // ============================================================
+
+        kpi.MapPost("/berakna", async (KPIBeraknaRequest? req, KPICalculationService calcService, CancellationToken ct) =>
+        {
+            var period = req?.Period ?? $"{DateTime.Today.Year}-Q{(DateTime.Today.Month - 1) / 3 + 1}";
+
+            var snapshots = await calcService.CalculateAllAsync(period, ct);
+
+            return Results.Ok(new
+            {
+                Period = period,
+                AntalBeraknade = snapshots.Count,
+                Resultat = snapshots.Select(s => new
+                {
+                    s.Id,
+                    s.KPIDefinitionId,
+                    s.Period,
+                    s.Varde,
+                    s.JamforelseVarde,
+                    s.Trend,
+                    s.BeraknadVid
+                })
+            });
+        }).WithName("CalculateKPIs");
 
         // ============================================================
         // Prediktionsresultat
@@ -185,4 +213,5 @@ public static class AnalyticsExpandedEndpoints
 }
 
 // Request DTOs
+record KPIBeraknaRequest(string? Period);
 record CreateScheduledReportRequest(Guid ReportTemplateId, string Frekvens, string Mottagare, string Format);

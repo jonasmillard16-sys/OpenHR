@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
@@ -13,5 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SharedKernel\RegionHR.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Modules\Automation\RegionHR.Automation.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\RegionHR.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

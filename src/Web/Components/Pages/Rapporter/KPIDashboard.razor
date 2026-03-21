@@ -1,12 +1,26 @@
 @page "/rapporter/kpi"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
+@inject KPICalculationService KPICalcService
 
 <PageTitle>OpenHR - KPI Dashboard</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">KPI Dashboard</MudText>
+<div class="d-flex align-center justify-space-between mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">KPI Dashboard</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Calculate"
+               OnClick="BeraknaKPIs" Disabled="_calculating">
+        @if (_calculating) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+        Berakna nu
+    </MudButton>
+</div>
+
+@if (_calcSuccess != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" CloseIconClicked="() => _calcSuccess = null" ShowCloseIcon="true">@_calcSuccess</MudAlert>
+}
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
@@ -85,7 +99,9 @@ else
 @code {
     private List<KPIViewModel> _kpis = [];
     private bool _loading = true;
+    private bool _calculating;
     private string? _error;
+    private string? _calcSuccess;
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,6 +133,28 @@ else
         }
         catch (Exception ex) { _error = $"Kunde inte ladda KPI:er: {ex.Message}"; }
         finally { _loading = false; }
+    }
+
+    private async Task BeraknaKPIs()
+    {
+        _calculating = true;
+        _calcSuccess = null;
+        _error = null;
+        try
+        {
+            var period = $"{DateTime.Today.Year}-Q{(DateTime.Today.Month - 1) / 3 + 1}";
+            var snapshots = await KPICalcService.CalculateAllAsync(period);
+            _calcSuccess = $"Berakning klar: {snapshots.Count} KPI:er beraknade for period {period}.";
+            await OnInitializedAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Berakningsfel: {ex.Message}";
+        }
+        finally
+        {
+            _calculating = false;
+        }
     }
 
     private string FormatVarde(KPIViewModel kpi)

@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="RegionHR.Notifications.Tests" />
+    <InternalsVisibleTo Include="RegionHR.Analytics.Tests" />
+    <InternalsVisibleTo Include="RegionHR.Automation.Tests" />
   </ItemGroup>
 
   <ItemGroup>

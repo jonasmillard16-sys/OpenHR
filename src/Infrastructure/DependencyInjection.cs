@@ -119,12 +119,15 @@ public static class DependencyInjection
 
         // Analytics
         services.AddScoped<Analytics.FlightRiskService>();
+        services.AddScoped<KPICalculationService>();
 
         // Provisioning (lokal registrering — inga externa anrop i v1)
         services.AddScoped<Provisioning.IIdentityProvider, Provisioning.LocalRecordingProvider>();
         services.AddScoped<Provisioning.ProvisioningService>();
 
         // Automation engine
+        services.AddScoped<ConditionEvaluator>();
+        services.AddScoped<AutomationActionExecutor>();
         services.AddScoped<IAutomationEngine, AutomationEngineService>();
 
         // Extension package service (marketplace)
