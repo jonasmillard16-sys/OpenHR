@@ -1,0 +1,130 @@
+@page "/admin/kunskapsbas/ny"
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Knowledge.Domain
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Ny artikel - Kunskapsbas - OpenHR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Ny artikel</MudText>
+    <MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+        Skapa en ny artikel i kunskapsbasen. Innehållet stöder Markdown-formatering.
+    </MudText>
+
+    <MudPaper Elevation="1" Class="pa-6" Style="border-radius: 12px;">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_titel" Label="Titel" Required="true" RequiredError="Titel krävs"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_kategoriId" Label="Kategori" Required="true" RequiredError="Kategori krävs"
+                           Variant="Variant.Outlined">
+                    @foreach (var cat in _categories)
+                    {
+                        <MudSelectItem Value="@cat.Id">@cat.Namn</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_taggar" Label="Taggar (kommaseparerade)"
+                              HelperText="T.ex. semester, ledighet, semesterlagen"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_innehall" Label="Innehåll (Markdown)" Required="true"
+                              RequiredError="Innehåll krävs" Variant="Variant.Outlined"
+                              Lines="15" />
+            </MudItem>
+        </MudGrid>
+
+        @if (!string.IsNullOrWhiteSpace(_innehall))
+        {
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2">Förhandsgranskning</MudText>
+            <MudDivider Class="mb-4" />
+            <MudPaper Elevation="0" Class="pa-4" Style="background: var(--mud-palette-background); border-radius: 8px; white-space: pre-wrap; line-height: 1.7;">
+                @_innehall
+            </MudPaper>
+        }
+
+        <div class="mt-6" style="display: flex; gap: 12px; justify-content: flex-end;">
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" Href="/admin/kunskapsbas">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Default" OnClick="SaveDraftAsync"
+                       Disabled="@(!IsValid)">Spara utkast</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAndPublishAsync"
+                       Disabled="@(!IsValid)">Publicera</MudButton>
+        </div>
+
+        @if (_saved)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-4">
+                Artikeln har sparats! <MudLink Href="/admin/kunskapsbas">Tillbaka till listan</MudLink>
+            </MudAlert>
+        }
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4">@_error</MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private RegionHRDbContext Db { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private string _titel = "";
+    private Guid _kategoriId;
+    private string _taggar = "";
+    private string _innehall = "";
+    private bool _saved;
+    private string? _error;
+    private List<KnowledgeCategory> _categories = [];
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(_titel)
+        && !string.IsNullOrWhiteSpace(_innehall)
+        && _kategoriId != Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await Db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
+        if (_categories.Count > 0) _kategoriId = _categories[0].Id;
+    }
+
+    private List<string> ParseTaggar() =>
+        _taggar.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+               .Where(t => !string.IsNullOrWhiteSpace(t))
+               .ToList();
+
+    private async Task SaveDraftAsync()
+    {
+        try
+        {
+            var article = KnowledgeArticle.Skapa(_titel, _innehall, _kategoriId, ParseTaggar());
+            Db.KnowledgeArticles.Add(article);
+            await Db.SaveChangesAsync();
+            _saved = true;
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte spara: {ex.Message}";
+        }
+    }
+
+    private async Task SaveAndPublishAsync()
+    {
+        try
+        {
+            var article = KnowledgeArticle.Skapa(_titel, _innehall, _kategoriId, ParseTaggar());
+            article.Publicera();
+            Db.KnowledgeArticles.Add(article);
+            await Db.SaveChangesAsync();
+            _saved = true;
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte spara: {ex.Message}";
+        }
+    }
+}

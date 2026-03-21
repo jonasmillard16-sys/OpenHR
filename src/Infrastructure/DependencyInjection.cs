@@ -142,6 +142,9 @@ public static class DependencyInjection
         // Webhook delivery (HttpClient for outbound webhook calls)
         services.AddHttpClient<WebhookDeliveryService>();
 
+        // Knowledge base
+        services.AddScoped<KnowledgeBaseService>();
+
         // Background services
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();
