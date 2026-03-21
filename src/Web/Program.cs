@@ -91,6 +91,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<SessionTimeoutMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseStaticFiles();

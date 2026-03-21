@@ -1,0 +1,204 @@
+@page "/admin/kunskapsbas"
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Knowledge.Domain
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Kunskapsbas - Admin - OpenHR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700;">Kunskapsbas</MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">
+                Hantera artiklar och kategorier
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   Href="/admin/kunskapsbas/ny">Ny artikel</MudButton>
+    </div>
+
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="3">
+            <MudPaper Elevation="1" Class="pa-4" Style="text-align: center; border-radius: 12px;">
+                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_totalArticles</MudText>
+                <MudText Typo="Typo.caption">Artiklar totalt</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Elevation="1" Class="pa-4" Style="text-align: center; border-radius: 12px;">
+                <MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_publishedCount</MudText>
+                <MudText Typo="Typo.caption">Publicerade</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Elevation="1" Class="pa-4" Style="text-align: center; border-radius: 12px;">
+                <MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_totalViews</MudText>
+                <MudText Typo="Typo.caption">Totala visningar</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Elevation="1" Class="pa-4" Style="text-align: center; border-radius: 12px;">
+                <MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_avgRating</MudText>
+                <MudText Typo="Typo.caption">Snittbetyg</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="pa-4">
+        <MudTabPanel Text="Artiklar">
+            <MudTextField @bind-Value="_filterText" Placeholder="Filtrera artiklar..." Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" Class="mb-4" />
+            <MudTable Items="@FilteredArticles" Hover="true" Striped="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Titel</MudTh>
+                    <MudTh>Kategori</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh Style="text-align: right;">Visningar</MudTh>
+                    <MudTh Style="text-align: right;">Betyg</MudTh>
+                    <MudTh>Åtgärder</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Titel</MudTd>
+                    <MudTd>@GetCategoryName(context.KategoriId)</MudTd>
+                    <MudTd>
+                        @if (context.ArPublicerad)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Publicerad</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Utkast</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align: right;">@context.VisningsAntal</MudTd>
+                    <MudTd Style="text-align: right;">
+                        @if (context.HjalpsamhetPoang > 0)
+                        {
+                            <span>@context.HjalpsamhetPoang.ToString("0.0")/5</span>
+                        }
+                        else
+                        {
+                            <span style="color: var(--mud-palette-text-secondary);">—</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (context.ArPublicerad)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Unpublished" Size="Size.Small" Color="Color.Warning"
+                                           OnClick="@(() => TogglePublishAsync(context))" />
+                        }
+                        else
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Publish" Size="Size.Small" Color="Color.Success"
+                                           OnClick="@(() => TogglePublishAsync(context))" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+        <MudTabPanel Text="Kategorier">
+            <MudTable Items="@_categories" Hover="true" Striped="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Ordning</MudTh>
+                    <MudTh>Namn</MudTh>
+                    <MudTh>Beskrivning</MudTh>
+                    <MudTh Style="text-align: right;">Antal artiklar</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Ordning</MudTd>
+                    <MudTd><strong>@context.Namn</strong></MudTd>
+                    <MudTd>@context.Beskrivning</MudTd>
+                    <MudTd Style="text-align: right;">@GetArticleCountForCategory(context.Id)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+        <MudTabPanel Text="Analys">
+            <MudText Typo="Typo.h6" Class="mb-4">Mest visade artiklar</MudText>
+            <MudTable Items="@_topViewed" Hover="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>#</MudTh>
+                    <MudTh>Titel</MudTh>
+                    <MudTh Style="text-align: right;">Visningar</MudTh>
+                    <MudTh Style="text-align: right;">Betyg</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@(_topViewed.IndexOf(context) + 1)</MudTd>
+                    <MudTd>@context.Titel</MudTd>
+                    <MudTd Style="text-align: right;">@context.VisningsAntal</MudTd>
+                    <MudTd Style="text-align: right;">@(context.HjalpsamhetPoang > 0 ? context.HjalpsamhetPoang.ToString("0.0") : "—")</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudText Typo="Typo.h6" Class="mb-4 mt-6">Lägst betyg (behöver förbättras)</MudText>
+            <MudTable Items="@_lowestRated" Hover="true" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Titel</MudTh>
+                    <MudTh Style="text-align: right;">Betyg</MudTh>
+                    <MudTh Style="text-align: right;">Visningar</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Titel</MudTd>
+                    <MudTd Style="text-align: right; color: var(--mud-palette-error);">@context.HjalpsamhetPoang.ToString("0.0")/5</MudTd>
+                    <MudTd Style="text-align: right;">@context.VisningsAntal</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    [Inject] private RegionHRDbContext Db { get; set; } = default!;
+
+    private List<KnowledgeArticle> _articles = [];
+    private List<KnowledgeCategory> _categories = [];
+    private List<KnowledgeArticle> _topViewed = [];
+    private List<KnowledgeArticle> _lowestRated = [];
+    private string _filterText = "";
+    private int _totalArticles;
+    private int _publishedCount;
+    private int _totalViews;
+    private string _avgRating = "—";
+
+    private IEnumerable<KnowledgeArticle> FilteredArticles => string.IsNullOrWhiteSpace(_filterText)
+        ? _articles
+        : _articles.Where(a => a.Titel.Contains(_filterText, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _articles = await Db.KnowledgeArticles.OrderBy(a => a.Titel).ToListAsync();
+        _categories = await Db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
+        _topViewed = await Db.KnowledgeArticles.OrderByDescending(a => a.VisningsAntal).Take(10).ToListAsync();
+        _lowestRated = await Db.KnowledgeArticles
+            .Where(a => a.HjalpsamhetPoang > 0 && a.HjalpsamhetPoang < 3)
+            .OrderBy(a => a.HjalpsamhetPoang)
+            .Take(10).ToListAsync();
+
+        _totalArticles = _articles.Count;
+        _publishedCount = _articles.Count(a => a.ArPublicerad);
+        _totalViews = _articles.Sum(a => a.VisningsAntal);
+        var rated = _articles.Where(a => a.HjalpsamhetPoang > 0).ToList();
+        _avgRating = rated.Count > 0 ? (rated.Average(a => (double)a.HjalpsamhetPoang)).ToString("0.1") : "—";
+    }
+
+    private string GetCategoryName(Guid categoryId) =>
+        _categories.FirstOrDefault(c => c.Id == categoryId)?.Namn ?? "—";
+
+    private int GetArticleCountForCategory(Guid categoryId) =>
+        _articles.Count(a => a.KategoriId == categoryId);
+
+    private async Task TogglePublishAsync(KnowledgeArticle article)
+    {
+        if (article.ArPublicerad)
+            article.Avpublicera();
+        else
+            article.Publicera();
+        await Db.SaveChangesAsync();
+        await LoadDataAsync();
+    }
+}

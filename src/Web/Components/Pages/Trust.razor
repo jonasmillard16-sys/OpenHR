@@ -1,0 +1,357 @@
+@page "/trust"
+@layout RegionHR.Web.Components.Layout.EmptyLayout
+
+<PageTitle>Sakerhet och Compliance — OpenHR</PageTitle>
+
+<MudThemeProvider Theme="_trustTheme" />
+
+<div style="min-height: 100vh; background: linear-gradient(180deg, #f0fdfa 0%, #f6f5f2 30%);">
+    @* Header *@
+    <div style="background: #1b2838; padding: 32px 0;">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <div class="d-flex align-center gap-3">
+                <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety"
+                         Style="font-size: 2.5rem; color: #38bdf8;" />
+                <div>
+                    <MudText Typo="Typo.h4" Style="font-weight: 800; color: white;">OpenHR</MudText>
+                    <MudText Typo="Typo.body2" Style="color: #94a3b8;">
+                        Sakerhet och Compliance
+                    </MudText>
+                </div>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" Color="Color.Inherit"
+                           Href="/login" Style="color: white; border-color: #475569; text-transform: none;">
+                    Logga in
+                </MudButton>
+            </div>
+        </MudContainer>
+    </div>
+
+    <MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+        @* Main heading *@
+        <MudText Typo="Typo.h3" Class="mb-2" Style="font-weight: 800; color: #0e7490;">
+            OpenHR Sakerhet &amp; Compliance
+        </MudText>
+        <MudText Typo="Typo.h6" Class="mb-6" Style="color: #6b7280; font-weight: 400;">
+            OpenHR ar self-hosted — du kontrollerar all data. Ingen tredjepartsmoln, inga dolda beroenden.
+        </MudText>
+
+        <MudDivider Class="mb-6" />
+
+        @* Open Source & License *@
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Style="border-radius: 16px; height: 100%;">
+                    <MudCardContent Class="pa-6">
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6" Style="font-weight: 700;">Oppen kallkod (AGPL-3.0)</MudText>
+                        </div>
+                        <MudText Typo="Typo.body1" Class="mb-3">
+                            OpenHR ar licensierat under GNU Affero General Public License v3 (AGPL-3.0).
+                            Detta innebar:
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Fri att anvanda, kopiera, modifiera och distribuera
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Alla forks och modifikationer maste publiceras som oppen kallkod
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Galler aven vid natverksanvandning (SaaS) — ingen kan gora en sluten fork
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                100% FOSS-teknikstack — inga kommersiella beroenden
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Style="border-radius: 16px; height: 100%;">
+                    <MudCardContent Class="pa-6">
+                        <div class="d-flex align-center gap-2 mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.Storage" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6" Style="font-weight: 700;">Self-hosted — din data, dina regler</MudText>
+                        </div>
+                        <MudText Typo="Typo.body1" Class="mb-3">
+                            OpenHR driftas pa din egen infrastruktur. Ingen data lamnar organisationen.
+                        </MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Inga externa molntjanster kravs
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Full kontroll over datalagring, backup och atkomst
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Inga underbitraden (sub-processors) som standard
+                            </MudListItem>
+                            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                Docker Compose-baserad deployment — enkel drift
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @* Security Features *@
+        <MudText Typo="Typo.h5" Class="mt-8 mb-4" Style="font-weight: 700; color: #1b2838;">
+            Sakerhetsfunktioner
+        </MudText>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">Content Security Policy</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            CSP-headers begransas vilka resurser webblasar far ladda. Skyddar mot XSS-attacker
+                            och kod-injektion.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.Speed" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">Rate Limiting</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Max 100 forfragnor per minut per IP-adress. Skyddar mot brute-force-attacker
+                            och overbelastning.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.ManageHistory" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">Granskningslogg (Audit)</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Alla andringar loggas med anvandare, tidpunkt, gamla och nya varden. Full sparbarhet
+                            for revision och incidentutredning.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.GppGood" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">GDPR-efterlevnad</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Registerutdrag, raderingsregler, anonymisering och automatisk retention.
+                            Anpassat for svenska regioners krav (IMY).
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">Kryptering</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            TLS 1.2+ for all datatrafik. pgcrypto AES-256 for personnummer och bankuppgifter.
+                            HSTS tvingarHTTPS.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="1" Style="border-radius: 12px; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <MudIcon Icon="@Icons.Material.Filled.Timer" Style="font-size: 2rem; color: #0e7490;" Class="mb-2" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;" Class="mb-1">Sessionstimeout</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Automatisk utloggning efter 30 minuters inaktivitet. Skyddar mot obevakade
+                            sessioner pa delade arbetsstationer.
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @* OWASP ASVS *@
+        <MudText Typo="Typo.h5" Class="mt-8 mb-4" Style="font-weight: 700; color: #1b2838;">
+            OWASP ASVS-efterlevnad
+        </MudText>
+
+        <MudCard Elevation="2" Style="border-radius: 16px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.body1" Class="mb-3">
+                    OpenHR har genomgatt en sjalvutvardering mot
+                    <strong>OWASP Application Security Verification Standard (ASVS) 4.0.3 Level 1</strong>.
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="4">
+                        <div class="d-flex flex-column align-center pa-4"
+                             style="background: #f0fdf4; border-radius: 12px;">
+                            <MudText Typo="Typo.h3" Style="font-weight: 800; color: #059669;">53</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #6b7280;">Krav uppfyllda</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <div class="d-flex flex-column align-center pa-4"
+                             style="background: #fefce8; border-radius: 12px;">
+                            <MudText Typo="Typo.h3" Style="font-weight: 800; color: #d97706;">8</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #6b7280;">Delvis uppfyllda</MudText>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <div class="d-flex flex-column align-center pa-4"
+                             style="background: #fef2f2; border-radius: 12px;">
+                            <MudText Typo="Typo.h3" Style="font-weight: 800; color: #dc2626;">1</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #6b7280;">Gap (atgardsplan finns)</MudText>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+                <MudText Typo="Typo.body2" Class="mt-3" Style="color: #6b7280;">
+                    Omraden: autentisering, sessionshantering, atkomstkontroll, indatavalidering,
+                    kryptografi, felhantering, loggning, datasskydd, kommunikation och konfiguration.
+                    Se fullstandig dokumentation nedan.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+
+        @* Documentation Links *@
+        <MudText Typo="Typo.h5" Class="mt-8 mb-4" Style="font-weight: 700; color: #1b2838;">
+            Sakerhetsdokumentation
+        </MudText>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; cursor: pointer; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">Deployment Guide</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Docker Compose-produktion, PostgreSQL-sakerhet, TLS, reverse proxy,
+                            backup och uppgraderingsprocess.
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2" Style="color: #0e7490;">
+                            docs/security/deployment-guide.md
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; cursor: pointer; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">GDPR Compliance Guide</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Datakategorier, rattslig grund, registrerades rattigheter, lagringstider
+                            och DPIA-referens.
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2" Style="color: #0e7490;">
+                            docs/security/gdpr-compliance-guide.md
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; cursor: pointer; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Checklist" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">OWASP ASVS Self-Assessment</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Kartlaggning av OpenHRs sakerhetsatgarder mot OWASP ASVS Level 1.
+                            Identifierade gap och atgardsplaner.
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2" Style="color: #0e7490;">
+                            docs/security/owasp-asvs-self-assessment.md
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudCard Elevation="1" Style="border-radius: 12px; cursor: pointer; height: 100%;">
+                    <MudCardContent Class="pa-5">
+                        <div class="d-flex align-center gap-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">DPA-mall (Personuppgiftsbitradesavtal)</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: #6b7280;">
+                            Avtalsmall enligt artikel 28 GDPR for extern drift. Underbitradeshantering,
+                            tekniska atgarder, incidentprocedurer.
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2" Style="color: #0e7490;">
+                            docs/security/dpa-template.md
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @* Security Contact *@
+        <MudCard Elevation="0" Class="mt-8" Style="border-radius: 16px; background: #1b2838;">
+            <MudCardContent Class="pa-6">
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.BugReport" Style="color: #38bdf8;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 700; color: white;">
+                        Rapportera sakerhetsproblem
+                    </MudText>
+                </div>
+                <MudText Typo="Typo.body1" Style="color: #cbd5e1;" Class="mb-2">
+                    Om du upptacker en sarbarhet i OpenHR, kontakta oss ansvarigt (responsible disclosure):
+                </MudText>
+                <MudText Typo="Typo.body1" Style="color: #38bdf8; font-weight: 600;">
+                    security@@openhr.se
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: #94a3b8;" Class="mt-2">
+                    Vi bekraftar mottagande inom 48 timmar och ger en initial bedomning inom 5 arbetsdagar.
+                    Var vanlig och ge oss rimlig tid att atgarda problemet innan offentliggorande.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+
+        @* Footer *@
+        <div class="d-flex justify-center mt-8 mb-4">
+            <MudText Typo="Typo.caption" Style="color: #94a3b8;">
+                OpenHR — AGPL-3.0 — Byggt for svenska regioner
+            </MudText>
+        </div>
+    </MudContainer>
+</div>
+
+@code {
+    private readonly MudTheme _trustTheme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0e7490",
+            PrimaryDarken = "#0c6078",
+            Background = "#f6f5f2",
+            Surface = "#ffffff",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[] { "Plus Jakarta Sans", "-apple-system", "system-ui", "sans-serif" },
+            },
+        },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" }
+    };
+}

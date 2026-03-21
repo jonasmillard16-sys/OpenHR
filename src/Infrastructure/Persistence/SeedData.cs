@@ -6,6 +6,7 @@ using RegionHR.Competence.Domain;
 using RegionHR.Configuration.Domain;
 using RegionHR.HalsoSAM.Domain;
 using RegionHR.Infrastructure.Journeys;
+using RegionHR.Knowledge.Domain;
 using RegionHR.Positions.Domain;
 using RegionHR.SharedKernel.Domain;
 
@@ -1335,6 +1336,624 @@ public static class SeedData
             sub2.Pausa();
 
             db.EventSubscriptions.AddRange(sub1, sub2);
+        }
+
+        // ================================================================
+        // Knowledge Base — Categories, Articles, AssistantActions
+        // ================================================================
+        if (!await db.KnowledgeCategories.AnyAsync())
+        {
+            var catSemester = KnowledgeCategory.Skapa("Semester/Ledighet", "Information om semester, ledighet och frånvaro", 1, "BeachAccess");
+            var kbCatLon = KnowledgeCategory.Skapa("Lön/Förmåner", "Allt om lön, lönespecifikationer och förmåner", 2, "AccountBalance");
+            var catSchema = KnowledgeCategory.Skapa("Schema/Tid", "Schema, arbetstider, övertid och OB-tillägg", 3, "Schedule");
+            var catAnstallning = KnowledgeCategory.Skapa("Anställning", "Anställningsvillkor, uppsägning och LAS", 4, "Work");
+            var catRehab = KnowledgeCategory.Skapa("Rehab/Hälsa", "Rehabilitering, sjukskrivning och arbetsmiljö", 5, "HealthAndSafety");
+            var kbCatGDPR = KnowledgeCategory.Skapa("GDPR", "Dataskydd och personuppgiftshantering", 6, "Security");
+            var catArbetsmiljo = KnowledgeCategory.Skapa("Arbetsmiljö", "Systematiskt arbetsmiljöarbete och skyddsronder", 7, "Shield");
+            var catPolicies = KnowledgeCategory.Skapa("Policies", "Regionens policyer och riktlinjer", 8, "Policy");
+            var kbCatRekrytering = KnowledgeCategory.Skapa("Rekrytering", "Rekrytering, introduktion och anställning", 9, "PersonAdd");
+            var catIT = KnowledgeCategory.Skapa("IT/System", "IT-stöd, system och digitala verktyg", 10, "Computer");
+
+            db.KnowledgeCategories.AddRange(catSemester, kbCatLon, catSchema, catAnstallning, catRehab,
+                kbCatGDPR, catArbetsmiljo, catPolicies, kbCatRekrytering, catIT);
+
+            // --- Articles ---
+
+            var art1 = KnowledgeArticle.Skapa(
+                "Hur många semesterdagar har jag rätt till?",
+                @"## Semesterrätt enligt lag och kollektivavtal
+
+Enligt **Semesterlagen (SFS 1977:480)** har alla anställda rätt till **25 semesterdagar** per år. Kollektivavtalet AB ger dig fler dagar beroende på ålder:
+
+- **Under 40 år**: 25 semesterdagar
+- **40–49 år**: 31 semesterdagar
+- **Från 50 år**: 32 semesterdagar
+
+### Intjänande och uttag
+Semesteråret löper 1 april – 31 mars. Semester intjänas under intjänandeåret (föregående period) och tas ut under semesteråret.
+
+### Obetald semester
+Om du inte hunnit tjäna in semester kan du ansöka om obetald semester. Du har alltid rätt till **minst 25 dagars ledighet** per år, men inte nödvändigtvis med lön.
+
+### Sparade semesterdagar
+Du kan **spara upp till 5 semesterdagar per år** i max 5 år. Sparade dagar över 25 kan alltid sparas.",
+                catSemester.Id, ["semester", "semesterdagar", "ledighet", "semesterlagen", "AB"]);
+            art1.Publicera();
+
+            var art2 = KnowledgeArticle.Skapa(
+                "Hur sjukanmäler jag mig?",
+                @"## Sjukanmälan — steg för steg
+
+### Dag 1 — Sjukanmälan
+1. Meddela din chef **före arbetspassets start**
+2. Sjukanmäl dig i OpenHR under *Min sida → Sjukanmälan*
+3. **Karensavdrag** görs: 20% av din genomsnittliga veckolön
+
+### Dag 2–14 — Sjuklön
+- Du får **80% sjuklön** från arbetsgivaren
+- Sjuklönen beräknas på din ordinarie lön
+
+### Dag 8 — Läkarintyg
+- Från dag 8 **krävs läkarintyg**
+- Lämna in till din chef eller via OpenHR
+
+### Dag 15 — Försäkringskassan
+- Arbetsgivaren gör en **anmälan till Försäkringskassan**
+- Du ansöker om sjukpenning hos FK
+- FK betalar ca **80% av din SGI** (max 8 prisbasbelopp)
+
+### Högriskskydd
+Om du har en sjukdom som leder till många korta sjukperioder kan du ansöka om *högriskskydd* hos Försäkringskassan, vilket innebär att karensavdraget ersätts.",
+                catRehab.Id, ["sjukanmälan", "sjuk", "karens", "läkarintyg", "sjuklön", "försäkringskassan"]);
+            art2.Publicera();
+
+            var art3 = KnowledgeArticle.Skapa(
+                "Vad är OB-tillägg?",
+                @"## OB-tillägg (Obekväm arbetstid)
+
+OB-tillägg är extra ersättning för arbete på obekväma tider. Enligt **kollektivavtal AB 2025** gäller:
+
+### Belopp per timme
+| Tid | Belopp |
+|-----|--------|
+| Vardag kväll (19–22) | 126,50 kr/h |
+| Vardag natt (22–06) | 152,00 kr/h |
+| Helg (fre 19 – sön 22) | 89,00 kr/h |
+| Storhelg (julafton, nyår etc) | 195,00 kr/h |
+
+### Beräkning
+OB beräknas automatiskt utifrån ditt schema i OpenHR. Du ser OB-tillägget specificerat på din lönespecifikation.
+
+### Storhelger
+Med storhelger avses bl.a. julafton, juldagen, annandag jul, nyårsafton, nyårsdagen, påskafton, påskdagen, annandag påsk, Kristi himmelsfärdsdag och midsommarafton.",
+                catSchema.Id, ["OB", "obekväm", "tillägg", "kväll", "natt", "helg", "storhelg"]);
+            art3.Publicera();
+
+            var art4 = KnowledgeArticle.Skapa(
+                "Hur fungerar LAS?",
+                @"## LAS — Lagen om anställningsskydd
+
+**LAS (SFS 1982:80)** reglerar anställningstrygghet i Sverige.
+
+### Anställningsformer
+- **Tillsvidareanställning** (fast anställning) — huvudregel
+- **Särskild visstidsanställning (SAVA)** — tidsbegränsad
+- **Vikariat** — tidsbegränsad
+
+### Konverteringsregler (från 1 oktober 2022)
+En anställd med **särskild visstidsanställning** konverteras automatiskt till tillsvidare efter:
+- **12 månader** (365 dagar) under en **femårsperiod**
+
+Vikariat konverteras efter:
+- **24 månader** under en femårsperiod
+
+### Turordning vid uppsägning
+Vid uppsägning pga arbetsbrist gäller turordning: **sist in, först ut** inom turordningskretsen. Arbetsgivaren får undanta **3 personer** oavsett turordning.
+
+### Företrädesrätt
+Uppsagda anställda med minst 12 månaders anställning de senaste 3 åren har **företrädesrätt till återanställning** i 9 månader.
+
+### LAS i OpenHR
+Under *LAS-uppföljning* kan HR se ackumulerade dagar och konverteringsdatum för alla tidsbegränsat anställda.",
+                catAnstallning.Id, ["LAS", "anställningsskydd", "konvertering", "visstid", "vikariat", "turordning", "företrädesrätt"]);
+            art4.Publicera();
+
+            var art5 = KnowledgeArticle.Skapa(
+                "Vad är friskvårdsbidrag?",
+                @"## Friskvårdsbidrag
+
+Som anställd i regionen har du rätt till ett **skattefritt friskvårdsbidrag** på upp till **5 000 kr per år**.
+
+### Vad kan jag använda det till?
+- Gymkort och träningspass
+- Simhall och bad
+- Yoga, pilates, qigong
+- Massage (ej medicinsk)
+- Danslektioner
+- Golfavgifter (ej utrustning)
+- Skidkort (ej utrustning)
+
+### Vad gäller **inte**?
+- Utrustning (skor, kläder)
+- Tävlingsavgifter
+- Medicinsk behandling
+
+### Hur ansöker jag?
+1. Betala aktiviteten själv
+2. Fotografera kvittot
+3. Gå till *Förmåner → Friskvårdsbidrag* i OpenHR
+4. Ladda upp kvitto och fyll i detaljer
+5. Beloppet betalas ut med nästa lön
+
+### Skattefritt
+Friskvårdsbidraget är **skattefritt** upp till 5 000 kr/år. Belopp därutöver förmånsbeskattas.",
+                kbCatLon.Id, ["friskvård", "friskvårdsbidrag", "gym", "träning", "bidrag"]);
+            art5.Publicera();
+
+            var art6 = KnowledgeArticle.Skapa(
+                "Hur ansöker jag om föräldraledighet?",
+                @"## Föräldraledighet
+
+Enligt **Föräldraledighetslagen** har du rätt till ledighet för att ta hand om ditt barn.
+
+### Antal dagar
+- **480 dagar** per barn (240 per förälder)
+- **390 dagar** betalas på sjukpenningnivå (ca 80% av SGI)
+- **90 dagar** betalas på lägstanivå (180 kr/dag)
+- **90 dagar** är reserverade för varje förälder (kan ej överlåtas)
+
+### Föräldralön (regionens tillägg)
+Utöver Försäkringskassans ersättning betalar regionen **föräldralön**:
+- **10% av lönen** i upp till 180 dagar (enligt AB)
+
+### Ansökan
+1. Ansök hos Försäkringskassan om föräldrapenning
+2. Anmäl ledigheten i OpenHR under *Ledighet → Föräldraledighet*
+3. Meddela din chef **minst 2 månader** i förväg
+
+### Arbetsgivarens skyldigheter
+- Få inte missgynna dig pga föräldraledighet
+- Din tjänst ska finnas kvar vid återkomst
+- Löneutveckling ska vara jämförbar med kollegor",
+                catSemester.Id, ["föräldraledighet", "föräldralön", "föräldrapenning", "barn", "mammaled", "pappaled"]);
+            art6.Publicera();
+
+            var art7 = KnowledgeArticle.Skapa(
+                "Vad gäller vid tjänsteresor?",
+                @"## Tjänsteresor och traktamente
+
+### Traktamente
+Vid tjänsteresa med övernattning minst 50 km från den vanliga verksamhetsorten:
+- **Heldagstraktamente**: 280 kr/dag (inrikes, 2026)
+- **Halvdagstraktamente**: 140 kr/dag (avresedag/hemresedag)
+- Utökat traktamente vid utebliven frukost/lunch/middag
+
+### Resekostnader
+- **Tåg och flyg**: bokad via regionens resebyrå
+- **Bilersättning**: 25 kr/mil (egen bil)
+- **Kollektivtrafik**: full ersättning
+
+### Utlägg
+1. Betala själv och spara kvitto
+2. Registrera i OpenHR under *Resor & utlägg*
+3. Bifoga kvitton (foto eller PDF)
+4. Utlägget betalas med nästa lön efter chefens godkännande
+
+### Policy
+- Boka **lägsta rimliga resklass**
+- Tåg prioriteras över flyg för resor under 4h
+- Hotell bokas till regionens avtalade priser",
+                catPolicies.Id, ["tjänsteresa", "resa", "traktamente", "utlägg", "bilersättning"]);
+            art7.Publicera();
+
+            var art8 = KnowledgeArticle.Skapa(
+                "Hur fungerar löneöversynen?",
+                @"## Löneöversyn
+
+Löneöversynen sker **årligen** och styrs av det centrala löneavtalet.
+
+### Process
+1. **Centralt avtal** bestämmer utrymmet (vanligtvis ~3% av lönesumman)
+2. **Lönesamtal** mellan chef och medarbetare
+3. **Ny lön** fastställs utifrån prestation, ansvar och marknadsvärde
+4. **Retroaktiv utbetalning** från avtalets startdatum
+
+### Bedömningskriterier
+- **Resultat och måluppfyllelse**
+- **Kompetens och utveckling**
+- **Samarbetsförmåga**
+- **Ledarskap** (för chefer)
+
+### Lönekartläggning
+Enligt diskrimineringslagen genomför regionen årlig lönekartläggning för att säkerställa att det inte finns osakliga löneskillnader.
+
+### I OpenHR
+Under *Löneöversyn* kan chefer hantera löneförslag och HR kan följa processen och göra lönekartläggning.",
+                kbCatLon.Id, ["löneöversyn", "lön", "lönesamtal", "lönekartläggning", "löneavtal"]);
+            art8.Publicera();
+
+            var art9 = KnowledgeArticle.Skapa(
+                "Vad är VAB (vård av barn)?",
+                @"## VAB — Vård av barn
+
+### Rätt till VAB
+- Gäller till barnet fyller **12 år** (16 år vid allvarlig sjukdom)
+- Max **120 dagar per barn och år**
+- Gäller vid barns sjukdom, smitta eller vård
+
+### Anmälan
+1. Anmäl VAB i OpenHR under *Ledighet → VAB*
+2. Anmäl till Försäkringskassan **samma dag** (via app eller webb)
+
+### Ersättning
+- FK betalar ca **80% av SGI** (max 8 prisbasbelopp)
+- Arbetsgivaren betalar **ingen lön** under VAB
+- Ingen karensdag vid VAB
+
+### Tillfällig föräldrapenning
+VAB-ersättningen kallas formellt *tillfällig föräldrapenning*. Den kan överlåtas till annan person som vårdar barnet.",
+                catSemester.Id, ["VAB", "vård av barn", "barn sjuk", "tillfällig föräldrapenning"]);
+            art9.Publicera();
+
+            var art10 = KnowledgeArticle.Skapa(
+                "Hur fungerar pensionen (AKAP-KR)?",
+                @"## Tjänstepension — AKAP-KR
+
+Som anställd i regionen omfattas du av pensionsavtalet **AKAP-KR** (Avtalad Kollektiv Avgiftsbestämd Pension för Kommun och Region).
+
+### Premie
+| Lönedel | Premie |
+|---------|--------|
+| Under 7,5 inkomstbasbelopp (IBB) | **6%** |
+| Över 7,5 IBB | **31,5%** |
+
+IBB 2026: 80 600 kr → 7,5 IBB = 604 500 kr/år (50 375 kr/mån)
+
+### Valbar del
+Du kan själv välja hur en del av premien ska placeras:
+- **Traditionell försäkring** (garanterad ränta)
+- **Fondförsäkring** (du väljer fonder)
+
+### Löneväxling
+Du kan **löneväxla** bruttolön till extra pensionsavsättning. Kontakta HR för mer information.
+
+### Delpension
+Anställda över **61 år** kan ansöka om delpension (arbetstidsminskning med viss kompensation).",
+                kbCatLon.Id, ["pension", "AKAP-KR", "tjänstepension", "premie", "löneväxling", "delpension"]);
+            art10.Publicera();
+
+            var art11 = KnowledgeArticle.Skapa(
+                "Vilka rättigheter har jag enligt GDPR?",
+                @"## GDPR — Dina rättigheter
+
+Enligt **Dataskyddsförordningen (GDPR)** har du som anställd flera rättigheter gällande dina personuppgifter.
+
+### Registerutdrag
+Du har rätt att få veta vilka personuppgifter regionen har om dig. Begär registerutdrag via *GDPR → Registerutdrag* i OpenHR.
+
+### Rättelse
+Om dina uppgifter är felaktiga har du rätt att få dem rättade.
+
+### Radering
+Du har i vissa fall rätt att få dina uppgifter raderade (""rätten att bli glömd""). Dock gäller undantag för uppgifter som krävs enligt lag (t.ex. bokföringslagen).
+
+### Dataportabilitet
+Du kan begära att få dina uppgifter i ett maskinläsbart format.
+
+### Personuppgiftsansvarig
+Region Västra Götaland är personuppgiftsansvarig. Kontakta dataskyddsombudet vid frågor: dso@regionvg.se
+
+### Laglig grund
+Regionen behandlar dina uppgifter med stöd av:
+- **Anställningsavtal** (nödvändigt för avtalets fullgörande)
+- **Rättslig förpliktelse** (skattelagstiftning, LAS etc.)",
+                kbCatGDPR.Id, ["GDPR", "dataskydd", "personuppgifter", "registerutdrag", "radering", "rättelse"]);
+            art11.Publicera();
+
+            var art12 = KnowledgeArticle.Skapa(
+                "Hur fungerar övertid?",
+                @"## Övertidsregler
+
+### Arbetstidslagen (ATL)
+- Max **200 timmar övertid per år** (med fackligt avtal kan gränsen höjas till 300)
+- Max **48 timmar per vecka** i genomsnitt över 4 veckor
+- **11 timmars dygnsvila** ska garanteras
+
+### Ersättning enligt AB
+| Typ | Ersättning |
+|-----|-----------|
+| Enkel övertid (vardag) | **180%** av timlön |
+| Kvalificerad övertid (natt/helg) | **240%** av timlön |
+
+### Komptid
+Alternativt kan du ta ut övertiden som **komptid** (ledighet). Enkel övertid ger 1,5 timmar komptid per timme, kvalificerad ger 2 timmar.
+
+### Registrering
+Övertid registreras automatiskt via schemasystemet i OpenHR baserat på din instämpling.",
+                catSchema.Id, ["övertid", "ATL", "arbetstid", "komptid", "övertidsersättning"]);
+            art12.Publicera();
+
+            var art13 = KnowledgeArticle.Skapa(
+                "Vad innebär rehabiliteringsansvaret?",
+                @"## Rehabilitering — Arbetsgivarens ansvar
+
+Arbetsgivaren har ett rehabiliteringsansvar enligt **Socialförsäkringsbalken** och **Arbetsmiljölagen**.
+
+### HälsoSAM-processen
+Regionen följer **HälsoSAM** (Hälsa, Sjukfrånvaro, Arbetsanpassning, Möjligheter):
+
+1. **Signal** — Upprepad eller lång sjukfrånvaro upptäcks
+2. **Samtal** — Chef håller omtankesamtal
+3. **Utredning** — Arbetsförmåga utreds
+4. **Plan** — Rehabiliteringsplan upprättas
+5. **Uppföljning** — Regelbundna uppföljningsmöten
+
+### Dina skyldigheter
+- Delta i rehabiliteringen
+- Lämna in läkarintyg
+- Informera om din arbetsförmåga
+
+### Stöd
+- **Företagshälsovård** — medicinsk och ergonomisk hjälp
+- **HR** — koordinerar rehabiliteringsprocessen
+- **Facklig representant** — stöd vid möten",
+                catRehab.Id, ["rehabilitering", "HälsoSAM", "sjukfrånvaro", "arbetsanpassning", "företagshälsovård"]);
+            art13.Publicera();
+
+            var art14 = KnowledgeArticle.Skapa(
+                "Hur fungerar systematiskt arbetsmiljöarbete (SAM)?",
+                @"## Systematiskt arbetsmiljöarbete (SAM)
+
+Enligt **Arbetsmiljölagen** och **AFS 2001:1** ska arbetsgivaren bedriva systematiskt arbetsmiljöarbete.
+
+### Fyra steg
+1. **Undersök** — Kartlägg risker (skyddsronder, enkäter, incidentrapporter)
+2. **Bedöm** — Riskbedömning av identifierade risker
+3. **Åtgärda** — Vidta åtgärder för att eliminera/minska risker
+4. **Kontrollera** — Följ upp att åtgärderna fungerar
+
+### Skyddsombud
+Varje arbetsplats med minst 5 anställda ska ha ett **skyddsombud**. Skyddsombudet har rätt att:
+- Delta i arbetsmiljöarbetet
+- Stoppa farligt arbete (AML 6 kap 7§)
+- Begära åtgärder av arbetsgivaren
+
+### Rapportera incident
+Använd OpenHR under *Arbetsmiljö → Rapportera incident* för att anmäla tillbud eller olyckor.",
+                catArbetsmiljo.Id, ["arbetsmiljö", "SAM", "skyddsombud", "skyddsrond", "riskbedömning", "incident"]);
+            art14.Publicera();
+
+            var art15 = KnowledgeArticle.Skapa(
+                "Vad gäller vid uppsägning?",
+                @"## Uppsägning
+
+### Uppsägningstid
+Uppsägningstiden beror på din anställningstid:
+
+| Anställningstid | Uppsägningstid |
+|----------------|----------------|
+| Under 2 år | 1 månad |
+| 2–4 år | 2 månader |
+| 4–6 år | 3 månader |
+| 6–8 år | 4 månader |
+| 8–10 år | 5 månader |
+| Över 10 år | 6 månader |
+
+### Egen uppsägning
+Vid egen uppsägning gäller **1 månads** uppsägningstid (om inte annat avtalats).
+
+### Arbetsbristuppsägning
+Arbetsgivaren måste:
+1. Förhandla med facket (MBL 11§)
+2. Erbjuda omplacering (LAS 7§)
+3. Följa turordningsregler (sist in, först ut)
+
+### Slutlön
+Vid anställningens slut utbetalas:
+- Innestående lön
+- Semesterersättning för ej uttagna dagar
+- Eventuell komptid",
+                catAnstallning.Id, ["uppsägning", "uppsägningstid", "arbetsbrist", "slutlön", "omplacering"]);
+            art15.Publicera();
+
+            var art16 = KnowledgeArticle.Skapa(
+                "Hur fungerar introduktion av nyanställda?",
+                @"## Introduktion (onboarding)
+
+### Före första dagen
+- Chef skapar onboarding-checklista i OpenHR
+- IT beställer konto och utrustning
+- Passerkort beställs
+
+### Första veckan
+- Välkomstmöte med chef
+- Rundvandring på arbetsplatsen
+- IT-introduktion (OpenHR, e-post, intranät)
+- Genomgång av policyer och rutiner
+- Brandskydd och nödprocedurer
+
+### Första månaden
+- Introduktionsutbildning (regionens värderingar)
+- Möte med HR
+- Fadder/mentor tilldelas
+- Första uppföljningssamtal
+
+### Provanställning
+De första 6 månaderna kan vara **provanställning**. Under provanställning kan anställningen avbrytas med 2 veckors varsel från båda sidor.",
+                kbCatRekrytering.Id, ["introduktion", "onboarding", "nyanställd", "provanställning", "fadder"]);
+            art16.Publicera();
+
+            var art17 = KnowledgeArticle.Skapa(
+                "Vilka försäkringar har jag som anställd?",
+                @"## Försäkringar via anställningen
+
+### Kollektivavtalsförsäkringar (AFA)
+| Försäkring | Skydd |
+|-----------|-------|
+| **AGS-KL** | Sjukförsäkring — tillägg utöver sjuklön |
+| **TFA-KL** | Trygghetsförsäkring vid arbetsskada |
+| **FHB** | Förebyggande hälsa — friskvård |
+
+### Tjänstegrupplivförsäkring (TGL-KL)
+- Dödsfallsersättning: **285 000 kr** till efterlevande
+- Grundbelopp + barnbelopp
+
+### Tjänstepension (AKAP-KR)
+Se separat artikel om pensionsvillkor.
+
+### Privat komplettering
+Du kan teckna egna försäkringar som komplement, t.ex. sjukvårdsförsäkring eller inkomstförsäkring via facket.",
+                kbCatLon.Id, ["försäkring", "AFA", "AGS", "TFA", "TGL", "arbetsskada"]);
+            art17.Publicera();
+
+            var art18 = KnowledgeArticle.Skapa(
+                "Hur hanterar jag IT-problem?",
+                @"## IT-stöd och felsökning
+
+### Vanliga problem
+- **Glömt lösenord**: Återställ via Self-Service-portalen eller ring servicedesk
+- **VPN-problem**: Kontrollera att klienten är uppdaterad
+- **E-post fungerar ej**: Rensa cache eller starta om Outlook
+
+### Kontakta servicedesk
+- **Telefon**: 010-441 00 00
+- **E-post**: servicedesk@regionvg.se
+- **Öppettider**: mån–fre 07:00–17:00
+
+### OpenHR-stöd
+Problem specifika för OpenHR:
+1. Prova att ladda om sidan (Ctrl+F5)
+2. Rensa webbläsarens cache
+3. Kontakta HR-systemförvaltning via servicedesk
+
+### Informationssäkerhet
+- Lås alltid datorn (Win+L) när du lämnar den
+- Dela aldrig ditt lösenord
+- Använd stark autentisering (SITHS/BankID)",
+                catIT.Id, ["IT", "problem", "lösenord", "servicedesk", "VPN", "e-post"]);
+            art18.Publicera();
+
+            var art19 = KnowledgeArticle.Skapa(
+                "Vad gäller för distansarbete?",
+                @"## Distansarbete / Hybridarbete
+
+### Regionens policy
+- Distansarbete kan medges efter **överenskommelse med chef**
+- Huvudregeln är att arbete sker på ordinarie arbetsplats
+- Max **2 dagar per vecka** distansarbete (beroende på verksamhet)
+
+### Krav
+- Ergonomisk arbetsplats hemma
+- Stabil internetuppkoppling
+- VPN-anslutning till regionens nätverk
+- Tillgänglighet under ordinarie arbetstid
+
+### Arbetsmiljöansvar
+Arbetsgivaren har arbetsmiljöansvar även vid distansarbete. Du ansvarar för att:
+- Rapportera brister i hemmiljön
+- Ta pauser och vara ergonomisk
+- Hålla arbete och fritid åtskilda
+
+### Utrustning
+Regionen kan erbjuda:
+- Bärbar dator
+- Headset
+- Skärm (vid regelbundet distansarbete)
+
+Ansök om distansarbetsavtal via HR.",
+                catPolicies.Id, ["distansarbete", "hemarbete", "hybrid", "VPN", "distans"]);
+            art19.Publicera();
+
+            var art20 = KnowledgeArticle.Skapa(
+                "Hur använder jag lönespecifikationen?",
+                @"## Förstå din lönespecifikation
+
+### Komponenter
+| Rad | Förklaring |
+|-----|-----------|
+| **Grundlön** | Din månadslön |
+| **OB-tillägg** | Ersättning för obekväm arbetstid |
+| **Jour/Beredskap** | Ersättning för jour eller beredskapspass |
+| **Övertid** | Övertidsersättning |
+| **Skatteavdrag** | Preliminärskatt (kommunalskatt + ev. statlig skatt) |
+| **Nettolön** | Det du får utbetalt |
+
+### Avdrag
+- **Kommunalskatt**: ca 32% (varierar per kommun)
+- **Statlig skatt**: 20% på inkomster över **51 158 kr/mån** (2026)
+- **Pensionsavdrag**: om du löneväxlar
+
+### Var hittar jag den?
+Lönespecifikationen finns i OpenHR under *Min sida → Lönespecifikationer*. Du kan ladda ner den som PDF.
+
+### Löneutbetalning
+Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker utbetalning fredagen före.",
+                kbCatLon.Id, ["lönespecifikation", "lönespec", "nettolön", "bruttolön", "skatt", "avdrag", "utbetalning"]);
+            art20.Publicera();
+
+            db.KnowledgeArticles.AddRange(art1, art2, art3, art4, art5, art6, art7, art8, art9, art10,
+                art11, art12, art13, art14, art15, art16, art17, art18, art19, art20);
+
+            // --- Assistant Actions ---
+            var actions = new[]
+            {
+                AssistantAction.Skapa("Visa semestersaldo", "Visar ditt aktuella semestersaldo", "CheckBalance", "/minsida/ledighet"),
+                AssistantAction.Skapa("Sjukanmäl mig", "Gör en sjukanmälan för idag", "ReportSick", "/minsida/sjukanmalan"),
+                AssistantAction.Skapa("Visa mitt schema", "Visar ditt kommande schema", "ViewSchedule", "/minsida/schema"),
+                AssistantAction.Skapa("Ansök om ledighet", "Skapa ny ledighetsansökan", "CreateLeave", "/ledighet/ny"),
+                AssistantAction.Skapa("Visa lönespecifikation", "Visar din senaste lönespec", "Navigate", "/minsida/lonespecifikationer"),
+                AssistantAction.Skapa("Öppna min profil", "Visa och redigera dina uppgifter", "Navigate", "/minsida/profil"),
+                AssistantAction.Skapa("Sök i kunskapsbas", "Sök efter HR-information", "SearchKB", "/helpdesk/kunskapsbas"),
+                AssistantAction.Skapa("Skapa ärende", "Skapa ett nytt HR-ärende", "Navigate", "/arenden/nytt"),
+                AssistantAction.Skapa("Visa förmåner", "Visa dina förmåner och friskvård", "Navigate", "/formaner"),
+                AssistantAction.Skapa("Visa notiser", "Visa dina notifikationer", "Navigate", "/notiser"),
+            };
+            db.AssistantActions.AddRange(actions);
+        }
+
+        // === Helpdesk: Categories, SLAs, Queues, Templates ===
+        if (!await db.ServiceCategories.AnyAsync())
+        {
+            // SLA Definitions
+            var slaStandard = RegionHR.Helpdesk.Domain.SLADefinition.Skapa("Standard", 240, 1440, 480);
+            var slaHog = RegionHR.Helpdesk.Domain.SLADefinition.Skapa("Hög prioritet", 60, 480, 120);
+            var slaKritisk = RegionHR.Helpdesk.Domain.SLADefinition.Skapa("Kritisk", 30, 240, 60);
+            db.SLADefinitions.AddRange(slaStandard, slaHog, slaKritisk);
+
+            // HR Queues
+            var hrSupport = RegionHR.Helpdesk.Domain.HRQueue.Skapa("HR-support", "Allmänna HR-frågor och support", new List<Guid>());
+            var loneAdmin = RegionHR.Helpdesk.Domain.HRQueue.Skapa("Löneadmin", "Lönefrågor och förmåner", new List<Guid>());
+            db.HRQueues.AddRange(hrSupport, loneAdmin);
+
+            // Service Categories (5 st)
+            var catLon = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+                "Lön & Förmåner", "Frågor om lön, lönespecifikationer, förmåner och friskvårdsbidrag",
+                defaultKoId: loneAdmin.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
+            var catSemester = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+                "Semester & Ledighet", "Frågor om semester, tjänstledighet, VAB och föräldraledighet",
+                defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
+            var catAnstallning = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+                "Anställning", "Frågor om anställningsvillkor, intyg och arbetsgivarintyg",
+                defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
+            var catIT = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+                "IT & System", "Frågor om HR-systemet, inloggning och tekniska problem",
+                defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.High, defaultSLAId: slaHog.Id);
+            var catOvrigt = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+                "Övrigt", "Övriga HR-frågor som inte passar i annan kategori",
+                defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Low, defaultSLAId: slaStandard.Id);
+            db.ServiceCategories.AddRange(catLon, catSemester, catAnstallning, catIT, catOvrigt);
+
+            // Case Templates (3 st)
+            var mallLon = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Lönefråga - standardsvar", catLon.Id,
+                "Tack för din fråga om lön. Vi har tagit emot ditt ärende och återkommer inom SLA-tiden.\n\nDu kan se din senaste lönespecifikation under Min sida > Lönespecifikationer.",
+                new List<string> { "Kontrollera lönespec i systemet", "Jämför med kollektivavtal", "Svara medarbetaren" });
+            var mallSemester = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Semesterfråga - standardsvar", catSemester.Id,
+                "Tack för din fråga om semester. Ditt aktuella semestersaldo hittar du under Ledighet > Saldon.\n\nOm du vill ansöka om semester kan du göra det under Ledighet > Ny ansökan.",
+                new List<string> { "Kontrollera semestersaldo", "Verifiera godkännanderegler", "Svara medarbetaren" });
+            var mallIT = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("IT-problem - felsökning", catIT.Id,
+                "Vi har tagit emot din felanmälan. Vänligen prova följande:\n1. Rensa webbläsarens cache\n2. Logga ut och in igen\n3. Prova en annan webbläsare\n\nOm problemet kvarstår eskalerar vi till IT-support.",
+                new List<string> { "Reproducera felet", "Kontrollera systemloggar", "Eskalera till IT om nödvändigt", "Svara medarbetaren" });
+            db.CaseTemplates_Helpdesk.AddRange(mallLon, mallSemester, mallIT);
         }
 
         await db.SaveChangesAsync();
