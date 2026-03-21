@@ -1,0 +1,10 @@
+#FLAGGA 0
+#SIETYP 4
+#PROGRAM "TestSystem" 1.0
+#KONTO 5010 "Löner tjänstemän"
+#KONTO 2710 "Personalskatt"
+#VER "A" "1" 20260301 "Löneutbetalning mars"
+{
+#TRANS 5010 {} -150000.00 20260301 "Löner"
+#TRANS 2710 {} 48000.00 20260301 "Skatt"
+}

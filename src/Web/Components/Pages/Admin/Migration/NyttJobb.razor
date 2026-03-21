@@ -3,6 +3,7 @@
 @using RegionHR.Infrastructure.Services
 @using RegionHR.Migration.Domain
 @using RegionHR.Migration.Adapters
+@using RegionHR.Migration.Services
 @inject MigrationEngineService MigrationEngine
 @inject NavigationManager Nav
 
@@ -10,7 +11,7 @@
 <MudBreadcrumbs Items="@_breadcrumbs" Class="mb-2 pa-0" />
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Nytt migreringsjobb</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Ladda upp en fil och starta migrering. Systemet validerar, kör dry-run och importerar automatiskt.
+    Ladda upp en fil — systemet identifierar formatet, validerar, kör dry-run och importerar.
 </MudText>
 
 @if (_error != null)
@@ -34,11 +35,13 @@
     </MudAlert>
 }
 
+@* === STEG 1: Filuppladdning och formatdetektering === *@
 <MudPaper Class="pa-5" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="6">
-            <MudSelect @bind-Value="_selectedSource" Label="Källsystem" Variant="Variant.Outlined"
-                       Required="true" RequiredError="Välj ett källsystem">
+            <MudSelect @bind-Value="_selectedSource" Label="Kallsystem" Variant="Variant.Outlined"
+                       Required="true" RequiredError="Valj ett kallsystem"
+                       Disabled="@(_autoDetected)">
                 @foreach (var source in Enum.GetValues<SourceSystem>())
                 {
                     <MudSelectItem Value="@source">@GetSourceLabel(source)</MudSelectItem>
@@ -47,36 +50,184 @@
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.body2" Class="mb-2">Filuppladdning</MudText>
-            <InputFile OnChange="OnFileSelected" accept=".xml,.csv,.txt" />
+            <InputFile OnChange="OnFileSelected" accept=".xml,.csv,.txt,.sie" />
             @if (_fileName != null)
             {
                 <MudText Typo="Typo.caption" Color="Color.Success" Class="mt-1">@_fileName</MudText>
             }
         </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       OnClick="StartaMigrering" Style="min-height: 48px;"
-                       Disabled="@(_fileName == null || _running)">
-                @if (_running)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Migrerar...</span>
-                }
-                else
-                {
-                    <span>Starta migrering</span>
-                }
-            </MudButton>
-        </MudItem>
     </MudGrid>
+
+    @* Format auto-detection result *@
+    @if (_autoDetected)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-3">
+            <MudText Typo="Typo.body2">
+                <strong>Identifierat:</strong> @_detectedFormatDescription
+            </MudText>
+            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Secondary"
+                       OnClick="ResetAutoDetect" Class="mt-1">
+                Valj annat format manuellt
+            </MudButton>
+        </MudAlert>
+    }
+
+    @* Action buttons *@
+    <MudStack Row="true" Spacing="2" Class="mt-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Large"
+                   OnClick="KorDryRun" Style="min-height: 48px;"
+                   Disabled="@(_fileName == null || _running)">
+            @if (_runningDryRun)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Kor dry-run...</span>
+            }
+            else
+            {
+                <span>Dry-run (validera utan import)</span>
+            }
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   OnClick="StartaMigrering" Style="min-height: 48px;"
+                   Disabled="@(_fileName == null || _running)">
+            @if (_runningImport)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Migrerar...</span>
+            }
+            else
+            {
+                <span>Starta migrering</span>
+            }
+        </MudButton>
+    </MudStack>
 </MudPaper>
 
+@* === Progress indicator === *@
 @if (_running)
 {
     <MudPaper Class="pa-5 mt-4" Elevation="1">
-        <MudText Typo="Typo.subtitle1" Class="mb-3">Pågående migrering</MudText>
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+        <MudText Typo="Typo.subtitle1" Class="mb-3">@(_runningDryRun ? "Dry-run pagaende" : "Import pagaende")</MudText>
+        <MudProgressLinear Value="@_progressPercent" Color="Color.Primary" Class="mb-2" />
         <MudText Typo="Typo.body2" Color="Color.Secondary">@_progressMessage</MudText>
+    </MudPaper>
+}
+
+@* === STEG 2: Dry-run-resultat === *@
+@if (_dryRunResult != null)
+{
+    <MudPaper Class="pa-5 mt-4" Elevation="2">
+        <MudText Typo="Typo.h5" Class="mb-3" Style="font-weight: 600;">Dry-run-resultat</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                    <MudText Typo="Typo.h3" Color="Color.Primary">@_dryRunResult.TotalRows</MudText>
+                    <MudText Typo="Typo.caption">Totalt rader</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                    <MudText Typo="Typo.h3" Color="Color.Error">@_dryRunResult.Errors.Count</MudText>
+                    <MudText Typo="Typo.caption">Valideringsfel</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+                    <MudText Typo="Typo.h3" Color="Color.Warning">@_dryRunResult.Duplicates.Count</MudText>
+                    <MudText Typo="Typo.caption">Dubbletter</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @* Validation errors *@
+        @if (_dryRunResult.Errors.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Valideringsfel</MudText>
+            <MudTable Items="@_dryRunResult.Errors" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Rad</MudTh>
+                    <MudTh>Falt</MudTh>
+                    <MudTh>Typ</MudTh>
+                    <MudTh>Varde</MudTh>
+                    <MudTh>Foreslagen korrektion</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.RadNummer</MudTd>
+                    <MudTd><MudText Typo="Typo.body2"><strong>@context.Falt</strong></MudText></MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Error">@context.FelTyp</MudChip></MudTd>
+                    <MudTd><code>@(context.OriginalVarde ?? "-")</code></MudTd>
+                    <MudTd>
+                        @if (context.ForeslagnKorrektion != null)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Info">@context.ForeslagnKorrektion</MudText>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
+        @* Duplicate matches *@
+        @if (_dryRunResult.Duplicates.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Dubbletter mot befintliga anstallda</MudText>
+            <MudTable Items="@_dryRunResult.Duplicates" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Personnummer</MudTh>
+                    <MudTh>Befintlig anstallda-ID</MudTh>
+                    <MudTh>Hantering</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Personnummer</MudTd>
+                    <MudTd><code>@context.ExistingEmployeeId</code></MudTd>
+                    <MudTd>
+                        <MudToggleGroup T="bool" @bind-Value="@_duplicateActions[context.RecordIndex]"
+                                        Color="Color.Primary" Style="min-width: 240px;">
+                            <MudToggleItem T="bool" Value="true" Text="Uppdatera" />
+                            <MudToggleItem T="bool" Value="false" Text="Hoppa over" />
+                        </MudToggleGroup>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                       OnClick="KorImportEfterDryRun" Disabled="@_running"
+                       Size="Size.Large" Style="min-height: 48px;">
+                @if (_runningImport)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Importerar...</span>
+                }
+                else
+                {
+                    <span>Starta import med valda atgarder</span>
+                }
+            </MudButton>
+        }
+        else if (_dryRunResult.Errors.Count == 0)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-4">
+                Inga valideringsfel eller dubbletter hittades. Du kan starta importen direkt.
+            </MudAlert>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                       OnClick="KorImportEfterDryRun" Disabled="@_running"
+                       Size="Size.Large" Style="min-height: 48px;">
+                @if (_runningImport)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Importerar...</span>
+                }
+                else
+                {
+                    <span>Starta import</span>
+                }
+            </MudButton>
+        }
     </MudPaper>
 }
 
@@ -91,13 +242,30 @@
     private string? _fileName;
     private byte[]? _fileContent;
     private bool _running;
+    private bool _runningDryRun;
+    private bool _runningImport;
     private string? _error;
     private string _progressMessage = "";
+    private double _progressPercent;
     private MigrationJob? _completedJob;
+
+    // Auto-detection
+    private bool _autoDetected;
+    private string? _detectedFormatDescription;
+
+    // Dry-run
+    private DryRunResult? _dryRunResult;
+    private MigrationJob? _dryRunJob;
+    private Dictionary<int, bool> _duplicateActions = new();
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         _error = null;
+        _dryRunResult = null;
+        _dryRunJob = null;
+        _completedJob = null;
+        _autoDetected = false;
+
         try
         {
             var file = e.File;
@@ -105,6 +273,13 @@
             using var ms = new MemoryStream();
             await file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024).CopyToAsync(ms);
             _fileContent = ms.ToArray();
+
+            // Auto-detect format
+            using var detectStream = new MemoryStream(_fileContent);
+            var detected = MigrationEngine.DetekteraFormat(detectStream);
+            _selectedSource = detected;
+            _autoDetected = true;
+            _detectedFormatDescription = MigrationEngineService.HamtaFormatBeskrivning(detected);
         }
         catch (Exception ex)
         {
@@ -114,13 +289,115 @@
         }
     }
 
+    private void ResetAutoDetect()
+    {
+        _autoDetected = false;
+        _detectedFormatDescription = null;
+    }
+
+    private async Task KorDryRun()
+    {
+        if (_fileContent == null || _fileName == null) return;
+
+        _running = true;
+        _runningDryRun = true;
+        _error = null;
+        _dryRunResult = null;
+        _completedJob = null;
+        _progressPercent = 0;
+        _progressMessage = "Skapar migreringsjobb...";
+        StateHasChanged();
+
+        try
+        {
+            var job = await MigrationEngine.SkapaJobbAsync(_selectedSource, _fileName, "admin");
+            _dryRunJob = job;
+
+            _progressPercent = 25;
+            _progressMessage = "Parserar fil...";
+            StateHasChanged();
+
+            using var stream = new MemoryStream(_fileContent);
+            _dryRunResult = await MigrationEngine.KorDryRunAsync(job.Id.Value, stream);
+
+            _progressPercent = 100;
+            _progressMessage = "Dry-run klar.";
+            StateHasChanged();
+
+            // Initialize duplicate actions (default: skip)
+            _duplicateActions = new Dictionary<int, bool>();
+            if (_dryRunResult.Duplicates.Count > 0)
+            {
+                foreach (var dup in _dryRunResult.Duplicates)
+                {
+                    _duplicateActions[dup.RecordIndex] = false; // Default: hoppa over
+                }
+            }
+
+            if (_dryRunResult.ErrorMessage != null)
+            {
+                _error = $"Dry-run misslyckades: {_dryRunResult.ErrorMessage}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Dry-run misslyckades: {ex.Message}";
+        }
+        finally
+        {
+            _running = false;
+            _runningDryRun = false;
+        }
+    }
+
+    private async Task KorImportEfterDryRun()
+    {
+        if (_fileContent == null || _dryRunJob == null) return;
+
+        _running = true;
+        _runningImport = true;
+        _error = null;
+        _completedJob = null;
+        _progressPercent = 0;
+        _progressMessage = "Startar import...";
+        StateHasChanged();
+
+        try
+        {
+            _progressPercent = 30;
+            _progressMessage = "Importerar poster i batchar om 500...";
+            StateHasChanged();
+
+            using var stream = new MemoryStream(_fileContent);
+            await MigrationEngine.KorImportEfterDryRunAsync(
+                _dryRunJob.Id.Value, stream, _duplicateActions);
+
+            _progressPercent = 100;
+            _completedJob = await MigrationEngine.HamtaJobbAsync(_dryRunJob.Id.Value);
+            _progressMessage = "Import avslutad.";
+            _dryRunResult = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Import misslyckades: {ex.Message}";
+        }
+        finally
+        {
+            _running = false;
+            _runningImport = false;
+        }
+    }
+
     private async Task StartaMigrering()
     {
         if (_fileContent == null || _fileName == null) return;
 
         _running = true;
+        _runningImport = true;
         _error = null;
         _completedJob = null;
+        _dryRunResult = null;
+        _progressPercent = 0;
         _progressMessage = "Skapar migreringsjobb...";
         StateHasChanged();
 
@@ -128,12 +405,14 @@
         {
             var job = await MigrationEngine.SkapaJobbAsync(_selectedSource, _fileName, "admin");
 
+            _progressPercent = 20;
             _progressMessage = "Parserar fil och validerar...";
             StateHasChanged();
 
             using var stream = new MemoryStream(_fileContent);
             await MigrationEngine.KorMigreringAsync(job.Id.Value, stream);
 
+            _progressPercent = 100;
             _completedJob = await MigrationEngine.HamtaJobbAsync(job.Id.Value);
             _progressMessage = "Migrering avslutad.";
         }
@@ -144,6 +423,7 @@
         finally
         {
             _running = false;
+            _runningImport = false;
         }
     }
 

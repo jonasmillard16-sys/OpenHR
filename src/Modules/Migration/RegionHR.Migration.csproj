@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\SharedKernel\RegionHR.SharedKernel.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RegionHR.Migration.Tests" />
+  </ItemGroup>
 </Project>
