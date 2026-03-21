@@ -1,0 +1,257 @@
+@page "/arenden/klagomal/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.CaseManagement.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+
+<PageTitle>OpenHR - Klagomål detalj</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_grievance == null)
+{
+    <MudAlert Severity="Severity.Warning">Klagomålet hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Klagomål: @TypText(_grievance.Typ)</MudText>
+    <MudChip T="string" Size="Size.Medium" Color="@StatusFarg(_grievance.Status)" Class="mb-4">@StatusText(_grievance.Status)</MudChip>
+
+    @if (_actionMsg != null)
+    {
+        <MudAlert Severity="@_actionSev" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _actionMsg = null)">@_actionMsg</MudAlert>
+    }
+
+    @* Timeline visualization *@
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3">Tidslinje</MudText>
+        <MudTimeline TimelinePosition="TimelinePosition.Start">
+            <MudTimelineItem Color="@StepColor(GrievanceStatus.Filed)" Variant="Variant.Filled">
+                <MudText Typo="Typo.body2"><strong>Inlämnad</strong> — @_grievance.InlamnadVid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudText>
+            </MudTimelineItem>
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.Acknowledged)
+            {
+                <MudTimelineItem Color="@StepColor(GrievanceStatus.Acknowledged)" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Bekräftad</strong></MudText>
+                </MudTimelineItem>
+            }
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.UnderInvestigation)
+            {
+                <MudTimelineItem Color="@StepColor(GrievanceStatus.UnderInvestigation)" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Under utredning</strong> — Utredare: @(_grievance.Utredningar.LastOrDefault()?.Utredare ?? "—")</MudText>
+                </MudTimelineItem>
+            }
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.Hearing)
+            {
+                <MudTimelineItem Color="@StepColor(GrievanceStatus.Hearing)" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Förhandling</strong> — @(_grievance.Forhandlingar.LastOrDefault()?.Datum.ToLocalTime().ToString("yyyy-MM-dd") ?? "—")</MudText>
+                </MudTimelineItem>
+            }
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.Decision)
+            {
+                <MudTimelineItem Color="@StepColor(GrievanceStatus.Decision)" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Beslut</strong> — @(_grievance.Beslut ?? "—")</MudText>
+                </MudTimelineItem>
+            }
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.Appeal)
+            {
+                <MudTimelineItem Color="Color.Error" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Överklagande</strong> — @(_grievance.Overklaganden.LastOrDefault()?.Grund ?? "—")</MudText>
+                </MudTimelineItem>
+            }
+            @if ((int)_grievance.Status >= (int)GrievanceStatus.Resolved)
+            {
+                <MudTimelineItem Color="Color.Success" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2"><strong>Löst</strong></MudText>
+                </MudTimelineItem>
+            }
+        </MudTimeline>
+    </MudPaper>
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Ärendeuppgifter</MudText>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr><td><strong>Typ</strong></td><td>@TypText(_grievance.Typ)</td></tr>
+                        <tr><td><strong>Anställd</strong></td><td>@_anstallNamn</td></tr>
+                        <tr><td><strong>Fackligt ombud</strong></td><td>@(_grievance.FackligRepresentant ?? "Ej angivet")</td></tr>
+                        <tr><td><strong>Beskrivning</strong></td><td>@_grievance.Beskrivning</td></tr>
+                        <tr><td><strong>Inlämnad</strong></td><td>@_grievance.InlamnadVid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td></tr>
+                        @if (_grievance.Beslut != null)
+                        {
+                            <tr><td><strong>Beslut</strong></td><td>@_grievance.Beslut</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Åtgärder</MudText>
+                @if (_grievance.Status == GrievanceStatus.Filed)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="Bekrafta" FullWidth="true" Class="mb-2">Bekräfta mottagande</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.Acknowledged)
+                {
+                    <MudTextField @bind-Value="_utredare" Label="Utredare" Variant="Variant.Outlined" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="StartaUtredning" FullWidth="true" Class="mb-2">Starta utredning</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.UnderInvestigation)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="HallForhandling" FullWidth="true" Class="mb-2">Håll förhandling</MudButton>
+                    <MudTextField @bind-Value="_beslut" Label="Beslut" Variant="Variant.Outlined" Lines="2" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="FattaBeslut" FullWidth="true" Class="mb-2">Fatta beslut</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.Hearing)
+                {
+                    <MudTextField @bind-Value="_beslut" Label="Beslut" Variant="Variant.Outlined" Lines="2" Class="mb-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="FattaBeslut" FullWidth="true" Class="mb-2">Fatta beslut</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.Decision)
+                {
+                    <MudTextField @bind-Value="_overklaganGrund" Label="Grund för överklagande" Variant="Variant.Outlined" Lines="2" Class="mb-2" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Overklaga" FullWidth="true" Class="mb-2">Överklaga</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Los" FullWidth="true" Class="mb-2">Markera som löst</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.Appeal)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Los" FullWidth="true" Class="mb-2">Markera som löst</MudButton>
+                }
+                @if (_grievance.Status == GrievanceStatus.Resolved)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Stang" FullWidth="true">Stäng ärende</MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Grievance? _grievance;
+    private string _anstallNamn = "Okänd";
+    private string _utredare = string.Empty;
+    private string _beslut = string.Empty;
+    private string _overklaganGrund = string.Empty;
+    private bool _loading = true;
+    private string? _error, _actionMsg;
+    private Severity _actionSev;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _grievance = await Db.Grievances
+                .Include(g => g.Utredningar)
+                .Include(g => g.Forhandlingar)
+                .Include(g => g.Overklaganden)
+                .FirstOrDefaultAsync(g => g.Id == GrievanceId.From(Id));
+
+            if (_grievance != null)
+            {
+                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id == _grievance.AnstallId);
+                _anstallNamn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta klagomål: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task Bekrafta()
+    {
+        try { _grievance!.Bekrafta(); await Db.SaveChangesAsync(); _actionMsg = "Klagomål bekräftat."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task StartaUtredning()
+    {
+        if (string.IsNullOrWhiteSpace(_utredare)) { _actionMsg = "Ange en utredare."; _actionSev = Severity.Warning; return; }
+        try { _grievance!.StartaUtredning(_utredare); await Db.SaveChangesAsync(); _actionMsg = "Utredning startad."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task HallForhandling()
+    {
+        try { _grievance!.HallForhandling(DateTime.UtcNow, new List<string> { "HR", _grievance.FackligRepresentant ?? "Fackombud" }); await Db.SaveChangesAsync(); _actionMsg = "Förhandling registrerad."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task FattaBeslut()
+    {
+        if (string.IsNullOrWhiteSpace(_beslut)) { _actionMsg = "Ange beslut."; _actionSev = Severity.Warning; return; }
+        try { _grievance!.FattaBeslut(_beslut); await Db.SaveChangesAsync(); _actionMsg = "Beslut fattat."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task Overklaga()
+    {
+        if (string.IsNullOrWhiteSpace(_overklaganGrund)) { _actionMsg = "Ange grund."; _actionSev = Severity.Warning; return; }
+        try { _grievance!.Overklaga(_overklaganGrund); await Db.SaveChangesAsync(); _actionMsg = "Överklagande registrerat."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task Los()
+    {
+        try { _grievance!.Los(); await Db.SaveChangesAsync(); _actionMsg = "Klagomål markerat som löst."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private async Task Stang()
+    {
+        try { _grievance!.Stang(); await Db.SaveChangesAsync(); _actionMsg = "Ärende stängt."; _actionSev = Severity.Success; }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private static string TypText(GrievanceType t) => t switch
+    {
+        GrievanceType.FormalltKlagomal => "Formellt klagomål",
+        GrievanceType.Diskriminering => "Diskriminering",
+        GrievanceType.Trakasseri => "Trakasseri",
+        GrievanceType.Arbetsmiljo => "Arbetsmiljö",
+        GrievanceType.Avtalsbrott => "Avtalsbrott",
+        _ => t.ToString()
+    };
+
+    private static string StatusText(GrievanceStatus s) => s switch
+    {
+        GrievanceStatus.Filed => "Inlämnad",
+        GrievanceStatus.Acknowledged => "Bekräftad",
+        GrievanceStatus.UnderInvestigation => "Under utredning",
+        GrievanceStatus.Hearing => "Förhandling",
+        GrievanceStatus.Decision => "Beslut",
+        GrievanceStatus.Appeal => "Överklagande",
+        GrievanceStatus.Resolved => "Löst",
+        GrievanceStatus.Closed => "Stängt",
+        _ => s.ToString()
+    };
+
+    private static Color StatusFarg(GrievanceStatus s) => s switch
+    {
+        GrievanceStatus.Filed => Color.Default,
+        GrievanceStatus.Acknowledged => Color.Info,
+        GrievanceStatus.UnderInvestigation => Color.Warning,
+        GrievanceStatus.Hearing => Color.Secondary,
+        GrievanceStatus.Decision => Color.Primary,
+        GrievanceStatus.Appeal => Color.Error,
+        GrievanceStatus.Resolved => Color.Success,
+        GrievanceStatus.Closed => Color.Success,
+        _ => Color.Default
+    };
+
+    private Color StepColor(GrievanceStatus step) =>
+        (int)_grievance!.Status >= (int)step ? Color.Success : Color.Default;
+}

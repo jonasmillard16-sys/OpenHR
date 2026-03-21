@@ -1,0 +1,146 @@
+@page "/arenden/klagomal"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.CaseManagement.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Klagomål</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Klagomål</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Href="/arenden/klagomal/ny" Style="min-height: 48px;">Nytt klagomål</MudButton>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rader.Count(r => r.Status == GrievanceStatus.Filed || r.Status == GrievanceStatus.Acknowledged)</MudText><MudText Typo="Typo.body2">Nya</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Info" Style="font-weight: 700;">@_rader.Count(r => r.Status == GrievanceStatus.UnderInvestigation || r.Status == GrievanceStatus.Hearing)</MudText><MudText Typo="Typo.body2">Pågående</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_rader.Count(r => r.Status == GrievanceStatus.Decision || r.Status == GrievanceStatus.Appeal)</MudText><MudText Typo="Typo.body2">Beslut/Överklagande</MudText></MudPaper></MudItem>
+        <MudItem xs="3"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_rader.Count(r => r.Status == GrievanceStatus.Resolved || r.Status == GrievanceStatus.Closed)</MudText><MudText Typo="Typo.body2">Avslutade</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @* Status flow visualization *@
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 600;">Processflöde</MudText>
+        <div class="d-flex align-center gap-2 flex-wrap">
+            <MudChip T="string" Size="Size.Small" Color="Color.Default">Inlämnad</MudChip>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Info">Bekräftad</MudChip>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Utredning</MudChip>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Secondary">Förhandling</MudChip>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary">Beslut</MudChip>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Success">Löst/Stängt</MudChip>
+        </div>
+    </MudPaper>
+
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga klagomål registrerade.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Typ</th><th>Anställd</th><th>Beskrivning</th><th>Fackligt ombud</th><th>Status</th><th>Inlämnad</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><MudChip T="string" Size="Size.Small">@TypText(r.Typ)</MudChip></td>
+                        <td><strong>@r.AnstallNamn</strong></td>
+                        <td>@Truncate(r.Beskrivning, 60)</td>
+                        <td>@(r.FackligRepresentant ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
+                        <td>@r.InlamnadVid.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td><MudButton Size="Size.Small" Variant="Variant.Outlined" Href="@($"/arenden/klagomal/{r.Id}")">Visa</MudButton></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<KlagomalRad> _rader = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var items = await Db.Grievances
+                .OrderByDescending(g => g.SkapadVid)
+                .Take(50)
+                .ToListAsync();
+
+            var anstallIds = items.Select(g => g.AnstallId).Distinct().ToList();
+            var employees = await Db.Employees
+                .Where(e => anstallIds.Contains(e.Id))
+                .ToListAsync();
+            var names = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _rader = items.Select(g => new KlagomalRad(
+                g.Id.Value, g.Typ, names.GetValueOrDefault(g.AnstallId, "Okänd"),
+                g.Beskrivning, g.FackligRepresentant, g.Status, g.InlamnadVid
+            )).ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta klagomål: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private static string TypText(GrievanceType t) => t switch
+    {
+        GrievanceType.FormalltKlagomal => "Formellt klagomål",
+        GrievanceType.Diskriminering => "Diskriminering",
+        GrievanceType.Trakasseri => "Trakasseri",
+        GrievanceType.Arbetsmiljo => "Arbetsmiljö",
+        GrievanceType.Avtalsbrott => "Avtalsbrott",
+        _ => t.ToString()
+    };
+
+    private static string StatusText(GrievanceStatus s) => s switch
+    {
+        GrievanceStatus.Filed => "Inlämnad",
+        GrievanceStatus.Acknowledged => "Bekräftad",
+        GrievanceStatus.UnderInvestigation => "Under utredning",
+        GrievanceStatus.Hearing => "Förhandling",
+        GrievanceStatus.Decision => "Beslut",
+        GrievanceStatus.Appeal => "Överklagande",
+        GrievanceStatus.Resolved => "Löst",
+        GrievanceStatus.Closed => "Stängt",
+        _ => s.ToString()
+    };
+
+    private static Color StatusFarg(GrievanceStatus s) => s switch
+    {
+        GrievanceStatus.Filed => Color.Default,
+        GrievanceStatus.Acknowledged => Color.Info,
+        GrievanceStatus.UnderInvestigation => Color.Warning,
+        GrievanceStatus.Hearing => Color.Secondary,
+        GrievanceStatus.Decision => Color.Primary,
+        GrievanceStatus.Appeal => Color.Error,
+        GrievanceStatus.Resolved => Color.Success,
+        GrievanceStatus.Closed => Color.Success,
+        _ => Color.Default
+    };
+
+    private static string Truncate(string text, int maxLen) =>
+        text.Length <= maxLen ? text : text[..maxLen] + "...";
+
+    private record KlagomalRad(Guid Id, GrievanceType Typ, string AnstallNamn,
+        string Beskrivning, string? FackligRepresentant, GrievanceStatus Status, DateTime InlamnadVid);
+}

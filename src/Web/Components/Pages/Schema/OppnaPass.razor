@@ -1,0 +1,175 @@
+@page "/schema/oppna-pass"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Scheduling.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Öppna pass</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Öppna pass</MudText>
+</div>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 700;">@_rader.Count</MudText><MudText Typo="Typo.body2">Tillgängliga pass</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Warning" Style="font-weight: 700;">@_rader.Sum(r => r.AntalBud)</MudText><MudText Typo="Typo.body2">Totalt antal bud</MudText></MudPaper></MudItem>
+        <MudItem xs="4"><MudPaper Class="pa-3 text-center" Elevation="1"><MudText Typo="Typo.h4" Color="Color.Success" Style="font-weight: 700;">@_tilldelade</MudText><MudText Typo="Typo.body2">Tilldelade (idag)</MudText></MudPaper></MudItem>
+    </MudGrid>
+
+    @if (_actionMsg != null)
+    {
+        <MudAlert Severity="@_actionSev" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _actionMsg = null)">@_actionMsg</MudAlert>
+    }
+
+    @if (_rader.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga öppna pass publicerade just nu.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Passtyp</th>
+                    <th>Tid</th>
+                    <th>Enhet</th>
+                    <th>Ersättning</th>
+                    <th>Krav</th>
+                    <th>Bud</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _rader)
+                {
+                    <tr>
+                        <td><strong>@r.Datum.ToString("yyyy-MM-dd")</strong></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@PassTypFarg(r.PassTyp)">@r.PassTyp</MudChip></td>
+                        <td>@r.StartTid.ToString("HH:mm") - @r.SlutTid.ToString("HH:mm")</td>
+                        <td>@r.EnhetNamn</td>
+                        <td>@r.Ersattning</td>
+                        <td>@(r.KravProfil ?? "Inga")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="Color.Info">@r.AntalBud st</MudChip></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@StatusFarg(r.Status)">@StatusText(r.Status)</MudChip></td>
+                        <td>
+                            @if ((r.Status == OpenShiftStatus.Published || r.Status == OpenShiftStatus.Bidding) && Auth.EmployeeId.HasValue)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => LaggBud(r))">Lägg bud</MudButton>
+                            }
+                            @if (Auth.IsChef)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" Href="@($"/schema/oppna-pass/{r.Id}")" Class="ml-1">Detalj</MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    private List<PassRad> _rader = [];
+    private int _tilldelade;
+    private bool _loading = true;
+    private string? _error, _actionMsg;
+    private Severity _actionSev;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var shifts = await Db.OpenShifts
+                .Include(s => s.Bud)
+                .OrderBy(s => s.Datum).ThenBy(s => s.StartTid)
+                .Take(50)
+                .ToListAsync();
+
+            var enhetIds = shifts.Select(s => s.EnhetId).Distinct().ToList();
+            var enheter = await Db.OrganizationUnits
+                .Where(e => enhetIds.Contains(e.Id))
+                .ToListAsync();
+            var enhetNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
+
+            _rader = shifts
+                .Where(s => s.Status == OpenShiftStatus.Published || s.Status == OpenShiftStatus.Bidding)
+                .Select(s => new PassRad(
+                    s.Id, s.Datum, s.PassTyp, s.StartTid, s.SlutTid,
+                    enhetNamn.GetValueOrDefault(s.EnhetId, "Okänd"),
+                    s.Ersattning, s.KravProfil, s.Bud.Count(b => b.Status == ShiftBidStatus.Pending), s.Status
+                )).ToList();
+
+            _tilldelade = shifts.Count(s => s.Status == OpenShiftStatus.Assigned && s.Datum == DateOnly.FromDateTime(DateTime.Today));
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta öppna pass: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task LaggBud(PassRad rad)
+    {
+        if (!Auth.EmployeeId.HasValue) { _actionMsg = "Du måste vara kopplad till en anställd."; _actionSev = Severity.Error; return; }
+        try
+        {
+            var shift = await Db.OpenShifts.Include(s => s.Bud).FirstOrDefaultAsync(s => s.Id == rad.Id);
+            if (shift is null) { _actionMsg = "Passet hittades inte."; _actionSev = Severity.Error; return; }
+
+            var myEmpId = EmployeeId.From(Auth.EmployeeId.Value);
+            if (shift.Bud.Any(b => b.AnstallId == myEmpId && b.Status == ShiftBidStatus.Pending))
+            { _actionMsg = "Du har redan ett bud på detta pass."; _actionSev = Severity.Warning; return; }
+
+            var bud = ShiftBid.Skapa(shift.Id, myEmpId, 1, null);
+            shift.LaggTillBud(bud);
+            await Db.ShiftBids.AddAsync(bud);
+            await Db.SaveChangesAsync();
+
+            rad = rad with { AntalBud = rad.AntalBud + 1 };
+            _actionMsg = $"Bud lagt! Du är nu med i budgivningen."; _actionSev = Severity.Success;
+            await OnInitializedAsync();
+        }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private static string StatusText(OpenShiftStatus s) => s switch
+    {
+        OpenShiftStatus.Published => "Publicerad",
+        OpenShiftStatus.Bidding => "Budgivning pågår",
+        OpenShiftStatus.Assigned => "Tilldelad",
+        OpenShiftStatus.Cancelled => "Avbruten",
+        _ => s.ToString()
+    };
+
+    private static Color StatusFarg(OpenShiftStatus s) => s switch
+    {
+        OpenShiftStatus.Published => Color.Info,
+        OpenShiftStatus.Bidding => Color.Warning,
+        OpenShiftStatus.Assigned => Color.Success,
+        OpenShiftStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color PassTypFarg(string typ) => typ switch
+    {
+        "Dag" => Color.Primary,
+        "Kvall" => Color.Warning,
+        "Natt" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private record PassRad(Guid Id, DateOnly Datum, string PassTyp, TimeOnly StartTid, TimeOnly SlutTid,
+        string EnhetNamn, string Ersattning, string? KravProfil, int AntalBud, OpenShiftStatus Status);
+}

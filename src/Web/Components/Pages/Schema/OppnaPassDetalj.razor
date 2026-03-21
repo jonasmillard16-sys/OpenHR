@@ -1,0 +1,226 @@
+@page "/schema/oppna-pass/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Scheduling.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject RegionHR.Web.Services.AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Öppet pass detalj</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_shift == null)
+{
+    <MudAlert Severity="Severity.Warning">Passet hittades inte.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Öppet pass: @_shift.Datum.ToString("yyyy-MM-dd") @_shift.PassTyp</MudText>
+
+    @if (_actionMsg != null)
+    {
+        <MudAlert Severity="@_actionSev" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _actionMsg = null)">@_actionMsg</MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Passdetaljer</MudText>
+                <MudSimpleTable Dense="true">
+                    <tbody>
+                        <tr><td><strong>Datum</strong></td><td>@_shift.Datum.ToString("yyyy-MM-dd")</td></tr>
+                        <tr><td><strong>Passtyp</strong></td><td>@_shift.PassTyp</td></tr>
+                        <tr><td><strong>Tid</strong></td><td>@_shift.StartTid.ToString("HH:mm") - @_shift.SlutTid.ToString("HH:mm")</td></tr>
+                        <tr><td><strong>Ersättning</strong></td><td>@_shift.Ersattning</td></tr>
+                        <tr><td><strong>Kravprofil</strong></td><td>@(_shift.KravProfil ?? "Inga krav")</td></tr>
+                        <tr><td><strong>Status</strong></td><td><MudChip T="string" Size="Size.Small" Color="Color.Info">@_shift.Status.ToString()</MudChip></td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Tilldela pass</MudText>
+                @if (_shift.Status == OpenShiftStatus.Assigned)
+                {
+                    <MudAlert Severity="Severity.Success">Passet är redan tilldelat till @(_tilldeladNamn ?? "Okänd") via @_shift.TilldelningsMetod.</MudAlert>
+                }
+                else if (_bud.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info">Inga bud inkomna ännu.</MudAlert>
+                }
+                else
+                {
+                    <MudSelect T="string" @bind-Value="_valdMetod" Label="Tilldelningsmetod" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="string" Value="@("FirstComeFirstServed")">Först till kvarn</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Seniority")">Senioritet</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Kompetens")">Kompetens</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Rotation")">Rotation (rättvisa)</MudSelectItem>
+                    </MudSelect>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="TilldelaPass" FullWidth="true" Size="Size.Large">Tilldela</MudButton>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Inkomna bud (@_bud.Count st)</MudText>
+    @if (_bud.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga bud inkomna.</MudAlert>
+    }
+    else
+    {
+        <MudSimpleTable Hover="true" Elevation="2">
+            <thead><tr><th>Anställd</th><th>Prioritet</th><th>Motivering</th><th>Status</th><th>Tidpunkt</th></tr></thead>
+            <tbody>
+                @foreach (var b in _bud)
+                {
+                    <tr>
+                        <td><strong>@b.Namn</strong></td>
+                        <td>@b.Prioritet</td>
+                        <td>@(b.Motivering ?? "—")</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@BudStatusFarg(b.Status)">@BudStatusText(b.Status)</MudChip></td>
+                        <td>@b.SkapadVid.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private OpenShift? _shift;
+    private List<BudRad> _bud = [];
+    private string _valdMetod = "FirstComeFirstServed";
+    private string? _tilldeladNamn;
+    private bool _loading = true;
+    private string? _error, _actionMsg;
+    private Severity _actionSev;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _shift = await Db.OpenShifts
+                .Include(s => s.Bud)
+                .FirstOrDefaultAsync(s => s.Id == Id);
+
+            if (_shift != null)
+            {
+                var anstallIds = _shift.Bud.Select(b => b.AnstallId.Value).Distinct().ToList();
+                if (_shift.TilldeladAnstallId.HasValue)
+                    anstallIds.Add(_shift.TilldeladAnstallId.Value.Value);
+
+                var employees = await Db.Employees
+                    .Where(e => anstallIds.Contains(e.Id.Value))
+                    .ToListAsync();
+                var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+                _bud = _shift.Bud
+                    .OrderBy(b => b.SkapadVid)
+                    .Select(b => new BudRad(
+                        b.Id, names.GetValueOrDefault(b.AnstallId.Value, "Okänd"),
+                        b.Prioritet, b.Motivering, b.Status, b.SkapadVid))
+                    .ToList();
+
+                if (_shift.TilldeladAnstallId.HasValue)
+                    _tilldeladNamn = names.GetValueOrDefault(_shift.TilldeladAnstallId.Value.Value, "Okänd");
+            }
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta pass: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task TilldelaPass()
+    {
+        if (_shift == null) return;
+
+        try
+        {
+            var bud = _shift.Bud.Where(b => b.Status == ShiftBidStatus.Pending).ToList();
+            var anstallIds = bud.Select(b => b.AnstallId.Value).ToList();
+
+            var employments = await Db.Employments
+                .Where(e => anstallIds.Contains(e.AnstallId.Value))
+                .ToListAsync();
+
+            var fatigueScores = await Db.FatigueScores
+                .Where(f => anstallIds.Contains(f.AnstallId.Value))
+                .ToListAsync();
+
+            var scheduledShifts = await Db.ScheduledShifts
+                .Where(s => anstallIds.Contains(s.AnstallId.Value) && s.Datum == _shift.Datum)
+                .ToListAsync();
+
+            var anstallda = anstallIds.Select(aId =>
+            {
+                var emp = employments.FirstOrDefault(e => e.AnstallId.Value == aId);
+                var fatigue = fatigueScores.Where(f => f.AnstallId.Value == aId).OrderByDescending(f => f.BeraknadVid).FirstOrDefault();
+                var harPass = scheduledShifts.Any(s => s.AnstallId.Value == aId);
+
+                return new ShiftBidAssigner.EmployeeInfo
+                {
+                    AnstallId = EmployeeId.From(aId),
+                    AnstallningsDatum = emp?.Giltighetsperiod.Start ?? DateOnly.FromDateTime(DateTime.Today),
+                    Kompetenser = new List<string>(),
+                    AntalExtraPassSenaste30Dagar = 0,
+                    FatigueScore = fatigue?.Poang ?? 0,
+                    HarPassPaDatum = harPass,
+                    SenastePassSlut = null
+                };
+            }).ToList();
+
+            var assigner = new ShiftBidAssigner();
+            var result = assigner.Tilldela(_shift, bud, _valdMetod, anstallda);
+
+            if (!result.Success)
+            {
+                _actionMsg = result.Motivering; _actionSev = Severity.Error;
+                return;
+            }
+
+            if (result.BidResult is not null)
+                await Db.ShiftBidResults.AddAsync(result.BidResult);
+
+            await Db.SaveChangesAsync();
+            _actionMsg = $"Pass tilldelat! Metod: {result.Metod}. {result.Motivering}";
+            _actionSev = Severity.Success;
+
+            // Refresh
+            _loading = true;
+            await OnInitializedAsync();
+        }
+        catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
+    }
+
+    private static string BudStatusText(ShiftBidStatus s) => s switch
+    {
+        ShiftBidStatus.Pending => "Väntande",
+        ShiftBidStatus.Accepted => "Accepterat",
+        ShiftBidStatus.Rejected => "Avvisat",
+        _ => s.ToString()
+    };
+
+    private static Color BudStatusFarg(ShiftBidStatus s) => s switch
+    {
+        ShiftBidStatus.Pending => Color.Warning,
+        ShiftBidStatus.Accepted => Color.Success,
+        ShiftBidStatus.Rejected => Color.Error,
+        _ => Color.Default
+    };
+
+    private record BudRad(Guid Id, string Namn, int Prioritet, string? Motivering, ShiftBidStatus Status, DateTime SkapadVid);
+}
