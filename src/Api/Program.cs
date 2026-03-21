@@ -14,6 +14,7 @@ using RegionHR.Payroll.Engine;
 using RegionHR.SharedKernel.Abstractions;
 using RegionHR.SharedKernel.Domain;
 using RegionHR.CaseManagement.Domain;
+using RegionHR.Infrastructure.Services;
 using RegionHR.IntegrationHub.Adapters.KOLL;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,6 +42,7 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 builder.Services.AddSingleton<KOLLHOSPAdapter>();
+builder.Services.AddScoped<ServiceRequestRouter>();
 
 var app = builder.Build();
 
@@ -416,6 +418,16 @@ app.MapPlatformEndpoints();
 // Phase C Layer 3: Marketplace Foundation
 // ============================================================
 app.MapMarketplaceEndpoints();
+
+// ============================================================
+// Knowledge Base: Articles, Categories, Ratings
+// ============================================================
+app.MapKnowledgeEndpoints();
+
+// ============================================================
+// HR Service Delivery / Helpdesk
+// ============================================================
+app.MapHelpdeskEndpoints();
 
 // ============================================================
 // Integration Status

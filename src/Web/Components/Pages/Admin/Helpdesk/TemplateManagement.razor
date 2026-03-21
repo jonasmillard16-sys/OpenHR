@@ -1,0 +1,118 @@
+@page "/admin/helpdesk/mallar"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Svarsmallar</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Svarsmallar</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h6">Mallar for arendesvar</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="ShowCreateTemplate">Ny mall</MudButton>
+    </MudStack>
+
+    <MudGrid>
+        @foreach (var template in _templates)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.ContentPaste" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@template.Namn</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                        Kategori: @(_categories.FirstOrDefault(c => c.Id == template.KategoriId)?.Namn ?? "-")
+                    </MudText>
+                    <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-background-grey);">
+                        <MudText Typo="Typo.body2">@template.MallInnehall</MudText>
+                    </MudPaper>
+                    @if (template.Checklista.Any())
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Checklista</MudText>
+                        @foreach (var step in template.Checklista)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckBox" Size="Size.Small" Color="Color.Default" />
+                                <MudText Typo="Typo.body2">@step</MudText>
+                            </MudStack>
+                        }
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @* Create template dialog *@
+    <MudDialog @bind-Visible="_showCreateTemplate">
+        <TitleContent><MudText Typo="Typo.h6">Ny svarsmall</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_newTemplateName" Label="Namn" Required="true" Class="mb-3" />
+            <MudSelect T="Guid" Label="Kategori" @bind-Value="_newTemplateCategory" Class="mb-3">
+                @foreach (var cat in _categories)
+                {
+                    <MudSelectItem T="Guid" Value="@cat.Id">@cat.Namn</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_newTemplateContent" Label="Mallinnehall" Lines="5" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_newChecklistText" Label="Checklista (en rad per steg)" Lines="3" Class="mb-3"
+                          HelperText="Skriv ett steg per rad" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showCreateTemplate = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateTemplate">Skapa</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<CaseTemplate> _templates = [];
+    private List<ServiceCategory> _categories = [];
+    private bool _loading = true;
+    private string? _error;
+
+    private bool _showCreateTemplate;
+    private string _newTemplateName = "";
+    private Guid _newTemplateCategory;
+    private string _newTemplateContent = "";
+    private string _newChecklistText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _templates = await Db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
+            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void ShowCreateTemplate()
+    {
+        _newTemplateName = "";
+        _newTemplateContent = "";
+        _newChecklistText = "";
+        _showCreateTemplate = true;
+    }
+
+    private async Task CreateTemplate()
+    {
+        var checklist = _newChecklistText
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        var template = CaseTemplate.Skapa(_newTemplateName, _newTemplateCategory, _newTemplateContent, checklist);
+        await Db.CaseTemplates_Helpdesk.AddAsync(template);
+        await Db.SaveChangesAsync();
+        _templates.Add(template);
+        _showCreateTemplate = false;
+    }
+}

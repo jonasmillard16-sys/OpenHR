@@ -1926,31 +1926,31 @@ Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker ut
             db.HRQueues.AddRange(hrSupport, loneAdmin);
 
             // Service Categories (5 st)
-            var catLon = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+            var hdCatLon = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
                 "Lön & Förmåner", "Frågor om lön, lönespecifikationer, förmåner och friskvårdsbidrag",
                 defaultKoId: loneAdmin.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
-            var catSemester = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+            var hdCatSemester = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
                 "Semester & Ledighet", "Frågor om semester, tjänstledighet, VAB och föräldraledighet",
                 defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
-            var catAnstallning = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+            var hdCatAnstallning = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
                 "Anställning", "Frågor om anställningsvillkor, intyg och arbetsgivarintyg",
                 defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Medium, defaultSLAId: slaStandard.Id);
-            var catIT = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+            var hdCatIT = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
                 "IT & System", "Frågor om HR-systemet, inloggning och tekniska problem",
                 defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.High, defaultSLAId: slaHog.Id);
-            var catOvrigt = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
+            var hdCatOvrigt = RegionHR.Helpdesk.Domain.ServiceCategory.Skapa(
                 "Övrigt", "Övriga HR-frågor som inte passar i annan kategori",
                 defaultKoId: hrSupport.Id, defaultPrioritet: RegionHR.Helpdesk.Domain.ServiceRequestPriority.Low, defaultSLAId: slaStandard.Id);
-            db.ServiceCategories.AddRange(catLon, catSemester, catAnstallning, catIT, catOvrigt);
+            db.ServiceCategories.AddRange(hdCatLon, hdCatSemester, hdCatAnstallning, hdCatIT, hdCatOvrigt);
 
             // Case Templates (3 st)
-            var mallLon = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Lönefråga - standardsvar", catLon.Id,
+            var mallLon = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Lönefråga - standardsvar", hdCatLon.Id,
                 "Tack för din fråga om lön. Vi har tagit emot ditt ärende och återkommer inom SLA-tiden.\n\nDu kan se din senaste lönespecifikation under Min sida > Lönespecifikationer.",
                 new List<string> { "Kontrollera lönespec i systemet", "Jämför med kollektivavtal", "Svara medarbetaren" });
-            var mallSemester = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Semesterfråga - standardsvar", catSemester.Id,
+            var mallSemester = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("Semesterfråga - standardsvar", hdCatSemester.Id,
                 "Tack för din fråga om semester. Ditt aktuella semestersaldo hittar du under Ledighet > Saldon.\n\nOm du vill ansöka om semester kan du göra det under Ledighet > Ny ansökan.",
                 new List<string> { "Kontrollera semestersaldo", "Verifiera godkännanderegler", "Svara medarbetaren" });
-            var mallIT = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("IT-problem - felsökning", catIT.Id,
+            var mallIT = RegionHR.Helpdesk.Domain.CaseTemplate.Skapa("IT-problem - felsökning", hdCatIT.Id,
                 "Vi har tagit emot din felanmälan. Vänligen prova följande:\n1. Rensa webbläsarens cache\n2. Logga ut och in igen\n3. Prova en annan webbläsare\n\nOm problemet kvarstår eskalerar vi till IT-support.",
                 new List<string> { "Reproducera felet", "Kontrollera systemloggar", "Eskalera till IT om nödvändigt", "Svara medarbetaren" });
             db.CaseTemplates_Helpdesk.AddRange(mallLon, mallSemester, mallIT);

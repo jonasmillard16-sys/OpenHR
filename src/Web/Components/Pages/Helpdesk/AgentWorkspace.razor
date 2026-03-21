@@ -1,0 +1,268 @@
+@page "/helpdesk/agent"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using RegionHR.Infrastructure.Services
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Agent Workspace</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Agent Workspace</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    @* KPI summary *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Primary">@_myRequests.Count</MudText>
+                <MudText Typo="Typo.caption">Mina arenden</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Warning">@_unassigned.Count</MudText>
+                <MudText Typo="Typo.caption">Otilldelade i ko</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Error">@_breached.Count</MudText>
+                <MudText Typo="Typo.caption">SLA overskridna</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Success">@_resolvedToday</MudText>
+                <MudText Typo="Typo.caption">Losta idag</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4">
+        @* Tab 1: My assigned *@
+        <MudTabPanel Text="Mina arenden" Icon="@Icons.Material.Filled.Assignment">
+            @if (!_myRequests.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="ma-4">Inga tilldelade arenden.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="@_myRequests" Hover="true" Dense="true" Class="ma-2">
+                    <HeaderContent>
+                        <MudTh>Titel</MudTh>
+                        <MudTh>Prioritet</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>SLA</MudTh>
+                        <MudTh>Atgarder</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>
+                            <MudLink Href="@($"/helpdesk/{context.Id}")">@context.Titel</MudLink>
+                        </MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(context.Prioritet)">@context.Prioritet.ToString()</MudChip></MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status.ToString()</MudChip></MudTd>
+                        <MudTd>
+                            @if (context.SLADeadline.HasValue)
+                            {
+                                var remaining = context.SLADeadline.Value - DateTime.UtcNow;
+                                <MudText Color="@(remaining.TotalMinutes < 0 ? Color.Error : remaining.TotalHours < 2 ? Color.Warning : Color.Success)" Typo="Typo.body2">
+                                    @(remaining.TotalMinutes < 0 ? "Overskriden!" : $"{(int)remaining.TotalHours}h {remaining.Minutes}m")
+                                </MudText>
+                            }
+                        </MudTd>
+                        <MudTd>
+                            @if (context.Status == ServiceRequestStatus.Assigned)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                           OnClick="@(async () => { context.PaborjaArbete(); await Db.SaveChangesAsync(); })">
+                                    Paborja
+                                </MudButton>
+                            }
+                            @if (context.Status == ServiceRequestStatus.InProgress)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Success"
+                                           OnClick="@(() => ShowResolveDialog(context))">
+                                    Los
+                                </MudButton>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        @* Tab 2: Queue view *@
+        <MudTabPanel Text="Ko" Icon="@Icons.Material.Filled.Queue">
+            @if (!_unassigned.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="ma-4">Inga otilldelade arenden i kon.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="@_unassigned" Hover="true" Dense="true" Class="ma-2">
+                    <HeaderContent>
+                        <MudTh>Titel</MudTh>
+                        <MudTh>Prioritet</MudTh>
+                        <MudTh>SLA Deadline</MudTh>
+                        <MudTh>Skapad</MudTh>
+                        <MudTh>Atgarder</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd><MudLink Href="@($"/helpdesk/{context.Id}")">@context.Titel</MudLink></MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(context.Prioritet)">@context.Prioritet.ToString()</MudChip></MudTd>
+                        <MudTd>@context.SLADeadline?.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                        <MudTd>@context.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                        <MudTd>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       OnClick="@(async () => { context.Tilldela(_currentAgentId); await Db.SaveChangesAsync(); _myRequests.Add(context); _unassigned.Remove(context); })">
+                                Tilldela mig
+                            </MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        @* Tab 3: Templates *@
+        <MudTabPanel Text="Mallar" Icon="@Icons.Material.Filled.ContentPaste">
+            @if (!_templates.Any())
+            {
+                <MudAlert Severity="Severity.Info" Class="ma-4">Inga mallar konfigurerade.</MudAlert>
+            }
+            else
+            {
+                <MudList T="CaseTemplate" Dense="true" Class="ma-2">
+                    @foreach (var template in _templates)
+                    {
+                        <MudListItem T="CaseTemplate" Icon="@Icons.Material.Filled.Description">
+                            <MudStack>
+                                <MudText Typo="Typo.body1"><strong>@template.Namn</strong></MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@template.MallInnehall</MudText>
+                                @if (template.Checklista.Any())
+                                {
+                                    <MudStack Spacing="0">
+                                        @foreach (var step in template.Checklista)
+                                        {
+                                            <MudText Typo="Typo.caption">- @step</MudText>
+                                        }
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        </MudTabPanel>
+    </MudTabs>
+
+    @* Resolve dialog *@
+    <MudDialog @bind-Visible="_showResolve">
+        <TitleContent><MudText Typo="Typo.h6">Los arende</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_resolveText" Label="Losning" Lines="4" Required="true" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showResolve = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ResolveRequest">Los arende</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<ServiceRequest> _myRequests = [];
+    private List<ServiceRequest> _unassigned = [];
+    private List<ServiceRequest> _breached = [];
+    private List<CaseTemplate> _templates = [];
+    private int _resolvedToday;
+    private bool _loading = true;
+    private string? _error;
+    private Guid _currentAgentId = Guid.NewGuid(); // Simulated agent ID
+
+    private bool _showResolve;
+    private string _resolveText = "";
+    private ServiceRequest? _resolveTarget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+
+            _myRequests = await Db.ServiceRequests
+                .Where(r => r.TilldeladAgent != null && r.Status != ServiceRequestStatus.Closed && r.Status != ServiceRequestStatus.Resolved)
+                .OrderBy(r => r.SLADeadline)
+                .Take(50)
+                .ToListAsync();
+
+            _unassigned = await Db.ServiceRequests
+                .Where(r => r.TilldeladAgent == null && r.Status == ServiceRequestStatus.New)
+                .OrderByDescending(r => r.Prioritet)
+                .ThenBy(r => r.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+
+            _breached = await Db.ServiceRequests
+                .Where(r => r.SLADeadline.HasValue && r.SLADeadline < now &&
+                            r.Status != ServiceRequestStatus.Resolved && r.Status != ServiceRequestStatus.Closed)
+                .ToListAsync();
+
+            _resolvedToday = await Db.ServiceRequests
+                .CountAsync(r => r.LostVid.HasValue && r.LostVid >= todayStart);
+
+            _templates = await Db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte ladda workspace: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void ShowResolveDialog(ServiceRequest request)
+    {
+        _resolveTarget = request;
+        _resolveText = "";
+        _showResolve = true;
+    }
+
+    private async Task ResolveRequest()
+    {
+        if (_resolveTarget is null || string.IsNullOrWhiteSpace(_resolveText)) return;
+
+        var req = await Db.ServiceRequests
+            .Include(r => r.Kommentarer)
+            .Include(r => r.SLAMilestones)
+            .FirstOrDefaultAsync(r => r.Id == _resolveTarget.Id);
+        if (req is null) return;
+
+        req.Los(_resolveText);
+        var resMilestone = req.SLAMilestones.FirstOrDefault(m => m.Typ == "Resolution" && m.FaktiskTid is null);
+        resMilestone?.Uppfyll(DateTime.UtcNow);
+
+        await Db.SaveChangesAsync();
+        _myRequests.Remove(_resolveTarget);
+        _showResolve = false;
+    }
+
+    private Color GetStatusColor(ServiceRequestStatus status) => status switch
+    {
+        ServiceRequestStatus.New => Color.Info,
+        ServiceRequestStatus.Assigned => Color.Warning,
+        ServiceRequestStatus.InProgress => Color.Primary,
+        ServiceRequestStatus.WaitingOnEmployee => Color.Secondary,
+        ServiceRequestStatus.Resolved => Color.Success,
+        ServiceRequestStatus.Closed => Color.Default,
+        _ => Color.Default
+    };
+
+    private Color GetPriorityColor(ServiceRequestPriority priority) => priority switch
+    {
+        ServiceRequestPriority.Low => Color.Default,
+        ServiceRequestPriority.Medium => Color.Info,
+        ServiceRequestPriority.High => Color.Warning,
+        ServiceRequestPriority.Critical => Color.Error,
+        _ => Color.Default
+    };
+}

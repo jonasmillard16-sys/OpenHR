@@ -1,0 +1,244 @@
+@page "/helpdesk/kunskapsbas"
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Knowledge.Domain
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Kunskapsbas - OpenHR</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Kunskapsbas</MudText>
+    <MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+        Sök bland artiklar om HR-frågor, policyer och riktlinjer
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_searchQuery" Placeholder="Sök artiklar... t.ex. semester, sjukanmälan, OB-tillägg"
+                          Variant="Variant.Outlined" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" OnKeyDown="HandleSearchKey"
+                          Style="margin-bottom: 24px;" />
+        </MudItem>
+    </MudGrid>
+
+    @if (_searchResults != null && _searchResults.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3">Sökresultat (@_searchResults.Count träffar)</MudText>
+        <MudGrid>
+            @foreach (var article in _searchResults)
+            {
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="1" Style="height: 100%; cursor: pointer;" @onclick="@(() => SelectArticle(article))">
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">@article.Titel</MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2" Style="color: var(--mud-palette-text-secondary);">
+                                @article.HamtaSammanfattning(150)
+                            </MudText>
+                            <div class="mt-2" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                @foreach (var tag in article.HamtaTaggar().Take(4))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@tag</MudChip>
+                                }
+                            </div>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); padding-left: 8px;">
+                                @article.VisningsAntal visningar
+                                @if (article.HjalpsamhetPoang > 0)
+                                {
+                                    <span> | @article.HjalpsamhetPoang.ToString("0.0")/5 betyg</span>
+                                }
+                            </MudText>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else if (_hasSearched)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Inga artiklar matchade din sökning. Prova med andra sökord eller bläddra bland kategorierna nedan.
+        </MudAlert>
+    }
+
+    @if (_selectedArticle != null)
+    {
+        <MudPaper Elevation="2" Class="pa-6 mb-6 mt-4" Style="border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <MudText Typo="Typo.h5" Style="font-weight: 700;">@_selectedArticle.Titel</MudText>
+                    <div class="mt-2" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        @foreach (var tag in _selectedArticle.HamtaTaggar())
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@tag</MudChip>
+                        }
+                    </div>
+                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _selectedArticle = null)" />
+            </div>
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.body1" Style="white-space: pre-wrap; line-height: 1.7;">
+                @_selectedArticle.Innehall
+            </MudText>
+            <MudDivider Class="my-4" />
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <MudText Typo="Typo.body2">Var den här artikeln hjälpsam?</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Success" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.ThumbUp"
+                           OnClick="@(() => RateAsync(5))">Ja</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.ThumbDown"
+                           OnClick="@(() => RateAsync(1))">Nej</MudButton>
+                @if (_ratingSubmitted)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Success">Tack för din feedback!</MudText>
+                }
+            </div>
+        </MudPaper>
+    }
+
+    <MudText Typo="Typo.h6" Class="mb-3 mt-6">Kategorier</MudText>
+    <MudGrid>
+        @foreach (var cat in _categories)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudCard Elevation="1" Style="cursor: pointer; height: 100%;" @onclick="@(() => LoadCategoryAsync(cat))">
+                    <MudCardContent Style="text-align: center; padding: 24px;">
+                        <MudIcon Icon="@GetCategoryIcon(cat.Ikon)" Size="Size.Large" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="mt-2" Style="font-weight: 600;">@cat.Namn</MudText>
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@cat.Beskrivning</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_categoryArticles.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3 mt-6">@_selectedCategoryName</MudText>
+        <MudGrid>
+            @foreach (var article in _categoryArticles)
+            {
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="1" Style="cursor: pointer;" @onclick="@(() => SelectArticle(article))">
+                        <MudCardContent>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@article.Titel</MudText>
+                            <MudText Typo="Typo.body2" Class="mt-1" Style="color: var(--mud-palette-text-secondary);">
+                                @article.HamtaSammanfattning(120)
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @if (_popular.Count > 0 && _searchResults == null && _categoryArticles.Count == 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-3 mt-6">Populära artiklar</MudText>
+        <MudGrid>
+            @foreach (var article in _popular)
+            {
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="1" Style="cursor: pointer;" @onclick="@(() => SelectArticle(article))">
+                        <MudCardContent>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@article.Titel</MudText>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@article.VisningsAntal visningar</MudChip>
+                            </div>
+                            <MudText Typo="Typo.body2" Class="mt-1" Style="color: var(--mud-palette-text-secondary);">
+                                @article.HamtaSammanfattning(120)
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    [Inject] private KnowledgeBaseService KbService { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private string _searchQuery = "";
+    private bool _hasSearched;
+    private bool _ratingSubmitted;
+    private List<KnowledgeArticle>? _searchResults;
+    private KnowledgeArticle? _selectedArticle;
+    private List<KnowledgeCategory> _categories = [];
+    private List<KnowledgeArticle> _categoryArticles = [];
+    private List<KnowledgeArticle> _popular = [];
+    private string _selectedCategoryName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await KbService.GetCategoriesAsync();
+        _popular = await KbService.GetPopularAsync(6);
+
+        // Check URL for article parameter
+        var uri = new Uri(Nav.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var artikelId = queryParams["artikel"];
+        if (Guid.TryParse(artikelId, out var id))
+        {
+            var article = await KbService.GetArticleAsync(id);
+            if (article != null) _selectedArticle = article;
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery)) return;
+        _searchResults = await KbService.SearchAsync(_searchQuery);
+        _hasSearched = true;
+        _selectedArticle = null;
+        _categoryArticles = [];
+    }
+
+    private void HandleSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") _ = SearchAsync();
+    }
+
+    private async Task LoadCategoryAsync(KnowledgeCategory cat)
+    {
+        _categoryArticles = await KbService.GetByCategoryAsync(cat.Id);
+        _selectedCategoryName = cat.Namn;
+        _searchResults = null;
+        _hasSearched = false;
+        _selectedArticle = null;
+    }
+
+    private async Task SelectArticle(KnowledgeArticle article)
+    {
+        _selectedArticle = await KbService.GetArticleAsync(article.Id) ?? article;
+        _ratingSubmitted = false;
+    }
+
+    private async Task RateAsync(decimal rating)
+    {
+        if (_selectedArticle != null)
+        {
+            await KbService.RateArticleAsync(_selectedArticle.Id, rating);
+            _ratingSubmitted = true;
+        }
+    }
+
+    private static string GetCategoryIcon(string ikon) => ikon switch
+    {
+        "BeachAccess" => Icons.Material.Filled.BeachAccess,
+        "AccountBalance" => Icons.Material.Filled.AccountBalance,
+        "Schedule" => Icons.Material.Filled.Schedule,
+        "Work" => Icons.Material.Filled.Work,
+        "HealthAndSafety" => Icons.Material.Filled.HealthAndSafety,
+        "Security" => Icons.Material.Filled.Security,
+        "Shield" => Icons.Material.Filled.Shield,
+        "Policy" => Icons.Material.Filled.Policy,
+        "PersonAdd" => Icons.Material.Filled.PersonAdd,
+        "Computer" => Icons.Material.Filled.Computer,
+        _ => Icons.Material.Filled.Article,
+    };
+}

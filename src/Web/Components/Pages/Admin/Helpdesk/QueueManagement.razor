@@ -1,0 +1,109 @@
+@page "/admin/helpdesk/koer"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Kohantering</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kohantering</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h6">HR-koer</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="ShowCreateQueue">Ny ko</MudButton>
+    </MudStack>
+
+    <MudGrid>
+        @foreach (var queue in _queues)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@queue.Namn</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@queue.Beskrivning</MudText>
+                    <MudText Typo="Typo.body2"><strong>@queue.Medlemmar.Count</strong> medlemmar</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudDivider Class="my-6" />
+
+    @* Category -> Queue mapping *@
+    <MudText Typo="Typo.h6" Class="mb-3">Kategori-kopplingar</MudText>
+    <MudTable Items="@_categories" Hover="true" Elevation="2" Dense="true">
+        <HeaderContent>
+            <MudTh>Kategori</MudTh>
+            <MudTh>Standard-ko</MudTh>
+            <MudTh>Standard-prioritet</MudTh>
+            <MudTh>Standard-SLA</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Namn</MudTd>
+            <MudTd>@(_queues.FirstOrDefault(q => q.Id == context.DefaultKoId)?.Namn ?? "-")</MudTd>
+            <MudTd>@(context.DefaultPrioritet?.ToString() ?? "-")</MudTd>
+            <MudTd>@(_slas.FirstOrDefault(s => s.Id == context.DefaultSLAId)?.Namn ?? "-")</MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @* Create Queue dialog *@
+    <MudDialog @bind-Visible="_showCreateQueue">
+        <TitleContent><MudText Typo="Typo.h6">Ny HR-ko</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_newQueueName" Label="Namn" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_newQueueDesc" Label="Beskrivning" Lines="3" Class="mb-3" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showCreateQueue = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateQueue">Skapa</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<HRQueue> _queues = [];
+    private List<ServiceCategory> _categories = [];
+    private List<SLADefinition> _slas = [];
+    private bool _loading = true;
+    private string? _error;
+
+    private bool _showCreateQueue;
+    private string _newQueueName = "";
+    private string _newQueueDesc = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _queues = await Db.HRQueues.OrderBy(q => q.Namn).ToListAsync();
+            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+            _slas = await Db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void ShowCreateQueue()
+    {
+        _newQueueName = "";
+        _newQueueDesc = "";
+        _showCreateQueue = true;
+    }
+
+    private async Task CreateQueue()
+    {
+        var queue = HRQueue.Skapa(_newQueueName, _newQueueDesc);
+        await Db.HRQueues.AddAsync(queue);
+        await Db.SaveChangesAsync();
+        _queues.Add(queue);
+        _showCreateQueue = false;
+    }
+}

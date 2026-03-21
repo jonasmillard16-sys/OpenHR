@@ -34,6 +34,8 @@ using RegionHR.Migration.Domain;
 using RegionHR.Compensation.Domain;
 using RegionHR.VMS.Domain;
 using RegionHR.Platform.Domain;
+using RegionHR.Knowledge.Domain;
+using RegionHR.Helpdesk.Domain;
 
 namespace RegionHR.Infrastructure.Persistence;
 
@@ -303,6 +305,23 @@ public class RegionHRDbContext : DbContext
     // Platform — Marketplace (schema: platform)
     public DbSet<RegionHR.Platform.Domain.Extension> Extensions => Set<RegionHR.Platform.Domain.Extension>();
     public DbSet<RegionHR.Platform.Domain.ExtensionInstallation> ExtensionInstallations => Set<RegionHR.Platform.Domain.ExtensionInstallation>();
+
+    // Helpdesk (schema: helpdesk)
+    public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
+    public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
+    public DbSet<SLADefinition> SLADefinitions => Set<SLADefinition>();
+    public DbSet<SLAMilestone> SLAMilestones => Set<SLAMilestone>();
+    public DbSet<HRQueue> HRQueues => Set<HRQueue>();
+    public DbSet<CaseTemplate> CaseTemplates_Helpdesk => Set<CaseTemplate>();
+    public DbSet<CaseSatisfaction> CaseSatisfactions => Set<CaseSatisfaction>();
+    public DbSet<ServiceRequestComment> ServiceRequestComments => Set<ServiceRequestComment>();
+
+    // Knowledge (schema: knowledge)
+    public DbSet<KnowledgeCategory> KnowledgeCategories => Set<KnowledgeCategory>();
+    public DbSet<KnowledgeArticle> KnowledgeArticles => Set<KnowledgeArticle>();
+    public DbSet<ConversationSession> ConversationSessions => Set<ConversationSession>();
+    public DbSet<ConversationMessage> ConversationMessages => Set<ConversationMessage>();
+    public DbSet<AssistantAction> AssistantActions => Set<AssistantAction>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

@@ -45,6 +45,13 @@
         <MudNavLink Href="/arenden" Icon="@Icons.Material.Filled.Assignment">@L["Cases"]</MudNavLink>
     }
 
+    <MudNavLink Href="/helpdesk" Icon="@Icons.Material.Filled.SupportAgent">Helpdesk</MudNavLink>
+
+    @if (Auth.IsInitialized && Auth.IsHR)
+    {
+        <MudNavLink Href="/helpdesk/agent" Icon="@Icons.Material.Filled.Headset">Agent Workspace</MudNavLink>
+    }
+
     <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">@L["Leave"]</MudNavLink>
 
     <MudNavGroup Title="Karriär" Icon="@Icons.Material.Filled.TrendingUp"
@@ -112,6 +119,12 @@
         <MudNavLink Href="/admin/custom-objects" Icon="@Icons.Material.Filled.Extension">Anpassade objekt</MudNavLink>
         <MudNavLink Href="/admin/workflows" Icon="@Icons.Material.Filled.AccountTree">Arbetsfloden</MudNavLink>
         <MudNavLink Href="/admin/tillagg" Icon="@Icons.Material.Filled.Store">Tillagg</MudNavLink>
+        <MudNavGroup Title="Helpdesk Admin" Icon="@Icons.Material.Filled.SupportAgent"
+                     Expanded="@_helpdeskAdminOpen" ExpandedChanged="@(v => _helpdeskAdminOpen = v)">
+            <MudNavLink Href="/admin/helpdesk/sla">SLA-hantering</MudNavLink>
+            <MudNavLink Href="/admin/helpdesk/koer">Kohantering</MudNavLink>
+            <MudNavLink Href="/admin/helpdesk/mallar">Svarsmallar</MudNavLink>
+        </MudNavGroup>
         <MudNavGroup Title="Förmånsadmin" Icon="@Icons.Material.Filled.AdminPanelSettings"
                      Expanded="@_formanerAdminOpen" ExpandedChanged="@(v => _formanerAdminOpen = v)">
             <MudNavLink Href="/admin/formaner/planer">Planer</MudNavLink>
@@ -138,4 +151,5 @@
     private bool _rapporterOpen;
     private bool _vmsOpen;
     private bool _formanerAdminOpen;
+    private bool _helpdeskAdminOpen;
 }

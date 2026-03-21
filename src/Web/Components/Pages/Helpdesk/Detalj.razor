@@ -1,0 +1,217 @@
+@page "/helpdesk/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Arende @Id</PageTitle>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_request is null) { <MudAlert Severity="Severity.Error">Arendet hittades inte.</MudAlert> }
+else
+{
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="@(() => Nav.NavigateTo("/helpdesk"))" Class="mb-2">Tillbaka</MudButton>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h5" Class="mb-2">@_request.Titel</MudText>
+                <MudGrid>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.caption">Status</MudText>
+                        <MudChip T="string" Color="@GetStatusColor(_request.Status)">@_request.Status.ToString()</MudChip>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.caption">Prioritet</MudText>
+                        <MudChip T="string" Color="@GetPriorityColor(_request.Prioritet)">@_request.Prioritet.ToString()</MudChip>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.caption">Kanal</MudText>
+                        <MudText>@_request.KallKanal</MudText>
+                    </MudItem>
+                    <MudItem xs="6" md="3">
+                        <MudText Typo="Typo.caption">Skapad</MudText>
+                        <MudText>@_request.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.body1">@_request.Beskrivning</MudText>
+            </MudPaper>
+
+            @* SLA Status Bar *@
+            @if (_request.SLADeadline.HasValue)
+            {
+                var remaining = _request.SLADeadline.Value - DateTime.UtcNow;
+                var totalMinutes = _request.SLADeadline.Value.Subtract(_request.CreatedAt).TotalMinutes;
+                var elapsed = DateTime.UtcNow.Subtract(_request.CreatedAt).TotalMinutes;
+                var progress = totalMinutes > 0 ? Math.Clamp(elapsed / totalMinutes * 100, 0, 100) : 100;
+
+                <MudPaper Elevation="1" Class="pa-3 mb-4">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">SLA-status</MudText>
+                    <MudProgressLinear Value="@progress"
+                                       Color="@(remaining.TotalMinutes < 0 ? Color.Error : remaining.TotalHours < 2 ? Color.Warning : Color.Success)"
+                                       Size="Size.Large" Rounded="true" />
+                    <MudText Typo="Typo.caption" Class="mt-1">
+                        @(remaining.TotalMinutes < 0
+                            ? $"SLA overskriden med {Math.Abs((int)remaining.TotalHours)}h {Math.Abs(remaining.Minutes)}m"
+                            : $"Aterstar: {(int)remaining.TotalHours}h {remaining.Minutes}m")
+                    </MudText>
+                </MudPaper>
+            }
+
+            @* Timeline *@
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Tidslinje</MudText>
+                @if (_request.Kommentarer.Any())
+                {
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+                        @foreach (var comment in _request.Kommentarer.OrderBy(c => c.SkapadVid))
+                        {
+                            <MudTimelineItem Color="@(comment.ArIntern ? Color.Warning : Color.Primary)" Size="Size.Small">
+                                <ItemContent>
+                                    <MudPaper Elevation="1" Class="pa-3">
+                                        @if (comment.ArIntern)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="mb-1">Intern anteckning</MudChip>
+                                        }
+                                        <MudText Typo="Typo.body2">@comment.Innehall</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@comment.SkapadVid.ToString("yyyy-MM-dd HH:mm")</MudText>
+                                    </MudPaper>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Inga kommentarer an.</MudText>
+                }
+
+                <MudDivider Class="my-3" />
+                <MudTextField @bind-Value="_newComment" Label="Lagg till kommentar" Lines="3" Class="mb-2" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddComment"
+                           Disabled="@string.IsNullOrWhiteSpace(_newComment)">Skicka</MudButton>
+            </MudPaper>
+
+            @* Satisfaction survey *@
+            @if (_request.Status == ServiceRequestStatus.Resolved && !_request.NojdhetsPoang.HasValue)
+            {
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-2">Hur nojd ar du med hanteringen?</MudText>
+                    <MudRating @bind-SelectedValue="_satisfactionRating" MaxValue="5" />
+                    <MudTextField @bind-Value="_satisfactionComment" Label="Kommentar (valfritt)" Lines="2" Class="my-2" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SubmitSatisfaction"
+                               Disabled="@(_satisfactionRating < 1)">Skicka betyg</MudButton>
+                </MudPaper>
+            }
+            else if (_request.NojdhetsPoang.HasValue)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4">
+                    Du har gett betyget @_request.NojdhetsPoang/5. Tack for din aterrapport!
+                </MudAlert>
+            }
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            @* Actions sidebar *@
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Atgarder</MudText>
+                @if (_request.Status != ServiceRequestStatus.Closed)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth="true" Class="mb-2"
+                               OnClick="CloseRequest">Stang arende</MudButton>
+                }
+            </MudPaper>
+
+            @* SLA Milestones *@
+            @if (_request.SLAMilestones.Any())
+            {
+                <MudPaper Elevation="2" Class="pa-4 mb-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">SLA Milstolpar</MudText>
+                    @foreach (var m in _request.SLAMilestones)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudIcon Icon="@(m.ArUppfylld == true ? Icons.Material.Filled.CheckCircle : m.ArUppfylld == false ? Icons.Material.Filled.Cancel : Icons.Material.Filled.HourglassEmpty)"
+                                     Color="@(m.ArUppfylld == true ? Color.Success : m.ArUppfylld == false ? Color.Error : Color.Warning)"
+                                     Size="Size.Small" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2"><strong>@m.Typ</strong></MudText>
+                                <MudText Typo="Typo.caption">Mal: @m.MalTid.ToString("HH:mm dd/MM")</MudText>
+                            </MudStack>
+                        </MudStack>
+                    }
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ServiceRequest? _request;
+    private bool _loading = true;
+    private string _newComment = "";
+    private int _satisfactionRating;
+    private string _satisfactionComment = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _request = await Db.ServiceRequests
+                .Include(r => r.Kommentarer)
+                .Include(r => r.SLAMilestones)
+                .FirstOrDefaultAsync(r => r.Id == Id);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task AddComment()
+    {
+        if (_request is null || string.IsNullOrWhiteSpace(_newComment)) return;
+        _request.LaggTillKommentar(null, _newComment, false);
+        await Db.SaveChangesAsync();
+        _newComment = "";
+    }
+
+    private async Task CloseRequest()
+    {
+        if (_request is null) return;
+        _request.Stang();
+        await Db.SaveChangesAsync();
+    }
+
+    private async Task SubmitSatisfaction()
+    {
+        if (_request is null || _satisfactionRating < 1) return;
+        _request.SattNojdhet(_satisfactionRating);
+        var satisfaction = CaseSatisfaction.Skapa(_request.Id, _satisfactionRating, _satisfactionComment);
+        await Db.CaseSatisfactions.AddAsync(satisfaction);
+        await Db.SaveChangesAsync();
+    }
+
+    private Color GetStatusColor(ServiceRequestStatus status) => status switch
+    {
+        ServiceRequestStatus.New => Color.Info,
+        ServiceRequestStatus.Assigned => Color.Warning,
+        ServiceRequestStatus.InProgress => Color.Primary,
+        ServiceRequestStatus.WaitingOnEmployee => Color.Secondary,
+        ServiceRequestStatus.Resolved => Color.Success,
+        ServiceRequestStatus.Closed => Color.Default,
+        _ => Color.Default
+    };
+
+    private Color GetPriorityColor(ServiceRequestPriority priority) => priority switch
+    {
+        ServiceRequestPriority.Low => Color.Default,
+        ServiceRequestPriority.Medium => Color.Info,
+        ServiceRequestPriority.High => Color.Warning,
+        ServiceRequestPriority.Critical => Color.Error,
+        _ => Color.Default
+    };
+}

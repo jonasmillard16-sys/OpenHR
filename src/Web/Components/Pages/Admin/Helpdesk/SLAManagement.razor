@@ -1,0 +1,151 @@
+@page "/admin/helpdesk/sla"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - SLA-hantering</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">SLA-hantering</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    @* Compliance Dashboard *@
+    <MudText Typo="Typo.h6" Class="mb-3">SLA Compliance</MudText>
+    <MudGrid Class="mb-6">
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Success">@_slaMetCount</MudText>
+                <MudText Typo="Typo.caption">SLA uppfyllda</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Error">@_slaBreachedCount</MudText>
+                <MudText Typo="Typo.caption">SLA overskridna</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Primary">@(_compliancePercent)%</MudText>
+                <MudText Typo="Typo.caption">Compliance</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <MudPaper Elevation="2" Class="pa-3 d-flex flex-column align-center">
+                <MudText Typo="Typo.h4" Color="Color.Info">@(_avgResolutionMinutes)m</MudText>
+                <MudText Typo="Typo.caption">Snitt losning</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* SLA Definitions CRUD *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudText Typo="Typo.h6">SLA-definitioner</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="ShowCreateSLA">Ny SLA</MudButton>
+    </MudStack>
+
+    <MudTable Items="@_slaDefinitions" Hover="true" Elevation="2" Dense="true" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Namn</MudTh>
+            <MudTh>Svarstid</MudTh>
+            <MudTh>Losningtid</MudTh>
+            <MudTh>Eskalering</MudTh>
+            <MudTh>Aktiv</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Namn</MudTd>
+            <MudTd>@FormatMinutes(context.ForsvarstidMinuter)</MudTd>
+            <MudTd>@FormatMinutes(context.LostidMinuter)</MudTd>
+            <MudTd>@(context.EskaleringEfterMinuter.HasValue ? FormatMinutes(context.EskaleringEfterMinuter.Value) : "-")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@(context.ArAktiv ? Color.Success : Color.Default)">
+                    @(context.ArAktiv ? "Ja" : "Nej")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @* Create SLA dialog *@
+    <MudDialog @bind-Visible="_showCreateSLA">
+        <TitleContent><MudText Typo="Typo.h6">Ny SLA-definition</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_slaName" Label="Namn" Required="true" Class="mb-3" />
+            <MudNumericField @bind-Value="_slaResponseMin" Label="Svarstid (minuter)" Required="true" Class="mb-3" />
+            <MudNumericField @bind-Value="_slaResolutionMin" Label="Losningtid (minuter)" Required="true" Class="mb-3" />
+            <MudNumericField @bind-Value="_slaEscalationMin" Label="Eskalering efter (minuter, valfritt)" Class="mb-3" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showCreateSLA = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateSLA">Skapa</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<SLADefinition> _slaDefinitions = [];
+    private int _slaMetCount, _slaBreachedCount;
+    private double _compliancePercent;
+    private int _avgResolutionMinutes;
+    private bool _loading = true;
+    private string? _error;
+
+    private bool _showCreateSLA;
+    private string _slaName = "";
+    private int _slaResponseMin = 240;
+    private int _slaResolutionMin = 1440;
+    private int? _slaEscalationMin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _slaDefinitions = await Db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
+            _slaMetCount = await Db.SLAMilestones.CountAsync(m => m.ArUppfylld == true);
+            _slaBreachedCount = await Db.SLAMilestones.CountAsync(m => m.ArUppfylld == false);
+            _compliancePercent = _slaMetCount + _slaBreachedCount > 0
+                ? Math.Round(100.0 * _slaMetCount / (_slaMetCount + _slaBreachedCount), 1)
+                : 100;
+
+            var resolvedRequests = await Db.ServiceRequests
+                .Where(r => r.LostVid.HasValue)
+                .Select(r => new { r.CreatedAt, r.LostVid })
+                .ToListAsync();
+
+            _avgResolutionMinutes = resolvedRequests.Any()
+                ? (int)resolvedRequests.Average(r => (r.LostVid!.Value - r.CreatedAt).TotalMinutes)
+                : 0;
+        }
+        catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void ShowCreateSLA()
+    {
+        _slaName = "";
+        _slaResponseMin = 240;
+        _slaResolutionMin = 1440;
+        _slaEscalationMin = null;
+        _showCreateSLA = true;
+    }
+
+    private async Task CreateSLA()
+    {
+        var sla = SLADefinition.Skapa(_slaName, _slaResponseMin, _slaResolutionMin, _slaEscalationMin);
+        await Db.SLADefinitions.AddAsync(sla);
+        await Db.SaveChangesAsync();
+        _slaDefinitions.Add(sla);
+        _showCreateSLA = false;
+    }
+
+    private string FormatMinutes(int minutes)
+    {
+        if (minutes < 60) return $"{minutes}m";
+        if (minutes < 1440) return $"{minutes / 60}h {minutes % 60}m";
+        return $"{minutes / 1440}d {(minutes % 1440) / 60}h";
+    }
+}

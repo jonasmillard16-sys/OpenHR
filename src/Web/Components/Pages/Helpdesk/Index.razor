@@ -1,0 +1,184 @@
+@page "/helpdesk"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Helpdesk.Domain
+@using RegionHR.Infrastructure.Services
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Helpdesk</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">HR Helpdesk</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else
+{
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h6" Class="mt-2">Skapa nytt arende</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">Behover du hjalp? Skicka in en forfragan.</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ShowCreateDialog">Skapa arende</MudButton>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Color="Color.Info" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h6" Class="mt-2">Kunskapsbas</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">Sok bland vanliga fragor och svar.</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" Href="/knowledge">Sok artiklar</MudButton>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Color="Color.Success" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h6" Class="mt-2">Kontakta HR</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">Ring eller maila HR-support.</MudText>
+                <MudText Typo="Typo.body2"><strong>hr-support@regionhr.local</strong></MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3">Mina arenden</MudText>
+
+    @if (!_requests.Any())
+    {
+        <MudAlert Severity="Severity.Info">Du har inga aktiva arenden.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@_requests" Hover="true" Elevation="2" Dense="true">
+            <HeaderContent>
+                <MudTh>Titel</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Prioritet</MudTh>
+                <MudTh>SLA Deadline</MudTh>
+                <MudTh>Skapad</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Titel</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status.ToString()</MudChip></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(context.Prioritet)">@context.Prioritet.ToString()</MudChip></MudTd>
+                <MudTd>
+                    @if (context.SLADeadline.HasValue)
+                    {
+                        var remaining = context.SLADeadline.Value - DateTime.UtcNow;
+                        <MudText Color="@(remaining.TotalMinutes < 0 ? Color.Error : remaining.TotalHours < 2 ? Color.Warning : Color.Success)">
+                            @(remaining.TotalMinutes < 0 ? "Overskriden" : $"{remaining.Hours}h {remaining.Minutes}m")
+                        </MudText>
+                    }
+                </MudTd>
+                <MudTd>@context.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                   OnClick="@(() => Nav.NavigateTo($"/helpdesk/{context.Id}"))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    @* Create Dialog *@
+    <MudDialog @bind-Visible="_showCreate">
+        <TitleContent><MudText Typo="Typo.h6">Skapa nytt arende</MudText></TitleContent>
+        <DialogContent>
+            <MudSelect T="Guid" Label="Kategori" @bind-Value="_newKategoriId" Required="true" Class="mb-3">
+                @foreach (var cat in _categories)
+                {
+                    <MudSelectItem T="Guid" Value="@cat.Id">@cat.Namn</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_newTitel" Label="Titel" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_newBeskrivning" Label="Beskrivning" Lines="4" Required="true" Class="mb-3" />
+            <MudSelect T="ServiceRequestPriority" Label="Prioritet" @bind-Value="_newPrioritet" Class="mb-3">
+                <MudSelectItem T="ServiceRequestPriority" Value="ServiceRequestPriority.Low">Lag</MudSelectItem>
+                <MudSelectItem T="ServiceRequestPriority" Value="ServiceRequestPriority.Medium">Medium</MudSelectItem>
+                <MudSelectItem T="ServiceRequestPriority" Value="ServiceRequestPriority.High">Hog</MudSelectItem>
+                <MudSelectItem T="ServiceRequestPriority" Value="ServiceRequestPriority.Critical">Kritisk</MudSelectItem>
+            </MudSelect>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showCreate = false)">Avbryt</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateRequest">Skicka in</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<ServiceRequest> _requests = [];
+    private List<ServiceCategory> _categories = [];
+    private bool _loading = true;
+    private string? _error;
+    private bool _showCreate;
+
+    // New request form
+    private string _newTitel = "";
+    private string _newBeskrivning = "";
+    private Guid _newKategoriId;
+    private ServiceRequestPriority _newPrioritet = ServiceRequestPriority.Medium;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _requests = await Db.ServiceRequests
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hamta arenden: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private void ShowCreateDialog()
+    {
+        _newTitel = "";
+        _newBeskrivning = "";
+        _newPrioritet = ServiceRequestPriority.Medium;
+        _showCreate = true;
+    }
+
+    private async Task CreateRequest()
+    {
+        try
+        {
+            var request = ServiceRequest.Skapa(
+                _newTitel, _newBeskrivning, _newKategoriId,
+                _newPrioritet, "Portal",
+                RegionHR.SharedKernel.Domain.EmployeeId.From(Guid.Empty));
+
+            var router = new ServiceRequestRouter(Db);
+            await router.RouteAsync(request);
+
+            await Db.ServiceRequests.AddAsync(request);
+            await Db.SaveChangesAsync();
+
+            _requests.Insert(0, request);
+            _showCreate = false;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private Color GetStatusColor(ServiceRequestStatus status) => status switch
+    {
+        ServiceRequestStatus.New => Color.Info,
+        ServiceRequestStatus.Assigned => Color.Warning,
+        ServiceRequestStatus.InProgress => Color.Primary,
+        ServiceRequestStatus.WaitingOnEmployee => Color.Secondary,
+        ServiceRequestStatus.Resolved => Color.Success,
+        ServiceRequestStatus.Closed => Color.Default,
+        _ => Color.Default
+    };
+
+    private Color GetPriorityColor(ServiceRequestPriority priority) => priority switch
+    {
+        ServiceRequestPriority.Low => Color.Default,
+        ServiceRequestPriority.Medium => Color.Info,
+        ServiceRequestPriority.High => Color.Warning,
+        ServiceRequestPriority.Critical => Color.Error,
+        _ => Color.Default
+    };
+}
