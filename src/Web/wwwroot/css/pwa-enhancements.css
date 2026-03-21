@@ -1,0 +1,460 @@
+/* ============================================================
+   OpenHR PWA Enhancements
+   Mobile-first design: touch targets, bottom nav, swipe gestures,
+   pull-to-refresh, scroll-snap for schedule views.
+   ============================================================ */
+
+/* ============================================================
+   1. Touch-Friendly Targets (WCAG 2.5.8 — min 48px)
+   ============================================================ */
+
+.ohr-touch-target,
+.mud-button,
+.mud-icon-button,
+.mud-list-item,
+.mud-tab,
+.mud-chip,
+.mud-select,
+.mud-autocomplete {
+    min-height: 48px;
+    min-width: 48px;
+}
+
+@media (pointer: coarse) {
+    /* Enlarge interactive elements on touch devices */
+    .mud-button {
+        min-height: 48px;
+        padding: 12px 20px;
+    }
+
+    .mud-icon-button {
+        min-height: 48px;
+        min-width: 48px;
+    }
+
+    .mud-list-item {
+        min-height: 56px;
+        padding: 12px 16px;
+    }
+
+    .mud-table .mud-table-row td {
+        padding: 14px 16px;
+    }
+
+    .mud-chip {
+        min-height: 40px;
+        padding: 8px 16px;
+    }
+
+    /* Larger checkboxes and radio buttons */
+    .mud-checkbox .mud-icon-root,
+    .mud-radio .mud-icon-root {
+        font-size: 28px;
+    }
+
+    /* Better spacing for form inputs */
+    .mud-input-control {
+        margin-bottom: 16px;
+    }
+
+    .mud-input {
+        min-height: 48px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Links in navigation need adequate touch area */
+    .mud-nav-link {
+        min-height: 48px;
+        padding: 12px 16px;
+    }
+}
+
+
+/* ============================================================
+   2. Swipe Gestures — CSS Scroll-Snap for Schedule Views
+   ============================================================ */
+
+.ohr-schedule-scroll {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    gap: 0;
+}
+
+.ohr-schedule-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.ohr-schedule-day {
+    scroll-snap-align: start;
+    flex: 0 0 100%;
+    min-width: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+@media (min-width: 600px) {
+    .ohr-schedule-day {
+        flex: 0 0 50%;
+        min-width: 50%;
+    }
+}
+
+@media (min-width: 960px) {
+    .ohr-schedule-day {
+        flex: 0 0 calc(100% / 7);
+        min-width: calc(100% / 7);
+    }
+}
+
+/* Scroll-snap for week-view navigation */
+.ohr-week-snap {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+.ohr-week-snap > .ohr-week-panel {
+    scroll-snap-align: center;
+    flex: 0 0 100%;
+    min-width: 100%;
+}
+
+
+/* ============================================================
+   3. Bottom Navigation Bar (Mobile Only)
+   ============================================================ */
+
+.ohr-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 959px) {
+    .ohr-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        background: var(--ohr-surface, #ffffff);
+        border-top: 1px solid var(--ohr-border, #e2e8f0);
+        z-index: 1200;
+        justify-content: space-around;
+        align-items: center;
+        padding: 4px 0;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .ohr-dark .ohr-bottom-nav {
+        background: var(--ohr-surface-dark, #1a2332);
+        border-top-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .ohr-bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--ohr-text-secondary, #64748b);
+        font-size: 0.65rem;
+        font-weight: 500;
+        padding: 4px 12px;
+        min-width: 64px;
+        min-height: 48px;
+        border-radius: 8px;
+        transition: color 0.2s, background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+
+    .ohr-bottom-nav-item:active {
+        background: rgba(14, 116, 144, 0.08);
+    }
+
+    .ohr-bottom-nav-item.active {
+        color: var(--ohr-primary, #0e7490);
+        font-weight: 600;
+    }
+
+    .ohr-dark .ohr-bottom-nav-item {
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    .ohr-dark .ohr-bottom-nav-item.active {
+        color: var(--ohr-accent-dark, #38bdf8);
+    }
+
+    .ohr-bottom-nav-icon {
+        font-size: 24px;
+        margin-bottom: 2px;
+        line-height: 1;
+    }
+
+    .ohr-bottom-nav-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 72px;
+    }
+
+    /* Badge on nav item (unread count) */
+    .ohr-bottom-nav-item .ohr-badge {
+        position: absolute;
+        top: 2px;
+        right: 8px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.6rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
+
+    /* Add bottom padding to main content so it doesn't hide behind bottom nav */
+    .ohr-main-content,
+    .mud-main-content {
+        padding-bottom: 80px !important;
+    }
+}
+
+
+/* ============================================================
+   4. Pull-to-Refresh Visual Indicator
+   ============================================================ */
+
+.ohr-pull-indicator {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    z-index: 2000;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--ohr-primary, #0e7490);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(14, 116, 144, 0.3);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.ohr-pull-indicator.pulling {
+    display: flex;
+    transform: translateX(-50%) translateY(16px);
+}
+
+.ohr-pull-indicator.refreshing {
+    display: flex;
+    transform: translateX(-50%) translateY(16px);
+}
+
+.ohr-pull-indicator .ohr-pull-arrow {
+    font-size: 24px;
+    transition: transform 0.2s;
+}
+
+.ohr-pull-indicator.pulling .ohr-pull-arrow {
+    transform: rotate(180deg);
+}
+
+.ohr-pull-indicator.refreshing .ohr-pull-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: ohr-spin 0.8s linear infinite;
+}
+
+@keyframes ohr-spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ============================================================
+   5. PWA Install Prompt
+   ============================================================ */
+
+.ohr-install-banner {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    background: var(--ohr-primary, #0e7490);
+    color: white;
+    border-radius: 16px;
+    padding: 16px 20px;
+    z-index: 1100;
+    box-shadow: 0 8px 24px rgba(14, 116, 144, 0.3);
+    align-items: center;
+    gap: 12px;
+}
+
+@media (max-width: 959px) {
+    .ohr-install-banner.visible {
+        display: flex;
+    }
+}
+
+.ohr-install-banner-text {
+    flex: 1;
+}
+
+.ohr-install-banner-text strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+}
+
+.ohr-install-banner-text span {
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+.ohr-install-btn {
+    background: white;
+    color: var(--ohr-primary, #0e7490);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ohr-install-dismiss {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+
+/* ============================================================
+   6. Offline Indicator
+   ============================================================ */
+
+.ohr-offline-bar {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #f59e0b;
+    color: #1a1a2e;
+    text-align: center;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    z-index: 3000;
+    transition: transform 0.3s;
+}
+
+.ohr-offline-bar.visible {
+    display: block;
+}
+
+.ohr-dark .ohr-offline-bar {
+    background: #d97706;
+    color: white;
+}
+
+
+/* ============================================================
+   7. Standalone Mode Adjustments
+   ============================================================ */
+
+@media (display-mode: standalone) {
+    /* Extra top padding for status bar in standalone PWA */
+    .mud-appbar {
+        padding-top: env(safe-area-inset-top, 0);
+    }
+
+    /* Hide browser-specific UI hints */
+    .ohr-browser-only {
+        display: none !important;
+    }
+}
+
+
+/* ============================================================
+   8. Haptic-Style Visual Feedback
+   ============================================================ */
+
+@media (pointer: coarse) {
+    .ohr-haptic-tap {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ohr-haptic-tap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at var(--tap-x, 50%) var(--tap-y, 50%),
+            rgba(14, 116, 144, 0.15) 0%,
+            transparent 60%);
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+    }
+
+    .ohr-haptic-tap:active::after {
+        opacity: 1;
+    }
+}
+
+
+/* ============================================================
+   9. Card Swipe Actions (Leave requests, notifications)
+   ============================================================ */
+
+.ohr-swipeable-card {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y;
+}
+
+.ohr-swipe-action {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.ohr-swipe-action-left {
+    left: 0;
+    background: #22c55e;
+}
+
+.ohr-swipe-action-right {
+    right: 0;
+    background: #ef4444;
+}

@@ -1251,6 +1251,36 @@ public static class SeedData
             RegionHR.VMS.Domain.SpendCategory.Skapa("IT-konsult", "Externt inhyrda IT-resurser"),
             RegionHR.VMS.Domain.SpendCategory.Skapa("Administrativ", "Administrativ stodpersonal via bemanning"));
 
+        // === F-skatt registreringar ===
+        var fskatt1 = RegionHR.VMS.Domain.FSkattRegistration.Skapa("556789-1234", RegionHR.VMS.Domain.FSkattStatus.Active, new DateOnly(2027, 6, 30), vendorId: vendor1.Id);
+        var fskatt2 = RegionHR.VMS.Domain.FSkattRegistration.Skapa("556790-5678", RegionHR.VMS.Domain.FSkattStatus.Active, new DateOnly(2026, 4, 15), vendorId: vendor2.Id); // Gar ut snart
+        var fskatt3 = RegionHR.VMS.Domain.FSkattRegistration.Skapa("556791-9012", RegionHR.VMS.Domain.FSkattStatus.Inactive, null, vendorId: vendor3.Id); // Inaktiv — kraver skatteavdrag
+        db.FSkattRegistrations.AddRange(fskatt1, fskatt2, fskatt3);
+
+        // === Contractor Classifications ===
+        var cc1 = RegionHR.VMS.Domain.ContractorClassification.Bedöm(cw1.Id, "Contractor", "Low",
+            """{"control":0,"tools":0,"economic_dependency":1,"integration":0,"duration":1}""", "HR-specialisten");
+        var cc2 = RegionHR.VMS.Domain.ContractorClassification.Bedöm(cw2.Id, "Unclear", "Medium",
+            """{"control":1,"tools":1,"economic_dependency":2,"integration":1,"duration":1}""", "HR-specialisten");
+        db.ContractorClassifications.AddRange(cc1, cc2);
+
+        // === Planning Scenarios ===
+        var scenario1 = RegionHR.Analytics.Domain.PlanningScenario.Skapa("Basscenario 2026", "Nuvarande trender utan forandringar", DateTime.Today.Year, "System");
+        scenario1.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario1.Id, "AttritionRate", 8m, "Historisk personalomsattning 8%"));
+        scenario1.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario1.Id, "SalaryIncrease", 3.2m, "Avtalsenlig loneokning 3.2%"));
+        db.PlanningScenarios.Add(scenario1);
+
+        var scenario2 = RegionHR.Analytics.Domain.PlanningScenario.Skapa("Expansionsscenario", "Okad bemanning for ny avdelning", DateTime.Today.Year, "System");
+        scenario2.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario2.Id, "NewHires", 2m, "2 nyanstallningar per manad"));
+        scenario2.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario2.Id, "AttritionRate", 6m, "Lagre omsattning vid expansion"));
+        scenario2.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario2.Id, "SalaryIncrease", 3.2m, "Avtalsenlig loneokning"));
+        db.PlanningScenarios.Add(scenario2);
+
+        var scenario3 = RegionHR.Analytics.Domain.PlanningScenario.Skapa("Besparingsscenario", "Anstallningsstopp och kostnadsminskning", DateTime.Today.Year, "System");
+        scenario3.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario3.Id, "FreezeHiring", 1m, "Total anstallningsstopp"));
+        scenario3.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario3.Id, "AttritionRate", 12m, "Hogre omsattning vid besparingar"));
+        db.PlanningScenarios.Add(scenario3);
+
         // === WFM: DemandPatterns for Akuten (5 st — vardagar, helger) ===
         db.DemandPatterns.AddRange(
             new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 1, GenomsnittligBelastning = 12, SasongsVariation = 1.0m }, // Mån

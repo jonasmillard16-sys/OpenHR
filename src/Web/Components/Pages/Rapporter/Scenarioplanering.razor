@@ -1,0 +1,288 @@
+@page "/rapporter/scenarioplanering"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ScenarioCalculationService CalcService
+
+<PageTitle>OpenHR - Scenarioplanering</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">Scenarioplanering</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Nytt scenario</MudButton>
+</div>
+
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Skapa och jamfor scenarier for personalplanering. Projicera headcount, FTE och kostnad 1-12 manader framat.
+    AG-avgifter: 31.42%. Jamfor mot budget fran bemanningsplan.
+</MudText>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Nytt scenario</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid>
+                <MudItem xs="12" md="6"><MudTextField @bind-Value="_namn" Label="Namn" Variant="Variant.Outlined" Required="true" /></MudItem>
+                <MudItem xs="12" md="6"><MudNumericField @bind-Value="_basÅr" Label="Basar" Variant="Variant.Outlined" Min="2020" Max="2035" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_beskrivning" Label="Beskrivning" Variant="Variant.Outlined" Lines="2" /></MudItem>
+            </MudGrid>
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Antaganden</MudText>
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudSelect @bind-Value="_assumptionTyp" Label="Typ" Variant="Variant.Outlined" T="string">
+                        <MudSelectItem T="string" Value="@("AttritionRate")">Personalomsattning (%/ar)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("SalaryIncrease")">Loneokning (%/ar)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("NewHires")">Nyanstallningar (per manad)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("HeadcountChange")">Headcount-forandring (per manad)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("FreezeHiring")">Anstallningsstopp</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudNumericField @bind-Value="_assumptionVärde" Label="Varde" Variant="Variant.Outlined" T="decimal" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_assumptionBesk" Label="Beskrivning" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-1" OnClick="LaggTillAntagande"
+                               Disabled="@(string.IsNullOrWhiteSpace(_assumptionTyp))">Lagg till</MudButton>
+                </MudItem>
+            </MudGrid>
+            @if (_assumptions.Count > 0)
+            {
+                <MudSimpleTable Dense="true" Hover="true" Class="mt-3">
+                    <thead><tr><th>Typ</th><th>Varde</th><th>Beskrivning</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var a in _assumptions)
+                        {
+                            <tr>
+                                <td>@a.Typ</td>
+                                <td>@a.Värde</td>
+                                <td>@a.Beskrivning</td>
+                                <td><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => _assumptions.Remove(a))" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="SkapaScenario"
+                       Disabled="@(string.IsNullOrWhiteSpace(_namn) || _saving)">Skapa och berakna</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @* Lista scenarier *@
+    @if (_scenarios.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga scenarier skapade annu. Klicka "Nytt scenario" for att borja.</MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var s in _scenarios)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="2" Style="cursor: pointer;" @onclick="@(() => ValjScenario(s))">
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <MudText Typo="Typo.h6" Style="font-weight: 600;">@s.Namn</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@ScenarioStatusColor(s.Status)">@s.Status</MudChip>
+                        </div>
+                        <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">@s.Beskrivning</MudText>
+                        <MudText Typo="Typo.caption" Class="mt-1">Basar: @s.BasÅr | Antaganden: @s.Antaganden.Count | Skapad: @s.SkapadVid.ToString("yyyy-MM-dd")</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    @* Detalj + resultat *@
+    @if (_selectedScenario != null)
+    {
+        <MudDivider Class="my-4" />
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">@_selectedScenario.Namn — Resultat</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => BeräknaOm(_selectedScenario.Id))">Berakna om</MudButton>
+        </div>
+
+        @if (_selectedScenario.Antaganden.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Antaganden</MudText>
+            <MudSimpleTable Dense="true" Hover="true" Class="mb-4" Elevation="1">
+                <thead><tr><th>Typ</th><th>Varde</th><th>Beskrivning</th></tr></thead>
+                <tbody>
+                    @foreach (var a in _selectedScenario.Antaganden)
+                    {
+                        <tr><td>@a.Typ</td><td>@a.Värde</td><td>@a.Beskrivning</td></tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+
+        @if (_selectedScenario.Resultat.Count > 0)
+        {
+            @* KPI-kort for slutperiod *@
+            var lastResult = _selectedScenario.Resultat.OrderBy(r => r.Period).Last();
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="2">
+                        <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@lastResult.HeadcountPrognos</MudText>
+                        <MudText Typo="Typo.body2">Headcount (12 man)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="2">
+                        <MudText Typo="Typo.h3" Style="font-weight: 700;">@lastResult.FTEPrognos.ToString("F1")</MudText>
+                        <MudText Typo="Typo.body2">FTE (12 man)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="2">
+                        <MudText Typo="Typo.h3" Style="font-weight: 700;">@lastResult.TotalKostnad.ToString("N0") kr</MudText>
+                        <MudText Typo="Typo.body2">Total kostnad/man (12 man)</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudPaper Class="pa-4 text-center" Elevation="2">
+                        <MudText Typo="Typo.h3" Color="@(lastResult.DeltaMotBudget > 0 ? Color.Error : Color.Success)" Style="font-weight: 700;">
+                            @(lastResult.DeltaMotBudget > 0 ? "+" : "")@lastResult.DeltaMotBudget.ToString("N0") kr
+                        </MudText>
+                        <MudText Typo="Typo.body2">Delta mot budget</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            @* Resultat per period *@
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Projektion per manad</MudText>
+            <MudSimpleTable Hover="true" Elevation="2">
+                <thead>
+                    <tr>
+                        <th>Period</th><th>Headcount</th><th>FTE</th><th>Lonekostnad</th>
+                        <th>AG-avgifter</th><th>Total kostnad</th><th>Delta mot budget</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _selectedScenario.Resultat.OrderBy(r => r.Period))
+                    {
+                        <tr>
+                            <td>@r.Period</td>
+                            <td>@r.HeadcountPrognos</td>
+                            <td>@r.FTEPrognos.ToString("F1")</td>
+                            <td>@r.TotalLönekostnad.ToString("N0") kr</td>
+                            <td>@r.AGAvgifter.ToString("N0") kr</td>
+                            <td><strong>@r.TotalKostnad.ToString("N0") kr</strong></td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@(r.DeltaMotBudget > 0 ? Color.Error : r.DeltaMotBudget < 0 ? Color.Success : Color.Default)">
+                                    @(r.DeltaMotBudget > 0 ? "+" : "")@r.DeltaMotBudget.ToString("N0") kr
+                                </MudChip>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga resultat beraknade. Klicka "Berakna om".</MudAlert>
+        }
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private List<PlanningScenario> _scenarios = [];
+    private PlanningScenario? _selectedScenario;
+
+    // Form
+    private string _namn = "", _beskrivning = "";
+    private int _basÅr = DateTime.Today.Year;
+    private string _assumptionTyp = "";
+    private decimal _assumptionVärde;
+    private string _assumptionBesk = "";
+    private List<AssumptionDto> _assumptions = [];
+
+    record AssumptionDto(string Typ, decimal Värde, string Beskrivning);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _scenarios = await Db.PlanningScenarios
+            .Include(s => s.Antaganden)
+            .Include(s => s.Resultat)
+            .OrderByDescending(s => s.SkapadVid)
+            .ToListAsync();
+        _loading = false;
+    }
+
+    private void LaggTillAntagande()
+    {
+        _assumptions.Add(new AssumptionDto(_assumptionTyp, _assumptionVärde, _assumptionBesk));
+        _assumptionTyp = "";
+        _assumptionVärde = 0;
+        _assumptionBesk = "";
+    }
+
+    private async Task SkapaScenario()
+    {
+        _saving = true;
+        var scenario = PlanningScenario.Skapa(_namn, _beskrivning, _basÅr, "System");
+        foreach (var a in _assumptions)
+        {
+            var assumption = ScenarioAssumption.Skapa(scenario.Id, a.Typ, a.Värde, a.Beskrivning);
+            scenario.Antaganden.Add(assumption);
+        }
+        Db.PlanningScenarios.Add(scenario);
+        await Db.SaveChangesAsync();
+
+        // Berakna
+        try
+        {
+            await CalcService.BeräknaAsync(scenario.Id);
+        }
+        catch { /* Scenario created, calculation may fail with no data */ }
+
+        _success = $"Scenario '{_namn}' skapat och beraknat.";
+        _showForm = false;
+        _namn = _beskrivning = "";
+        _assumptions.Clear();
+        _saving = false;
+        await Load();
+        _selectedScenario = _scenarios.FirstOrDefault(s => s.Id == scenario.Id);
+    }
+
+    private void ValjScenario(PlanningScenario s)
+    {
+        _selectedScenario = _selectedScenario?.Id == s.Id ? null : s;
+    }
+
+    private async Task BeräknaOm(Guid scenarioId)
+    {
+        try
+        {
+            await CalcService.BeräknaAsync(scenarioId);
+        }
+        catch { /* may fail with no data */ }
+        await Load();
+        _selectedScenario = _scenarios.FirstOrDefault(s => s.Id == scenarioId);
+    }
+
+    private Color ScenarioStatusColor(string status) => status switch
+    {
+        "Draft" => Color.Default,
+        "Active" => Color.Primary,
+        "Archived" => Color.Dark,
+        _ => Color.Default
+    };
+}

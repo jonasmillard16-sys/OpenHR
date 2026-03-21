@@ -404,4 +404,6 @@
   <data name="RATING_OUT_OF_RANGE" xml:space="preserve"><value>Betyg maste vara 1-5</value></data>
   <data name="REVIEW_NOT_IN_CORRECT_STATE" xml:space="preserve"><value>Samtalet ar inte i korrekt status</value></data>
   <data name="AMOUNT_MUST_BE_POSITIVE" xml:space="preserve"><value>Beloppet maste vara positivt</value></data>
+  <data name="FSkattCompliance" xml:space="preserve"><value>F-skatt compliance</value></data>
+  <data name="ScenarioPlanning" xml:space="preserve"><value>Scenarioplanering</value></data>
 </root>

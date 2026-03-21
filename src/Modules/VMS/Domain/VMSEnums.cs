@@ -34,3 +34,11 @@ public enum VendorInvoiceStatus
     Approved,
     Paid
 }
+
+/// <summary>F-skattstatus</summary>
+public enum FSkattStatus
+{
+    Active,
+    Inactive,
+    Unknown
+}

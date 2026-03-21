@@ -1,0 +1,184 @@
+@page "/admin/ona"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Organisatorisk nätverksanalys</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Organisatorisk nätverksanalys (ONA)</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Enkätbaserad nätverksanalys — kartlägg samarbete, informationsflöden och nyckelpersoner.
+</MudText>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@* === CREATE SURVEY === *@
+<MudPaper Class="pa-4 mb-6" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa ny undersökning</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField Label="Namn" @bind-Value="_nyNamn" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField Label="Period" @bind-Value="_nyPeriod" Variant="Variant.Outlined" Placeholder="2026-Q1" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField Label="Frågor (JSON)" @bind-Value="_nyFragor" Variant="Variant.Outlined" Lines="2"
+                          Placeholder="[&quot;Vem vänder du dig till för råd?&quot;]" />
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Style="min-height: 44px;"
+               OnClick="SkapaSurvey" Disabled="@(string.IsNullOrWhiteSpace(_nyNamn))">Skapa undersökning</MudButton>
+</MudPaper>
+
+@* === SURVEY LIST === *@
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Undersökningar</MudText>
+@if (_surveys.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Inga ONA-undersökningar har skapats ännu.</MudAlert>
+}
+else
+{
+    <MudTable Items="@_surveys" Dense="true" Hover="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Namn</MudTh>
+            <MudTh>Period</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Svar</MudTh>
+            <MudTh>Skapad</MudTh>
+            <MudTh>Åtgärder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Survey.Namn</MudTd>
+            <MudTd>@context.Survey.Period</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Survey.Status)">@context.Survey.Status</MudChip></MudTd>
+            <MudTd>@context.ResponseCount</MudTd>
+            <MudTd>@context.Survey.SkapadVid.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>
+                @if (context.Survey.Status == ONASurveyStatus.Draft)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@(() => OppnaSurvey(context.Survey))">Öppna</MudButton>
+                }
+                @if (context.Survey.Status == ONASurveyStatus.Open)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Warning"
+                               OnClick="@(() => StangSurvey(context.Survey))">Stäng</MudButton>
+                }
+                @if (context.Survey.Status == ONASurveyStatus.Closed)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                               OnClick="@(() => AnalyseraSurvey(context.Survey))">Analysera</MudButton>
+                }
+                @if (context.Survey.Status == ONASurveyStatus.Analyzed)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               OnClick="@(() => Nav.NavigateTo($"/admin/ona/{context.Survey.Id}"))">Visa resultat</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<SurveyRow> _surveys = [];
+    private string? _error;
+
+    // Form state
+    private string? _nyNamn;
+    private string? _nyPeriod;
+    private string? _nyFragor;
+
+    private record SurveyRow(ONASurvey Survey, int ResponseCount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LaddaData();
+    }
+
+    private async Task LaddaData()
+    {
+        try
+        {
+            var surveys = await Db.ONASurveys.OrderByDescending(s => s.SkapadVid).ToListAsync();
+            var surveyIds = surveys.Select(s => s.Id).ToList();
+            var responseCounts = await Db.ONAResponses
+                .Where(r => surveyIds.Contains(r.SurveyId))
+                .GroupBy(r => r.SurveyId)
+                .Select(g => new { SurveyId = g.Key, Count = g.Count() })
+                .ToListAsync();
+            var countMap = responseCounts.ToDictionary(x => x.SurveyId, x => x.Count);
+
+            _surveys = surveys.Select(s => new SurveyRow(s, countMap.GetValueOrDefault(s.Id, 0))).ToList();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task SkapaSurvey()
+    {
+        try
+        {
+            var fragor = string.IsNullOrWhiteSpace(_nyFragor)
+                ? """["Vem vänder du dig till för råd om arbetsuppgifter?","Vem samarbetar du mest med?","Vem inspirerar dig?"]"""
+                : _nyFragor;
+            var survey = ONASurvey.Skapa(_nyNamn!, _nyPeriod ?? "2026-Q1", fragor);
+            await Db.ONASurveys.AddAsync(survey);
+            await Db.SaveChangesAsync();
+            Snackbar.Add("Undersökning skapad!", Severity.Success);
+            _nyNamn = null; _nyPeriod = null; _nyFragor = null;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task OppnaSurvey(ONASurvey survey)
+    {
+        try { survey.Oppna(); await Db.SaveChangesAsync(); Snackbar.Add("Undersökning öppnad!", Severity.Success); await LaddaData(); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task StangSurvey(ONASurvey survey)
+    {
+        try { survey.Stang(); await Db.SaveChangesAsync(); Snackbar.Add("Undersökning stängd.", Severity.Info); await LaddaData(); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task AnalyseraSurvey(ONASurvey survey)
+    {
+        try
+        {
+            var responses = await Db.ONAResponses.Where(r => r.SurveyId == survey.Id).ToListAsync();
+            var result = ONACalculationService.Berakna(survey.Id, responses);
+
+            var existingNodes = await Db.NetworkNodes.Where(n => n.SurveyId == survey.Id).ToListAsync();
+            var existingEdges = await Db.NetworkEdges.Where(e => e.SurveyId == survey.Id).ToListAsync();
+            Db.NetworkNodes.RemoveRange(existingNodes);
+            Db.NetworkEdges.RemoveRange(existingEdges);
+
+            await Db.NetworkNodes.AddRangeAsync(result.Nodes);
+            await Db.NetworkEdges.AddRangeAsync(result.Edges);
+            survey.Analysera();
+            await Db.SaveChangesAsync();
+
+            Snackbar.Add($"Analys klar! {result.Nodes.Count} noder, {result.Edges.Count} kanter.", Severity.Success);
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private static Color StatusColor(ONASurveyStatus s) => s switch
+    {
+        ONASurveyStatus.Draft => Color.Default,
+        ONASurveyStatus.Open => Color.Primary,
+        ONASurveyStatus.Closed => Color.Warning,
+        ONASurveyStatus.Analyzed => Color.Success,
+        _ => Color.Default
+    };
+}

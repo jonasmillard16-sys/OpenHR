@@ -404,4 +404,6 @@
   <data name="RATING_OUT_OF_RANGE" xml:space="preserve"><value>Rating must be 1-5</value></data>
   <data name="REVIEW_NOT_IN_CORRECT_STATE" xml:space="preserve"><value>Review is not in the correct state</value></data>
   <data name="AMOUNT_MUST_BE_POSITIVE" xml:space="preserve"><value>Amount must be positive</value></data>
+  <data name="FSkattCompliance" xml:space="preserve"><value>F-skatt compliance</value></data>
+  <data name="ScenarioPlanning" xml:space="preserve"><value>Scenario planning</value></data>
 </root>

@@ -95,9 +95,57 @@ public static class NotificationEndpoints
             });
         }).WithName("CreateNotification");
 
+        // ============================================================
+        // Push-prenumeration — registrera browser push subscription
+        // ============================================================
+
+        notiser.MapPost("/push-subscription", async (RegisterPushSubscriptionRequest req, RegionHRDbContext db, CancellationToken ct) =>
+        {
+            // Deactivate any existing subscriptions for same endpoint
+            var existing = await db.PushSubscriptions
+                .Where(p => p.AnstallId == req.AnstallId && p.Endpoint == req.Endpoint)
+                .ToListAsync(ct);
+
+            foreach (var old in existing)
+                old.Avaktivera();
+
+            var subscription = PushSubscription.Registrera(
+                req.AnstallId,
+                req.Endpoint,
+                req.P256dhKey,
+                req.AuthKey);
+
+            await db.PushSubscriptions.AddAsync(subscription, ct);
+            await db.SaveChangesAsync(ct);
+
+            return Results.Created($"/api/v1/notiser/push-subscription/{subscription.Id}", new
+            {
+                subscription.Id,
+                subscription.AnstallId,
+                subscription.SkapadVid,
+                subscription.ArAktiv
+            });
+        }).WithName("RegisterPushSubscription");
+
+        // ============================================================
+        // Ta bort push-prenumeration
+        // ============================================================
+
+        notiser.MapDelete("/push-subscription/{id:guid}", async (Guid id, RegionHRDbContext db, CancellationToken ct) =>
+        {
+            var subscription = await db.PushSubscriptions.FirstOrDefaultAsync(p => p.Id == id, ct);
+            if (subscription is null) return Results.NotFound();
+
+            subscription.Avaktivera();
+            await db.SaveChangesAsync(ct);
+
+            return Results.Ok(new { subscription.Id, subscription.ArAktiv });
+        }).WithName("DeactivatePushSubscription");
+
         return app;
     }
 }
 
 // Request DTOs
 record CreateNotificationRequest(Guid UserId, string Title, string Message);
+record RegisterPushSubscriptionRequest(Guid AnstallId, string Endpoint, string P256dhKey, string AuthKey);

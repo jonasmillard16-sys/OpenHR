@@ -1,0 +1,246 @@
+@page "/chef/1-1"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Performance.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>OpenHR - 1:1-möten</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">1:1-möten</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Planera, genomför och följ upp enskilda möten med medarbetare.
+</MudText>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@* === CREATE NEW MEETING === *@
+<MudPaper Class="pa-4 mb-6" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Skapa nytt möte</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid" Label="Medarbetare" @bind-Value="_nyAnstallId" Variant="Variant.Outlined">
+                @foreach (var e in _employees)
+                {
+                    <MudSelectItem Value="@e.Id">@e.Namn</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker Label="Datum" @bind-Date="_nyDatum" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField Label="Agenda (valfri)" @bind-Value="_nyAgenda" Variant="Variant.Outlined" />
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Style="min-height: 44px;"
+               OnClick="SkapaMote" Disabled="@(_nyAnstallId == Guid.Empty)">Boka möte</MudButton>
+</MudPaper>
+
+@* === UPCOMING MEETINGS === *@
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Kommande möten</MudText>
+@if (_upcoming.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga kommande möten bokade.</MudAlert>
+}
+else
+{
+    <MudTable Items="@_upcoming" Dense="true" Hover="true" Class="mb-6" Elevation="2">
+        <HeaderContent>
+            <MudTh>Medarbetare</MudTh>
+            <MudTh>Datum</MudTh>
+            <MudTh>Agenda</MudTh>
+            <MudTh>Åtgärder</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@GetNamn(context.AnstallId)</MudTd>
+            <MudTd>@context.Datum.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>@(context.Agenda ?? "—")</MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                           OnClick="@(() => GenomforMote(context))">Genomför</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" Class="ml-2"
+                           OnClick="@(() => AvbokaMote(context))">Avboka</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@* === ACTION ITEMS === *@
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Öppna åtgärdspunkter</MudText>
+@if (_actionItems.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Variant="Variant.Text" Class="mb-4">Inga öppna åtgärdspunkter.</MudAlert>
+}
+else
+{
+    <MudTable Items="@_actionItems" Dense="true" Hover="true" Class="mb-6" Elevation="2">
+        <HeaderContent>
+            <MudTh>Beskrivning</MudTh>
+            <MudTh>Ansvarig</MudTh>
+            <MudTh>Deadline</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Åtgärd</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Beskrivning</MudTd>
+            <MudTd>@GetNamn(context.Ansvarig)</MudTd>
+            <MudTd>@(context.Deadline?.ToString("yyyy-MM-dd") ?? "—")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd>
+                @if (context.Status == ActionItemStatus.Open)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="@(() => PaborjaAction(context))">Påbörja</MudButton>
+                }
+                @if (context.Status != ActionItemStatus.Done)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" Class="ml-1"
+                               OnClick="@(() => SlutforAction(context))">Klar</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@* === PAST MEETINGS === *@
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Genomförda möten</MudText>
+@if (_past.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">Inga genomförda möten ännu.</MudAlert>
+}
+else
+{
+    <MudTable Items="@_past" Dense="true" Hover="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Medarbetare</MudTh>
+            <MudTh>Datum</MudTh>
+            <MudTh>Anteckningar</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@GetNamn(context.AnstallId)</MudTd>
+            <MudTd>@context.Datum.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@(context.Anteckningar != null && context.Anteckningar.Length > 80 ? context.Anteckningar[..80] + "..." : context.Anteckningar ?? "—")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.Status == MeetingStatus.Completed ? Color.Success : Color.Default)">@context.Status</MudChip></MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<OneOnOneMeeting> _upcoming = [];
+    private List<OneOnOneMeeting> _past = [];
+    private List<MeetingActionItem> _actionItems = [];
+    private List<(Guid Id, string Namn)> _employees = [];
+    private Dictionary<Guid, string> _employeeNames = [];
+    private string? _error;
+
+    // Form state
+    private Guid _nyAnstallId;
+    private DateTime? _nyDatum = DateTime.Today.AddDays(7);
+    private string? _nyAgenda;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var emps = await Db.Employees.OrderBy(e => e.Efternamn).Take(200).ToListAsync();
+            _employees = emps.Select(e => (e.Id.Value, $"{e.Fornamn} {e.Efternamn}")).ToList();
+            _employeeNames = emps.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+    }
+
+    private async Task LaddaData()
+    {
+        var now = DateTime.UtcNow;
+        _upcoming = await Db.OneOnOneMeetings
+            .Where(m => m.Status == MeetingStatus.Scheduled)
+            .OrderBy(m => m.Datum).Take(50).ToListAsync();
+
+        _past = await Db.OneOnOneMeetings
+            .Where(m => m.Status != MeetingStatus.Scheduled)
+            .OrderByDescending(m => m.Datum).Take(50).ToListAsync();
+
+        _actionItems = await Db.MeetingActionItems
+            .Where(a => a.Status != ActionItemStatus.Done)
+            .OrderBy(a => a.Deadline).Take(50).ToListAsync();
+    }
+
+    private string GetNamn(Guid id) => _employeeNames.GetValueOrDefault(id, "Okänd");
+
+    private async Task SkapaMote()
+    {
+        try
+        {
+            var datum = _nyDatum ?? DateTime.Today.AddDays(7);
+            var meeting = OneOnOneMeeting.Skapa(Guid.NewGuid(), _nyAnstallId, datum, _nyAgenda);
+            await Db.OneOnOneMeetings.AddAsync(meeting);
+            await Db.SaveChangesAsync();
+            Snackbar.Add("Möte bokat!", Severity.Success);
+            _nyAgenda = null;
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task GenomforMote(OneOnOneMeeting meeting)
+    {
+        try
+        {
+            meeting.Genomfor("Möte genomfört.");
+            await Db.SaveChangesAsync();
+            Snackbar.Add("Möte markerat som genomfört!", Severity.Success);
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task AvbokaMote(OneOnOneMeeting meeting)
+    {
+        try
+        {
+            meeting.Avboka();
+            await Db.SaveChangesAsync();
+            Snackbar.Add("Möte avbokat.", Severity.Warning);
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task PaborjaAction(MeetingActionItem item)
+    {
+        try
+        {
+            item.Paborja();
+            await Db.SaveChangesAsync();
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task SlutforAction(MeetingActionItem item)
+    {
+        try
+        {
+            item.Slutfor();
+            await Db.SaveChangesAsync();
+            Snackbar.Add("Åtgärd slutförd!", Severity.Success);
+            await LaddaData();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private static Color StatusColor(ActionItemStatus s) => s switch
+    {
+        ActionItemStatus.Open => Color.Warning,
+        ActionItemStatus.InProgress => Color.Info,
+        ActionItemStatus.Done => Color.Success,
+        _ => Color.Default
+    };
+}

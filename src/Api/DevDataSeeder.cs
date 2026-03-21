@@ -9,6 +9,8 @@ using RegionHR.CaseManagement.Domain;
 using RegionHR.Compensation.Domain;
 using RegionHR.Benefits.Domain;
 using RegionHR.Platform.Domain;
+using RegionHR.Performance.Domain;
+using RegionHR.Analytics.Domain;
 
 namespace RegionHR.Api;
 
@@ -225,6 +227,75 @@ public static class DevDataSeeder
 
         var installUtrustning = ExtensionInstallation.Installera(extUtrustning.Id, "1.0.0");
         db.ExtensionInstallations.Add(installUtrustning);
+
+        // ============================================================
+        // Manager Effectiveness
+        // ============================================================
+
+        // 1:1 Meetings
+        var meeting1 = OneOnOneMeeting.Skapa(maria.Id.Value, anna.Id.Value, DateTime.UtcNow.AddDays(-14), "Utvecklingssamtal Q1");
+        meeting1.Genomfor("Bra dialog om karriärmål. Anna vill fördjupa IVA-kompetens. Överens om utbildningsplan.");
+        var meeting2 = OneOnOneMeeting.Skapa(maria.Id.Value, erik.Id.Value, DateTime.UtcNow.AddDays(-7), "Uppföljning mentorskap");
+        meeting2.Genomfor("Erik trivs med mentorrollen. Diskuterade arbetsbelastning — allt ser bra ut.");
+        var meeting3 = OneOnOneMeeting.Skapa(maria.Id.Value, lars.Id.Value, DateTime.UtcNow.AddDays(3), "Introduktionsuppföljning");
+        var meeting4 = OneOnOneMeeting.Skapa(maria.Id.Value, anna.Id.Value, DateTime.UtcNow.AddDays(14), "Halvårsuppföljning");
+        db.OneOnOneMeetings.AddRange(meeting1, meeting2, meeting3, meeting4);
+
+        // Action Items
+        var action1 = MeetingActionItem.Skapa(meeting1.Id, "Boka IVA-utbildning hos Karolinska", anna.Id.Value, new DateOnly(2026, 5, 1));
+        var action2 = MeetingActionItem.Skapa(meeting1.Id, "Uppdatera utvecklingsplan i systemet", maria.Id.Value, new DateOnly(2026, 4, 15));
+        action2.Paborja();
+        var action3 = MeetingActionItem.Skapa(meeting2.Id, "Dokumentera mentorskapserfarenheter", erik.Id.Value, new DateOnly(2026, 6, 30));
+        db.MeetingActionItems.AddRange(action1, action2, action3);
+
+        // Manager Scorecard
+        var scorecard = ManagerScorecard.Generera(
+            maria.Id.Value, "2026-Q1",
+            spanOfControl: 4,
+            teamOmsattning: 5.2m,
+            engagementDelta: 2.1m,
+            utvecklingsplanFardiggrad: 68m,
+            medelTidMellanOneonone: 12m);
+        db.ManagerScorecards.Add(scorecard);
+
+        // Coaching Nudges
+        var nudge1 = CoachingNudge.Skapa(maria.Id.Value, "NewTeamMember", "Lars Nilsson började för 3 månader sedan — dags att boka uppföljande 1:1.");
+        var nudge2 = CoachingNudge.Skapa(maria.Id.Value, "DevelopmentStalled", "Annas utvecklingsplan har inte uppdaterats på 45 dagar.");
+        db.CoachingNudges.AddRange(nudge1, nudge2);
+
+        // ============================================================
+        // ONA — Organizational Network Analysis
+        // ============================================================
+
+        var onaSurvey = ONASurvey.Skapa("Samarbetsundersökning Q1 2026", "2026-Q1",
+            """["Vem vänder du dig till för råd om arbetsuppgifter?","Vem samarbetar du mest med i vardagen?","Vem ger dig energi och inspiration?"]""");
+        onaSurvey.Oppna();
+        onaSurvey.Stang();
+        db.ONASurveys.Add(onaSurvey);
+
+        // ONA Responses (simulating survey answers between employees)
+        var onaResponses = new[]
+        {
+            ONAResponse.Skapa(onaSurvey.Id, anna.Id.Value, maria.Id.Value, 0, 5),
+            ONAResponse.Skapa(onaSurvey.Id, anna.Id.Value, erik.Id.Value, 1, 4),
+            ONAResponse.Skapa(onaSurvey.Id, erik.Id.Value, anna.Id.Value, 0, 4),
+            ONAResponse.Skapa(onaSurvey.Id, erik.Id.Value, maria.Id.Value, 1, 3),
+            ONAResponse.Skapa(onaSurvey.Id, erik.Id.Value, karin.Id.Value, 2, 4),
+            ONAResponse.Skapa(onaSurvey.Id, maria.Id.Value, anna.Id.Value, 0, 5),
+            ONAResponse.Skapa(onaSurvey.Id, maria.Id.Value, karin.Id.Value, 1, 4),
+            ONAResponse.Skapa(onaSurvey.Id, lars.Id.Value, anna.Id.Value, 0, 5),
+            ONAResponse.Skapa(onaSurvey.Id, lars.Id.Value, erik.Id.Value, 1, 4),
+            ONAResponse.Skapa(onaSurvey.Id, lars.Id.Value, maria.Id.Value, 2, 3),
+            ONAResponse.Skapa(onaSurvey.Id, karin.Id.Value, maria.Id.Value, 0, 3),
+            ONAResponse.Skapa(onaSurvey.Id, karin.Id.Value, anna.Id.Value, 2, 4),
+        };
+        db.ONAResponses.AddRange(onaResponses);
+
+        // Run ONA calculation and persist
+        var onaResult = ONACalculationService.Berakna(onaSurvey.Id, onaResponses);
+        db.NetworkNodes.AddRange(onaResult.Nodes);
+        db.NetworkEdges.AddRange(onaResult.Edges);
+        onaSurvey.Analysera();
 
         db.SaveChanges();
     }

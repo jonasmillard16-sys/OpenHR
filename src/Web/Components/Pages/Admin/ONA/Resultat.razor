@@ -1,0 +1,165 @@
+@page "/admin/ona/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - ONA-resultat</PageTitle>
+
+@if (_survey != null)
+{
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">@_survey.Namn — Nätverksresultat</MudText>
+    <MudText Typo="Typo.body1" Class="mb-2" Style="color: var(--mud-palette-text-secondary);">
+        Period: @_survey.Period | Status: @_survey.Status
+    </MudText>
+}
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@* === ROLE DISTRIBUTION === *@
+@if (_nodes.Count > 0)
+{
+    <MudText Typo="Typo.h6" Class="mb-3 mt-4" Style="font-weight: 600;">Rollfördelning</MudText>
+    <MudGrid Spacing="3" Class="mb-6">
+        @foreach (var role in _roleCounts)
+        {
+            <MudItem xs="6" sm="4" md="2">
+                <MudPaper Class="pa-3" Elevation="1" Style="text-align: center;">
+                    <MudIcon Icon="@RoleIcon(role.Key)" Color="@RoleColor(role.Key)" Size="Size.Large" />
+                    <MudText Typo="Typo.h5" Style="font-weight: 700;">@role.Value</MudText>
+                    <MudText Typo="Typo.caption">@RoleLabel(role.Key)</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @* === NETWORK NODES TABLE === *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Nätverksnoder (@_nodes.Count personer)</MudText>
+    <MudTable Items="@_nodeRows" Dense="true" Hover="true" Elevation="2" Class="mb-6"
+              Filter="new Func<NodeRow, bool>(NodeFilter)">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_searchString" Placeholder="Sök person..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<NodeRow, object>(x => x.Namn)">Person</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<NodeRow, object>(x => x.Node.Roll)">Roll</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<NodeRow, object>(x => x.Node.InDegree)" InitialDirection="SortDirection.Descending">In-grad</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<NodeRow, object>(x => x.Node.OutDegree)">Ut-grad</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<NodeRow, object>(x => x.Node.BetweennessCentrality)">Betweenness</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Namn</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@RoleColor(context.Node.Roll)">@RoleLabel(context.Node.Roll)</MudChip></MudTd>
+            <MudTd>@context.Node.InDegree</MudTd>
+            <MudTd>@context.Node.OutDegree</MudTd>
+            <MudTd>@context.Node.BetweennessCentrality.ToString("F4")</MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @* === EDGES SUMMARY === *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Kopplingar (@_edges.Count)</MudText>
+    <MudTable Items="@_edgeRows" Dense="true" Hover="true" Elevation="2">
+        <HeaderContent>
+            <MudTh>Från</MudTh>
+            <MudTh>Till</MudTh>
+            <MudTh>Fråga</MudTh>
+            <MudTh>Styrka</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@GetNamn(context.FranAnstallId)</MudTd>
+            <MudTd>@GetNamn(context.TillAnstallId)</MudTd>
+            <MudTd>@context.FrageIndex</MudTd>
+            <MudTd>@context.Styrka.ToString("F1")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else if (_survey != null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4">
+        Inga nätverksresultat ännu. Stäng undersökningen och kör analys.
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ONASurvey? _survey;
+    private List<NetworkNode> _nodes = [];
+    private List<NetworkEdge> _edges = [];
+    private List<NodeRow> _nodeRows = [];
+    private List<NetworkEdge> _edgeRows = [];
+    private Dictionary<string, int> _roleCounts = [];
+    private Dictionary<Guid, string> _employeeNames = [];
+    private string _searchString = "";
+    private string? _error;
+
+    private record NodeRow(NetworkNode Node, string Namn);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _survey = await Db.ONASurveys.FirstOrDefaultAsync(s => s.Id == Id);
+            if (_survey == null) { _error = "Undersökning hittades inte."; return; }
+
+            _nodes = await Db.NetworkNodes.Where(n => n.SurveyId == Id)
+                .OrderByDescending(n => n.BetweennessCentrality).ToListAsync();
+            _edges = await Db.NetworkEdges.Where(e => e.SurveyId == Id).ToListAsync();
+
+            // Load employee names
+            var allIds = _nodes.Select(n => n.AnstallId)
+                .Union(_edges.Select(e => e.FranAnstallId))
+                .Union(_edges.Select(e => e.TillAnstallId))
+                .Distinct().ToList();
+            var employees = await Db.Employees.Where(e => allIds.Contains(e.Id.Value)).ToListAsync();
+            _employeeNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
+
+            _nodeRows = _nodes.Select(n => new NodeRow(n, GetNamn(n.AnstallId))).ToList();
+            _edgeRows = _edges.Take(100).ToList();
+            _roleCounts = _nodes.GroupBy(n => n.Roll).ToDictionary(g => g.Key, g => g.Count());
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private string GetNamn(Guid id) => _employeeNames.GetValueOrDefault(id, id.ToString()[..8] + "...");
+
+    private bool NodeFilter(NodeRow row) =>
+        string.IsNullOrWhiteSpace(_searchString) ||
+        row.Namn.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ||
+        row.Node.Roll.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+
+    private static string RoleLabel(string roll) => roll switch
+    {
+        "ValueCreator" => "Skapare",
+        "Influencer" => "Influerare",
+        "Bottleneck" => "Flaskhals",
+        "BoundarySpanner" => "Brobyggare",
+        "Isolated" => "Isolerad",
+        _ => roll
+    };
+
+    private static string RoleIcon(string roll) => roll switch
+    {
+        "ValueCreator" => Icons.Material.Filled.Star,
+        "Influencer" => Icons.Material.Filled.Campaign,
+        "Bottleneck" => Icons.Material.Filled.Warning,
+        "BoundarySpanner" => Icons.Material.Filled.Hub,
+        "Isolated" => Icons.Material.Filled.PersonOff,
+        _ => Icons.Material.Filled.Person
+    };
+
+    private static Color RoleColor(string roll) => roll switch
+    {
+        "ValueCreator" => Color.Success,
+        "Influencer" => Color.Primary,
+        "Bottleneck" => Color.Error,
+        "BoundarySpanner" => Color.Info,
+        "Isolated" => Color.Warning,
+        _ => Color.Default
+    };
+}

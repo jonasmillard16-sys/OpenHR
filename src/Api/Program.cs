@@ -370,6 +370,7 @@ app.MapConfigurationEndpoints();
 app.MapAnalyticsEndpoints();
 app.MapAnalyticsExpandedEndpoints();
 app.MapPayTransparencyEndpoints();
+app.MapScenarioEndpoints();
 app.MapPermissionEndpoints();
 
 // ============================================================
@@ -377,6 +378,8 @@ app.MapPermissionEndpoints();
 // ============================================================
 app.MapSelfServiceEndpoints();
 app.MapManagerPortalEndpoints();
+app.MapManagerEffectivenessEndpoints();
+app.MapONAEndpoints();
 
 // ============================================================
 // Phase A: Migrering, Automatisering, Kollektivavtal

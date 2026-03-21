@@ -3,6 +3,7 @@
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
+@using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
 @inject RegionHRDbContext Db
 
@@ -48,6 +49,28 @@ else if (!_loading)
     <MudAlert Severity="Severity.Success" Variant="Variant.Text" Class="mb-6">Allt klart! Inget väntar på beslut just nu.</MudAlert>
 }
 
+@* === COACHING NUDGES === *@
+@if (_nudges.Count > 0)
+{
+    <MudPaper Class="pa-4 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
+        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Coaching-insikter (@_nudges.Count)</MudText>
+        <MudStack Spacing="2">
+            @foreach (var nudge in _nudges)
+            {
+                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                    <div class="d-flex justify-space-between align-center flex-wrap gap-2">
+                        <div>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@nudge.Typ</MudChip>
+                            <MudText Typo="Typo.body2">@nudge.Meddelande</MudText>
+                        </div>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => MarkeraNudgeLast(nudge))">OK</MudButton>
+                    </div>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
 @* === OVERVIEW CARDS === *@
 <MudGrid Spacing="4">
     <MudItem xs="12" sm="6">
@@ -65,6 +88,12 @@ else if (!_loading)
         <OhrBigCard Icon="@("\U0001F4CA")" Title="Frånvaro" Description="Se vem som är borta"
                     BadgeValue="@($"{_franvaroIdag} frånvarande")" Href="/chef/franvarokalender" />
     </MudItem>
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="@("\U0001F91D")" Title="1:1-möten" Description="Boka och följ upp enskilda samtal" Href="/chef/1-1" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <OhrBigCard Icon="@("\U0001F4CA")" Title="Chefsstyrkort" Description="Se dina ledarskapsmått" Href="/chef/scorecard" />
+    </MudItem>
 </MudGrid>
 
 <MudDivider Class="my-6" />
@@ -77,6 +106,7 @@ else if (!_loading)
 
 @code {
     private List<ApprovalItem> _approvals = [];
+    private List<CoachingNudge> _nudges = [];
     private int _teamAntal, _franvaroIdag;
     private bool _loading = true;
     private string? _error;
@@ -116,6 +146,13 @@ else if (!_loading)
             _franvaroIdag = await Db.LeaveRequests
                 .CountAsync(r => r.FranDatum <= idag && r.TillDatum >= idag
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand));
+
+            // Coaching nudges
+            _nudges = await Db.CoachingNudges
+                .Where(n => !n.ArLast)
+                .OrderByDescending(n => n.SkapadVid)
+                .Take(5)
+                .ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -156,6 +193,17 @@ else if (!_loading)
             _approvals.Remove(item);
         }
         catch (Exception ex) { _error = $"Kunde inte avslå: {ex.Message}"; }
+    }
+
+    private async Task MarkeraNudgeLast(CoachingNudge nudge)
+    {
+        try
+        {
+            nudge.MarkeraSomLast();
+            await Db.SaveChangesAsync();
+            _nudges.Remove(nudge);
+        }
+        catch (Exception ex) { _error = ex.Message; }
     }
 
     private static string MapTyp(LeaveType t) => t switch

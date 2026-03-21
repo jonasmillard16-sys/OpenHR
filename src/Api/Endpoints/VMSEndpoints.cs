@@ -136,11 +136,121 @@ public static class VMSEndpoints
             });
         }).WithName("GetVMSStatistics");
 
+        // ============================================================
+        // F-skatt status
+        // ============================================================
+
+        vms.MapGet("/fskatt", async (RegionHRDbContext db, CancellationToken ct) =>
+        {
+            var registrations = await db.FSkattRegistrations
+                .OrderByDescending(r => r.KontrolleradVid)
+                .ToListAsync(ct);
+
+            var vendors = await db.Vendors.ToListAsync(ct);
+            var vendorMap = vendors.ToDictionary(v => v.Id, v => v.Namn);
+
+            return Results.Ok(registrations.Select(r => new
+            {
+                r.Id,
+                vendorId = r.VendorId?.Value,
+                r.ContingentWorkerId,
+                r.Organisationsnummer,
+                fskattStatus = r.FSkattStatus.ToString(),
+                r.KontrolleradVid,
+                r.GiltigTill,
+                kräverSkatteavdrag = r.KräverSkatteavdrag,
+                snartUtgående = r.SnartUtgående(30),
+                leverantörsnamn = r.VendorId.HasValue && vendorMap.TryGetValue(r.VendorId.Value, out var namn) ? namn : null
+            }));
+        }).WithName("ListFSkattRegistrations");
+
+        vms.MapPost("/fskatt", async (CreateFSkattRegistrationDto dto, RegionHRDbContext db, CancellationToken ct) =>
+        {
+            var reg = FSkattRegistration.Skapa(
+                dto.Organisationsnummer,
+                Enum.Parse<FSkattStatus>(dto.Status),
+                dto.GiltigTill,
+                dto.ContingentWorkerId,
+                dto.VendorId.HasValue ? VendorId.From(dto.VendorId.Value) : null);
+
+            db.FSkattRegistrations.Add(reg);
+            await db.SaveChangesAsync(ct);
+
+            return Results.Created($"/api/v1/vms/fskatt/{reg.Id}", new
+            {
+                reg.Id,
+                reg.Organisationsnummer,
+                fskattStatus = reg.FSkattStatus.ToString(),
+                reg.GiltigTill,
+                kräverSkatteavdrag = reg.KräverSkatteavdrag
+            });
+        }).WithName("CreateFSkattRegistration");
+
+        // ============================================================
+        // Contractor classification
+        // ============================================================
+
+        vms.MapPost("/klassificering", async (CreateClassificationDto dto, RegionHRDbContext db, CancellationToken ct) =>
+        {
+            var classification = ContractorClassification.Bedöm(
+                dto.ContingentWorkerId,
+                dto.BedömningsResultat,
+                dto.RiskNivå,
+                dto.Faktorer,
+                dto.BedömdAv);
+
+            db.ContractorClassifications.Add(classification);
+            await db.SaveChangesAsync(ct);
+
+            return Results.Created($"/api/v1/vms/klassificering/{classification.Id}", new
+            {
+                classification.Id,
+                classification.ContingentWorkerId,
+                classification.BedömningsResultat,
+                classification.RiskNivå,
+                classification.Faktorer,
+                classification.BedömdAv,
+                classification.BedömdVid
+            });
+        }).WithName("CreateContractorClassification");
+
+        vms.MapGet("/klassificeringar", async (RegionHRDbContext db, CancellationToken ct) =>
+        {
+            var classifications = await db.ContractorClassifications
+                .OrderByDescending(c => c.BedömdVid)
+                .ToListAsync(ct);
+
+            return Results.Ok(classifications.Select(c => new
+            {
+                c.Id,
+                c.ContingentWorkerId,
+                c.BedömningsResultat,
+                c.RiskNivå,
+                c.Faktorer,
+                c.BedömdAv,
+                c.BedömdVid
+            }));
+        }).WithName("ListContractorClassifications");
+
         return app;
     }
 }
 
 // Request DTOs
+record CreateFSkattRegistrationDto(
+    string Organisationsnummer,
+    string Status,
+    DateOnly? GiltigTill,
+    Guid? ContingentWorkerId,
+    Guid? VendorId);
+
+record CreateClassificationDto(
+    Guid ContingentWorkerId,
+    string BedömningsResultat,
+    string RiskNivå,
+    string Faktorer,
+    string BedömdAv);
+
 record CreateStaffingRequestDto(
     Guid EnhetId,
     string Befattning,

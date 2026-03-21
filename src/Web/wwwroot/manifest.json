@@ -1,13 +1,80 @@
 {
-  "name": "OpenHR",
+  "name": "OpenHR — HR-system",
   "short_name": "OpenHR",
-  "start_url": "/",
+  "description": "Komplett HR-system for svenska regioner och kommuner. Open source (AGPL-3.0).",
+  "start_url": "/minsida",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#1b2838",
   "theme_color": "#0e7490",
-  "description": "HR-system för svensk region",
+  "lang": "sv-SE",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Min sida",
+      "short_name": "Min sida",
+      "url": "/minsida",
+      "description": "Din personliga oversikt — schema, lon, ledighet",
+      "icons": [{ "src": "/favicon.png", "sizes": "64x64" }]
+    },
+    {
+      "name": "Schema",
+      "short_name": "Schema",
+      "url": "/minsida/schema",
+      "description": "Ditt arbetsschema for veckan",
+      "icons": [{ "src": "/favicon.png", "sizes": "64x64" }]
+    },
+    {
+      "name": "Sjukanmal",
+      "short_name": "Sjukanmal",
+      "url": "/minsida/sjukanmalan",
+      "description": "Snabb sjukanmalan",
+      "icons": [{ "src": "/favicon.png", "sizes": "64x64" }]
+    },
+    {
+      "name": "Ledighet",
+      "short_name": "Ledighet",
+      "url": "/ledighet/ny",
+      "description": "Ansok om ledighet",
+      "icons": [{ "src": "/favicon.png", "sizes": "64x64" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "OpenHR — Min sida (mobil)"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "OpenHR — Dashboard (desktop)"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

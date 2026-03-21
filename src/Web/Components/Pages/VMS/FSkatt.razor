@@ -1,0 +1,230 @@
+@page "/vms/fskatt"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.VMS.Domain
+@using RegionHR.SharedKernel.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - F-skatt compliance</PageTitle>
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight: 700;">F-skatt compliance</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Registrera F-skatt</MudButton>
+</div>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else
+{
+    @* KPI-kort *@
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Aktiv F-skatt</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_activeCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-error);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Inaktiv / saknar F-skatt</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_inactiveCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Gar ut inom 30 dagar</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_expiringCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">Kraver skatteavdrag (30%)</MudText>
+                <MudText Typo="Typo.h4" Style="font-weight: 700;">@_taxWithholdCount</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_showForm)
+    {
+        <MudPaper Class="pa-5 mb-4" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Registrera F-skatt</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showForm = false)" />
+            </div>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_selectedVendorId" Label="Leverantor" Variant="Variant.Outlined" T="Guid?">
+                        @foreach (var v in _vendors)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)v.Id.Value)">@v.Namn (@v.OrgNummer)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_orgNr" Label="Organisationsnummer" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect @bind-Value="_fskattStatus" Label="F-skattstatus" Variant="Variant.Outlined" T="string">
+                        <MudSelectItem T="string" Value="@("Active")">Aktiv</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Inactive")">Inaktiv</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Unknown")">Okand</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_giltigTill" Label="Giltig till" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" OnClick="Registrera"
+                       Disabled="@(string.IsNullOrWhiteSpace(_orgNr) || _saving)">Registrera</MudButton>
+        </MudPaper>
+    }
+
+    @if (_success != null) { <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _success = null)">@_success</MudAlert> }
+
+    @* Varningar *@
+    @if (_expiringRegs.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText Typo="Typo.subtitle2">F-skatteregistreringar som gar ut inom 30 dagar:</MudText>
+            @foreach (var r in _expiringRegs)
+            {
+                <MudText Typo="Typo.body2">@(_vendorNames.GetValueOrDefault(r.VendorId?.Value ?? Guid.Empty, "Okand")) — @r.Organisationsnummer — Giltig till: @r.GiltigTill</MudText>
+            }
+        </MudAlert>
+    }
+
+    @* Tabell *@
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Alla F-skattregistreringar</MudText>
+    <MudTable Items="_registrations" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Leverantor</MudTh>
+            <MudTh>Org.nummer</MudTh>
+            <MudTh>F-skattstatus</MudTh>
+            <MudTh>Giltig till</MudTh>
+            <MudTh>Kontrollerad</MudTh>
+            <MudTh>Skatteavdrag kravs</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@_vendorNames.GetValueOrDefault(context.VendorId?.Value ?? Guid.Empty, "—")</MudTd>
+            <MudTd>@context.Organisationsnummer</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@StatusColor(context)">@context.FSkattStatus</MudChip>
+            </MudTd>
+            <MudTd>@(context.GiltigTill?.ToString("yyyy-MM-dd") ?? "—")</MudTd>
+            <MudTd>@context.KontrolleradVid.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>
+                @if (context.KräverSkatteavdrag)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error">Ja (30% + AG-avgifter)</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Nej</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @* Klassificeringar *@
+    @if (_classifications.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mt-6 mb-3" Style="font-weight: 600;">Uppdragstagare-klassificeringar</MudText>
+        <MudTable Items="_classifications" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Konsult</MudTh>
+                <MudTh>Resultat</MudTh>
+                <MudTh>Riskniva</MudTh>
+                <MudTh>Bedomd av</MudTh>
+                <MudTh>Datum</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@_workerNames.GetValueOrDefault(context.ContingentWorkerId, "Okand")</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@ClassResultColor(context.BedömningsResultat)">@context.BedömningsResultat</MudChip></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@RiskColor(context.RiskNivå)">@context.RiskNivå</MudChip></MudTd>
+                <MudTd>@context.BedömdAv</MudTd>
+                <MudTd>@context.BedömdVid.ToString("yyyy-MM-dd")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showForm;
+    private bool _saving;
+    private string? _success;
+    private List<FSkattRegistration> _registrations = [];
+    private List<FSkattRegistration> _expiringRegs = [];
+    private List<ContractorClassification> _classifications = [];
+    private List<Vendor> _vendors = [];
+    private Dictionary<Guid, string> _vendorNames = [];
+    private Dictionary<Guid, string> _workerNames = [];
+    private int _activeCount, _inactiveCount, _expiringCount, _taxWithholdCount;
+
+    // Form fields
+    private Guid? _selectedVendorId;
+    private string _orgNr = "", _fskattStatus = "Active";
+    private DateTime? _giltigTill;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _registrations = await Db.FSkattRegistrations.OrderByDescending(r => r.KontrolleradVid).ToListAsync();
+        _vendors = await Db.Vendors.OrderBy(v => v.Namn).ToListAsync();
+        _vendorNames = _vendors.ToDictionary(v => v.Id.Value, v => v.Namn);
+        var workers = await Db.ContingentWorkers.ToListAsync();
+        _workerNames = workers.ToDictionary(w => w.Id, w => w.Namn);
+        _classifications = await Db.ContractorClassifications.OrderByDescending(c => c.BedömdVid).ToListAsync();
+
+        _activeCount = _registrations.Count(r => r.FSkattStatus == FSkattStatus.Active && !r.HarGåttUt());
+        _inactiveCount = _registrations.Count(r => r.FSkattStatus != FSkattStatus.Active || r.HarGåttUt());
+        _expiringRegs = _registrations.Where(r => r.SnartUtgående(30) && !r.HarGåttUt()).ToList();
+        _expiringCount = _expiringRegs.Count;
+        _taxWithholdCount = _registrations.Count(r => r.KräverSkatteavdrag);
+        _loading = false;
+    }
+
+    private async Task Registrera()
+    {
+        _saving = true;
+        var giltigTill = _giltigTill.HasValue ? DateOnly.FromDateTime(_giltigTill.Value) : (DateOnly?)null;
+        var vendorId = _selectedVendorId.HasValue ? VendorId.From(_selectedVendorId.Value) : (VendorId?)null;
+        var reg = FSkattRegistration.Skapa(_orgNr, Enum.Parse<FSkattStatus>(_fskattStatus), giltigTill, vendorId: vendorId);
+        Db.FSkattRegistrations.Add(reg);
+        await Db.SaveChangesAsync();
+        _success = "F-skattregistrering skapad.";
+        _showForm = false;
+        _orgNr = "";
+        _saving = false;
+        await Load();
+    }
+
+    private Color StatusColor(FSkattRegistration reg)
+    {
+        if (reg.HarGåttUt()) return Color.Error;
+        if (reg.SnartUtgående(30)) return Color.Warning;
+        return reg.FSkattStatus switch
+        {
+            FSkattStatus.Active => Color.Success,
+            FSkattStatus.Inactive => Color.Error,
+            _ => Color.Warning
+        };
+    }
+
+    private Color ClassResultColor(string result) => result switch
+    {
+        "Contractor" => Color.Success,
+        "Employee" => Color.Error,
+        "Unclear" => Color.Warning,
+        _ => Color.Default
+    };
+
+    private Color RiskColor(string risk) => risk switch
+    {
+        "Low" => Color.Success,
+        "Medium" => Color.Warning,
+        "High" => Color.Error,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,162 @@
+@page "/chef/scorecard"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Performance.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+
+<PageTitle>OpenHR - Chefsstyrkort</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Chefsstyrkort</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
+    Samlade nyckeltal och insikter om ditt ledarskap.
+</MudText>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@if (_scorecard != null)
+{
+    <MudGrid Spacing="4" Class="mb-6">
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_scorecard.SpanOfControl</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Span of Control</MudText>
+                <MudText Typo="Typo.caption">Antal direktrapporterande</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="@TurnoverColor(_scorecard.TeamOmsattning)" Size="Size.Large" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_scorecard.TeamOmsattning.ToString("F1")%</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Teamomsättning</MudText>
+                <MudText Typo="Typo.caption">Personalomsättning i perioden</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Mood" Color="@EngagementColor(_scorecard.EngagementDelta)" Size="Size.Large" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@FormatDelta(_scorecard.EngagementDelta)</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Engagemangsutveckling</MudText>
+                <MudText Typo="Typo.caption">Förändring jämfört med förra perioden</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.School" Color="Color.Info" Size="Size.Large" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_scorecard.UtvecklingsplanFardiggrad.ToString("F0")%</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Utvecklingsplan</MudText>
+                <MudText Typo="Typo.caption">Färdiggrad på teamets utvecklingsplaner</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.EventRepeat" Color="@MeetingFreqColor(_scorecard.MedelTidMellanOneonone)" Size="Size.Large" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">@_scorecard.MedelTidMellanOneonone.ToString("F0") d</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Medeltid 1:1</MudText>
+                <MudText Typo="Typo.caption">Genomsnittliga dagar mellan enskilda samtal</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Default" Size="Size.Large" />
+                <MudText Typo="Typo.h5" Style="font-weight: 600;">@_scorecard.Period</MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-secondary);">Period</MudText>
+                <MudText Typo="Typo.caption">Genererat @_scorecard.GenereradVid.ToString("yyyy-MM-dd")</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+else if (!_loading)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-6">
+        Inget styrkort har genererats ännu. Styrkortet beräknas automatiskt baserat på teamets data.
+    </MudAlert>
+}
+
+@* === COACHING NUDGES === *@
+<MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Coaching-insikter</MudText>
+@if (_nudges.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Variant="Variant.Text">Inga aktiva coachingnotiser. Bra jobbat!</MudAlert>
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var nudge in _nudges)
+        {
+            <MudPaper Class="pa-3" Elevation="1" Style="@($"border-left: 4px solid {NudgeColor(nudge.Typ)};")">
+                <div class="d-flex justify-space-between align-center">
+                    <div>
+                        <MudChip T="string" Size="Size.Small" Style="@($"background: {NudgeColor(nudge.Typ)}; color: white;")">@NudgeLabel(nudge.Typ)</MudChip>
+                        <MudText Typo="Typo.body1" Class="mt-1">@nudge.Meddelande</MudText>
+                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">@nudge.SkapadVid.ToString("yyyy-MM-dd HH:mm")</MudText>
+                    </div>
+                    @if (!nudge.ArLast)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => MarkeraLast(nudge))">Markera läst</MudButton>
+                    }
+                </div>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@code {
+    private ManagerScorecard? _scorecard;
+    private List<CoachingNudge> _nudges = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get latest scorecard (in real app, filter by logged-in chef)
+            _scorecard = await Db.ManagerScorecards
+                .OrderByDescending(s => s.GenereradVid)
+                .FirstOrDefaultAsync();
+
+            _nudges = await Db.CoachingNudges
+                .Where(n => !n.ArLast)
+                .OrderByDescending(n => n.SkapadVid)
+                .Take(20)
+                .ToListAsync();
+        }
+        catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task MarkeraLast(CoachingNudge nudge)
+    {
+        nudge.MarkeraSomLast();
+        await Db.SaveChangesAsync();
+        _nudges.Remove(nudge);
+    }
+
+    private static Color TurnoverColor(decimal v) => v > 15 ? Color.Error : v > 8 ? Color.Warning : Color.Success;
+    private static Color EngagementColor(decimal v) => v >= 0 ? Color.Success : v > -5 ? Color.Warning : Color.Error;
+    private static Color MeetingFreqColor(decimal days) => days <= 14 ? Color.Success : days <= 30 ? Color.Warning : Color.Error;
+    private static string FormatDelta(decimal v) => v >= 0 ? $"+{v:F1}" : v.ToString("F1");
+    private static string NudgeColor(string typ) => typ switch
+    {
+        "MissedOneOnOne" => "#ef6c00",
+        "HighTurnover" => "#d32f2f",
+        "LowEngagement" => "#f9a825",
+        "DevelopmentStalled" => "#7b1fa2",
+        "NewTeamMember" => "#1976d2",
+        _ => "#757575"
+    };
+    private static string NudgeLabel(string typ) => typ switch
+    {
+        "MissedOneOnOne" => "Missat 1:1",
+        "HighTurnover" => "Hög omsättning",
+        "LowEngagement" => "Lågt engagemang",
+        "DevelopmentStalled" => "Utveckling stagnerar",
+        "NewTeamMember" => "Ny teammedlem",
+        _ => typ
+    };
+}

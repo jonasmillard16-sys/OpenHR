@@ -13,7 +13,13 @@
     <link rel="stylesheet" href="css/print.css" />
     <link rel="stylesheet" href="css/mobile.css" />
     <link rel="stylesheet" href="css/performance.css" />
+    <link rel="stylesheet" href="css/pwa-enhancements.css" />
     <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0e7490" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="OpenHR" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>
@@ -23,6 +29,7 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="js/download.js"></script>
     <script src="js/signalr-notifications.js"></script>
+    <script src="js/push-notifications.js"></script>
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');</script>
 </body>
 </html>

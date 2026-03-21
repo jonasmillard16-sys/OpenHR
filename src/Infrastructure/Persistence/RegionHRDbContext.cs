@@ -112,6 +112,7 @@ public class RegionHRDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     // Leave (schema: leave)
     public DbSet<VacationBalance> VacationBalances => Set<VacationBalance>();
@@ -126,6 +127,10 @@ public class RegionHRDbContext : DbContext
 
     // Performance (schema: performance)
     public DbSet<PerformanceReview> PerformanceReviews => Set<PerformanceReview>();
+    public DbSet<OneOnOneMeeting> OneOnOneMeetings => Set<OneOnOneMeeting>();
+    public DbSet<MeetingActionItem> MeetingActionItems => Set<MeetingActionItem>();
+    public DbSet<ManagerScorecard> ManagerScorecards => Set<ManagerScorecard>();
+    public DbSet<CoachingNudge> CoachingNudges => Set<CoachingNudge>();
 
     // Reporting (schema: reporting)
     public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
@@ -229,6 +234,15 @@ public class RegionHRDbContext : DbContext
     public DbSet<PayTransparencyReport> PayTransparencyReports => Set<PayTransparencyReport>();
     public DbSet<PayGapAnalysis> PayGapAnalyses => Set<PayGapAnalysis>();
     public DbSet<PayGapCohort> PayGapCohorts => Set<PayGapCohort>();
+    public DbSet<PlanningScenario> PlanningScenarios => Set<PlanningScenario>();
+    public DbSet<ScenarioAssumption> ScenarioAssumptions => Set<ScenarioAssumption>();
+    public DbSet<ScenarioResult> ScenarioResults => Set<ScenarioResult>();
+
+    // ONA (schema: analytics)
+    public DbSet<ONASurvey> ONASurveys => Set<ONASurvey>();
+    public DbSet<ONAResponse> ONAResponses => Set<ONAResponse>();
+    public DbSet<NetworkNode> NetworkNodes => Set<NetworkNode>();
+    public DbSet<NetworkEdge> NetworkEdges => Set<NetworkEdge>();
 
     // Configuration (schema: configuration)
     public DbSet<TenantConfiguration> TenantConfigurations => Set<TenantConfiguration>();
@@ -309,6 +323,8 @@ public class RegionHRDbContext : DbContext
     public DbSet<VendorInvoice> VendorInvoices => Set<VendorInvoice>();
     public DbSet<VendorPerformance> VendorPerformances => Set<VendorPerformance>();
     public DbSet<SpendCategory> SpendCategories => Set<SpendCategory>();
+    public DbSet<FSkattRegistration> FSkattRegistrations => Set<FSkattRegistration>();
+    public DbSet<ContractorClassification> ContractorClassifications => Set<ContractorClassification>();
 
     // Platform — Event Bus & API Keys (schema: platform)
     public DbSet<DomainEventRecord> DomainEventRecords => Set<DomainEventRecord>();

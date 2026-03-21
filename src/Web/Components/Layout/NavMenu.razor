@@ -71,6 +71,8 @@
         <MudNavLink Href="/las" Icon="@Icons.Material.Filled.Warning">@L["LAS"]</MudNavLink>
         <MudNavLink Href="/dokument" Icon="@Icons.Material.Filled.Description">@L["Documents"]</MudNavLink>
         <MudNavLink Href="/medarbetarsamtal" Icon="@Icons.Material.Filled.RecordVoiceOver">@L["PerformanceReviews"]</MudNavLink>
+        <MudNavLink Href="/chef/1-1" Icon="@Icons.Material.Filled.Forum">1:1-möten</MudNavLink>
+        <MudNavLink Href="/chef/scorecard" Icon="@Icons.Material.Filled.Assessment">Chefsstyrkort</MudNavLink>
         <MudNavGroup Title="@L["Recruitment"]" Icon="@Icons.Material.Filled.PersonSearch"
                      Expanded="@_rekryteringOpen" ExpandedChanged="@(v => _rekryteringOpen = v)">
             <MudNavLink Href="/rekrytering/vakanser">@L["Vacancies"]</MudNavLink>
@@ -93,6 +95,7 @@
             <MudNavLink Href="/rapporter/workforce-plan">@L["WorkforcePlanning"]</MudNavLink>
             <MudNavLink Href="/rapporter/flight-risk">@L["FlightRisk"]</MudNavLink>
             <MudNavLink Href="/rapporter/lonetransparens">@L["PayTransparency"]</MudNavLink>
+            <MudNavLink Href="/rapporter/scenarioplanering">@L["ScenarioPlanning"]</MudNavLink>
         </MudNavGroup>
         <MudNavGroup Title="@L["ContractStaff"]" Icon="@Icons.Material.Filled.GroupWork"
                      Expanded="@_vmsOpen" ExpandedChanged="@(v => _vmsOpen = v)">
@@ -103,6 +106,7 @@
             <MudNavLink Href="/vms/tidrapporter">@L["TimeReports"]</MudNavLink>
             <MudNavLink Href="/vms/fakturor">@L["Invoices"]</MudNavLink>
             <MudNavLink Href="/vms/statistik">@L["Statistics"]</MudNavLink>
+            <MudNavLink Href="/vms/fskatt">@L["FSkattCompliance"]</MudNavLink>
         </MudNavGroup>
     }
 
@@ -132,6 +136,7 @@
             <MudNavLink Href="/admin/formaner/regler">@L["EligibilityRules"]</MudNavLink>
             <MudNavLink Href="/admin/formaner/perioder">@L["EnrollmentPeriods"]</MudNavLink>
         </MudNavGroup>
+        <MudNavLink Href="/admin/ona" Icon="@Icons.Material.Filled.Hub">Nätverksanalys (ONA)</MudNavLink>
         <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
         <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>
     }
