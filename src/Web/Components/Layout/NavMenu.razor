@@ -33,11 +33,11 @@
         <MudNavGroup Title="@L["ScheduleAndTime"]" Icon="@Icons.Material.Filled.CalendarMonth"
                      Expanded="@_schemaOpen" ExpandedChanged="@(v => _schemaOpen = v)">
             <MudNavLink Href="/schema">@L["ScheduleOverview"]</MudNavLink>
-            <MudNavLink Href="/schema/realtid">Realtidsvy</MudNavLink>
+            <MudNavLink Href="/schema/realtid">@L["RealTimeView"]</MudNavLink>
             <MudNavLink Href="/schema/bemanning">@L["Staffing"]</MudNavLink>
-            <MudNavLink Href="/schema/optimering">Optimering</MudNavLink>
-            <MudNavLink Href="/schema/prognos">Behovsprognos</MudNavLink>
-            <MudNavLink Href="/schema/tillganglighet">Tillganglighet</MudNavLink>
+            <MudNavLink Href="/schema/optimering">@L["Optimization"]</MudNavLink>
+            <MudNavLink Href="/schema/prognos">@L["DemandForecast"]</MudNavLink>
+            <MudNavLink Href="/schema/tillganglighet">@L["Availability"]</MudNavLink>
             <MudNavLink Href="/stampling">@L["TimeClocking"]</MudNavLink>
             <MudNavLink Href="/tidrapporter">@L["TimeReports"]</MudNavLink>
         </MudNavGroup>
@@ -45,63 +45,64 @@
         <MudNavLink Href="/arenden" Icon="@Icons.Material.Filled.Assignment">@L["Cases"]</MudNavLink>
     }
 
-    <MudNavLink Href="/helpdesk" Icon="@Icons.Material.Filled.SupportAgent">Helpdesk</MudNavLink>
+    <MudNavLink Href="/helpdesk" Icon="@Icons.Material.Filled.SupportAgent">@L["Helpdesk"]</MudNavLink>
 
     @if (Auth.IsInitialized && Auth.IsHR)
     {
-        <MudNavLink Href="/helpdesk/agent" Icon="@Icons.Material.Filled.Headset">Agent Workspace</MudNavLink>
+        <MudNavLink Href="/helpdesk/agent" Icon="@Icons.Material.Filled.Headset">@L["AgentWorkspace"]</MudNavLink>
     }
 
     <MudNavLink Href="/ledighet" Icon="@Icons.Material.Filled.BeachAccess">@L["Leave"]</MudNavLink>
 
-    <MudNavGroup Title="Karriär" Icon="@Icons.Material.Filled.TrendingUp"
+    <MudNavGroup Title="@L["Career"]" Icon="@Icons.Material.Filled.TrendingUp"
                  Expanded="@_karriarOpen" ExpandedChanged="@(v => _karriarOpen = v)">
-        <MudNavLink Href="/karriar">Talangmarknad</MudNavLink>
-        <MudNavLink Href="/karriar/minutveckling">Min karriarutveckling</MudNavLink>
-        <MudNavLink Href="/karriar/mentorskap">Mentorskap</MudNavLink>
-        <MudNavLink Href="/kompetens/endorsements">Endorsements</MudNavLink>
+        <MudNavLink Href="/karriar">@L["TalentMarketplace"]</MudNavLink>
+        <MudNavLink Href="/karriar/minutveckling">@L["MyCareerDevelopment"]</MudNavLink>
+        <MudNavLink Href="/karriar/mentorskap">@L["Mentorship"]</MudNavLink>
+        <MudNavLink Href="/kompetens/endorsements">@L["Endorsements"]</MudNavLink>
     </MudNavGroup>
 
     @if (Auth.IsInitialized && Auth.IsChef)
     {
         <MudNavLink Href="/godkannanden" Icon="@Icons.Material.Filled.CheckCircle">@L["Approvals"]</MudNavLink>
-        <MudNavLink Href="/journeys" Icon="@Icons.Material.Filled.Route">Medarbetarresor</MudNavLink>
+        <MudNavLink Href="/journeys" Icon="@Icons.Material.Filled.Route">@L["EmployeeJourneys"]</MudNavLink>
         <MudNavLink Href="/halsosam" Icon="@Icons.Material.Filled.LocalHospital">@L["HalsoSAM"]</MudNavLink>
-        <MudNavLink Href="/arbetsmiljo" Icon="@Icons.Material.Filled.Shield">Arbetsmiljö (SAM)</MudNavLink>
+        <MudNavLink Href="/arbetsmiljo" Icon="@Icons.Material.Filled.Shield">@L["WorkEnvironment"]</MudNavLink>
         <MudNavLink Href="/las" Icon="@Icons.Material.Filled.Warning">@L["LAS"]</MudNavLink>
         <MudNavLink Href="/dokument" Icon="@Icons.Material.Filled.Description">@L["Documents"]</MudNavLink>
         <MudNavLink Href="/medarbetarsamtal" Icon="@Icons.Material.Filled.RecordVoiceOver">@L["PerformanceReviews"]</MudNavLink>
         <MudNavGroup Title="@L["Recruitment"]" Icon="@Icons.Material.Filled.PersonSearch"
                      Expanded="@_rekryteringOpen" ExpandedChanged="@(v => _rekryteringOpen = v)">
-            <MudNavLink Href="/rekrytering/vakanser">Vakanser</MudNavLink>
-            <MudNavLink Href="/rekrytering/talangpool">Talangpool</MudNavLink>
+            <MudNavLink Href="/rekrytering/vakanser">@L["Vacancies"]</MudNavLink>
+            <MudNavLink Href="/rekrytering/talangpool">@L["TalentPool"]</MudNavLink>
         </MudNavGroup>
-        <MudNavGroup Title="Förmåner" Icon="@Icons.Material.Filled.CardGiftcard"
+        <MudNavGroup Title="@L["Benefits"]" Icon="@Icons.Material.Filled.CardGiftcard"
                      Expanded="@_formanerOpen" ExpandedChanged="@(v => _formanerOpen = v)">
-            <MudNavLink Href="/formaner">Översikt</MudNavLink>
-            <MudNavLink Href="/formaner/enrollment">Förmånsval</MudNavLink>
-            <MudNavLink Href="/formaner/val">Öppet val</MudNavLink>
-            <MudNavLink Href="/formaner/livshandelse">Livshändelse</MudNavLink>
-            <MudNavLink Href="/formaner/sammanstallning">Sammanställning</MudNavLink>
+            <MudNavLink Href="/formaner">@L["BenefitsOverview"]</MudNavLink>
+            <MudNavLink Href="/formaner/enrollment">@L["BenefitsEnrollment"]</MudNavLink>
+            <MudNavLink Href="/formaner/val">@L["OpenEnrollment"]</MudNavLink>
+            <MudNavLink Href="/formaner/livshandelse">@L["LifeEvent"]</MudNavLink>
+            <MudNavLink Href="/formaner/sammanstallning">@L["BenefitsSummary"]</MudNavLink>
         </MudNavGroup>
         <MudNavGroup Title="@L["Reports"]" Icon="@Icons.Material.Filled.BarChart"
                      Expanded="@_rapporterOpen" ExpandedChanged="@(v => _rapporterOpen = v)">
-            <MudNavLink Href="/rapporter">Rapportbibliotek</MudNavLink>
-            <MudNavLink Href="/rapporter/bygg">Rapportbyggare</MudNavLink>
-            <MudNavLink Href="/rapporter/kpi">KPI Dashboard</MudNavLink>
-            <MudNavLink Href="/rapporter/prediktion">Prediktiv analys</MudNavLink>
-            <MudNavLink Href="/rapporter/workforce-plan">Bemanningsplanering</MudNavLink>
-            <MudNavLink Href="/rapporter/flight-risk">Uppsagningsrisk</MudNavLink>
+            <MudNavLink Href="/rapporter">@L["ReportLibrary"]</MudNavLink>
+            <MudNavLink Href="/rapporter/bygg">@L["ReportBuilder"]</MudNavLink>
+            <MudNavLink Href="/rapporter/kpi">@L["KPIDashboard"]</MudNavLink>
+            <MudNavLink Href="/rapporter/prediktion">@L["PredictiveAnalysis"]</MudNavLink>
+            <MudNavLink Href="/rapporter/workforce-plan">@L["WorkforcePlanning"]</MudNavLink>
+            <MudNavLink Href="/rapporter/flight-risk">@L["FlightRisk"]</MudNavLink>
+            <MudNavLink Href="/rapporter/lonetransparens">@L["PayTransparency"]</MudNavLink>
         </MudNavGroup>
-        <MudNavGroup Title="Inhyrd personal" Icon="@Icons.Material.Filled.GroupWork"
+        <MudNavGroup Title="@L["ContractStaff"]" Icon="@Icons.Material.Filled.GroupWork"
                      Expanded="@_vmsOpen" ExpandedChanged="@(v => _vmsOpen = v)">
-            <MudNavLink Href="/vms">Oversikt</MudNavLink>
-            <MudNavLink Href="/vms/leverantorer">Leverantorer</MudNavLink>
-            <MudNavLink Href="/vms/ramavtal">Ramavtal</MudNavLink>
-            <MudNavLink Href="/vms/bestallningar">Bestallningar</MudNavLink>
-            <MudNavLink Href="/vms/tidrapporter">Tidrapporter</MudNavLink>
-            <MudNavLink Href="/vms/fakturor">Fakturor</MudNavLink>
-            <MudNavLink Href="/vms/statistik">Statistik</MudNavLink>
+            <MudNavLink Href="/vms">@L["ContractOverview"]</MudNavLink>
+            <MudNavLink Href="/vms/leverantorer">@L["Suppliers"]</MudNavLink>
+            <MudNavLink Href="/vms/ramavtal">@L["FrameworkAgreements"]</MudNavLink>
+            <MudNavLink Href="/vms/bestallningar">@L["Orders"]</MudNavLink>
+            <MudNavLink Href="/vms/tidrapporter">@L["TimeReports"]</MudNavLink>
+            <MudNavLink Href="/vms/fakturor">@L["Invoices"]</MudNavLink>
+            <MudNavLink Href="/vms/statistik">@L["Statistics"]</MudNavLink>
         </MudNavGroup>
     }
 
@@ -109,27 +110,27 @@
     {
         <MudDivider Class="my-2" />
         <MudNavLink Href="/admin/konfiguration" Icon="@Icons.Material.Filled.Settings">@L["Settings"]</MudNavLink>
-        <MudNavLink Href="/admin/provisionering" Icon="@Icons.Material.Filled.ManageAccounts">Identitetshantering</MudNavLink>
-        <MudNavLink Href="/admin/migration" Icon="@Icons.Material.Filled.CloudUpload">Migrering</MudNavLink>
-        <MudNavLink Href="/admin/automatisering" Icon="@Icons.Material.Filled.SmartToy">Automatisering</MudNavLink>
-        <MudNavLink Href="/admin/kollektivavtal" Icon="@Icons.Material.Filled.Handshake">Kollektivavtal</MudNavLink>
-        <MudNavLink Href="/admin/rapporter/schema" Icon="@Icons.Material.Filled.Schedule">Schemalagda rapporter</MudNavLink>
-        <MudNavLink Href="/admin/karriarvagar" Icon="@Icons.Material.Filled.Route">Karriarvagar</MudNavLink>
-        <MudNavLink Href="/admin/talangmarknad" Icon="@Icons.Material.Filled.Storefront">Talangmarknad</MudNavLink>
-        <MudNavLink Href="/admin/custom-objects" Icon="@Icons.Material.Filled.Extension">Anpassade objekt</MudNavLink>
-        <MudNavLink Href="/admin/workflows" Icon="@Icons.Material.Filled.AccountTree">Arbetsfloden</MudNavLink>
-        <MudNavLink Href="/admin/tillagg" Icon="@Icons.Material.Filled.Store">Tillagg</MudNavLink>
-        <MudNavGroup Title="Helpdesk Admin" Icon="@Icons.Material.Filled.SupportAgent"
+        <MudNavLink Href="/admin/provisionering" Icon="@Icons.Material.Filled.ManageAccounts">@L["IdentityManagement"]</MudNavLink>
+        <MudNavLink Href="/admin/migration" Icon="@Icons.Material.Filled.CloudUpload">@L["DataMigration"]</MudNavLink>
+        <MudNavLink Href="/admin/automatisering" Icon="@Icons.Material.Filled.SmartToy">@L["Automation"]</MudNavLink>
+        <MudNavLink Href="/admin/kollektivavtal" Icon="@Icons.Material.Filled.Handshake">@L["CollectiveAgreements"]</MudNavLink>
+        <MudNavLink Href="/admin/rapporter/schema" Icon="@Icons.Material.Filled.Schedule">@L["ScheduledReports"]</MudNavLink>
+        <MudNavLink Href="/admin/karriarvagar" Icon="@Icons.Material.Filled.Route">@L["CareerPaths"]</MudNavLink>
+        <MudNavLink Href="/admin/talangmarknad" Icon="@Icons.Material.Filled.Storefront">@L["TalentMarketplace"]</MudNavLink>
+        <MudNavLink Href="/admin/custom-objects" Icon="@Icons.Material.Filled.Extension">@L["CustomObjects"]</MudNavLink>
+        <MudNavLink Href="/admin/workflows" Icon="@Icons.Material.Filled.AccountTree">@L["Workflows"]</MudNavLink>
+        <MudNavLink Href="/admin/tillagg" Icon="@Icons.Material.Filled.Store">@L["Addons"]</MudNavLink>
+        <MudNavGroup Title="@L["HelpdeskAdmin"]" Icon="@Icons.Material.Filled.SupportAgent"
                      Expanded="@_helpdeskAdminOpen" ExpandedChanged="@(v => _helpdeskAdminOpen = v)">
-            <MudNavLink Href="/admin/helpdesk/sla">SLA-hantering</MudNavLink>
-            <MudNavLink Href="/admin/helpdesk/koer">Kohantering</MudNavLink>
-            <MudNavLink Href="/admin/helpdesk/mallar">Svarsmallar</MudNavLink>
+            <MudNavLink Href="/admin/helpdesk/sla">@L["SLAManagement"]</MudNavLink>
+            <MudNavLink Href="/admin/helpdesk/koer">@L["QueueManagement"]</MudNavLink>
+            <MudNavLink Href="/admin/helpdesk/mallar">@L["ResponseTemplates"]</MudNavLink>
         </MudNavGroup>
-        <MudNavGroup Title="Förmånsadmin" Icon="@Icons.Material.Filled.AdminPanelSettings"
+        <MudNavGroup Title="@L["BenefitsAdmin"]" Icon="@Icons.Material.Filled.AdminPanelSettings"
                      Expanded="@_formanerAdminOpen" ExpandedChanged="@(v => _formanerAdminOpen = v)">
-            <MudNavLink Href="/admin/formaner/planer">Planer</MudNavLink>
-            <MudNavLink Href="/admin/formaner/regler">Behörighetsregler</MudNavLink>
-            <MudNavLink Href="/admin/formaner/perioder">Valperioder</MudNavLink>
+            <MudNavLink Href="/admin/formaner/planer">@L["Plans"]</MudNavLink>
+            <MudNavLink Href="/admin/formaner/regler">@L["EligibilityRules"]</MudNavLink>
+            <MudNavLink Href="/admin/formaner/perioder">@L["EnrollmentPeriods"]</MudNavLink>
         </MudNavGroup>
         <MudNavLink Href="/gdpr" Icon="@Icons.Material.Filled.Security">@L["GDPR"]</MudNavLink>
         <MudNavLink Href="/audit" Icon="@Icons.Material.Filled.History">@L["AuditLog"]</MudNavLink>

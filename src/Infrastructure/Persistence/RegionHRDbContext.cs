@@ -63,6 +63,11 @@ public class RegionHRDbContext : DbContext
     public DbSet<ShiftSwapRequest> ShiftSwapRequests => Set<ShiftSwapRequest>();
     public DbSet<Timesheet> Timesheets => Set<Timesheet>();
 
+    // Shift Bidding (schema: scheduling)
+    public DbSet<OpenShift> OpenShifts => Set<OpenShift>();
+    public DbSet<ShiftBid> ShiftBids => Set<ShiftBid>();
+    public DbSet<ShiftBidResult> ShiftBidResults => Set<ShiftBidResult>();
+
     // WFM — Advanced Scheduling (schema: scheduling)
     public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();
     public DbSet<DemandPattern> DemandPatterns => Set<DemandPattern>();
@@ -187,6 +192,12 @@ public class RegionHRDbContext : DbContext
     // MBL (schema: case_mgmt)
     public DbSet<RegionHR.CaseManagement.Domain.MBLNegotiation> MBLNegotiations => Set<RegionHR.CaseManagement.Domain.MBLNegotiation>();
 
+    // Grievance (schema: case_mgmt)
+    public DbSet<RegionHR.CaseManagement.Domain.Grievance> Grievances => Set<RegionHR.CaseManagement.Domain.Grievance>();
+    public DbSet<RegionHR.CaseManagement.Domain.GrievanceInvestigation> GrievanceInvestigations => Set<RegionHR.CaseManagement.Domain.GrievanceInvestigation>();
+    public DbSet<RegionHR.CaseManagement.Domain.GrievanceHearing> GrievanceHearings => Set<RegionHR.CaseManagement.Domain.GrievanceHearing>();
+    public DbSet<RegionHR.CaseManagement.Domain.GrievanceAppeal> GrievanceAppeals => Set<RegionHR.CaseManagement.Domain.GrievanceAppeal>();
+
     // Feedback (schema: performance)
     public DbSet<RegionHR.Performance.Domain.FeedbackRound> FeedbackRounds => Set<RegionHR.Performance.Domain.FeedbackRound>();
     public DbSet<RegionHR.Performance.Domain.FeedbackResponse> FeedbackResponses => Set<RegionHR.Performance.Domain.FeedbackResponse>();
@@ -215,6 +226,9 @@ public class RegionHRDbContext : DbContext
     public DbSet<KPIAlert> KPIAlerts => Set<KPIAlert>();
     public DbSet<PredictionModel> PredictionModels => Set<PredictionModel>();
     public DbSet<PredictionResult> PredictionResults => Set<PredictionResult>();
+    public DbSet<PayTransparencyReport> PayTransparencyReports => Set<PayTransparencyReport>();
+    public DbSet<PayGapAnalysis> PayGapAnalyses => Set<PayGapAnalysis>();
+    public DbSet<PayGapCohort> PayGapCohorts => Set<PayGapCohort>();
 
     // Configuration (schema: configuration)
     public DbSet<TenantConfiguration> TenantConfigurations => Set<TenantConfiguration>();
@@ -350,6 +364,7 @@ public class RegionHRDbContext : DbContext
         configurationBuilder.Properties<InternalOpportunityId>().HaveConversion<InternalOpportunityIdConverter>();
         configurationBuilder.Properties<DemandForecastId>().HaveConversion<DemandForecastIdConverter>();
         configurationBuilder.Properties<SchedulingRunId>().HaveConversion<SchedulingRunIdConverter>();
+        configurationBuilder.Properties<GrievanceId>().HaveConversion<GrievanceIdConverter>();
         configurationBuilder.Properties<Money>().HaveConversion<MoneyConverter>();
         configurationBuilder.Properties<Percentage>().HaveConversion<PercentageConverter>();
     }
@@ -479,4 +494,9 @@ public class DemandForecastIdConverter : Microsoft.EntityFrameworkCore.Storage.V
 public class SchedulingRunIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<SchedulingRunId, Guid>
 {
     public SchedulingRunIdConverter() : base(v => v.Value, v => SchedulingRunId.From(v)) { }
+}
+
+public class GrievanceIdConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<GrievanceId, Guid>
+{
+    public GrievanceIdConverter() : base(v => v.Value, v => GrievanceId.From(v)) { }
 }

@@ -1,0 +1,221 @@
+@page "/rapporter/lonetransparens/{Id:guid}"
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Services
+@using RegionHR.Analytics.Domain
+@using Microsoft.EntityFrameworkCore
+@inject RegionHRDbContext Db
+@inject NavigationManager Nav
+
+<PageTitle>OpenHR - Lonetransparensrapport</PageTitle>
+
+@if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
+else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
+else if (_rapport == null) { <MudAlert Severity="Severity.Warning">Rapporten hittades inte.</MudAlert> }
+else
+{
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/rapporter/lonetransparens" Class="mb-2">Tillbaka</MudButton>
+
+    <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Lonetransparensrapport @_rapport.Ar</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+        Period: @_rapport.RapportPeriod | Status:
+        <MudChip T="string" Size="Size.Small" Color="@(_rapport.Status == "Published" ? Color.Success : Color.Info)">@_rapport.Status</MudChip>
+        @if (_rapport.PubliceradVid.HasValue) { <span>| Publicerad: @_rapport.PubliceradVid.Value.ToString("yyyy-MM-dd HH:mm")</span> }
+    </MudText>
+
+    @* Summary cards *@
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-primary);">
+                <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_rapport.KonsGapProcent.ToString("F1")%</MudText>
+                <MudText Typo="Typo.body2">Ojusterat lonegap</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-info);">
+                <MudText Typo="Typo.h3" Color="Color.Info" Style="font-weight: 700;">@_rapport.MedianGapProcent.ToString("F1")%</MudText>
+                <MudText Typo="Typo.body2">Mediangap</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-success);">
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_rapport.TotalAnstallda</MudText>
+                <MudText Typo="Typo.body2">Anstallda</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 text-center" Elevation="2" Style="border-top: 4px solid var(--mud-palette-warning);">
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_analyser.Count(a => a.Kraver5ProcentUtredning)</MudText>
+                <MudText Typo="Typo.body2">Kategorier > 5%</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Action buttons *@
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem>
+            @if (_rapport.Status == "Calculated")
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Publish"
+                           OnClick="PubliceraRapport">Publicera rapport</MudButton>
+            }
+        </MudItem>
+    </MudGrid>
+
+    @* Tabs for detailed view *@
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="mb-6">
+        <MudTabPanel Text="Befattningskategorier">
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr>
+                        <th>Kategori</th>
+                        <th>K/M</th>
+                        <th>Medel K</th>
+                        <th>Medel M</th>
+                        <th>Median K</th>
+                        <th>Median M</th>
+                        <th>Ojusterat</th>
+                        <th>Justerat</th>
+                        <th>EU-status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _analyser)
+                    {
+                        <tr>
+                            <td><strong>@a.Befattningskategori</strong></td>
+                            <td>@a.AntalKvinnor / @a.AntalMan</td>
+                            <td>@a.MedelLonKvinnor.ToString("N0") kr</td>
+                            <td>@a.MedelLonMan.ToString("N0") kr</td>
+                            <td>@a.MedianLonKvinnor.ToString("N0") kr</td>
+                            <td>@a.MedianLonMan.ToString("N0") kr</td>
+                            <td><MudChip T="string" Size="Size.Small" Color="@GapColor(a.OjusteratGapProcent)">@a.OjusteratGapProcent.ToString("F1")%</MudChip></td>
+                            <td>
+                                @if (a.JusteratGapProcent.HasValue)
+                                {<MudChip T="string" Size="Size.Small" Color="@GapColor(a.JusteratGapProcent.Value)">@a.JusteratGapProcent.Value.ToString("F1")%</MudChip>}
+                                else { <span>—</span> }
+                            </td>
+                            <td>
+                                @if (a.Kraver5ProcentUtredning)
+                                { <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">Utredning kravs</MudChip> }
+                                else
+                                { <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">OK</MudChip> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Intersektionell analys">
+            @foreach (var a in _analyser)
+            {
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2" Style="font-weight: 600;">@a.Befattningskategori</MudText>
+                @if (a.Kohorter.Count > 0)
+                {
+                    <MudSimpleTable Hover="true" Class="mb-4">
+                        <thead><tr><th>Kohort</th><th>Antal</th><th>Gap %</th><th>Trend fran forra aret</th></tr></thead>
+                        <tbody>
+                            @foreach (var k in a.Kohorter)
+                            {
+                                <tr>
+                                    <td>@k.KohortNamn</td>
+                                    <td>@k.AntalAnstallda</td>
+                                    <td><MudChip T="string" Size="Size.Small" Color="@GapColor(k.GapProcent)">@k.GapProcent.ToString("F1")%</MudChip></td>
+                                    <td>
+                                        @if (k.TrendFranForraAret.HasValue)
+                                        {
+                                            var trend = k.TrendFranForraAret.Value;
+                                            <MudChip T="string" Size="Size.Small" Color="@(trend < 0 ? Color.Success : trend > 0 ? Color.Warning : Color.Default)">
+                                                @(trend > 0 ? "+" : "")@trend.ToString("F1") pp
+                                            </MudChip>
+                                        }
+                                        else { <span>—</span> }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Tertiary">Inga kohorter for denna kategori.</MudText>
+                }
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Atgardsmodellering">
+            <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+                Beraknad kostnad for att stanga lonegapet per befattningskategori (mal: 0% gap).
+            </MudText>
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr><th>Kategori</th><th>Nuvarande gap</th><th>Hojning/kvinna</th><th>Total manadskostnad</th><th>Total arskostnad (inkl avg)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _analyser)
+                    {
+                        var kostnad = PayEquityCalculationService.BeraknaAtgardsKostnad(a);
+                        <tr>
+                            <td><strong>@a.Befattningskategori</strong></td>
+                            <td>@a.OjusteratGapProcent.ToString("F1")%</td>
+                            <td>@kostnad.HojningPerKvinnaManad.ToString("N0") kr/man</td>
+                            <td>@kostnad.TotalManadskostnad.ToString("N0") kr</td>
+                            <td><strong>@kostnad.TotalArskostnadInklAvgifter.ToString("N0") kr</strong></td>
+                        </tr>
+                    }
+                    @{
+                        var totalKostnad = _analyser.Sum(a => PayEquityCalculationService.BeraknaAtgardsKostnad(a).TotalArskostnadInklAvgifter);
+                    }
+                    <tr style="font-weight: 700; border-top: 2px solid var(--mud-palette-text-primary);">
+                        <td>TOTALT</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><strong>@totalKostnad.ToString("N0") kr/ar</strong></td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PayTransparencyReport? _rapport;
+    private List<PayGapAnalysis> _analyser = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _rapport = await Db.PayTransparencyReports
+                .Include(r => r.Analyser)
+                    .ThenInclude(a => a.Kohorter)
+                .FirstOrDefaultAsync(r => r.Id == Id);
+
+            if (_rapport != null)
+                _analyser = _rapport.Analyser.ToList();
+        }
+        catch (Exception ex) { _error = $"Kunde inte ladda rapport: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    private async Task PubliceraRapport()
+    {
+        if (_rapport == null) return;
+        try
+        {
+            _rapport.Publicera();
+            await Db.SaveChangesAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex) { _error = $"Publicering misslyckades: {ex.Message}"; }
+    }
+
+    private static Color GapColor(decimal gap) =>
+        gap > 5 ? Color.Error : gap > 3 ? Color.Warning : Color.Success;
+}

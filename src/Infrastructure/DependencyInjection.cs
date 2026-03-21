@@ -120,6 +120,7 @@ public static class DependencyInjection
         // Analytics
         services.AddScoped<Analytics.FlightRiskService>();
         services.AddScoped<KPICalculationService>();
+        services.AddScoped<PayEquityCalculationService>();
 
         // Provisioning (lokal registrering — inga externa anrop i v1)
         services.AddScoped<Provisioning.IIdentityProvider, Provisioning.LocalRecordingProvider>();

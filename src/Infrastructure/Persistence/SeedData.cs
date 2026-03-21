@@ -1956,6 +1956,119 @@ Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker ut
             db.CaseTemplates_Helpdesk.AddRange(mallLon, mallSemester, mallIT);
         }
 
+        // === Pay Transparency Report (EU-direktivet) ===
+        if (!await db.PayTransparencyReports.AnyAsync())
+        {
+            var ptRapport = RegionHR.Analytics.Domain.PayTransparencyReport.Skapa(2025, "2025-01-01 till 2025-12-31");
+
+            // 5 befattningskategorier med exempeldata
+            var ptAnalyser = new List<RegionHR.Analytics.Domain.PayGapAnalysis>();
+
+            var a1 = RegionHR.Analytics.Domain.PayGapAnalysis.Skapa(
+                ptRapport.Id, "Sjukskoterska", 85, 25, 33800m, 35200m, 33500m, 34800m,
+                3.98m, 2.1m,
+                "{\"genomsnittligAnstallningstidKvinnor\":6.2,\"genomsnittligAnstallningstidMan\":4.8,\"genomsnittligSysselsattningsgradKvinnor\":92.5,\"genomsnittligSysselsattningsgradMan\":98.0,\"genomsnittligAlderKvinnor\":38.5,\"genomsnittligAlderMan\":35.2}");
+            a1.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a1.Id, "Alder: Under 30", 22, 2.1m, -0.5m));
+            a1.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a1.Id, "Alder: 30-50", 58, 4.2m, -0.3m));
+            a1.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a1.Id, "Alder: 50+", 30, 5.1m, 0.2m));
+            a1.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a1.Id, "Anstallningsform: Tillsvidare", 95, 3.5m, -0.4m));
+            a1.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a1.Id, "Sysselsattning: Heltid", 78, 3.2m, -0.2m));
+            ptAnalyser.Add(a1);
+
+            var a2 = RegionHR.Analytics.Domain.PayGapAnalysis.Skapa(
+                ptRapport.Id, "Lakare", 40, 55, 58000m, 62000m, 57500m, 61000m,
+                6.45m, 4.8m,
+                "{\"genomsnittligAnstallningstidKvinnor\":8.5,\"genomsnittligAnstallningstidMan\":12.3,\"genomsnittligSysselsattningsgradKvinnor\":95.0,\"genomsnittligSysselsattningsgradMan\":100.0,\"genomsnittligAlderKvinnor\":42.0,\"genomsnittligAlderMan\":48.5}");
+            a2.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a2.Id, "Alder: Under 30", 12, 1.5m, null));
+            a2.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a2.Id, "Alder: 30-50", 48, 5.8m, -1.2m));
+            a2.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a2.Id, "Alder: 50+", 35, 8.2m, 0.5m));
+            ptAnalyser.Add(a2);
+
+            var a3 = RegionHR.Analytics.Domain.PayGapAnalysis.Skapa(
+                ptRapport.Id, "Underskoterska", 120, 30, 27800m, 28200m, 27500m, 28000m,
+                1.42m, 0.8m,
+                "{\"genomsnittligAnstallningstidKvinnor\":7.1,\"genomsnittligAnstallningstidMan\":5.5,\"genomsnittligSysselsattningsgradKvinnor\":85.0,\"genomsnittligSysselsattningsgradMan\":92.0,\"genomsnittligAlderKvinnor\":41.0,\"genomsnittligAlderMan\":37.0}");
+            a3.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a3.Id, "Alder: Under 30", 35, 0.5m, -0.3m));
+            a3.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a3.Id, "Alder: 30-50", 75, 1.8m, -0.1m));
+            a3.LaggTillKohort(RegionHR.Analytics.Domain.PayGapCohort.Skapa(a3.Id, "Alder: 50+", 40, 2.0m, 0.4m));
+            ptAnalyser.Add(a3);
+
+            var a4 = RegionHR.Analytics.Domain.PayGapAnalysis.Skapa(
+                ptRapport.Id, "Verksamhetschef", 8, 12, 50000m, 52000m, 49000m, 51500m,
+                3.85m, 2.5m,
+                "{\"genomsnittligAnstallningstidKvinnor\":10.0,\"genomsnittligAnstallningstidMan\":14.5,\"genomsnittligSysselsattningsgradKvinnor\":100.0,\"genomsnittligSysselsattningsgradMan\":100.0,\"genomsnittligAlderKvinnor\":48.0,\"genomsnittligAlderMan\":52.0}");
+            ptAnalyser.Add(a4);
+
+            var a5 = RegionHR.Analytics.Domain.PayGapAnalysis.Skapa(
+                ptRapport.Id, "HR-chef", 5, 3, 47000m, 48000m, 46500m, 47500m,
+                2.08m, 1.2m,
+                "{\"genomsnittligAnstallningstidKvinnor\":6.0,\"genomsnittligAnstallningstidMan\":8.0,\"genomsnittligSysselsattningsgradKvinnor\":100.0,\"genomsnittligSysselsattningsgradMan\":100.0,\"genomsnittligAlderKvinnor\":44.0,\"genomsnittligAlderMan\":46.0}");
+            ptAnalyser.Add(a5);
+
+            var rapportDataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                EUDirectiveVersion = "2023/970",
+                Rapportdatum = "2025-12-31",
+                Sammanfattning = new
+                {
+                    TotalAnstallda = 383,
+                    AntalKvinnor = 258,
+                    AntalMan = 125,
+                    AndelKvinnor = 67.4m,
+                    AndelMan = 32.6m,
+                    AntalBefattningskategorier = 5
+                },
+                Lonekvartiler = new[]
+                {
+                    new { Kvartil = 1, Namn = "Q1 (lagst)", AntalKvinnor = 68, AntalMan = 28, AndelKvinnor = 70.8m, AndelMan = 29.2m },
+                    new { Kvartil = 2, Namn = "Q2", AntalKvinnor = 65, AntalMan = 31, AndelKvinnor = 67.7m, AndelMan = 32.3m },
+                    new { Kvartil = 3, Namn = "Q3", AntalKvinnor = 64, AntalMan = 32, AndelKvinnor = 66.7m, AndelMan = 33.3m },
+                    new { Kvartil = 4, Namn = "Q4 (hogst)", AntalKvinnor = 61, AntalMan = 34, AndelKvinnor = 64.2m, AndelMan = 35.8m }
+                },
+                KategorierMedUtredningskrav = new[]
+                {
+                    new { Befattningskategori = "Lakare", OjusteratGapProcent = 6.45m, JusteratGapProcent = 4.8m }
+                },
+                GemensamLonebedomningKravs = true
+            }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+
+            ptRapport.Berakna(383, 4.12m, 3.85m, rapportDataJson, ptAnalyser);
+            ptRapport.Publicera();
+
+            db.PayTransparencyReports.Add(ptRapport);
+        }
+
+        // === Shift Bidding (3 OpenShifts + 2 ShiftBids) ===
+        var openShift1 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
+            avd32.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(3)), "Dag",
+            new TimeOnly(7, 0), new TimeOnly(15, 30),
+            "{\"skills\":[\"HLR\",\"Lakemedelshantering\"]}", "Ordinarie");
+        var openShift2 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
+            akuten.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(5)), "Kvall",
+            new TimeOnly(15, 0), new TimeOnly(22, 0),
+            null, "OB");
+        var openShift3 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
+            avd33.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Natt",
+            new TimeOnly(21, 0), new TimeOnly(7, 0),
+            "{\"skills\":[\"IVA\"]}", "Overtid");
+        db.OpenShifts.AddRange(openShift1, openShift2, openShift3);
+
+        // 2 bud på det första öppna passet
+        var bid1 = RegionHR.Scheduling.Domain.ShiftBid.Skapa(openShift1.Id, employees[0].Id, 1, "Vill gärna ta extrapasset");
+        var bid2 = RegionHR.Scheduling.Domain.ShiftBid.Skapa(openShift1.Id, employees[2].Id, 2, "Kan jobba denna dag");
+        // Note: LaggTillBud is internal to Scheduling assembly; bids are linked via FK
+        db.ShiftBids.AddRange(bid1, bid2);
+
+        // === Grievance (1 st, status: UnderInvestigation) ===
+        var grievance1 = RegionHR.CaseManagement.Domain.Grievance.Skapa(
+            employees[4].Id,
+            RegionHR.CaseManagement.Domain.GrievanceType.Arbetsmiljo,
+            "Upprepade brister i ergonomisk utrustning på arbetsplatsen. Stolen är trasig och höj-sänkbart skrivbord saknas trots upprepade förfrågningar.",
+            "Kommunal - Lisa Fackman");
+        grievance1.Bekrafta();
+        grievance1.StartaUtredning("Karl Berg");
+        db.Grievances.Add(grievance1);
+
         await db.SaveChangesAsync();
     }
 }

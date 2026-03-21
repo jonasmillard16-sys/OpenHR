@@ -369,6 +369,7 @@ app.MapLMSEndpoints();
 app.MapConfigurationEndpoints();
 app.MapAnalyticsEndpoints();
 app.MapAnalyticsExpandedEndpoints();
+app.MapPayTransparencyEndpoints();
 app.MapPermissionEndpoints();
 
 // ============================================================
@@ -428,6 +429,12 @@ app.MapKnowledgeEndpoints();
 // HR Service Delivery / Helpdesk
 // ============================================================
 app.MapHelpdeskEndpoints();
+
+// ============================================================
+// Shift Bidding + Grievance Management
+// ============================================================
+app.MapShiftBiddingEndpoints();
+app.MapGrievanceEndpoints();
 
 // ============================================================
 // Integration Status
