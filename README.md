@@ -4,7 +4,7 @@
 
 OpenHR är ett personalhanteringssystem byggt för att ersätta HEROMA och andra proprietära HR-system inom svensk offentlig sektor. Byggt med öppen källkod (AGPL-3.0), svensk arbetsrätt, kollektivavtal och GDPR.
 
-> **OpenHR 2.0** — 36 moduler, ~157 sidor, 160+ domänentities, 847 tester. Se [2.0 Expansion](#20-expansion) nedan.
+> **OpenHR 2.0** — 36 moduler, ~157 sidor, 160+ domänentities, 976 tester. Se [2.0 Expansion](#20-expansion) nedan.
 
 ## Funktionsstatus
 
@@ -174,7 +174,7 @@ Nyckelentities (urval): Employee, Employment, OrganizationUnit, PayrollRun, Payr
 
 ```bash
 dotnet build RegionHR.sln       # 0 errors
-dotnet test RegionHR.sln        # 847 tester, 0 failures
+dotnet test RegionHR.sln        # 976 tester, 0 failures
 dotnet run --project src/Web/RegionHR.Web.csproj
 ```
 
