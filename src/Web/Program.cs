@@ -26,7 +26,7 @@ builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
-    var supportedCultures = new[] { "sv", "en" };
+    var supportedCultures = new[] { "sv", "sv-SE", "en" };
     options.SetDefaultCulture("sv");
     options.AddSupportedCultures(supportedCultures);
     options.AddSupportedUICultures(supportedCultures);

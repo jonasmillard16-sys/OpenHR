@@ -108,8 +108,17 @@
     private decimal _senasteLon;
     private decimal _senasteBrutto;
 
-    protected override async Task OnInitializedAsync()
+    private bool _dataLoaded;
+
+    // NOTE: We load data in OnAfterRenderAsync instead of OnInitializedAsync to avoid
+    // concurrent DbContext access. In Blazor Server, OnInitializedAsync of child components
+    // (OhrAssistant lives in AdminLayout) runs in parallel with the page's OnInitializedAsync,
+    // causing "A second operation was started on this context" errors.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender || _dataLoaded) return;
+        _dataLoaded = true;
+
         try
         {
             if (Db == null) return;
@@ -143,6 +152,8 @@
             }
         }
         catch { /* DB unavailable — assistant uses zero defaults */ }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HandleKey(KeyboardEventArgs e)

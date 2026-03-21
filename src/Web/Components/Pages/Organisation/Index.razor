@@ -6,11 +6,16 @@
 
 <h1>Organisationsstruktur</h1>
 
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
 <RhrCard>
     <ChildContent>
         @if (_loading)
         {
-            <p>Laddar organisation...</p>
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
         }
         else if (_rotenheter.Count == 0)
         {
@@ -29,10 +34,21 @@
 @code {
     private List<RegionHR.Core.Domain.OrganizationUnit> _rotenheter = [];
     private bool _loading = true;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
-        _rotenheter = await Service.HamtaOrganisationAsync();
-        _loading = false;
+        try
+        {
+            _rotenheter = await Service.HamtaOrganisationAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Kunde inte hämta organisationsdata: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 }

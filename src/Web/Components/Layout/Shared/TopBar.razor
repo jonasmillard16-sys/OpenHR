@@ -100,15 +100,9 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            if (Db is not null)
-                UnreadCount = await Db.Notifications.CountAsync(n => !n.IsRead);
-        }
-        catch { /* Notification count non-critical — continue with 0 */ }
-    }
+    // NOTE: Do NOT query Db in OnInitializedAsync — it runs concurrently with
+    // the page's OnInitializedAsync, causing DbContext threading errors in Blazor Server.
+    // UnreadCount is passed as a parameter from AdminLayout instead.
 
     private static readonly Dictionary<string, string> _navSuggestions = new()
     {
