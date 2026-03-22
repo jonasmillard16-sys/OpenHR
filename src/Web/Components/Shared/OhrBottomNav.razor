@@ -1,0 +1,28 @@
+@namespace RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+
+<div class="ohr-bottom-nav" role="navigation" aria-label="Snabbnavigering">
+    @foreach (var item in _items)
+    {
+        <button class="ohr-bottom-nav__item @(IsActive(item.Href) ? "ohr-bottom-nav__item--active" : "")"
+                @onclick="@(() => Nav.NavigateTo(item.Href))"
+                aria-label="@item.Label">
+            <MudIcon Icon="@item.Icon" Size="Size.Small" />
+            <span class="ohr-bottom-nav__label">@item.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    private record NavItem(string Icon, string Label, string Href);
+
+    private readonly List<NavItem> _items =
+    [
+        new(Icons.Material.Filled.Home, "Min sida", "/minsida"),
+        new(Icons.Material.Filled.Schedule, "Schema", "/minsida/schema"),
+        new(Icons.Material.Filled.EventAvailable, "Ledighet", "/ledighet"),
+        new(Icons.Material.Filled.Notifications, "Notiser", "/notiser")
+    ];
+
+    private bool IsActive(string href) => Nav.Uri.EndsWith(href, StringComparison.OrdinalIgnoreCase);
+}
