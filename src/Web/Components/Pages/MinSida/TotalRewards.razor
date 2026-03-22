@@ -1,5 +1,6 @@
 @page "/minsida/totalrewards"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Compensation.Domain
 @using RegionHR.SharedKernel.Domain
@@ -9,6 +10,7 @@
 @inject AuthenticationStateProvider AuthState
 
 <PageTitle>OpenHR - Total Rewards</PageTitle>
+<OhrBreadcrumb CurrentPage="Total kompensation" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Din totala kompensation</MudText>
 <MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
     Översikt av din fullständiga ersättning inklusive lön, pension, försäkringar och förmåner.
@@ -50,7 +52,7 @@ else
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.Savings" Color="Color.Success" />
-                <MudText Typo="Typo.caption" Class="mt-1">Pension</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1"><OhrTerm Term="Pension" DisplayText="Pension" /></MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Pension)</MudText>
             </MudPaper>
         </MudItem>
@@ -71,7 +73,7 @@ else
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Dark" />
-                <MudText Typo="Typo.caption" Class="mt-1">AG-avgifter</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1"><OhrTerm Term="AG-avgifter" /></MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.AGAvgifter)</MudText>
             </MudPaper>
         </MudItem>

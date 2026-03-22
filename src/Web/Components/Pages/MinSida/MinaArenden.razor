@@ -1,18 +1,16 @@
 @page "/minsida/arenden"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
 @inject AuthService Auth
 
-<PageTitle>OpenHR - Mina pågående saker</PageTitle>
+<PageTitle>OpenHR - Mina ansökningar och förfrågningar</PageTitle>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+<OhrBreadcrumb CurrentPage="Mina ansökningar" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Mina pågående saker</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Mina ansökningar och förfrågningar</MudText>
 
 @if (_arenden.Count == 0)
 {
@@ -53,7 +51,19 @@ else
                 EmployeeId.From(Auth.EmployeeId.Value));
 
             _arenden = cases.Select(c => new ArendeRad(
-                c.Typ, c.Beskrivning, c.Status, c.Datum,
+                c.Typ, c.Beskrivning,
+                c.Status switch
+                {
+                    "Godkand" => "Godkänd",
+                    "Avslutad" => "Avslutad",
+                    "VantarGodkannande" => "Väntar på godkännande",
+                    "UnderBehandling" => "Under behandling",
+                    "Avslagen" => "Avslagen",
+                    "Makulerad" => "Makulerad",
+                    "Inskickad" => "Inskickad",
+                    _ => c.Status
+                },
+                c.Datum,
                 c.Status switch
                 {
                     "Godkand" or "Avslutad" => Color.Success,
@@ -64,9 +74,9 @@ else
                 }
             )).ToList();
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"MinaArenden: {ex.Message}");
+            // Ärenden kunde inte hämtas — sidan visas ändå utan lista
         }
     }
 

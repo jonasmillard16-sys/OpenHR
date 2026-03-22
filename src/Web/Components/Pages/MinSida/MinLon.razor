@@ -1,5 +1,6 @@
 @page "/minsida/lon"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @using RegionHR.SharedKernel.Domain
 @using RegionHR.Infrastructure.Export
@@ -10,10 +11,7 @@
 
 <PageTitle>OpenHR - Min lön</PageTitle>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+<OhrBreadcrumb CurrentPage="Min lön" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">💰 Min lön</MudText>
 
@@ -21,7 +19,7 @@
     <MudText Typo="Typo.h6" Class="mb-3">@_senastePeriod</MudText>
     <MudGrid Spacing="3">
         <MudItem xs="6" sm="3">
-            <MudText Typo="Typo.caption">Bruttolön</MudText>
+            <MudText Typo="Typo.caption"><OhrTerm Term="Bruttolön" DisplayText="Lön före skatt" /></MudText>
             <MudText Typo="Typo.h5" Style="font-weight: 700;">@FormatKr(_senasteBrutto)</MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
@@ -33,7 +31,7 @@
             <MudText Typo="Typo.h5" Style="font-weight: 700; color: var(--mud-palette-success);">+@FormatKr(_senasteTillagg)</MudText>
         </MudItem>
         <MudItem xs="6" sm="3">
-            <MudText Typo="Typo.caption">Nettolön</MudText>
+            <MudText Typo="Typo.caption"><OhrTerm Term="Nettolön" DisplayText="Utbetalt till ditt konto" /></MudText>
             <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">@FormatKr(_senasteNetto)</MudText>
         </MudItem>
     </MudGrid>

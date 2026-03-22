@@ -1,41 +1,43 @@
 @page "/minsida/ledighet"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @inject SelfServiceApiClient SelfService
 @inject AuthService Auth
 
 <PageTitle>OpenHR - Min ledighet</PageTitle>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+<OhrBreadcrumb CurrentPage="Min ledighet" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">🌴 Min ledighet</MudText>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-4">
+    Du har <strong>@_tillgangliga dagar</strong> kvar att ta ut.
+</MudAlert>
 
 <MudGrid Spacing="4" Class="mb-6">
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="2">
             <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;">@_tillgangliga</MudText>
-            <MudText Typo="Typo.body1">Tillgängliga</MudText>
+            <MudText Typo="Typo.body1">Dagar du kan ta ledigt</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="1">
             <MudText Typo="Typo.h3" Style="font-weight: 700;">@_intjanade</MudText>
-            <MudText Typo="Typo.body1">Intjänade</MudText>
+            <MudText Typo="Typo.body1">Dagar du har tjänat in</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="1">
             <MudText Typo="Typo.h3" Style="font-weight: 700;">@_uttagna</MudText>
-            <MudText Typo="Typo.body1">Uttagna</MudText>
+            <MudText Typo="Typo.body1">Redan använda dagar</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="6" sm="3">
         <MudPaper Class="pa-4 text-center" Elevation="1">
             <MudText Typo="Typo.h3" Style="font-weight: 700;">@_sparade</MudText>
-            <MudText Typo="Typo.body1">Sparade</MudText>
+            <MudText Typo="Typo.body1">Sparade från förra året</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -67,9 +69,9 @@
                 _sparade = balance.SparadeDagar;
             }
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"MinLedighet: {ex.Message}");
+            // Saldo kunde inte hämtas — sidan visas ändå utan siffror
         }
     }
 }

@@ -15,6 +15,8 @@
     <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">@_error</MudAlert>
 }
 
+<OhrBreadcrumb CurrentPage="Sjukanmälan" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
+
 <OhrConversationFlow Steps="@_steps" CurrentStep="@_currentStep" OnBack="GoBack">
     @switch (_currentStep)
     {
@@ -22,6 +24,9 @@
             <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight: 600;">
                 Från och med vilken dag är du sjuk?
             </MudText>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-4">
+                Vi meddelar din chef automatiskt och sparar det i systemet.
+            </MudAlert>
 
             <MudStack Spacing="3">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -94,7 +99,7 @@
 
                 <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4" Dense="false">
                     <MudText Typo="Typo.body1">
-                        Om du är sjuk mer än 7 dagar behöver du ett läkarintyg. Vi påminner dig.
+                        Om du är sjuk mer än 7 dagar behöver du ett <OhrTerm Term="Läkarintyg" DisplayText="läkarintyg (intyg från din läkare)" />. Vi påminner dig.
                     </MudText>
                 </MudAlert>
 
@@ -139,6 +144,11 @@
         if (_endDate.HasValue)
         {
             _endDateValue = DateOnly.FromDateTime(_endDate.Value);
+            if (_endDateValue < _startDate)
+            {
+                _error = "Slutdatumet kan inte vara före startdatumet. Kontrollera datumen och försök igen.";
+                return;
+            }
             await SubmitSickLeave(_endDateValue);
         }
     }
@@ -148,7 +158,7 @@
         await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue)
         {
-            _error = "Sjukanmälan kräver en kopplad anställd — logga in med en personalprofil.";
+            _error = "Vi kunde inte spara din sjukanmälan. Kontakta HR om problemet kvarstår.";
             return;
         }
 
@@ -172,9 +182,9 @@
             await db.SaveChangesAsync();
             _currentStep = 2;
         }
-        catch (Exception ex)
+        catch
         {
-            _error = $"Kunde inte spara sjukanmälan: {ex.Message}";
+            _error = "Det gick inte att skicka in sjukanmälan just nu. Försök igen om en stund eller kontakta HR.";
         }
     }
 

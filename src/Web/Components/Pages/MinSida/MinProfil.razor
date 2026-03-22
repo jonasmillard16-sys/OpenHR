@@ -1,5 +1,6 @@
 @page "/minsida/profil"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
@@ -7,10 +8,7 @@
 
 <PageTitle>OpenHR - Om mig</PageTitle>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+<OhrBreadcrumb CurrentPage="Om mig" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 
 @if (_noAuth)
 {
@@ -23,15 +21,16 @@
     <MudItem xs="12" md="6">
         <MudPaper Class="pa-6" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-4">Personuppgifter</MudText>
-            <MudSimpleTable Dense="true">
-                <tbody>
-                    <tr><td><strong>Namn</strong></td><td>@_namn</td></tr>
-                    <tr><td><strong>Personnummer</strong></td><td>@_personnummer</td></tr>
-                    <tr><td><strong>Enhet</strong></td><td>@_enhet</td></tr>
-                    <tr><td><strong>Befattning</strong></td><td>@_befattning</td></tr>
-                    <tr><td><strong>Anställd sedan</strong></td><td>@_anstaldSedan</td></tr>
-                </tbody>
-            </MudSimpleTable>
+            <MudTextField Value="@_namn" Label="Namn" Variant="Variant.Outlined" Class="mb-3"
+                          Disabled="true" HelperText="Kan bara ändras av HR" />
+            <MudTextField Value="@_personnummer" Label="Personnummer" Variant="Variant.Outlined" Class="mb-3"
+                          Disabled="true" HelperText="Kan bara ändras av HR" />
+            <MudTextField Value="@_enhet" Label="Enhet" Variant="Variant.Outlined" Class="mb-3"
+                          Disabled="true" HelperText="Kan bara ändras av HR" />
+            <MudTextField Value="@_befattning" Label="Befattning" Variant="Variant.Outlined" Class="mb-3"
+                          Disabled="true" HelperText="Kan bara ändras av HR" />
+            <MudTextField Value="@_anstaldSedan" Label="Anställd sedan" Variant="Variant.Outlined" Class="mb-3"
+                          Disabled="true" HelperText="Kan bara ändras av HR" />
         </MudPaper>
     </MudItem>
 
@@ -70,15 +69,26 @@
             <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
                 Vem ska vi kontakta om något händer dig på jobbet?
             </MudText>
-            <MudSimpleTable Hover="true">
-                <thead>
-                    <tr><th>Namn</th><th>Relation</th><th>Telefon</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>Karl Svensson</td><td>Make</td><td>070-987 65 43</td></tr>
-                    <tr><td>Maria Lindgren</td><td>Mor</td><td>070-111 22 33</td></tr>
-                </tbody>
-            </MudSimpleTable>
+            @if (_nodkontakter.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-3">
+                    Du har inga nödkontakter registrerade ännu. Lägg till en nedan.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Hover="true">
+                    <thead>
+                        <tr><th>Namn</th><th>Relation</th><th>Telefon</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var k in _nodkontakter)
+                        {
+                            <tr><td>@k.Namn</td><td>@k.Relation</td><td>@k.Telefon</td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
                        StartIcon="@Icons.Material.Filled.Add" Size="Size.Large"
                        Style="min-height: 48px;" OnClick="@(() => _visaNodkontaktForm = true)">
@@ -156,15 +166,22 @@
     private string _nodkontaktNamn = "";
     private string _nodkontaktRelation = "";
     private string _nodkontaktTelefon = "";
+    private List<NodkontaktData> _nodkontakter = [];
 
     private void LaggTillNodkontakt()
     {
+        if (!string.IsNullOrWhiteSpace(_nodkontaktNamn))
+        {
+            _nodkontakter.Add(new NodkontaktData(_nodkontaktNamn, _nodkontaktRelation, _nodkontaktTelefon));
+        }
         _visaNodkontaktForm = false;
         _nodkontaktSparad = true;
         _nodkontaktNamn = "";
         _nodkontaktRelation = "";
         _nodkontaktTelefon = "";
     }
+
+    private record NodkontaktData(string Namn, string Relation, string Telefon);
 
     private async Task SparaKontaktuppgifter()
     {
