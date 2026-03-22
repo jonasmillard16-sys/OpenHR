@@ -6,6 +6,10 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Automation</PageTitle>
+<OhrBreadcrumb CurrentPage="Automation" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    Automatiseringsregler körs i bakgrunden och skapar påminnelser, varningar och förslag automatiskt.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Automationsramverk</MudText>
     <div class="d-flex gap-2">

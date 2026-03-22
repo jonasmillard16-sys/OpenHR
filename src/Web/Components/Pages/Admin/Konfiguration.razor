@@ -5,6 +5,7 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Konfiguration</PageTitle>
+<OhrBreadcrumb CurrentPage="Konfiguration" />
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Systemkonfiguration</MudText>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }

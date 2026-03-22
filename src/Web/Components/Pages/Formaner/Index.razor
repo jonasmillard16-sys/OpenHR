@@ -6,6 +6,10 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Förmåner</PageTitle>
+<OhrBreadcrumb CurrentPage="Förmåner" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    Förmåner är extra ersättningar utöver lönen — till exempel <OhrTerm Term="Friskvårdsbidrag" />, pension, försäkringar och sjukvård.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Förmåner</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny förmån</MudButton>

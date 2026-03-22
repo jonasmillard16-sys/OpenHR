@@ -7,6 +7,10 @@
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Friskvårdsbidrag</PageTitle>
+<OhrBreadcrumb CurrentPage="Friskvårdsbidrag" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    <OhrTerm Term="Friskvårdsbidrag" />: max 5 000 kr per år för träning, gym, simning, massage och andra hälsoaktiviteter.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Friskvårdsbidrag</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny ansökan</MudButton>

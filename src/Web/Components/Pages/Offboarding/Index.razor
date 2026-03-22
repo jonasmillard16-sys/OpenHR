@@ -6,6 +6,10 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Offboarding</PageTitle>
+<OhrBreadcrumb CurrentPage="Offboarding" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    <OhrTerm Term="Offboarding" /> hanterar allt som behöver göras när en medarbetare slutar.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Offboarding</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" Href="/offboarding/ny">Nytt ärende</MudButton>

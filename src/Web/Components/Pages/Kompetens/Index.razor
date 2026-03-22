@@ -7,6 +7,10 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Kompetensregister</PageTitle>
+<OhrBreadcrumb CurrentPage="Kompetensregister" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    Här hanteras medarbetarnas kompetenser och <OhrTerm Term="Certifiering" />ar. En <OhrTerm Term="Gap-analys" /> visar vilka kompetenser som saknas jämfört med vad rollen kräver.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Kompetensregister</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny kompetens</MudButton>
@@ -88,13 +92,13 @@
 </MudSimpleTable>
 
 @* --- Full certification table --- *@
-<MudText Typo="Typo.h5" Class="mt-6 mb-3" Style="font-weight: 700;">Alla certifieringar</MudText>
+<MudText Typo="Typo.h5" Class="mt-6 mb-3" Style="font-weight: 700;">Alla <OhrTerm Term="Certifiering" />ar</MudText>
 
 <MudSimpleTable Hover="true" Elevation="2">
     <thead>
         <tr>
             <th>Anställd</th>
-            <th>Certifiering</th>
+            <th><OhrTerm Term="Certifiering" /></th>
             <th>Typ</th>
             <th>Giltig t.o.m.</th>
             <th>Status</th>

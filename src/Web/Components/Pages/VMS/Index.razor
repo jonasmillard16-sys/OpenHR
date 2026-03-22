@@ -6,6 +6,10 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Inhyrd personal (VMS)</PageTitle>
+<OhrBreadcrumb CurrentPage="Inhyrd personal (VMS)" />
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    VMS (Vendor Management System) hanterar inhyrd personal och leverantörer.
+</MudAlert>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Inhyrd personal - Oversikt</MudText>
 </div>
@@ -51,7 +55,7 @@ else
                     <MudListItem Href="/vms/tidrapporter" Icon="@Icons.Material.Filled.AccessTime">Tidrapporter</MudListItem>
                     <MudListItem Href="/vms/fakturor" Icon="@Icons.Material.Filled.Receipt">Fakturor</MudListItem>
                     <MudListItem Href="/vms/statistik" Icon="@Icons.Material.Filled.BarChart">Statistik</MudListItem>
-                    <MudListItem Href="/vms/fskatt" Icon="@Icons.Material.Filled.VerifiedUser">F-skatt compliance</MudListItem>
+                    <MudListItem Href="/vms/fskatt" Icon="@Icons.Material.Filled.VerifiedUser"><OhrTerm Term="F-skatt" /> compliance</MudListItem>
                 </MudList>
             </MudPaper>
         </MudItem>
