@@ -127,6 +127,32 @@ public class WebhookDeliveryService
     }
 
     /// <summary>
+    /// Retry a failed delivery.  Loads the related subscription and event record,
+    /// then re-attempts HTTP delivery and updates the delivery status.
+    /// </summary>
+    public async Task<bool> RedeliverAsync(EventDelivery delivery, CancellationToken ct = default)
+    {
+        var subscription = await _db.EventSubscriptions.FindAsync(
+            new object[] { delivery.EventSubscriptionId }, ct);
+        if (subscription is null)
+        {
+            _logger.LogWarning("Webhook retry: prenumeration {Id} hittades inte", delivery.EventSubscriptionId);
+            return false;
+        }
+
+        var record = await _db.DomainEventRecords.FindAsync(
+            new object[] { delivery.DomainEventRecordId }, ct);
+        if (record is null)
+        {
+            _logger.LogWarning("Webhook retry: händelsepost {Id} hittades inte", delivery.DomainEventRecordId);
+            return false;
+        }
+
+        await AttemptDeliveryAsync(subscription, delivery, record, ct);
+        return delivery.Status == EventDeliveryStatus.Delivered;
+    }
+
+    /// <summary>
     /// Test delivery to a subscription with a sample event.
     /// </summary>
     public async Task<(bool success, int statusCode)> TestDeliveryAsync(Guid subscriptionId, CancellationToken ct = default)

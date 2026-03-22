@@ -20,6 +20,7 @@ using RegionHR.Infrastructure.Integrations;
 using RegionHR.Infrastructure.Reporting;
 using RegionHR.Infrastructure.Payroll;
 using RegionHR.Infrastructure.Scheduling;
+using RegionHR.Infrastructure.Analytics;
 using RegionHR.Infrastructure.Events;
 using RegionHR.Infrastructure.Services;
 using RegionHR.Automation.Domain;
@@ -156,12 +157,20 @@ public static class DependencyInjection
         // Knowledge base
         services.AddScoped<KnowledgeBaseService>();
 
+        // Analytics prediction service
+        services.AddScoped<PredictionCalculationService>();
+
+        // Demand forecast generator
+        services.AddScoped<DemandForecastGenerator>();
+
         // Background services
         services.AddHostedService<NotificationReminderService>();
         services.AddHostedService<RetentionCleanupService>();
         services.AddHostedService<ScheduledReportService>();
         services.AddHostedService<CertificationReminderService>();
         services.AddHostedService<LASAlertService>();
+        services.AddHostedService<AutomationBackgroundService>();
+        services.AddHostedService<WebhookRetryBackgroundService>();
 
         // OpenTelemetry
         services.AddOpenTelemetry()
