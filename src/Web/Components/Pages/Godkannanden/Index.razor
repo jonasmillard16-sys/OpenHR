@@ -7,12 +7,16 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
+<OhrBreadcrumb CurrentPage="Godkännanden" />
+
 <PageTitle>OpenHR — Godkännanden</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Godkännanden</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Ärenden som väntar på godkännande. Adminvy — visar alla väntande oavsett godkännare.
+    Här ser du ärenden som väntar på ditt godkännande, till exempel ledighetsansökningar och anställningsändringar.
 </MudText>
+
+<OhrStatusLegend Items="@_legend" />
 
 @if (_loading)
 {
@@ -69,6 +73,13 @@ else
     private Dictionary<EmployeeId, string> _empNames = new();
     private bool _loading = true;
     private string? _error;
+
+    private readonly List<OhrStatusLegend.StatusLegendItem> _legend =
+    [
+        new("Väntar", Color.Warning, "Ärende väntar på godkännande"),
+        new("Godkänd", Color.Success, "Ärende är godkänt"),
+        new("Avslagen", Color.Error, "Ärende har avslagits"),
+    ];
 
     protected override async Task OnInitializedAsync()
     {

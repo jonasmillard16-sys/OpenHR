@@ -9,11 +9,17 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
+<OhrBreadcrumb CurrentPage="Schemaoptimering" ExtraItems="@(new List<BreadcrumbItem>{new("Schema", "/schema")})" />
+
 <PageTitle>OpenHR - Schemaoptimering</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Schemaoptimering</MudText>
 </div>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    <strong>Vad gör knappen "Optimera"?</strong> Systemet analyserar vilka anställda som är tillgängliga och fördelar automatiskt dagpass och kvällspass för den valda perioden. Fördelningen tar hänsyn till <OhrTerm Term="ATL" /> (Arbetstidslagen) och balanserar arbetstiden jämnt mellan personalen. Du kan granska resultatet och göra manuella justeringar efteråt.
+</MudAlert>
 
 <MudGrid Spacing="3" Class="mb-6">
     <MudItem xs="12" sm="4">

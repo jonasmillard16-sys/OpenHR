@@ -10,6 +10,8 @@
 
 <PageTitle>OpenHR — @L["NewLeaveRequest"]</PageTitle>
 
+<OhrBreadcrumb CurrentPage="Ny ledighetsansökan" ExtraItems="@(new List<BreadcrumbItem>{new("Ledighet", "/ledighet")})" />
+
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/ledighet" Style="margin-bottom: 1rem;">@L["Back"]</MudButton>
 
@@ -55,7 +57,8 @@ else
     <MudPaper Class="pa-5" Elevation="2">
         <MudGrid Spacing="3">
             <MudItem xs="12" sm="6">
-                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="@L["Employee"]" Variant="Variant.Outlined" Required="true">
+                <MudSelect T="Guid?" @bind-Value="_anstallId" Label="@L["Employee"]" Variant="Variant.Outlined" Required="true"
+                           HelperText="Välj den anställde som ansökan gäller för">
                     @foreach (var e in _employees)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)e.Id.Value)">@e.Fornamn @e.Efternamn</MudSelectItem>
@@ -63,7 +66,8 @@ else
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect T="LeaveType" @bind-Value="_typ" Label="@L["LeaveType"]" Variant="Variant.Outlined">
+                <MudSelect T="LeaveType" @bind-Value="_typ" Label="@L["LeaveType"]" Variant="Variant.Outlined"
+                           HelperText="Semester = planerad ledighet, Sjukfrånvaro = sjukskrivning, VAB = vård av sjukt barn">
                     @foreach (var t in Enum.GetValues<LeaveType>())
                     {
                         <MudSelectItem Value="@t">@TypText(t)</MudSelectItem>

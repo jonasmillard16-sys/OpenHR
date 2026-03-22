@@ -12,6 +12,8 @@
 
 <PageTitle>OpenHR - Anställd</PageTitle>
 
+<OhrBreadcrumb CurrentPage="@(_emp != null ? $"{_emp.Fornamn} {_emp.Efternamn}" : "Anställd")" ExtraItems="@(new List<BreadcrumbItem>{new("Personal", "/anstallda")})" />
+
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
            Color="Color.Primary" Href="/anstallda" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
@@ -48,7 +50,7 @@
                     <MudText Typo="Typo.h6" Class="mb-3">Skatteuppgifter</MudText>
                     <MudSimpleTable Dense="true">
                         <tbody>
-                            <tr><td><strong>Skattetabell</strong></td><td>@(_emp.Skattetabell?.ToString() ?? "—")</td></tr>
+                            <tr><td><strong><OhrTerm Term="Skattetabell" /></strong></td><td>@(_emp.Skattetabell?.ToString() ?? "—")</td></tr>
                             <tr><td><strong>Skattekolumn</strong></td><td>@(_emp.Skattekolumn?.ToString() ?? "—")</td></tr>
                             <tr><td><strong>Kommun</strong></td><td>@(_emp.Kommun ?? "—")</td></tr>
                             <tr><td><strong>Kommunalskatt</strong></td><td>@(_emp.KommunalSkattesats.HasValue ? $"{_emp.KommunalSkattesats.Value}%" : "—")</td></tr>
@@ -94,7 +96,7 @@
                                 <td>@a.Manadslon.Amount.ToString("N0") kr</td>
                                 <td>@a.Sysselsattningsgrad.Value%</td>
                                 <td>@a.Giltighetsperiod.Start.ToString("yyyy-MM-dd")</td>
-                                <td>@(a.Giltighetsperiod.End?.ToString("yyyy-MM-dd") ?? "Tillsvidare")</td>
+                                <td>@(a.Giltighetsperiod.End?.ToString("yyyy-MM-dd") ?? "Tillsvidare (utan slutdatum)")</td>
                                 <td>@a.Kollektivavtal</td>
                             </tr>
                         }

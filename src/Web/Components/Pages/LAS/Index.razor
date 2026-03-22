@@ -8,8 +8,22 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
+<OhrBreadcrumb CurrentPage="LAS-uppföljning" />
+
 <PageTitle>OpenHR - LAS-uppföljning</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">LAS-uppföljning</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;"><OhrTerm Term="LAS" DisplayText="LAS-uppföljning" /></MudText>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4">
+    <MudText Typo="Typo.body2" Class="mb-2">
+        <strong>Vad är LAS?</strong> Lagen om anställningsskydd (<OhrTerm Term="LAS" />) skyddar anställda som har tidsbegränsade anställningar. Om en person har arbetat tillräckligt länge har de rätt att bli fast anställda (<OhrTerm Term="Tillsvidare" />).
+    </MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Viktiga gränser:</strong></MudText>
+    <ul style="margin: 0 0 0.5rem 1.2rem;">
+        <li><MudText Typo="Typo.body2"><strong><OhrTerm Term="SAVA" /> (Allmän visstidsanställning):</strong> Rätt till fast anställning efter 12 månader (365 dagar) under 5 år</MudText></li>
+        <li><MudText Typo="Typo.body2"><strong>Vikariat:</strong> Rätt till fast anställning efter 24 månader (730 dagar) under 5 år</MudText></li>
+    </ul>
+    <MudText Typo="Typo.body2">Röd = kritisk (mer än 330 dagar), Gul = varning (mer än 300 dagar). Agera i tid för att undvika automatisk konvertering utan förberedelse.</MudText>
+</MudAlert>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }

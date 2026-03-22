@@ -9,10 +9,15 @@
 @inject NavigationManager Nav
 @inject SwedishTaxCalculator TaxCalc
 
+<OhrBreadcrumb CurrentPage="Ny lönekörning" ExtraItems="@(new List<BreadcrumbItem>{new("Lön", "/lon/korningar")})" />
+
 <PageTitle>OpenHR - Ny lönekörning</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Ny lönekörning</MudText>
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    En lönekörning beräknar löner för alla aktiva anställda för den valda månaden. Systemet beräknar bruttolön, skatt och nettolön automatiskt. Du kan granska resultatet innan det används för utbetalning.
+</MudAlert>
 
 @if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
 

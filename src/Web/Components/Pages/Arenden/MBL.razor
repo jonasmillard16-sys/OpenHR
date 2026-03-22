@@ -5,11 +5,42 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="MBL-förhandlingar" ExtraItems="@(new List<BreadcrumbItem>{new("Ärenden", "/arenden")})" />
+
 <PageTitle>OpenHR - MBL-förhandlingar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">MBL-förhandlingar</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny förhandling</MudButton>
 </div>
+
+<MudExpansionPanels Class="mb-4">
+    <MudExpansionPanel Text="Vad är MBL §19 och §11-14? — Klicka för juridisk vägledning" Icon="@Icons.Material.Filled.Gavel">
+        <MudText Typo="Typo.body2" Class="mb-3">
+            <strong>MBL — Medbestämmandelagen</strong> ger de anställdas fackförbund rätt att vara delaktiga när arbetsgivaren fattar viktiga beslut.
+        </MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6">
+                <MudPaper Class="pa-3" Elevation="1" Style="border-left: 3px solid var(--mud-palette-info);">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight: 700;">§19 — Information</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-1">Används när arbetsgivaren <em>informerar</em> facket om ett beslut eller en förändring.</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-1"><strong>Exempel:</strong> Byte av städleverantör, nya arbetstider, organisations­förändringar av mindre slag.</MudText>
+                    <MudText Typo="Typo.body2">Facket har rätt att få information men ingen vetorätt.</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudPaper Class="pa-3" Elevation="1" Style="border-left: 3px solid var(--mud-palette-warning);">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1" Style="font-weight: 700;">§11–14 — Förhandling</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-1">Används när arbetsgivaren måste <em>förhandla</em> med facket innan ett beslut fattas.</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-1"><strong>Exempel:</strong> Uppsägningar, större omorganisationer, ändrade anställningsvillkor.</MudText>
+                    <MudText Typo="Typo.body2">Arbetsgivaren får <strong>inte</strong> genomföra beslutet förrän förhandlingen är avslutad.</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Class="mt-3" Dense="true">
+            Vid tveksamhet om vilken paragraf som gäller — välj §11-14 Förhandling för att vara på säkra sidan, eller kontakta er arbetsrättsjurist.
+        </MudAlert>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }

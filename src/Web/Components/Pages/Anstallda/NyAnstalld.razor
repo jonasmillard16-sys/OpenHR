@@ -5,6 +5,8 @@
 
 <PageTitle>Ny anställd - OpenHR</PageTitle>
 
+<OhrBreadcrumb CurrentPage="Ny anställd" ExtraItems="@(new List<BreadcrumbItem>{new("Personal", "/anstallda")})" />
+
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/anstallda" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
 @if (!_skapad)
@@ -45,11 +47,13 @@
                               Error="@_efternamnFel" ErrorText="Efternamn är obligatoriskt" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_epost" Label="E-post" Placeholder="fornamn.efternamn@region.se" Variant="Variant.Outlined" InputType="InputType.Email" Required="true"
+                <MudTextField @bind-Value="_epost" Label="E-post (valfritt)" Placeholder="fornamn.efternamn@region.se" Variant="Variant.Outlined" InputType="InputType.Email"
+                              HelperText="Lämna tomt för att automatiskt skapa en e-postadress"
                               Error="@_epostFel" ErrorText="@("Ange en giltig e-postadress (måste innehålla @)")" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_telefon" Label="Telefon" Variant="Variant.Outlined" InputType="InputType.Telephone" />
+                <MudTextField @bind-Value="_telefon" Label="Telefon (valfritt)" Variant="Variant.Outlined" InputType="InputType.Telephone"
+                              HelperText="Ange telefonnummer om känt, annars lämna tomt" />
             </MudItem>
         </MudGrid>
 
@@ -185,14 +189,14 @@ else
 
             _skapad = true;
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
             _personnummerFel = true;
-            _felmeddelande = ex.Message;
+            _felmeddelande = "Personnumret är ogiltigt. Kontrollera formatet ÅÅÅÅMMDD-NNNN och försök igen.";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _felmeddelande = $"Kunde inte skapa anställd: {ex.Message}";
+            _felmeddelande = "Det gick inte att spara den anställde just nu. Kontrollera att alla fält är korrekt ifyllda och försök igen. Kontakta support om problemet kvarstår.";
         }
         finally
         {

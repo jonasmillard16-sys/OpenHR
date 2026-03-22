@@ -5,6 +5,8 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="HälsoSAM" />
+
 <PageTitle>OpenHR — HälsoSAM</PageTitle>
 
 <div class="d-flex justify-space-between align-center mb-4">
@@ -16,8 +18,7 @@
 </div>
 
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
-    Rehabärenden hämtas från databasen. Milstolpar (dag 14/90/180/365) är planerade uppföljningsdatum
-    beräknade från ärendets skapandedatum — inte verifierade mot faktisk sjukfallsstart.
+    Här hanterar du rehabiliteringsärenden för anställda som är sjukskrivna. Systemet visar när det är dags att vidta åtgärder enligt lagens krav.
 </MudText>
 
 @if (_loading)
@@ -59,18 +60,17 @@ else
     </MudGrid>
 
     @* Rehabkedjan — statisk referens *@
-    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Rehabkedjan — lagstadgade milstolpar (referens)</MudText>
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Vad händer vid sjukskrivning? — Lagstadgade steg</MudText>
     <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
-        Dessa milstolpar är lagstadgade steg i den svenska rehabkedjan. I v1.5 beräknas planerade datum
-        från ärendets skapandedatum, inte från verifierat sjukfallsstartdatum.
+        Lagen kräver att du som arbetsgivare följer dessa steg vid sjukfrånvaro. Datumen räknas från att ärendet öppnades i systemet.
     </MudAlert>
     <MudTimeline TimelineAlign="TimelineAlign.Start" Class="mb-6">
-        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 1:</strong> Sjukanmälan, karensavdrag</MudText></MudTimelineItem>
-        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 8:</strong> Läkarintyg krävs</MudText></MudTimelineItem>
-        <MudTimelineItem Color="Color.Info" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 14:</strong> Anmälan till FK, rehabplan upprättas</MudText></MudTimelineItem>
-        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 90:</strong> FK prövar mot ordinarie arbete</MudText></MudTimelineItem>
-        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 180:</strong> FK prövar mot hela arbetsmarknaden</MudText></MudTimelineItem>
-        <MudTimelineItem Color="Color.Error" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 365:</strong> FK prövar mot normalt förekommande arbete</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 1:</strong> Sjukanmälan tas emot. Karensavdrag görs automatiskt i lönen.</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Success" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 8:</strong> Läkarintyg krävs. Be den anställde lämna in läkarintyg.</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Info" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 14: Åtgärd krävs!</strong> Anmäl till Försäkringskassan och upprätta en rehabplan tillsammans med den anställde.</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 90: Åtgärd krävs!</strong> Försäkringskassan bedömer om personen kan återgå till sitt ordinarie arbete. Se till att ha en uppdaterad rehabplan.</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Warning" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 180: Åtgärd krävs!</strong> Försäkringskassan bedömer nu mot hela arbetsmarknaden. Kontakta FK för samordningsmöte.</MudText></MudTimelineItem>
+        <MudTimelineItem Color="Color.Error" Size="Size.Small"><MudText Typo="Typo.body2"><strong>Dag 365: Kritisk gräns!</strong> Försäkringskassan prövar mot normalt förekommande arbete. Kontakta HR-chefen och FK omedelbart.</MudText></MudTimelineItem>
     </MudTimeline>
 
     @* Rehabärenden från DB *@

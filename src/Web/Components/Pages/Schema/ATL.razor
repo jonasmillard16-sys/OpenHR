@@ -5,9 +5,30 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="ATL-efterlevnad" ExtraItems="@(new List<BreadcrumbItem>{new("Schema", "/schema")})" />
+
 <PageTitle>OpenHR - ATL-efterlevnad</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">ATL-efterlevnad</MudText>
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;"><OhrTerm Term="ATL" DisplayText="ATL-efterlevnad" /></MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Arbetstidslagens efterlevnad baserad på schemalagda pass (senaste 4 veckor).</MudText>
+
+<MudExpansionPanels Class="mb-4">
+    <MudExpansionPanel Text="Vad är ATL? — Klicka för förklaring" Icon="@Icons.Material.Filled.Info">
+        <MudText Typo="Typo.body2" Class="mb-2">
+            <strong>ATL — Arbetstidslagen</strong> är en lag som skyddar anställda från alltför långa arbetsdagar och arbetsveckor. Lagen gäller alla anställda i Sverige.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Reglerna i korthet:
+        </MudText>
+        <ul style="margin: 0 0 0.5rem 1.2rem;">
+            <li><MudText Typo="Typo.body2"><strong>Max 48 timmar per vecka</strong> i genomsnitt, räknat över 4 veckor</MudText></li>
+            <li><MudText Typo="Typo.body2"><strong>Dygnsvila:</strong> Minst 11 timmars sammanhängande ledighet per dygn (9 timmar gäller för sjukvård)</MudText></li>
+            <li><MudText Typo="Typo.body2"><strong>Veckovila:</strong> Minst 36 timmars sammanhängande ledighet per vecka</MudText></li>
+        </ul>
+        <MudText Typo="Typo.body2">
+            Om en anställd riskerar att bryta mot ATL visas det här med varning. Röd status betyder att gränsen redan överskridits — åtgärda schemat snarast.
+        </MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }

@@ -5,6 +5,8 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="Teamkalender" ExtraItems="@(new List<BreadcrumbItem>{new("Ledighet", "/ledighet")})" />
+
 <PageTitle>OpenHR - Teamkalender</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Teamkalender — @_currentMonth.ToString("MMMM yyyy", _sv)</MudText>
 
@@ -15,11 +17,11 @@
 
 @* Month navigation *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="PreviousMonth" />
+    <MudButton StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Color="Color.Default" OnClick="PreviousMonth">Föreg. månad</MudButton>
     <MudText Typo="Typo.h6" Style="font-weight: 600; min-width: 160px; text-align: center;">
         @_currentMonth.ToString("MMMM yyyy", _sv)
     </MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" OnClick="NextMonth" />
+    <MudButton EndIcon="@Icons.Material.Filled.ChevronRight" Variant="Variant.Outlined" Color="Color.Default" OnClick="NextMonth">Nästa månad</MudButton>
     <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToToday">Idag</MudButton>
 </MudStack>
 
@@ -64,7 +66,7 @@ else
                     </div>
                     @foreach (var leave in dayLeaves.Take(3))
                     {
-                        <MudChip T="string" Size="Size.Small" Style="@($"font-size: 0.7rem; height: 20px; margin: 1px 0; background: {leave.Color}; color: white;")"
+                        <MudChip T="string" Size="Size.Small" Style="@($"font-size: 0.9rem; height: 22px; margin: 1px 0; background: {leave.Color}; color: white;")"
                                  Class="px-1">
                             @leave.ShortName
                         </MudChip>
@@ -332,11 +334,11 @@ else
 
     private static string TypSymbol(string type) => type switch
     {
-        "Semester" => "\U0001F334",
-        "Sjuk" => "\U0001F912",
-        "VAB" => "\U0001F476",
-        "Föräldraledighet" => "\U0001F476",
-        _ => "\U0001F4C5"
+        "Semester" => "Sem",
+        "Sjuk" => "Sjuk",
+        "VAB" => "VAB",
+        "Föräldraledighet" => "För",
+        _ => "Ledig"
     };
 
     private record LeaveEntry(string EmployeeName, string Type, DateOnly StartDate, DateOnly EndDate, string Color)

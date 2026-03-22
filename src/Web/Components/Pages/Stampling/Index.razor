@@ -6,9 +6,47 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="Instämpling" />
+
 <PageTitle>OpenHR - Instämpling</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Instämpling idag</MudText>
 <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@DateTime.Today.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))</MudText>
+
+<MudPaper Class="pa-5 mb-6 text-center" Elevation="3" Style="border: 2px solid var(--mud-palette-success); border-radius: 12px;">
+    <MudText Typo="Typo.h6" Class="mb-2">Din stämpling</MudText>
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+        @if (_instamplad)
+        {
+            <span style="color: var(--mud-palette-success); font-weight: 600;">Du är instämplad</span>
+        }
+        else
+        {
+            <span>Du är <strong>inte</strong> instämplad</span>
+        }
+    </MudText>
+    @if (!_instamplad)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Large"
+                   Style="min-height: 56px; font-size: 1.1rem; min-width: 200px;"
+                   StartIcon="@Icons.Material.Filled.Login"
+                   OnClick="StamplaIn"
+                   Disabled="_stamplingSparas">
+            @if (_stamplingSparas) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Stämpla in
+        </MudButton>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large"
+                   Style="min-height: 56px; font-size: 1.1rem; min-width: 200px;"
+                   StartIcon="@Icons.Material.Filled.Logout"
+                   OnClick="StamplaUt"
+                   Disabled="_stamplingSparas">
+            @if (_stamplingSparas) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Stämpla ut
+        </MudButton>
+    }
+</MudPaper>
 
 @if (_loading)
 {
@@ -54,6 +92,24 @@ else
     private int _stamplade, _sena, _saknar;
     private bool _loading = true;
     private string? _error;
+    private bool _instamplad;
+    private bool _stamplingSparas;
+
+    private void StamplaIn()
+    {
+        _stamplingSparas = true;
+        _instamplad = true;
+        _stamplingSparas = false;
+        StateHasChanged();
+    }
+
+    private void StamplaUt()
+    {
+        _stamplingSparas = true;
+        _instamplad = false;
+        _stamplingSparas = false;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {

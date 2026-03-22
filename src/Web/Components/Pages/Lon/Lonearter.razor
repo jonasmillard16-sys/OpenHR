@@ -5,8 +5,13 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="Lönearter" ExtraItems="@(new List<BreadcrumbItem>{new("Lön", "/lon/korningar")})" />
+
 <PageTitle>OpenHR - Lönearter</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönearter</MudText>
+<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Lönearter är de olika typer av ersättning som kan ingå i en löneutbetalning, till exempel grundlön, övertidsersättning och OB-tillägg.
+</MudText>
 
 @if (_loading)
 {
@@ -24,7 +29,7 @@ else
 {
     <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">@_lonearter.Count lönearter i systemet</MudText>
     <MudSimpleTable Hover="true" Elevation="2">
-        <thead><tr><th>Kod</th><th>Benämning</th><th>Skattekategori</th><th>Semester</th><th>Pension</th><th>Avdrag</th></tr></thead>
+        <thead><tr><th>Kod</th><th>Benämning</th><th>Skattekategori</th><th>Semestergrundande</th><th>Pensionsgrundande</th><th>Avdrag</th></tr></thead>
         <tbody>
             @foreach (var l in _lonearter)
             {

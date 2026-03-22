@@ -6,11 +6,17 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
+<OhrBreadcrumb CurrentPage="Löneöversyn" />
+
 <PageTitle>OpenHR - Löneöversyn</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">Löneöversyn</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Add" Style="min-height: 48px;" OnClick="@(() => _showForm = true)">Ny runda</MudButton>
 </div>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mb-4" Dense="true">
+    Löneöversyn är den årliga processen där löner justeras. Skapa en ny runda, ange budget och avtalsområde. HR fyller sedan i löneförslag för varje anställd, varefter chefer godkänner och fackliga organisationer informeras.
+</MudAlert>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
