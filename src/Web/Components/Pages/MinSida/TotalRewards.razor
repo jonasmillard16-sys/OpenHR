@@ -11,23 +11,23 @@
 <PageTitle>OpenHR - Total Rewards</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Din totala kompensation</MudText>
 <MudText Typo="Typo.body2" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
-    Oversikt av din fullstandiga ersattning inklusive lon, pension, forsakringar och formaner.
+    Översikt av din fullständiga ersättning inklusive lön, pension, försäkringar och förmåner.
 </MudText>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }
 else if (_statement == null)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen Total Rewards-data tillganglig.</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Text">Ingen Total Rewards-data tillgänglig.</MudAlert>
 }
 else
 {
     <MudGrid Spacing="4" Class="mb-6">
         <MudItem xs="12">
             <MudPaper Class="pa-6 text-center" Elevation="2" Style="background: linear-gradient(135deg, #0e7490, #06b6d4); color: white; border-radius: 16px;">
-                <MudText Typo="Typo.caption" Style="opacity: 0.8;">Total arlig kompensation @_statement.Ar</MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.8;">Total årlig kompensation @_statement.Ar</MudText>
                 <MudText Typo="Typo.h3" Style="font-weight: 800;">@FormatKr(_statement.TotalKompensation * 12m)</MudText>
-                <MudText Typo="Typo.body2" Style="opacity: 0.7;">@FormatKr(_statement.TotalKompensation) / manad</MudText>
+                <MudText Typo="Typo.body2" Style="opacity: 0.7;">@FormatKr(_statement.TotalKompensation) / månad</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -36,14 +36,14 @@ else
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" />
-                <MudText Typo="Typo.caption" Class="mt-1">Grundlon</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1">Grundlön</MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.GrundLon)</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Secondary" />
-                <MudText Typo="Typo.caption" Class="mt-1">Tillagg</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1">Tillägg</MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Tillagg)</MudText>
             </MudPaper>
         </MudItem>
@@ -57,14 +57,14 @@ else
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Warning" />
-                <MudText Typo="Typo.caption" Class="mt-1">Forsakringar</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1">Försäkringar</MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Forsakringar)</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <MudPaper Class="pa-4 text-center" Elevation="1">
                 <MudIcon Icon="@Icons.Material.Filled.CardGiftcard" Color="Color.Info" />
-                <MudText Typo="Typo.caption" Class="mt-1">Formaner</MudText>
+                <MudText Typo="Typo.caption" Class="mt-1">Förmåner</MudText>
                 <MudText Typo="Typo.h6" Style="font-weight: 700;">@FormatKr(_statement.Formaner)</MudText>
             </MudPaper>
         </MudItem>
@@ -78,9 +78,9 @@ else
     </MudGrid>
 
     <MudPaper Class="pa-5 mt-6" Elevation="1">
-        <MudText Typo="Typo.h6" Class="mb-3">Fordelning</MudText>
+        <MudText Typo="Typo.h6" Class="mb-3">Fördelning</MudText>
         <MudSimpleTable Hover="true" Dense="true">
-            <thead><tr><th>Komponent</th><th>Manad</th><th>Ar</th><th>Andel</th></tr></thead>
+            <thead><tr><th>Komponent</th><th>Månad</th><th>År</th><th>Andel</th></tr></thead>
             <tbody>
                 @foreach (var row in _rows)
                 {
@@ -116,18 +116,12 @@ else
             var auth = await AuthState.GetAuthenticationStateAsync();
             var employeeIdClaim = auth.User.FindFirst("EmployeeId")?.Value;
 
-            // Fallback to first employee for demo
-            Guid anstallId;
-            if (employeeIdClaim != null && Guid.TryParse(employeeIdClaim, out var parsedId))
+            if (employeeIdClaim == null || !Guid.TryParse(employeeIdClaim, out var parsedId))
             {
-                anstallId = parsedId;
+                _error = "Du måste vara inloggad för att se din kompensationsöversikt. Logga in på nytt.";
+                return;
             }
-            else
-            {
-                var first = await db.Employees.FirstOrDefaultAsync();
-                if (first == null) { _error = "Ingen anstalld hittad"; return; }
-                anstallId = first.Id.Value;
-            }
+            var anstallId = parsedId;
 
             var year = DateTime.Now.Year;
             _statement = await db.TotalRewardsStatements
@@ -137,10 +131,10 @@ else
             {
                 var emp = await db.Employees.Include(e => e.Anstallningar)
                     .FirstOrDefaultAsync(e => e.Id == EmployeeId.From(anstallId));
-                if (emp == null) { _error = "Anstalld hittades inte"; return; }
+                if (emp == null) { _error = "Anställd hittades inte"; return; }
 
                 var anst = emp.Anstallningar.FirstOrDefault();
-                if (anst == null) { _error = "Ingen anstallning"; return; }
+                if (anst == null) { _error = "Ingen anställning"; return; }
 
                 decimal grundLon = anst.Manadslon.Amount;
                 _statement = TotalRewardsStatement.Generera(
@@ -153,15 +147,15 @@ else
 
             _rows =
             [
-                new("Grundlon", _statement.GrundLon, Color.Primary),
-                new("Tillagg", _statement.Tillagg, Color.Secondary),
+                new("Grundlön", _statement.GrundLon, Color.Primary),
+                new("Tillägg", _statement.Tillagg, Color.Secondary),
                 new("Pension", _statement.Pension, Color.Success),
-                new("Forsakringar", _statement.Forsakringar, Color.Warning),
-                new("Formaner", _statement.Formaner, Color.Info),
+                new("Försäkringar", _statement.Forsakringar, Color.Warning),
+                new("Förmåner", _statement.Formaner, Color.Info),
                 new("AG-avgifter", _statement.AGAvgifter, Color.Dark)
             ];
         }
-        catch (Exception ex) { _error = $"Kunde inte hamta Total Rewards: {ex.Message}"; }
+        catch (Exception ex) { _error = $"Kunde inte hämta Total Rewards: {ex.Message}"; }
         finally { _loading = false; }
     }
 
