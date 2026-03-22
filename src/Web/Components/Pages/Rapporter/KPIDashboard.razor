@@ -8,6 +8,13 @@
 @inject KPICalculationService KPICalcService
 
 <PageTitle>OpenHR - KPI Dashboard</PageTitle>
+<OhrBreadcrumb CurrentPage="KPI Dashboard" />
+<MudText Typo="Typo.body1" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Här ser du organisationens nyckeltal (<OhrTerm Term="KPI" />). Varje kort visar ett mätvärde med färgmarkering: grönt betyder att målet är uppnått, gult att det är nära gränsen, och rött att åtgärd behövs.</MudText>
+<MudPaper Class="pa-3 mb-4 d-flex gap-4 align-center flex-wrap" Elevation="0" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+    <div class="d-flex align-center gap-1"><MudIcon Icon="@Icons.Material.Filled.Circle" Style="color: #4caf50;" Size="Size.Small" /><MudText Typo="Typo.body2">Grönt = bra (målet uppnått)</MudText></div>
+    <div class="d-flex align-center gap-1"><MudIcon Icon="@Icons.Material.Filled.Circle" Style="color: #ff9800;" Size="Size.Small" /><MudText Typo="Typo.body2">Gult = nära gränsen</MudText></div>
+    <div class="d-flex align-center gap-1"><MudIcon Icon="@Icons.Material.Filled.Circle" Style="color: #f44336;" Size="Size.Small" /><MudText Typo="Typo.body2">Rött = åtgärd behövs</MudText></div>
+</MudPaper>
 <div class="d-flex align-center justify-space-between mb-4">
     <MudText Typo="Typo.h4" Style="font-weight: 700;">KPI Dashboard</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Calculate"

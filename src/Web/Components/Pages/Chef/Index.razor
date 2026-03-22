@@ -8,7 +8,7 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Chefsportal</PageTitle>
-
+<OhrBreadcrumb CurrentPage="Chefsportal" />
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Chefsportal</MudText>
 
 @if (_error != null)
@@ -53,7 +53,8 @@ else if (!_loading)
 @if (_nudges.Count > 0)
 {
     <MudPaper Class="pa-4 mb-6" Elevation="2" Style="border-left: 4px solid var(--mud-palette-info);">
-        <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Coaching-insikter (@_nudges.Count)</MudText>
+        <MudText Typo="Typo.h6" Class="mb-1" Style="font-weight: 600;">Coaching-insikter (@_nudges.Count)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Systemet har märkt något du kan vilja känna till om ditt team — till exempel om någon haft lång frånvaro eller om ett samtal snart bör bokas. Klicka "OK" för att markera som läst.</MudText>
         <MudStack Spacing="2">
             @foreach (var nudge in _nudges)
             {
@@ -74,34 +75,34 @@ else if (!_loading)
 @* === OVERVIEW CARDS === *@
 <MudGrid Spacing="4">
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F465")" Title="Anställda" Description="Se alla anställda"
+        <OhrBigCard Icon="@Icons.Material.Filled.Group" Title="Anställda" Description="Se alla anställda"
                     BadgeValue="@($"{_teamAntal} anställda")" Href="/chef/team" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F7E2")" Title="Bemanning idag" Description="Se schemalagda pass"
+        <OhrBigCard Icon="@Icons.Material.Filled.CheckCircle" Title="Bemanning idag" Description="Se schemalagda pass"
                     Href="/chef/bemanning" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F4C5")" Title="Schema" Description="Se och ändra schemat" Href="/schema" />
+        <OhrBigCard Icon="@Icons.Material.Filled.CalendarMonth" Title="Schema" Description="Se och ändra schemat" Href="/schema" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F4CA")" Title="Frånvaro" Description="Se vem som är borta"
+        <OhrBigCard Icon="@Icons.Material.Filled.BarChart" Title="Frånvaro" Description="Se vem som är borta"
                     BadgeValue="@($"{_franvaroIdag} frånvarande")" Href="/chef/franvarokalender" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F91D")" Title="1:1-möten" Description="Boka och följ upp enskilda samtal" Href="/chef/1-1" />
+        <OhrBigCard Icon="@Icons.Material.Filled.Handshake" Title="1:1-möten" Description="Boka och följ upp enskilda samtal" Href="/chef/1-1" />
     </MudItem>
     <MudItem xs="12" sm="6">
-        <OhrBigCard Icon="@("\U0001F4CA")" Title="Chefsstyrkort" Description="Se dina ledarskapsmått" Href="/chef/scorecard" />
+        <OhrBigCard Icon="@Icons.Material.Filled.Dashboard" Title="Chefsstyrkort" Description="Se dina ledarskapsmått" Href="/chef/scorecard" />
     </MudItem>
 </MudGrid>
 
 <MudDivider Class="my-6" />
 <MudText Typo="Typo.h6" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">Min sida</MudText>
 <MudGrid Spacing="4">
-    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F4C5")" Title="Mitt schema" Description="Se när du jobbar" Href="/minsida/schema" /></MudItem>
-    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F4B0")" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" /></MudItem>
-    <MudItem xs="12" sm="4"><OhrBigCard Icon="@("\U0001F464")" Title="Om mig" Description="Min adress och uppgifter" Href="/minsida/profil" /></MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@Icons.Material.Filled.CalendarToday" Title="Mitt schema" Description="Se när du jobbar" Href="/minsida/schema" /></MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@Icons.Material.Filled.Payments" Title="Min lön" Description="Se vad du fått i lön" Href="/minsida/lon" /></MudItem>
+    <MudItem xs="12" sm="4"><OhrBigCard Icon="@Icons.Material.Filled.Person" Title="Om mig" Description="Min adress och uppgifter" Href="/minsida/profil" /></MudItem>
 </MudGrid>
 
 @code {

@@ -6,6 +6,8 @@
 @inject IJSRuntime JS
 
 <PageTitle>OpenHR - Generera dokument</PageTitle>
+<OhrBreadcrumb CurrentPage="Generera dokument" />
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Välj en mall, fyll i uppgifterna, och ladda ned dokumentet som PDF.</MudText>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/dokument/mallar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
 
 <OhrConversationFlow Steps="@_steps" CurrentStep="@_step" OnBack="@(() => { if (_step > 0) _step--; })">

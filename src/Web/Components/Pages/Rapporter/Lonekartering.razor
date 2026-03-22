@@ -7,7 +7,9 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Lönekartering</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekartering</MudText>
+<OhrBreadcrumb CurrentPage="Lönekartering" />
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;"><OhrTerm Term="Lönekartering" /> </MudText>
+<MudText Typo="Typo.body1" Class="mb-2" Style="color: var(--mud-palette-text-secondary);">Lönekartering visar löner per befattning för att hitta osakliga löneskillnader (enligt diskrimineringslagen).</MudText>
 <MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">Analys av löneskillnader enligt diskrimineringslagen.</MudText>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }

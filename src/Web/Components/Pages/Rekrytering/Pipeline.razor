@@ -6,7 +6,16 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Rekryteringspipeline</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rekryteringspipeline</MudText>
+<OhrBreadcrumb CurrentPage="Rekryteringspipeline" />
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Rekryteringspipeline</MudText>
+<MudPaper Class="pa-3 mb-4" Elevation="0" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+    <MudText Typo="Typo.body2" Class="mb-1">Här ser du alla öppna tjänster och var kandidaterna befinner sig i processen. En ansökan går igenom dessa steg:</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Inkommen</strong> – ansökan har registrerats och väntar på granskning.</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Granskning</strong> – HR eller chef läser igenom ansökan.</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Intervju</strong> – kandidaten kallas till intervju.</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Referenstagning</strong> – referenser kontrolleras.</MudText>
+    <MudText Typo="Typo.body2"><strong>Erbjudande / Avslag</strong> – kandidaten får besked.</MudText>
+</MudPaper>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }

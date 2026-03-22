@@ -9,8 +9,13 @@
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Lonetransparens (EU-direktivet)</PageTitle>
+<OhrBreadcrumb CurrentPage="Lönetransparens" />
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Lonetransparens</MudText>
-<MudText Typo="Typo.body2" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">EU Pay Transparency Directive (2023/970) — lonegap per befattningskategori, kvartilfordelning och intersektionell analys.</MudText>
+<MudText Typo="Typo.body1" Class="mb-2" Style="color: var(--mud-palette-text-secondary);">EU Pay Transparency Directive (2023/970) — lonegap per befattningskategori, kvartilfordelning och intersektionell analys.</MudText>
+<MudPaper Class="pa-3 mb-4" Elevation="0" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Ojusterat gap</strong> – skillnaden i medellön mellan kvinnor och män utan hänsyn till befattning eller arbetstid. Visar den totala löneskillnaden i organisationen.</MudText>
+    <MudText Typo="Typo.body2"><strong>Justerat gap</strong> – löneskillnaden när man jämför personer med samma befattning och arbetstid. Om det justerade gapet är stort kan det tyda på osakliga löneskillnader som behöver utredas.</MudText>
+</MudPaper>
 
 @if (_loading) { <MudProgressCircular Color="Color.Primary" Indeterminate="true" /> }
 else if (_error != null) { <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert> }

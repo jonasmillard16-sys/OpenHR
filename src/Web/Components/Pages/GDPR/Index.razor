@@ -7,7 +7,15 @@
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - GDPR</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">GDPR-efterlevnad</MudText>
+<OhrBreadcrumb CurrentPage="GDPR" />
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;"><OhrTerm Term="GDPR" />-efterlevnad</MudText>
+<MudPaper Class="pa-3 mb-4" Elevation="0" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+    <MudText Typo="Typo.body2" Class="mb-1">Här hanterar du anställdas begäran om sina personuppgifter (DSR = Data Subject Request). Det finns fyra typer:</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong><OhrTerm Term="Registerutdrag" /></strong> – den anställde vill se vilka uppgifter vi har om dem.</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Radering</strong> – den anställde vill att vi tar bort deras uppgifter (rätten att bli glömd).</MudText>
+    <MudText Typo="Typo.body2" Class="mb-1"><strong>Rättelse</strong> – uppgifter är felaktiga och ska korrigeras.</MudText>
+    <MudText Typo="Typo.body2"><strong>Dataportabilitet</strong> – den anställde vill ha ut sina uppgifter i ett läsbart format.</MudText>
+</MudPaper>
 
 @if (_loading)
 {
