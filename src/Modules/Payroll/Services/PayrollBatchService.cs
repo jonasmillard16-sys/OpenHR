@@ -72,10 +72,7 @@ public sealed class PayrollBatchService
             }
             catch (Exception ex)
             {
-                // Logga fel men fortsätt med nästa anställd
-                // I produktion: logga till strukturerad logg och markera den anställde som felaktig
-                System.Diagnostics.Debug.WriteLine(
-                    $"Fel vid löneberäkning för {employee.Id}: {ex.Message}");
+                run.LaggTillFel(employee.Id, ex.Message);
             }
         }
 
@@ -188,8 +185,7 @@ public sealed class PayrollBatchService
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"Fel vid retroaktiv omräkning för {originalResult.AnstallId}: {ex.Message}");
+                run.LaggTillFel(originalResult.AnstallId, ex.Message);
             }
         }
 

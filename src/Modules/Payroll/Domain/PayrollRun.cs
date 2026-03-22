@@ -24,6 +24,15 @@ public sealed class PayrollRun : AggregateRoot<PayrollRunId>
     private readonly List<PayrollResult> _resultat = [];
     public IReadOnlyList<PayrollResult> Resultat => _resultat.AsReadOnly();
 
+    private readonly List<string> _berakningsFel = [];
+    public IReadOnlyList<string> BerakningsFel => _berakningsFel.AsReadOnly();
+    public bool HarFel => _berakningsFel.Count > 0;
+
+    public void LaggTillFel(EmployeeId anstallId, string felmeddelande)
+    {
+        _berakningsFel.Add($"{anstallId}: {felmeddelande}");
+    }
+
     private PayrollRun() { }
 
     public static PayrollRun Skapa(int year, int month, string startadAv, bool retroaktiv = false, string? retroPeriod = null)
