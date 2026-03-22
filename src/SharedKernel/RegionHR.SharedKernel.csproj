@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RegionHR.Payroll.Tests" />
+    <InternalsVisibleTo Include="RegionHR.SharedKernel.Tests" />
+  </ItemGroup>
+
 </Project>

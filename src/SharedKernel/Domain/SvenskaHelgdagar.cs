@@ -1,16 +1,12 @@
-using RegionHR.SharedKernel.Domain;
-
-namespace RegionHR.Payroll.Domain;
+namespace RegionHR.SharedKernel.Domain;
 
 /// <summary>
 /// Beräknar svenska helgdagar inklusive rörliga helgdagar.
-/// Används för OB-kategoribestämning och arbetsschemaberäkningar.
+/// Används för OB-kategoribestämning, arbetsschemaberäkningar och arbetsdagsräkning.
 /// </summary>
 public static class SvenskaHelgdagar
 {
-    /// <summary>
-    /// Avgör om ett datum är en svensk helgdag (röd dag).
-    /// </summary>
+    /// <summary>Avgör om ett datum är en svensk helgdag (röd dag).</summary>
     public static bool ArHelgdag(DateOnly datum)
     {
         var helgdagar = HelgdagarForAr(datum.Year);
@@ -29,48 +25,35 @@ public static class SvenskaHelgdagar
         var paskdagen = BeraknaPaskdagen(year);
 
         // Julafton (24 dec) - Annandag jul (26 dec)
-        var julafton = new DateOnly(year, 12, 24);
-        var annandagJul = new DateOnly(year, 12, 26);
-        if (datum >= julafton && datum <= annandagJul)
+        if (datum >= new DateOnly(year, 12, 24) && datum <= new DateOnly(year, 12, 26))
             return true;
 
         // Nyårsafton (31 dec) - Nyårsdagen (1 jan)
-        // Nyårsafton samma år
-        if (datum == new DateOnly(year, 12, 31))
-            return true;
-        // Nyårsdagen
-        if (datum == new DateOnly(year, 1, 1))
+        if (datum == new DateOnly(year, 12, 31) || datum == new DateOnly(year, 1, 1))
             return true;
 
         // Påskafton - Annandag påsk
-        var paskafton = paskdagen.AddDays(-1);
-        var annandagPask = paskdagen.AddDays(1);
-        if (datum >= paskafton && datum <= annandagPask)
+        if (datum >= paskdagen.AddDays(-1) && datum <= paskdagen.AddDays(1))
             return true;
 
         // Midsommarafton - Midsommardagen
         var midsommardagen = BeraknaMidsommardagen(year);
-        var midsommarafton = midsommardagen.AddDays(-1);
-        if (datum >= midsommarafton && datum <= midsommardagen)
+        if (datum >= midsommardagen.AddDays(-1) && datum <= midsommardagen)
             return true;
 
-        // Kristi himmelsfärd (torsdag, 39 dagar efter påskdagen)
-        var kristiHimmelsfardsdag = paskdagen.AddDays(39);
-        if (datum == kristiHimmelsfardsdag)
+        // Kristi himmelsfärd
+        if (datum == paskdagen.AddDays(39))
             return true;
 
         return false;
     }
 
-    /// <summary>
-    /// Returnerar alla helgdagar för ett givet år.
-    /// </summary>
+    /// <summary>Returnerar alla helgdagar för ett givet år.</summary>
     public static IReadOnlyList<DateOnly> HelgdagarForAr(int year)
     {
         var paskdagen = BeraknaPaskdagen(year);
         var helgdagar = new List<DateOnly>
         {
-            // Fasta helgdagar
             new(year, 1, 1),    // Nyårsdagen
             new(year, 1, 6),    // Trettondedag jul
             new(year, 5, 1),    // Första maj
@@ -80,7 +63,6 @@ public static class SvenskaHelgdagar
             new(year, 12, 26),  // Annandag jul
             new(year, 12, 31),  // Nyårsafton
 
-            // Rörliga helgdagar baserade på påsk
             paskdagen.AddDays(-2),   // Långfredagen
             paskdagen.AddDays(-1),   // Påskafton
             paskdagen,               // Påskdagen
@@ -89,12 +71,10 @@ public static class SvenskaHelgdagar
             paskdagen.AddDays(49),   // Pingstdagen
         };
 
-        // Midsommarafton och midsommardagen
         var midsommardagen = BeraknaMidsommardagen(year);
         helgdagar.Add(midsommardagen.AddDays(-1));  // Midsommarafton
         helgdagar.Add(midsommardagen);               // Midsommardagen
 
-        // Alla helgons dag (lördag mellan 31 okt och 6 nov)
         helgdagar.Add(BeraknaAllaHelgonsDag(year));
 
         helgdagar.Sort();
@@ -103,52 +83,32 @@ public static class SvenskaHelgdagar
 
     /// <summary>
     /// Bestäm OB-kategori baserat på datum och tid.
-    /// Storhelg > helg > vardag kväll/natt > ingen.
-    ///
-    /// OB-tider per AB 25 (Allmänna bestämmelser, från 2025-04-01):
-    /// - Vardagkväll: mån-tors 19:00-22:00, fre 17:00-22:00 (AB 25: fredag OB från 17:00)
-    /// - Vardagnatt: mån-fre 22:00-06:00
-    /// - Helg: lör 07:00 - sön 24:00 (samt helgdagar)
-    /// - Storhelg: storhelgsperioder dygnet runt
-    ///
-    /// Före 2025-04-01: fredag kväll OB börjar kl 19:00 (som övriga vardagar).
+    /// OB-tider per AB 25 (Allmänna bestämmelser, från 2025-04-01).
     /// </summary>
     public static OBCategory BeraknaOBKategori(DateOnly datum, TimeOnly tid)
     {
-        // Storhelg har högst prioritet
         if (ArStorhelg(datum))
             return OBCategory.Storhelg;
 
-        // Helgdag (röd dag som inte är storhelg) eller lördag/söndag
         if (ArHelgdag(datum) || datum.DayOfWeek == DayOfWeek.Saturday || datum.DayOfWeek == DayOfWeek.Sunday)
             return OBCategory.Helg;
 
-        // Vardagstider (måndag-fredag)
-        // Natt: 22:00-06:00
         if (tid >= new TimeOnly(22, 0) || tid < new TimeOnly(6, 0))
             return OBCategory.VardagNatt;
 
-        // AB 25: Fredag kväll OB från 17:00 (istället för 19:00), gäller från 2025-04-01
         var kvallStart = new TimeOnly(19, 0);
         if (datum.DayOfWeek == DayOfWeek.Friday && datum >= new DateOnly(2025, 4, 1))
-        {
             kvallStart = new TimeOnly(17, 0);
-        }
 
-        // Kväll: kvallStart-22:00
         if (tid >= kvallStart && tid < new TimeOnly(22, 0))
             return OBCategory.VardagKvall;
 
-        // Dagtid vardag: ingen OB
         return OBCategory.Ingen;
     }
 
-    /// <summary>
-    /// Beräknar påskdagen med Anonymous Gregorian-algoritmen.
-    /// </summary>
+    /// <summary>Beräknar påskdagen med Anonymous Gregorian-algoritmen.</summary>
     internal static DateOnly BeraknaPaskdagen(int year)
     {
-        // Anonymous Gregorian algorithm (Meeus/Jones/Butcher)
         int a = year % 19;
         int b = year / 100;
         int c = year % 100;
@@ -163,13 +123,10 @@ public static class SvenskaHelgdagar
         int m = (a + 11 * h + 22 * l) / 451;
         int month = (h + l - 7 * m + 114) / 31;
         int day = ((h + l - 7 * m + 114) % 31) + 1;
-
         return new DateOnly(year, month, day);
     }
 
-    /// <summary>
-    /// Midsommardagen: lördagen mellan 20 och 26 juni.
-    /// </summary>
+    /// <summary>Midsommardagen: lördagen mellan 20 och 26 juni.</summary>
     internal static DateOnly BeraknaMidsommardagen(int year)
     {
         var datum = new DateOnly(year, 6, 20);
@@ -178,9 +135,7 @@ public static class SvenskaHelgdagar
         return datum;
     }
 
-    /// <summary>
-    /// Alla helgons dag: lördagen mellan 31 oktober och 6 november.
-    /// </summary>
+    /// <summary>Alla helgons dag: lördagen mellan 31 oktober och 6 november.</summary>
     internal static DateOnly BeraknaAllaHelgonsDag(int year)
     {
         var datum = new DateOnly(year, 10, 31);

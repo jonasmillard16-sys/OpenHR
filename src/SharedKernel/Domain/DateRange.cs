@@ -34,16 +34,19 @@ public sealed record DateRange
     /// <summary>Antal kalenderdagar i perioden, null om öppen.</summary>
     public int? CalendarDays => DurationInDays;
 
-    /// <summary>Antal arbetsdagar (mån-fre) i perioden.</summary>
+    /// <summary>Antal arbetsdagar (mån-fre exkl. svenska helgdagar) i perioden.</summary>
     public int? WorkDays
     {
         get
         {
             if (!End.HasValue) return null;
             var count = 0;
+            var holidays = new HashSet<DateOnly>(SvenskaHelgdagar.HelgdagarForAr(Start.Year));
+            if (End.Value.Year != Start.Year)
+                holidays.UnionWith(SvenskaHelgdagar.HelgdagarForAr(End.Value.Year));
             for (var d = Start; d <= End.Value; d = d.AddDays(1))
             {
-                if (d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday))
+                if (d.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday) && !holidays.Contains(d))
                     count++;
             }
             return count;
