@@ -249,6 +249,7 @@ public class RegionHRDbContext : DbContext
     public DbSet<CustomField> CustomFields => Set<CustomField>();
     public DbSet<CustomFieldValue> CustomFieldValues => Set<CustomFieldValue>();
     public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     // Authorization (schema: authorization)
     public DbSet<FieldPermission> FieldPermissions => Set<FieldPermission>();

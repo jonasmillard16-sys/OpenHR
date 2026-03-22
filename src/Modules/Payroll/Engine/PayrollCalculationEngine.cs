@@ -26,10 +26,17 @@ public sealed class PayrollCalculationEngine
     private readonly ICollectiveAgreementRulesEngine _rulesEngine;
     private readonly ICoreHRModule _coreHR;
 
-    // Inkomstbasbelopp och prisbasbelopp per år
+    // Inkomstbasbelopp och prisbasbelopp per år.
+    // TODO: Läs dessa värden från SystemSetting-tabellen (nycklarna IBB_2025, IBB_2026, PBB_2025, PBB_2026)
+    // i stället för hårdkodade konstanter. Värdena seedas i SeedData och kan uppdateras i konfigurationsgränssnittet.
+    // Se: src/Modules/Configuration/Domain/SystemSetting.cs
+    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal IBB_2025 = 80600m;
+    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal IBB_2026 = 83400m;
+    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal PBB_2025 = 58800m;
+    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal PBB_2026 = 59200m;
 
     // Arbetsgivaravgifter

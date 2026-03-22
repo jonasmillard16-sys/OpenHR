@@ -63,3 +63,18 @@ public class WorkflowDefinitionConfiguration : IEntityTypeConfiguration<Workflow
         builder.HasIndex(x => x.TargetEntityType);
     }
 }
+
+public class SystemSettingConfiguration : IEntityTypeConfiguration<SystemSetting>
+{
+    public void Configure(EntityTypeBuilder<SystemSetting> builder)
+    {
+        builder.ToTable("system_settings", "configuration");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Nyckel).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Varde).HasMaxLength(1000).IsRequired();
+        builder.Property(x => x.Beskrivning).HasMaxLength(500);
+        builder.Property(x => x.Kategori).HasMaxLength(100);
+        builder.HasIndex(x => x.Nyckel).IsUnique();
+        builder.HasIndex(x => x.Kategori);
+    }
+}

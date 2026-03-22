@@ -2099,6 +2099,20 @@ Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker ut
         grievance1.StartaUtredning("Karl Berg");
         db.Grievances.Add(grievance1);
 
+        // === System Settings: IBB and PBB (Inkomstbasbelopp / Prisbasbelopp) ===
+        // These values are set annually by the Swedish government.
+        // The PayrollCalculationEngine uses hardcoded fallback constants;
+        // future versions should look these up from this table instead.
+        db.SystemSettings.AddRange(
+            SystemSetting.Skapa("IBB_2025", "80600",
+                "Inkomstbasbelopp 2025 (fastst\u00e4llt av Pensionsmyndigheten)", "Basbelopp"),
+            SystemSetting.Skapa("IBB_2026", "83400",
+                "Inkomstbasbelopp 2026 (fastst\u00e4llt av Pensionsmyndigheten)", "Basbelopp"),
+            SystemSetting.Skapa("PBB_2025", "58800",
+                "Prisbasbelopp 2025 (fastst\u00e4llt av Statistiska centralbyr\u00e5n)", "Basbelopp"),
+            SystemSetting.Skapa("PBB_2026", "59200",
+                "Prisbasbelopp 2026 (fastst\u00e4llt av Statistiska centralbyr\u00e5n)", "Basbelopp"));
+
         await db.SaveChangesAsync();
     }
 }
