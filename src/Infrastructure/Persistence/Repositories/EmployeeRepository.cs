@@ -23,6 +23,28 @@ public class EmployeeRepository : IRepository<Employee, EmployeeId>
         return await _db.Employees.ToListAsync(ct);
     }
 
+    public async Task<PaginatedResult<Employee>> GetPaginatedAsync(
+        int page, int pageSize, string? searchTerm = null, CancellationToken ct = default)
+    {
+        var query = _db.Employees.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(e =>
+                e.Fornamn.Contains(searchTerm) ||
+                e.Efternamn.Contains(searchTerm));
+        }
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(e => e.Efternamn)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PaginatedResult<Employee>(items, total, page, pageSize);
+    }
+
     public async Task AddAsync(Employee entity, CancellationToken ct = default)
     {
         await _db.Employees.AddAsync(entity, ct);

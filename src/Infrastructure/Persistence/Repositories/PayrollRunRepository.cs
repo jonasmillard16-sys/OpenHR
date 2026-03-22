@@ -23,6 +23,22 @@ public class PayrollRunRepository : IRepository<PayrollRun, PayrollRunId>
         return await _db.PayrollRuns.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month).ToListAsync(ct);
     }
 
+    public async Task<PaginatedResult<PayrollRun>> GetPaginatedAsync(
+        int page, int pageSize, string? searchTerm = null, CancellationToken ct = default)
+    {
+        var query = _db.PayrollRuns.AsNoTracking();
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(r => r.Year)
+            .ThenByDescending(r => r.Month)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PaginatedResult<PayrollRun>(items, total, page, pageSize);
+    }
+
     public async Task AddAsync(PayrollRun entity, CancellationToken ct = default)
     {
         await _db.PayrollRuns.AddAsync(entity, ct);
