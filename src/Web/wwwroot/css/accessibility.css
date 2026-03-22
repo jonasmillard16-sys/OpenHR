@@ -46,6 +46,10 @@ th {
     background-color: #f8f9fa;
 }
 
+/* Ensure minimum font sizes (WCAG 1.4.4) */
+.mud-simple-table th { font-size: 0.875rem !important; }
+.mud-typography-caption { font-size: 0.8125rem !important; }
+
 /* Reduce motion for users who prefer it (WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce) {
     * {

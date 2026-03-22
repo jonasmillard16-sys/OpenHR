@@ -24,7 +24,7 @@
 
   <!-- AUTH / LOGIN -->
   <data name="Login" xml:space="preserve"><value>Logga in</value></data>
-  <data name="Logout" xml:space="preserve"><value>Logga ut</value></data>
+  <data name="LogOut" xml:space="preserve"><value>Logga ut</value></data>
   <data name="ChooseLoginMethod" xml:space="preserve"><value>Välj inloggningsmetod</value></data>
   <data name="BankID" xml:space="preserve"><value>BankID</value></data>
   <data name="BankIDAllEmployees" xml:space="preserve"><value>Alla anställda</value></data>
@@ -389,4 +389,9 @@
   <data name="RATING_OUT_OF_RANGE" xml:space="preserve"><value>Betyg måste vara 1-5</value></data>
   <data name="REVIEW_NOT_IN_CORRECT_STATE" xml:space="preserve"><value>Samtalet är inte i korrekt status</value></data>
   <data name="AMOUNT_MUST_BE_POSITIVE" xml:space="preserve"><value>Beloppet måste vara positivt</value></data>
+
+  <!-- NavMenu i18n keys -->
+  <data name="OneOnOneMeetings" xml:space="preserve"><value>1:1-möten</value></data>
+  <data name="ManagerScorecard" xml:space="preserve"><value>Chefsstyrkort</value></data>
+  <data name="NetworkAnalysis" xml:space="preserve"><value>Nätverksanalys (ONA)</value></data>
 </root>

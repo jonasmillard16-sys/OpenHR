@@ -28,8 +28,8 @@
   <!-- AUTH / LOGIN                                   -->
   <!-- ══════════════════════════════════════════════ -->
   <data name="Login" xml:space="preserve"><value>Log in</value></data>
-  <data name="Logout" xml:space="preserve"><value>Log out</value></data>
   <data name="LogOut" xml:space="preserve"><value>Log out</value></data>
+
   <data name="ChooseLoginMethod" xml:space="preserve"><value>Choose login method</value></data>
   <data name="BankID" xml:space="preserve"><value>BankID</value></data>
   <data name="BankIDAllEmployees" xml:space="preserve"><value>All employees</value></data>
@@ -406,4 +406,9 @@
   <data name="AMOUNT_MUST_BE_POSITIVE" xml:space="preserve"><value>Amount must be positive</value></data>
   <data name="FSkattCompliance" xml:space="preserve"><value>F-skatt compliance</value></data>
   <data name="ScenarioPlanning" xml:space="preserve"><value>Scenario planning</value></data>
+
+  <!-- NavMenu i18n keys -->
+  <data name="OneOnOneMeetings" xml:space="preserve"><value>1:1 Meetings</value></data>
+  <data name="ManagerScorecard" xml:space="preserve"><value>Manager Scorecard</value></data>
+  <data name="NetworkAnalysis" xml:space="preserve"><value>Network Analysis (ONA)</value></data>
 </root>

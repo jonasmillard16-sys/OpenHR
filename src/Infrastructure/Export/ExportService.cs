@@ -9,6 +9,7 @@ public class ExportService
         using var ms = new MemoryStream();
         using var writer = new StreamWriter(ms, System.Text.Encoding.UTF8);
 
+        writer.Write('\uFEFF');
         writer.WriteLine(string.Join(";", headers));
         foreach (var item in data)
             writer.WriteLine(string.Join(";", rowMapper(item).Select(EscapeCsv)));
