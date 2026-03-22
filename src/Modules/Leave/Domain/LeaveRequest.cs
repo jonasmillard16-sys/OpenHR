@@ -52,6 +52,8 @@ public sealed class LeaveRequest
         if (to < from)
             throw new ArgumentException("Slutdatum kan inte vara fre startdatum.");
 
+        // TODO: Validate no overlapping approved/pending requests for same employee
+
         return new LeaveRequest
         {
             Id = Guid.NewGuid(),

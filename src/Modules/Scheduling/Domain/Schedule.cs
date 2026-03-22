@@ -23,6 +23,9 @@ public sealed class Schedule : AggregateRoot<ScheduleId>
     public static Schedule SkapaGrundschema(
         OrganizationId enhetId, string namn, DateOnly start, int cykelVeckor)
     {
+        if (cykelVeckor <= 0 || cykelVeckor > 52)
+            throw new ArgumentOutOfRangeException(nameof(cykelVeckor), "Cykellängd måste vara 1-52 veckor");
+
         return new Schedule
         {
             Id = ScheduleId.New(),
@@ -63,7 +66,8 @@ public sealed class Schedule : AggregateRoot<ScheduleId>
             PlaneradStart = start,
             PlaneradSlut = slut,
             Rast = rast,
-            Status = ShiftStatus.Planerad
+            Status = ShiftStatus.Planerad,
+            OBKategori = SvenskaHelgdagar.BeraknaOBKategori(datum, start)
         };
         _pass.Add(shift);
         return shift;

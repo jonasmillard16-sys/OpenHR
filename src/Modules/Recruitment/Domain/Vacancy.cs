@@ -108,6 +108,8 @@ public sealed class Application
     /// </summary>
     public void Bedoma(int poang, string kommentar)
     {
+        if (poang < 1 || poang > 5) throw new ArgumentOutOfRangeException(nameof(poang), "Poäng måste vara 1-5");
+
         if (Status != ApplicationStatus.Mottagen && Status != ApplicationStatus.UnderGranskning)
             throw new InvalidOperationException("Kan bara bedöma mottagna eller granskade ansökningar");
 

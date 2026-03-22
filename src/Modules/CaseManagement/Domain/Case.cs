@@ -85,7 +85,7 @@ public sealed class Case : AggregateRoot<CaseId>
 
     public void Godkann(EmployeeId godkannare, string? kommentar = null)
     {
-        var approval = _godkannanden.LastOrDefault(g => g.GodkannareId == godkannare && g.Status == ApprovalStatus.Vantar);
+        var approval = _godkannanden.FirstOrDefault(g => g.GodkannareId == godkannare && g.Status == ApprovalStatus.Vantar);
         if (approval is null) throw new InvalidOperationException("Inget väntande godkännande för denna person");
 
         approval.Status = ApprovalStatus.Godkand;

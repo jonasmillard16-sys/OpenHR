@@ -43,6 +43,9 @@ public class Notification
         string? relatedEntityType = null,
         string? relatedEntityId = null)
     {
+        if (actionUrl?.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) == true)
+            throw new ArgumentException("Ogiltig URL");
+
         return new Notification
         {
             Id = Guid.NewGuid(),

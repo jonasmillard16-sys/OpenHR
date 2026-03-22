@@ -93,6 +93,7 @@ public sealed class Employment : Entity<EmploymentId>
     /// <summary>Beräkna timlön baserat på heltidstimmar per vecka (vanligen 38.25 för AB)</summary>
     public Money BeraknaTimlon(decimal veckoarbetstid = 38.25m)
     {
+        // TODO: Lookup weekly hours from collective agreement instead of hardcoded 38.25
         var timmarPerManad = veckoarbetstid * 52m / 12m;
         return Manadslon / timmarPerManad;
     }

@@ -5,6 +5,7 @@ public class BenefitEnrollment
     public Guid Id { get; private set; }
     public Guid AnstallId { get; private set; }
     public Guid BenefitId { get; private set; }
+    // TODO: Migrate Status from string to BenefitEnrollmentStatus enum
     public string Status { get; private set; } = "Pending";
     public DateOnly StartDatum { get; private set; }
     public string? ValdNiva { get; private set; }

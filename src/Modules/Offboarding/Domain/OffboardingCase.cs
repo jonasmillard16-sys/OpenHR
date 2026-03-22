@@ -22,6 +22,9 @@ public class OffboardingCase
 
     public static OffboardingCase Skapa(Guid anstallId, AvslutAnledning anledning, DateOnly sistaArbetsdag)
     {
+        if (sistaArbetsdag < DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new ArgumentException("Sista arbetsdag måste vara idag eller i framtiden");
+
         var c = new OffboardingCase
         {
             Id = Guid.NewGuid(), AnstallId = anstallId, Anledning = anledning,

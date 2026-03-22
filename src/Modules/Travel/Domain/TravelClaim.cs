@@ -60,6 +60,7 @@ public sealed class TravelClaim : AggregateRoot<Guid>
 
     public void SattMilersattning(decimal mil)
     {
+        if (mil < 0) throw new ArgumentException("Körmil kan inte vara negativt");
         KordaMil = mil;
         Milersattning = Money.SEK(mil * MILERSATTNING_SATS);
         BeraknaTotal();
