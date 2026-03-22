@@ -1,0 +1,39 @@
+@page "/hjalp/ordlista"
+@namespace RegionHR.Web.Components.Pages.Hjalp
+@layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Services
+@using RegionHR.Web.Components.Shared
+@inject GlossaryService Glossary
+
+<PageTitle>OpenHR - Ordlista</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-2">Ordlista</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Style="color: var(--mud-palette-text-secondary);">
+    Förklaringar av termer och förkortningar som används i systemet.
+</MudText>
+
+<MudTextField @bind-Value="_search" Label="Sök term..." Variant="Variant.Outlined"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" Class="mb-4" />
+
+@foreach (var term in _filtered)
+{
+    <MudPaper Class="pa-4 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Style="font-weight: 700;">@term.Key</MudText>
+        <MudText Typo="Typo.body1" Class="mt-1">@term.Value</MudText>
+    </MudPaper>
+}
+
+@if (!_filtered.Any())
+{
+    <OhrEmptyState Title="Ingen matchande term" Description="Prova att söka med en annan term." />
+}
+
+@code {
+    private string _search = "";
+    private IEnumerable<KeyValuePair<string, string>> _filtered =>
+        Glossary.GetAllTerms()
+            .Where(t => string.IsNullOrEmpty(_search)
+                || t.Key.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || t.Value.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(t => t.Key);
+}

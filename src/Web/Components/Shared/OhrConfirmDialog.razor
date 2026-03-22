@@ -1,0 +1,40 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">@Title</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-3">@Message</MudText>
+        @if (!string.IsNullOrEmpty(Consequences))
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true">@Consequences</MudAlert>
+        }
+        @if (RequireConfirmation)
+        {
+            <MudCheckBox T="bool" @bind-Value="_confirmed" Class="mt-3" Label="@ConfirmationLabel" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Style="min-height: 44px;">Avbryt</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="@(IsDangerous ? Color.Error : Color.Primary)"
+                   Disabled="@(RequireConfirmation && !_confirmed)" Style="min-height: 44px;">@ConfirmText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _confirmed;
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = "Bekräfta åtgärd";
+    [Parameter] public string Message { get; set; } = "Är du säker?";
+    [Parameter] public string? Consequences { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "Bekräfta";
+    [Parameter] public bool IsDangerous { get; set; }
+    [Parameter] public bool RequireConfirmation { get; set; }
+    [Parameter] public string ConfirmationLabel { get; set; } = "Jag förstår konsekvenserna";
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+}

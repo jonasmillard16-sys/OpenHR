@@ -1,0 +1,44 @@
+@namespace RegionHR.Web.Components.Shared
+
+<div class="ohr-wizard" role="form" aria-label="@(Steps.ElementAtOrDefault(CurrentStep) ?? "Wizard")">
+    <MudText Typo="Typo.h5" Class="mb-1" Style="font-weight: 700;">
+        Steg @(CurrentStep + 1) av @Steps.Count: @Steps.ElementAtOrDefault(CurrentStep)
+    </MudText>
+    @if (CurrentStep < Steps.Count - 1)
+    {
+        <MudText Typo="Typo.body2" Class="mb-3" Style="color: var(--mud-palette-text-secondary);">
+            Nästa: @Steps.ElementAtOrDefault(CurrentStep + 1)
+        </MudText>
+    }
+    <MudProgressLinear Value="@((_currentProgress))" Color="Color.Primary" Rounded="true" Class="mb-4" />
+
+    <div class="ohr-wizard__content">@ChildContent</div>
+
+    <div class="d-flex justify-space-between mt-4">
+        @if (CurrentStep > 0)
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
+                       Color="Color.Primary" OnClick="PreviousStep" Style="min-height: 48px;">Tillbaka</MudButton>
+        }
+        else { <div></div> }
+        @if (CurrentStep < Steps.Count - 1)
+        {
+            <MudButton EndIcon="@Icons.Material.Filled.ArrowForward" Variant="Variant.Filled"
+                       Color="Color.Primary" OnClick="NextStep" Disabled="!CanAdvance"
+                       Style="min-height: 48px;">Nästa</MudButton>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<string> Steps { get; set; } = [];
+    [Parameter] public int CurrentStep { get; set; }
+    [Parameter] public EventCallback<int> CurrentStepChanged { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool CanAdvance { get; set; } = true;
+
+    private double _currentProgress => Steps.Count > 1 ? (CurrentStep + 1.0) / Steps.Count * 100 : 100;
+
+    private async Task NextStep() { if (CurrentStep < Steps.Count - 1) { CurrentStep++; await CurrentStepChanged.InvokeAsync(CurrentStep); } }
+    private async Task PreviousStep() { if (CurrentStep > 0) { CurrentStep--; await CurrentStepChanged.InvokeAsync(CurrentStep); } }
+}

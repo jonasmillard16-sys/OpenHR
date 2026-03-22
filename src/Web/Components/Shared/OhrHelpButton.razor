@@ -1,0 +1,53 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudTooltip Text="Hjälp">
+    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary" Size="Size.Medium"
+                   OnClick="@(() => _open = !_open)" aria-label="Visa hjälp" />
+</MudTooltip>
+
+@if (_open)
+{
+    <MudDrawer @bind-Open="_open" Anchor="Anchor.End" Elevation="2" Width="400px"
+               Variant="DrawerVariant.Temporary" Style="z-index: 1300;">
+        <MudDrawerHeader>
+            <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                <MudText Typo="Typo.h6">Hjälp</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _open = false)" aria-label="Stäng" />
+            </div>
+        </MudDrawerHeader>
+        <div class="pa-4">
+            @if (!string.IsNullOrEmpty(PageDescription))
+            {
+                <MudText Typo="Typo.body1" Class="mb-4">@PageDescription</MudText>
+            }
+            @if (Faq?.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle1" Class="mb-2" Style="font-weight: 700;">Vanliga frågor</MudText>
+                <MudExpansionPanels MultiExpansion="true" Elevation="0">
+                    @foreach (var qa in Faq)
+                    {
+                        <MudExpansionPanel Text="@qa.Key">
+                            <MudText Typo="Typo.body1">@qa.Value</MudText>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            }
+            <MudDivider Class="my-4" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/hjalp/ordlista"
+                       FullWidth="true" StartIcon="@Icons.Material.Filled.MenuBook" Style="min-height: 48px;">
+                Öppna ordlistan
+            </MudButton>
+            @if (!string.IsNullOrEmpty(ContactInfo))
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-4">@ContactInfo</MudAlert>
+            }
+        </div>
+    </MudDrawer>
+}
+
+@code {
+    private bool _open;
+    [Parameter] public string? PageDescription { get; set; }
+    [Parameter] public Dictionary<string, string>? Faq { get; set; }
+    [Parameter] public string? ContactInfo { get; set; } = "Behöver du hjälp? Kontakta HR-avdelningen.";
+}

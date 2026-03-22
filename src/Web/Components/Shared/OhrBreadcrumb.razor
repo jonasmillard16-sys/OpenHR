@@ -1,0 +1,17 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudBreadcrumbs Items="_items" Class="mb-3 pa-0" Style="font-size: 0.95rem;" Separator=">" />
+
+@code {
+    [Parameter, EditorRequired] public string CurrentPage { get; set; } = "";
+    [Parameter] public List<BreadcrumbItem>? ExtraItems { get; set; }
+
+    private List<BreadcrumbItem> _items = [];
+
+    protected override void OnParametersSet()
+    {
+        _items = [new("Start", "/", icon: Icons.Material.Filled.Home)];
+        if (ExtraItems is not null) _items.AddRange(ExtraItems);
+        _items.Add(new(CurrentPage, href: null, disabled: true));
+    }
+}

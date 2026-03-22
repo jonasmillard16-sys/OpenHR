@@ -1,0 +1,21 @@
+@namespace RegionHR.Web.Components.Shared
+@using RegionHR.Web.Services
+@inject GlossaryService Glossary
+
+<MudTooltip Text="@_definition" Arrow="true" Placement="Placement.Top" Style="max-width: 400px;">
+    <span style="border-bottom: 1px dotted var(--mud-palette-primary); cursor: help;">
+        @(DisplayText ?? Term)
+    </span>
+</MudTooltip>
+
+@code {
+    private string _definition = "";
+
+    [Parameter, EditorRequired] public string Term { get; set; } = "";
+    [Parameter] public string? DisplayText { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _definition = Glossary.GetDefinition(Term) ?? $"{Term} — ingen förklaring tillgänglig";
+    }
+}

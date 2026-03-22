@@ -1,0 +1,22 @@
+@namespace RegionHR.Web.Components.Shared
+
+<MudPaper Class="pa-3 mb-3" Elevation="0" Style="background: var(--mud-palette-background-gray); border-radius: 8px;">
+    <div class="d-flex gap-4 flex-wrap align-center">
+        <MudText Typo="Typo.caption" Style="font-weight: 600;">Förklaring:</MudText>
+        @foreach (var item in Items)
+        {
+            <div class="d-flex align-center gap-1">
+                <MudChip T="string" Size="Size.Small" Color="@item.Color" Style="pointer-events: none;">@item.Label</MudChip>
+                @if (!string.IsNullOrEmpty(item.Description))
+                {
+                    <MudText Typo="Typo.caption">@item.Description</MudText>
+                }
+            </div>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public List<StatusLegendItem> Items { get; set; } = [];
+    public record StatusLegendItem(string Label, Color Color, string? Description = null);
+}
