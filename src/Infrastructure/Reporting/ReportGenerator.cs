@@ -33,7 +33,7 @@ public class ReportGenerator
 
     private async Task<byte[]> GeneratePersonalrostar(CancellationToken ct)
     {
-        var employees = await _db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync(ct);
+        var employees = await _db.Employees.AsNoTracking().Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync(ct);
         var headers = new[] { "Fornamn", "Efternamn", "Personnummer", "E-post", "Anstallningsform", "Sysselsattningsgrad" };
         return _export.ToExcel(employees, "Personalrostar", headers, e => new object[]
         {

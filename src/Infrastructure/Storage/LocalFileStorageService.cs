@@ -28,6 +28,10 @@ public class LocalFileStorageService : IFileStorageService
         return Path.GetRelativePath(_basePath, fullPath);
     }
 
+    /// <summary>
+    /// Returns an open FileStream. CALLER OWNS THE STREAM and must dispose it (use 'using' or 'await using').
+    /// Returns null if file does not exist.
+    /// </summary>
     public Task<Stream?> DownloadAsync(string storagePath, CancellationToken ct = default)
     {
         var fullPath = Path.Combine(_basePath, storagePath);

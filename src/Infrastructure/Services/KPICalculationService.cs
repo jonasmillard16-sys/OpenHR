@@ -94,6 +94,7 @@ public class KPICalculationService
     private async Task<decimal> CalculateFTEAsync(DateOnly today, CancellationToken ct)
     {
         var activeEmployments = await _db.Employments
+            .AsNoTracking()
             .Where(e => e.Giltighetsperiod.End == null || e.Giltighetsperiod.End > today)
             .ToListAsync(ct);
 

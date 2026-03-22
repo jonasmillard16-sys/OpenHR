@@ -35,6 +35,7 @@ public class ScenarioCalculationService
         // Hämta nuvarande basdata
         var today = DateOnly.FromDateTime(DateTime.Today);
         var activeEmployments = await _db.Employments
+            .AsNoTracking()
             .Where(e => e.Giltighetsperiod.End == null || e.Giltighetsperiod.End > today)
             .ToListAsync(ct);
 
@@ -48,6 +49,7 @@ public class ScenarioCalculationService
 
         // Hämta budget för basåret
         var budgets = await _db.HeadcountPlans
+            .AsNoTracking()
             .Where(h => h.Ar == scenario.BasÅr)
             .ToListAsync(ct);
         var totalBudget = budgets.Sum(b => b.BudgeteradKostnad);

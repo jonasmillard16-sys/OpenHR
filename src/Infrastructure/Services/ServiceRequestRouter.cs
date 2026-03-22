@@ -11,7 +11,14 @@ namespace RegionHR.Infrastructure.Services;
 public class ServiceRequestRouter
 {
     private readonly RegionHRDbContext _db;
-    private static readonly Dictionary<Guid, int> _roundRobinIndex = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, int> _roundRobinIndex = new();
+    private const int MaxTrackedQueues = 200;
+
+    private static void CleanupIfNeeded()
+    {
+        if (_roundRobinIndex.Count > MaxTrackedQueues)
+            _roundRobinIndex.Clear();
+    }
 
     public ServiceRequestRouter(RegionHRDbContext db)
     {
@@ -75,6 +82,7 @@ public class ServiceRequestRouter
     /// </summary>
     private Guid GetNextAgent(HRQueue queue)
     {
+        CleanupIfNeeded();
         if (!_roundRobinIndex.TryGetValue(queue.Id, out var index))
             index = 0;
 

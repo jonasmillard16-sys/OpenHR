@@ -75,7 +75,7 @@ public sealed class TaxTableProviderImpl : ITaxTableProvider
             var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = CacheDuration,
-                Priority = CacheItemPriority.High
+                Priority = CacheItemPriority.Normal
             };
 
             _cache.Set(cacheKey, tables, cacheOptions);

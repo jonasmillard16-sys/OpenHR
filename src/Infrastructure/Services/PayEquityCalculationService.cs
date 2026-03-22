@@ -36,6 +36,7 @@ public class PayEquityCalculationService
 
         var idag = DateOnly.FromDateTime(DateTime.Today);
         var employees = await _db.Employees
+            .AsNoTracking()
             .Include(e => e.Anstallningar)
             .ToListAsync(ct);
 

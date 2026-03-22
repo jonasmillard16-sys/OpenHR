@@ -41,6 +41,7 @@ public class WebhookDeliveryService
 
         // 2. Find matching active subscriptions
         var subscriptions = await _db.EventSubscriptions
+            .AsNoTracking()
             .Where(s => s.Status == EventSubscriptionStatus.Active)
             .ToListAsync(ct);
 
