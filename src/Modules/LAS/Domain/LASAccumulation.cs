@@ -71,7 +71,7 @@ public sealed class LASAccumulation : AggregateRoot<Guid>
     }
 
     /// <summary>Registrera en anställningsperiod för LAS-ackumulering.</summary>
-    public void LaggTillPeriod(DateOnly startDatum, DateOnly slutDatum, string? anstallningsId = null)
+    public void LaggTillPeriod(DateOnly startDatum, DateOnly slutDatum, string? anstallningsId = null, DateOnly? referensDatum = null)
     {
         var period = new LASPeriod
         {
@@ -83,7 +83,7 @@ public sealed class LASAccumulation : AggregateRoot<Guid>
         _perioder.Add(period);
 
         // Omberäkna ackumulering inom referensfönstret
-        Omberakna(DateOnly.FromDateTime(DateTime.Today));
+        Omberakna(referensDatum ?? DateOnly.FromDateTime(DateTime.UtcNow));
     }
 
     /// <summary>Omberäkna ackumulerade dagar baserat på perioder inom referensfönstret.</summary>
