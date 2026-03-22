@@ -91,7 +91,13 @@ else
             <MudText Typo="Typo.h6">Generera registerutdrag</MudText>
         </TitleContent>
         <DialogContent>
-            <MudTextField @bind-Value="_registerutdragAnstallId" Label="Anställd-ID (GUID)" Variant="Variant.Outlined" Class="mb-3" />
+            <MudAutocomplete T="string" Label="Sök anställd (namn eller personnummer)"
+                @bind-Value="_registerutdragAnstallId"
+                SearchFunc="@SokAnstallda"
+                Variant="Variant.Outlined" Class="mb-3"
+                AdornmentIcon="@Icons.Material.Filled.Search"
+                Adornment="Adornment.Start"
+                ResetValueOnEmptyText="true" />
             @if (_registerutdragResult is not null)
             {
                 <MudPaper Class="pa-4" Elevation="1">
@@ -147,14 +153,33 @@ else
         _registerutdragAnstallId = "";
     }
 
+    private async Task<IEnumerable<string>> SokAnstallda(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+            return Array.Empty<string>();
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var allEmployees = await db.Employees.ToListAsync(ct);
+        var matches = allEmployees
+            .Where(e => (e.Fornamn + " " + e.Efternamn).Contains(value, StringComparison.OrdinalIgnoreCase)
+                      || e.Personnummer.ToString().Contains(value))
+            .Take(10)
+            .Select(e => e.Fornamn + " " + e.Efternamn + " (" + e.Personnummer + ") [" + e.Id.Value + "]")
+            .ToList();
+        return matches;
+    }
+
     private async Task HamtaRegisterutdrag()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        if (!Guid.TryParse(_registerutdragAnstallId, out var anstallId))
+        var match = System.Text.RegularExpressions.Regex.Match(
+            _registerutdragAnstallId ?? "", @"\[([0-9a-fA-F-]+)\]$");
+        if (!match.Success || !Guid.TryParse(match.Groups[1].Value, out var anstallId))
         {
-            _registerutdragResult = "Ogiltigt anställd-ID. Ange ett giltigt GUID.";
+            _registerutdragResult = "Välj en anställd från sökresultaten.";
             return;
         }
+
+        await using var db = await DbFactory.CreateDbContextAsync();
 
         try
         {
