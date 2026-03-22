@@ -84,9 +84,9 @@ else
             var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             // Get employees to map shift -> unit
-            var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
+            var anstallIds = shifts.Select(s => s.AnstallId).Distinct().ToList();
             var employees = await db.Employees.Include(e => e.Anstallningar)
-                .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+                .Where(e => anstallIds.Contains(e.Id)).ToListAsync();
             var empEnhet = new Dictionary<Guid, Guid>();
             var idag = DateOnly.FromDateTime(DateTime.Today);
             foreach (var emp in employees)

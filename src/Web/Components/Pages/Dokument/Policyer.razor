@@ -145,8 +145,9 @@ else
             var recentConfs = confirmations.OrderByDescending(c => c.BekraftadVid).Take(10).ToList();
             if (recentConfs.Count > 0)
             {
-                var empIds = recentConfs.Select(c => c.AnstallId).Distinct().ToList();
-                var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+                var empGuids = recentConfs.Select(c => c.AnstallId).Distinct().ToList();
+                var empIds = empGuids.Select(g => new EmployeeId(g)).ToList();
+                var employees = await db.Employees.Where(e => empIds.Contains(e.Id)).ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
                 var titles = policies.ToDictionary(p => p.Id, p => p.Titel);
                 _recentConfirmations = recentConfs.Select(c => new RecentConfirmVm(

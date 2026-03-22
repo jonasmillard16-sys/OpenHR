@@ -127,9 +127,9 @@ else
 
                 if (anomalousResults.Count > 0)
                 {
-                    var anstallIds = anomalousResults.Select(r => r.AnstallId.Value).Distinct().ToList();
+                    var anstallIds = anomalousResults.Select(r => r.AnstallId).Distinct().ToList();
                     var employees = await db.Employees
-                        .Where(e => anstallIds.Contains(e.Id.Value))
+                        .Where(e => anstallIds.Contains(e.Id))
                         .ToListAsync();
                     var empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 

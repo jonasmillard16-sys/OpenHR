@@ -71,8 +71,8 @@ else
                 .ToListAsync();
             var clockByEmployee = clockEvents.ToDictionary(e => e.AnstallId.Value, e => e.Tidpunkt);
 
-            var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
-            var employees = await db.Employees.Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var anstallIds = shifts.Select(s => s.AnstallId).Distinct().ToList();
+            var employees = await db.Employees.Where(e => anstallIds.Contains(e.Id)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             foreach (var s in shifts.OrderBy(s => s.PlaneradStart))

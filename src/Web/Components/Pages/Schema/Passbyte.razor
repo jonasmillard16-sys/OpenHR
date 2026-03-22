@@ -74,8 +74,8 @@ else
             var swaps = await db.ShiftSwapRequests
                 .OrderByDescending(s => s.SkapadVid).Take(50).ToListAsync();
 
-            var empIds = swaps.Select(s => s.BegardAv.Value).Distinct().ToList();
-            var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var empIds = swaps.Select(s => s.BegardAv).Distinct().ToList();
+            var employees = await db.Employees.Where(e => empIds.Contains(e.Id)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _rader = swaps.Select(s => new SwapVm(s.Id.Value, names.GetValueOrDefault(s.BegardAv.Value, "Okänd"),

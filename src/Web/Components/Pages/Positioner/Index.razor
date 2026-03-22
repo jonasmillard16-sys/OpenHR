@@ -117,12 +117,13 @@ else
             _enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
-            var innehavarIds = positions
+            var innehavarGuids = positions
                 .Where(p => p.InnehavareAnstallId.HasValue)
                 .Select(p => p.InnehavareAnstallId!.Value)
                 .Distinct().ToList();
+            var innehavarIds = innehavarGuids.Select(g => new EmployeeId(g)).ToList();
             var employees = await db.Employees
-                .Where(e => innehavarIds.Contains(e.Id.Value))
+                .Where(e => innehavarIds.Contains(e.Id))
                 .ToListAsync();
             var empNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 

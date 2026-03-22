@@ -123,9 +123,10 @@ else if (!_loading)
 
             if (pendingLeave.Count > 0)
             {
-                var anstallIds = pendingLeave.Select(r => r.AnstallId).Distinct().ToList();
+                var anstallGuids = pendingLeave.Select(r => r.AnstallId).Distinct().ToList();
+                var anstallIds = anstallGuids.Select(g => new EmployeeId(g)).ToList();
                 var employees = await db.Employees
-                    .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+                    .Where(e => anstallIds.Contains(e.Id)).ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
                 foreach (var r in pendingLeave)

@@ -136,8 +136,8 @@ else if (_result != null)
                 try
                 {
                     var accs = await db.LASAccumulations.ToListAsync();
-                    var lasEmpIds = accs.Select(a => a.AnstallId.Value).Distinct().ToList();
-                    var lasEmps = await db.Employees.Where(e => lasEmpIds.Contains(e.Id.Value)).ToListAsync();
+                    var lasEmpIds = accs.Select(a => a.AnstallId).Distinct().ToList();
+                    var lasEmps = await db.Employees.Where(e => lasEmpIds.Contains(e.Id)).ToListAsync();
                     var lasNames = lasEmps.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
                     _result = accs.OrderByDescending(a => a.AckumuleradeDagar).Select(a => new List<string>
                         { lasNames.GetValueOrDefault(a.AnstallId.Value, "Okänd"), a.Anstallningsform.ToString(), a.AckumuleradeDagar.ToString(), a.Status.ToString() }).ToList();

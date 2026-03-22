@@ -73,9 +73,10 @@ else
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
                 .ToListAsync();
 
-            var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var anstallGuids = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var anstallIds = anstallGuids.Select(g => new EmployeeId(g)).ToList();
             var employees = await db.Employees
-                .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+                .Where(e => anstallIds.Contains(e.Id)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _rader = requests.Select(r => new FranvaroRad(

@@ -69,9 +69,10 @@
                 .ToListAsync();
 
             // Resolve employee names
-            var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var anstallGuids = requests.Select(r => r.AnstallId).Distinct().ToList();
+            var anstallIds = anstallGuids.Select(g => new EmployeeId(g)).ToList();
             var employees = await db.Employees
-                .Where(e => anstallIds.Contains(e.Id.Value))
+                .Where(e => anstallIds.Contains(e.Id))
                 .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
 
             _rader = requests.Select(r => new LedighetRad(

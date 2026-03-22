@@ -102,8 +102,9 @@ else
         try
         {
             var claims = await db.WellnessClaims.OrderByDescending(c => c.SkapadVid).ToListAsync();
-            var empIds = claims.Select(c => c.AnstallId).Distinct().ToList();
-            var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var empGuids = claims.Select(c => c.AnstallId).Distinct().ToList();
+            var empIds = empGuids.Select(g => new EmployeeId(g)).ToList();
+            var employees = await db.Employees.Where(e => empIds.Contains(e.Id)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _claims = claims.Select(c => new ClaimVm(names.GetValueOrDefault(c.AnstallId, "Okänd"), c)).ToList();
         }

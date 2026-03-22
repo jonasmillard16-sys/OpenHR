@@ -53,9 +53,10 @@ else
                 .Where(b => b.Ar == DateTime.Today.Year)
                 .ToListAsync();
 
-            var anstallIds = balances.Select(b => b.AnstallId).Distinct().ToList();
+            var anstallGuids = balances.Select(b => b.AnstallId).Distinct().ToList();
+            var anstallIds = anstallGuids.Select(g => new EmployeeId(g)).ToList();
             var employees = await db.Employees
-                .Where(e => anstallIds.Contains(e.Id.Value))
+                .Where(e => anstallIds.Contains(e.Id))
                 .ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 

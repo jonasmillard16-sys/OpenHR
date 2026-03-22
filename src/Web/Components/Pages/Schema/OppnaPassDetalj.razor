@@ -121,12 +121,12 @@ else
 
             if (_shift != null)
             {
-                var anstallIds = _shift.Bud.Select(b => b.AnstallId.Value).Distinct().ToList();
+                var anstallIds = _shift.Bud.Select(b => b.AnstallId).Distinct().ToList();
                 if (_shift.TilldeladAnstallId.HasValue)
-                    anstallIds.Add(_shift.TilldeladAnstallId.Value.Value);
+                    anstallIds.Add(_shift.TilldeladAnstallId.Value);
 
                 var employees = await db.Employees
-                    .Where(e => anstallIds.Contains(e.Id.Value))
+                    .Where(e => anstallIds.Contains(e.Id))
                     .ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -153,29 +153,29 @@ else
         try
         {
             var bud = _shift.Bud.Where(b => b.Status == ShiftBidStatus.Pending).ToList();
-            var anstallIds = bud.Select(b => b.AnstallId.Value).ToList();
+            var anstallIds = bud.Select(b => b.AnstallId).ToList();
 
             var employments = await db.Employments
-                .Where(e => anstallIds.Contains(e.AnstallId.Value))
+                .Where(e => anstallIds.Contains(e.AnstallId))
                 .ToListAsync();
 
             var fatigueScores = await db.FatigueScores
-                .Where(f => anstallIds.Contains(f.AnstallId.Value))
+                .Where(f => anstallIds.Contains(f.AnstallId))
                 .ToListAsync();
 
             var scheduledShifts = await db.ScheduledShifts
-                .Where(s => anstallIds.Contains(s.AnstallId.Value) && s.Datum == _shift.Datum)
+                .Where(s => anstallIds.Contains(s.AnstallId) && s.Datum == _shift.Datum)
                 .ToListAsync();
 
             var anstallda = anstallIds.Select(aId =>
             {
-                var emp = employments.FirstOrDefault(e => e.AnstallId.Value == aId);
-                var fatigue = fatigueScores.Where(f => f.AnstallId.Value == aId).OrderByDescending(f => f.BeraknadVid).FirstOrDefault();
-                var harPass = scheduledShifts.Any(s => s.AnstallId.Value == aId);
+                var emp = employments.FirstOrDefault(e => e.AnstallId == aId);
+                var fatigue = fatigueScores.Where(f => f.AnstallId == aId).OrderByDescending(f => f.BeraknadVid).FirstOrDefault();
+                var harPass = scheduledShifts.Any(s => s.AnstallId == aId);
 
                 return new ShiftBidAssigner.EmployeeInfo
                 {
-                    AnstallId = EmployeeId.From(aId),
+                    AnstallId = aId,
                     AnstallningsDatum = emp?.Giltighetsperiod.Start ?? DateOnly.FromDateTime(DateTime.Today),
                     Kompetenser = new List<string>(),
                     AntalExtraPassSenaste30Dagar = 0,

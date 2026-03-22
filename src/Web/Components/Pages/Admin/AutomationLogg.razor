@@ -105,8 +105,8 @@ else
                 .Take(500)
                 .ToListAsync();
 
-            var regelIds = _exekveringar.Select(e => e.RegelId.Value).Distinct().ToList();
-            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id.Value)).ToListAsync();
+            var regelIds = _exekveringar.Select(e => e.RegelId).Distinct().ToList();
+            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
             _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
         }
         catch (Exception ex) { _error = $"Kunde inte hamta logg: {ex.Message}"; }
