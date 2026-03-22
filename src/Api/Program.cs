@@ -60,6 +60,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<ApiKeyScopeMiddleware>();
 app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
