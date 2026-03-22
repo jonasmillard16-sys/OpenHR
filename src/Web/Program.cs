@@ -2,6 +2,8 @@ using MudBlazor.Services;
 using Microsoft.AspNetCore.Localization;
 using RegionHR.Infrastructure;
 using RegionHR.Infrastructure.Persistence;
+using RegionHR.SharedKernel.Abstractions;
+using RegionHR.SharedKernel.Domain;
 using RegionHR.Web.Health;
 using RegionHR.Web.Hubs;
 using RegionHR.Web.Middleware;
@@ -50,6 +52,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("postgresql");
 
 // Application services
+builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<AnstallningService>();
 builder.Services.AddScoped<ArendeService>();
 builder.Services.AddScoped<SelfServiceApiClient>();
