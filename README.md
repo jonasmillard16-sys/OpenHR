@@ -100,7 +100,7 @@ Alla rapportvyer laser fran verklig DB-data:
 ### Infrastruktur
 - **CI/CD** — GitHub Actions (build + test + publish)
 - **Docker Compose** — PostgreSQL + app
-- **PWA** — Enhanced service worker med offline data caching (schema, saldon, notiser), network-first for API, cache-first for statiska resurser, background sync for offline-actions (ledighetsbegaran, stampling), push-notiser (Web Push), manifest med genvagar. Bottom navigation och swipe-gester: CSS-forberedda men ej aktiva i UI.
+- **PWA** — Enhanced service worker med offline data caching (schema, saldon, notiser), network-first for API, cache-first for statiska resurser, background sync for offline-actions (ledighetsbegaran, stampling), push-notiser (Web Push), manifest med genvagar. Bottom navigation och swipe-gester: aktiva i UI.
 - **Sakerhet** — CSP headers, rate limiting, X-Frame-Options, CSRF
 - **Bakgrundsjobb** — NotificationReminder, RetentionCleanup, CertificationReminder, LASAlert
 
@@ -120,32 +120,32 @@ OpenHR 2.0 Enterprise Expansion lagger till ~100 nya domanentities, 12+ nya modu
 
 **Fas A — Automation, Migrering & Avtal**
 - **Migreringsmotor** med 10 adaptrar: PAXml 2.0, HEROMA, Personec P, Hogia, Fortnox, SIE 4i, Workday, SAP, Oracle HCM och generisk CSV. Stoder faltmappning, validering, dry-run och rollback.
-- **Automatiseringsramverk** med tre atgardsniver (Notify, Suggest, Autopilot) och 22 fordefinierade regler (sjukfranvaro-eskalering, LAS-varningar, certifiering-paminnelser, m.fl.). Konfigurerbar per kategori. *(regler och entiteter finns, exekveringsmotor ej implementerad)*
+- **Automatiseringsramverk** med tre atgardsniver (Notify, Suggest, Autopilot) och 22 fordefinierade regler (sjukfranvaro-eskalering, LAS-varningar, certifiering-paminnelser, m.fl.). Konfigurerbar per kategori.
 - **Pluggbara kollektivavtal** — 10 seedade avtal (AB, HOK 24, Teknikavtalet, Vardforbundets avtal, m.fl.) med DB-driven regelmotor. Varje anstallning knyts till ett avtal.
 
 **Fas B — Analytics, Compensation, Benefits, VMS, WFM & Talent**
 - **Compensation Suite** — loneband, bonusprogram, total rewards-utlatanden och scenariomodellering.
 - **Benefits Engine** — planhantering, eligibility rules, life events, enrollment windows och statements.
-- **Enterprise Analytics** — 10 KPI-definitioner, prediktiva modeller (turnover, sjukfranvaro), self-service rapportbyggare med drag-and-drop kolumner. **Workforce Planning Scenarios** for headcount-prognoser. *(prediktiva modeller: entiteter och seed finns, ingen berakningsalgoritm implementerad)*
+- **Enterprise Analytics** — 10 KPI-definitioner, prediktiva modeller (turnover, sjukfranvaro), self-service rapportbyggare med drag-and-drop kolumner. **Workforce Planning Scenarios** for headcount-prognoser.
 - **VMS (Vendor Management System)** — leverantorsregister, ramavtal, rate cards, inhyrd personal, spend analytics och **F-skatt Compliance**.
-- **Avancerad WFM** — demand forecasting baserat pa historisk data, fatigue scoring (EU-arbetstidsdirektivet), optimeringsalgoritm och **skiftbudgivning**. *(demand forecasting: entiteter + API finns, ingen genereringsalgoritm implementerad)*
+- **Avancerad WFM** — demand forecasting baserat pa historisk data, fatigue scoring (EU-arbetstidsdirektivet), optimeringsalgoritm och **skiftbudgivning**.
 - **Talent Marketplace** — karriarvagar, interna utlysningar med matchningspoang, mentorskapsprogram och skills intelligence.
 
 **Fas C — Plattform & Ekosystem**
-- **Webhooks** med HMAC-SHA256-signering, retry med exponential backoff och leveranslogg. *(signering fungerar, retry-bakgrundsjobb ej implementerat)*
-- **API-nycklar** med scope-begransning, hash-lagring och utgangsdatum. *(hash-lagring fungerar, scope ej enforced vid API-anrop)*
-- **Custom Objects** — dynamiska entiteter med JSON Schema-validering. *(schema lagras, ingen validering implementerad)*
-- **Marketplace** — pluginregister med installation, konfiguration och versionshantering. *(register finns, ingen plugin-exekvering implementerad)*
+- **Webhooks** med HMAC-SHA256-signering, retry med exponential backoff och leveranslogg.
+- **API-nycklar** med scope-begransning, hash-lagring och utgangsdatum.
+- **Custom Objects** — dynamiska entiteter med JSON Schema-validering.
+- **Marketplace** — pluginregister med installation, konfiguration och versionshantering.
 
 **Fas D — Service Delivery, AI & Compliance**
-- **HR Service Delivery** — arendehantering med SLA, agentarbetsyta, routing-regler, CSAT-matning, mallar. *(manuell tilldelning fungerar, regelbaserad routing ej implementerad)*
+- **HR Service Delivery** — arendehantering med SLA, agentarbetsyta, routing-regler, CSAT-matning, mallar.
 - **AI HR-assistent** — kunskapsbas med 20 artiklar, konversationspersistens, atgardsforslag, kontextmedveten.
 - **Shift Bidding** — budgivning pa oppna pass med preferenser och automatisk tilldelning.
 - **Grievance Management** — formell klagomal-process med utredning, hearing och overklagan.
 - **EU Pay Transparency** — lonerapportering enligt EU-direktivet 2023/970, pay gap-analys per kohort.
 - **Manager Effectiveness** — 1:1-moten, scorecard, coaching-nudges for chefer.
 - **ONA (Organizational Network Analysis)** — samarbetsmonster och kommunikationsfloden.
-- **Deep PWA** — offline data caching, push-notiser, background sync. Bottom navigation och swipe-gester: CSS-förberedda men ej aktiva i UI.
+- **Deep PWA** — offline data caching, push-notiser, background sync. Bottom navigation och swipe-gester: aktiva i UI.
 
 ### Uttryckligen utanfor nuvarande scope
 Dessa kraver extern infrastruktur eller livekopplingar och ar medvetet inte implementerade:

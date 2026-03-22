@@ -30,7 +30,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - **Tema**: Nordic Refined — Plus Jakarta Sans, teal primary, dark mode (persistent via ProtectedSessionStorage)
 - **Auth**: Rollbaserad (Admin/HR/Chef/Anställd) med SITHS/BankID-simulering, persistent session
 - **Databas**: PostgreSQL med EF Core migrationer + seed data (10 anställda, 6 enheter)
-- **Export**: CSV med kopiera/ladda ner, PDF via PdfSharpCore (lönespecifikationer). Övriga dokumentmallar: textbaserad platshållare.
+- **Export**: CSV med kopiera/ladda ner, PDF via PdfSharpCore för lönespecifikationer, tjänstgöringsintyg och anställningsavtal.
 - **Notifieringar**: InApp + Email (MailKit) + SMS (HTTP gateway) + SignalR real-time
 - **Bakgrundsjobb**: NotificationReminder, RetentionCleanup, ScheduledReports, CertificationReminder, LASAlert
 - **Säkerhet**: CSP headers, X-Frame-Options, rate limiting (100 req/min), CSRF-skydd
@@ -87,7 +87,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - `SchemaOptimizer` — Round-robin tilldelning med balansindex, per-person timmespårning
 
 ### Export & Dokument
-- `PdfGenerator` — Lönespecifikationer via PdfSharpCore; övriga dokument (tjänstgöringsintyg, anställningsavtal) är textbaserade platshållare
+- `PdfGenerator` — PDF via PdfSharpCore för lönespecifikationer, tjänstgöringsintyg och anställningsavtal
 - `ExportService` — CSV/Excel export med ClosedXML
 - `FileStorageService` — Filuppladdning/nedladdning till wwwroot/uploads
 
