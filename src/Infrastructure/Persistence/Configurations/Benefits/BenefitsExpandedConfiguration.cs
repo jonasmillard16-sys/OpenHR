@@ -79,7 +79,10 @@ public class BenefitEnrollmentConfiguration : IEntityTypeConfiguration<BenefitEn
     {
         builder.ToTable("benefit_enrollments", "benefits");
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.Status).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
         builder.Property(x => x.ValdNiva).HasMaxLength(200);
         builder.HasIndex(x => x.AnstallId);
         builder.HasIndex(x => x.BenefitId);

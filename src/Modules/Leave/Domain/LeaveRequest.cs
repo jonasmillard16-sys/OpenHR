@@ -47,12 +47,25 @@ public sealed class LeaveRequest
     /// Skapar en ny frnvarobegran med status Utkast.
     /// AntalDagar berknas automatiskt som arbetsdagar (exklusive helger).
     /// </summary>
+    /// <summary>
+    /// Validerar att inga överlappande ledighetsansökningar finns för perioden.
+    /// Anropas av applikationslagret innan Skapa, med befintliga ansökningar för anställd.
+    /// </summary>
+    public static void ValideraIngenOverlappning(IEnumerable<LeaveRequest> befintliga, DateOnly from, DateOnly to)
+    {
+        var overlapping = befintliga.FirstOrDefault(r =>
+            r.Status != LeaveRequestStatus.Avslagen &&
+            r.Status != LeaveRequestStatus.Aterkallad &&
+            r.FranDatum <= to && r.TillDatum >= from);
+        if (overlapping != null)
+            throw new InvalidOperationException(
+                $"Överlappande ledighetsansökan finns redan för perioden {overlapping.FranDatum}–{overlapping.TillDatum}");
+    }
+
     public static LeaveRequest Skapa(Guid anstallId, LeaveType typ, DateOnly from, DateOnly to, string? beskrivning)
     {
         if (to < from)
             throw new ArgumentException("Slutdatum kan inte vara fre startdatum.");
-
-        // TODO: Validate no overlapping approved/pending requests for same employee
 
         return new LeaveRequest
         {

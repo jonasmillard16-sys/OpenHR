@@ -90,11 +90,10 @@ public sealed class Employment : Entity<EmploymentId>
 
     public Money BeraknaDaglon() => Manadslon / 21m; // Genomsnittliga arbetsdagar/månad
 
-    /// <summary>Beräkna timlön baserat på heltidstimmar per vecka (vanligen 38.25 för AB)</summary>
-    public Money BeraknaTimlon(decimal veckoarbetstid = 38.25m)
+    /// <summary>Beräkna timlön baserat på heltidstimmar per vecka från kollektivavtalet (fallback 38.25 för AB)</summary>
+    public Money BeraknaTimlon(decimal? avtalsVeckotimmar = null)
     {
-        // TODO: Lookup weekly hours from collective agreement instead of hardcoded 38.25
-        var timmarPerManad = veckoarbetstid * 52m / 12m;
-        return Manadslon / timmarPerManad;
+        var veckotimmar = avtalsVeckotimmar ?? 38.25m;
+        return Manadslon / (veckotimmar * 4.33m);
     }
 }

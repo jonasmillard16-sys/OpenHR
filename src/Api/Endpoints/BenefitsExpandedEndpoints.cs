@@ -92,7 +92,7 @@ public static class BenefitsExpandedEndpoints
 
             // Generate on the fly
             var enrollments = await db.BenefitEnrollments
-                .Where(e => e.AnstallId == anstallId && e.Status == "Active")
+                .Where(e => e.AnstallId == anstallId && e.Status == BenefitEnrollmentStatus.Active)
                 .ToListAsync(ct);
 
             var benefitIds = enrollments.Select(e => e.BenefitId).Distinct().ToList();

@@ -1,12 +1,13 @@
 namespace RegionHR.Benefits.Domain;
 
+public enum BenefitEnrollmentStatus { Pending, Active, Cancelled }
+
 public class BenefitEnrollment
 {
     public Guid Id { get; private set; }
     public Guid AnstallId { get; private set; }
     public Guid BenefitId { get; private set; }
-    // TODO: Migrate Status from string to BenefitEnrollmentStatus enum
-    public string Status { get; private set; } = "Pending";
+    public BenefitEnrollmentStatus Status { get; private set; } = BenefitEnrollmentStatus.Pending;
     public DateOnly StartDatum { get; private set; }
     public string? ValdNiva { get; private set; }
     public DateTime SkapadVid { get; private set; }
@@ -20,7 +21,7 @@ public class BenefitEnrollment
             Id = Guid.NewGuid(),
             AnstallId = anstallId,
             BenefitId = benefitId,
-            Status = "Pending",
+            Status = BenefitEnrollmentStatus.Pending,
             StartDatum = startDatum,
             ValdNiva = valdNiva,
             SkapadVid = DateTime.UtcNow
@@ -29,15 +30,15 @@ public class BenefitEnrollment
 
     public void Aktivera()
     {
-        if (Status is not "Pending")
+        if (Status != BenefitEnrollmentStatus.Pending)
             throw new InvalidOperationException($"Kan inte aktivera en enrollment med status {Status}");
-        Status = "Active";
+        Status = BenefitEnrollmentStatus.Active;
     }
 
     public void Avbryt()
     {
-        if (Status is "Cancelled")
+        if (Status == BenefitEnrollmentStatus.Cancelled)
             throw new InvalidOperationException("Enrollment är redan avbruten");
-        Status = "Cancelled";
+        Status = BenefitEnrollmentStatus.Cancelled;
     }
 }

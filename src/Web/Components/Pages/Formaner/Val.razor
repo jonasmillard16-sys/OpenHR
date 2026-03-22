@@ -58,13 +58,13 @@ else
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == "Active")</MudText>
+                <MudText Typo="Typo.h3" Color="Color.Success" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == BenefitEnrollmentStatus.Active)</MudText>
                 <MudText Typo="Typo.body2">Aktiva</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-4 text-center" Elevation="2">
-                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == "Pending")</MudText>
+                <MudText Typo="Typo.h3" Color="Color.Warning" Style="font-weight: 700;">@_myEnrollments.Count(e => e.Status == BenefitEnrollmentStatus.Pending)</MudText>
                 <MudText Typo="Typo.body2">Väntar</MudText>
             </MudPaper>
         </MudItem>
@@ -75,7 +75,7 @@ else
     <MudGrid Spacing="3" Class="mb-6">
         @foreach (var b in _benefits.Where(b => b.ArAktiv))
         {
-            var isEnrolled = _myEnrollments.Any(e => e.BenefitId == b.Id && e.Status is "Active" or "Pending");
+            var isEnrolled = _myEnrollments.Any(e => e.BenefitId == b.Id && (e.Status == BenefitEnrollmentStatus.Active || e.Status == BenefitEnrollmentStatus.Pending));
             <MudItem xs="12" sm="6" md="4">
                 <MudCard Elevation="2">
                     <MudCardHeader>
@@ -179,7 +179,7 @@ else
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) return;
-        var enrollment = _myEnrollments.FirstOrDefault(e => e.BenefitId == benefit.Id && e.Status is "Active" or "Pending");
+        var enrollment = _myEnrollments.FirstOrDefault(e => e.BenefitId == benefit.Id && (e.Status == BenefitEnrollmentStatus.Active || e.Status == BenefitEnrollmentStatus.Pending));
         if (enrollment is null) return;
         try
         {
@@ -192,20 +192,20 @@ else
 
     private string GetBenefitName(Guid id) => _benefits.FirstOrDefault(b => b.Id == id)?.Namn ?? "Okänd";
 
-    private static Color EnrollmentStatusColor(string s) => s switch
+    private static Color EnrollmentStatusColor(BenefitEnrollmentStatus s) => s switch
     {
-        "Active" => Color.Success,
-        "Pending" => Color.Warning,
-        "Cancelled" => Color.Default,
+        BenefitEnrollmentStatus.Active => Color.Success,
+        BenefitEnrollmentStatus.Pending => Color.Warning,
+        BenefitEnrollmentStatus.Cancelled => Color.Default,
         _ => Color.Default
     };
 
-    private static string EnrollmentStatusText(string s) => s switch
+    private static string EnrollmentStatusText(BenefitEnrollmentStatus s) => s switch
     {
-        "Active" => "Aktiv",
-        "Pending" => "Väntar",
-        "Cancelled" => "Avbruten",
-        _ => s
+        BenefitEnrollmentStatus.Active => "Aktiv",
+        BenefitEnrollmentStatus.Pending => "Väntar",
+        BenefitEnrollmentStatus.Cancelled => "Avbruten",
+        _ => s.ToString()
     };
 }
 

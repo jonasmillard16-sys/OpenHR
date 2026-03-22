@@ -16,6 +16,9 @@ public sealed class CollectiveAgreement : AggregateRoot<CollectiveAgreementId>
     public IndustrySector Bransch { get; private set; }
     public AgreementStatus Status { get; private set; }
 
+    /// <summary>Heltidstimmar per vecka (default 38.25 för AB). Används för timlönsberäkning.</summary>
+    public decimal VeckotimmarHeltid { get; private set; } = 38.25m;
+
     // Sub-entity collections
     private readonly List<AgreementOBRate> _obSatser = [];
     public IReadOnlyList<AgreementOBRate> OBSatser => _obSatser.AsReadOnly();
@@ -53,7 +56,8 @@ public sealed class CollectiveAgreement : AggregateRoot<CollectiveAgreementId>
         string namn,
         string parter,
         DateOnly giltigFran,
-        IndustrySector bransch)
+        IndustrySector bransch,
+        decimal veckotimmarHeltid = 38.25m)
     {
         return new CollectiveAgreement
         {
@@ -63,7 +67,8 @@ public sealed class CollectiveAgreement : AggregateRoot<CollectiveAgreementId>
             GiltigFran = giltigFran,
             GiltigTill = null,
             Bransch = bransch,
-            Status = AgreementStatus.Aktivt
+            Status = AgreementStatus.Aktivt,
+            VeckotimmarHeltid = veckotimmarHeltid
         };
     }
 

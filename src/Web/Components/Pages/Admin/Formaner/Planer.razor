@@ -160,7 +160,7 @@ else
             _rules = await db.EligibilityRules.ToListAsync();
 
             var counts = await db.BenefitEnrollments
-                .Where(e => e.Status == "Active" || e.Status == "Pending")
+                .Where(e => e.Status == BenefitEnrollmentStatus.Active || e.Status == BenefitEnrollmentStatus.Pending)
                 .GroupBy(e => e.BenefitId)
                 .Select(g => new { BenefitId = g.Key, Count = g.Count() })
                 .ToListAsync();
