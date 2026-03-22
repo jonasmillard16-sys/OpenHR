@@ -25,18 +25,12 @@ public sealed class PayrollCalculationEngine
     private readonly ITaxTableProvider _taxTableProvider;
     private readonly ICollectiveAgreementRulesEngine _rulesEngine;
     private readonly ICoreHRModule _coreHR;
+    private readonly ISystemSettingProvider _systemSettings;
 
-    // Inkomstbasbelopp och prisbasbelopp per år.
-    // TODO: Läs dessa värden från SystemSetting-tabellen (nycklarna IBB_2025, IBB_2026, PBB_2025, PBB_2026)
-    // i stället för hårdkodade konstanter. Värdena seedas i SeedData och kan uppdateras i konfigurationsgränssnittet.
-    // Se: src/Modules/Configuration/Domain/SystemSetting.cs
-    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
+    // Fallback constants used when the SystemSetting table has no value for a given year.
     private const decimal IBB_2025 = 80600m;
-    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal IBB_2026 = 83400m;
-    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal PBB_2025 = 58800m;
-    // [Obsolete("Use configuration table (SystemSetting) instead of hardcoded constants")]
     private const decimal PBB_2026 = 59200m;
 
     // Arbetsgivaravgifter
@@ -62,11 +56,13 @@ public sealed class PayrollCalculationEngine
     public PayrollCalculationEngine(
         ITaxTableProvider taxTableProvider,
         ICollectiveAgreementRulesEngine rulesEngine,
-        ICoreHRModule coreHR)
+        ICoreHRModule coreHR,
+        ISystemSettingProvider systemSettings)
     {
         _taxTableProvider = taxTableProvider;
         _rulesEngine = rulesEngine;
         _coreHR = coreHR;
+        _systemSettings = systemSettings;
     }
 
     /// <summary>
@@ -302,7 +298,7 @@ public sealed class PayrollCalculationEngine
         result.Pensionsgrundande = Money.SEK(result.Rader
             .Where(r => r.ArPensionsgrundande && !r.LoneartKod.StartsWith("3001"))
             .Sum(r => r.Belopp.Amount));
-        result.Pensionsavgift = BeraknaPension(result.Pensionsgrundande, year);
+        result.Pensionsavgift = await BeraknaPensionAsync(result.Pensionsgrundande, year, ct);
 
         // Steg 12: Semesterintjänande
         result.SemesterdagarIntjanade = BeraknaSemesterIntjanande(input.ArbetadeDagar, input.ArbetsdagarIManadens);
@@ -444,9 +440,9 @@ public sealed class PayrollCalculationEngine
         return null;
     }
 
-    private static Money BeraknaPension(Money pensionsgrundande, int year)
+    private async Task<Money> BeraknaPensionAsync(Money pensionsgrundande, int year, CancellationToken ct)
     {
-        var ibb = GetIBB(year);
+        var ibb = await GetIBBAsync(year, ct);
         var grans = PENSION_GRANS_IBB * ibb;
         var arslon = pensionsgrundande.Amount * 12m;
 
@@ -462,16 +458,42 @@ public sealed class PayrollCalculationEngine
 
     /// <summary>
     /// Hämta inkomstbasbelopp för angivet år.
+    /// Läser först från SystemSetting-tabellen (nyckel IBB_{year}), med fallback till konstanter.
+    /// </summary>
+    private async Task<decimal> GetIBBAsync(int year, CancellationToken ct)
+    {
+        var value = await _systemSettings.GetDecimalAsync($"IBB_{year}", ct);
+        if (value.HasValue)
+            return value.Value;
+
+        return year switch { <= 2025 => IBB_2025, 2026 => IBB_2026, _ => IBB_2026 };
+    }
+
+    /// <summary>
+    /// Hämta prisbasbelopp för angivet år.
+    /// Läser först från SystemSetting-tabellen (nyckel PBB_{year}), med fallback till konstanter.
+    /// </summary>
+    private async Task<decimal> GetPBBAsync(int year, CancellationToken ct)
+    {
+        var value = await _systemSettings.GetDecimalAsync($"PBB_{year}", ct);
+        if (value.HasValue)
+            return value.Value;
+
+        return year switch { <= 2025 => PBB_2025, 2026 => PBB_2026, _ => PBB_2026 };
+    }
+
+    /// <summary>
+    /// Hämta inkomstbasbelopp för angivet år (synkron fallback, används i tester).
     /// </summary>
     internal static decimal GetIBB(int year) => year switch
     {
         <= 2025 => IBB_2025,
         2026 => IBB_2026,
-        _ => IBB_2026 // Framtida år: använd senast kända, bör uppdateras årligen
+        _ => IBB_2026
     };
 
     /// <summary>
-    /// Hämta prisbasbelopp för angivet år.
+    /// Hämta prisbasbelopp för angivet år (synkron fallback, används i tester).
     /// </summary>
     internal static decimal GetPBB(int year) => year switch
     {

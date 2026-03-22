@@ -80,6 +80,7 @@ public static class DependencyInjection
         // Payroll services
         services.AddScoped<ITaxTableProvider, TaxTableRepository>();
         services.AddScoped<ICollectiveAgreementRulesEngine, CollectiveAgreementRulesEngine>();
+        services.AddScoped<ISystemSettingProvider, DbSystemSettingProvider>();
         services.AddScoped<PayrollCalculationEngine>();
 
         // Scheduling services

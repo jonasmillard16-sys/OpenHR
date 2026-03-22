@@ -138,6 +138,17 @@ public class SelfServiceApiClient
         if (emp is null) return null;
 
         var aktiv = emp.AktivAnstallning(DateOnly.FromDateTime(DateTime.Today));
+
+        // Resolve org unit name from the active employment's EnhetId
+        string enhetNamn = "-";
+        if (aktiv is not null)
+        {
+            var enhet = await db.OrganizationUnits
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == aktiv.EnhetId, ct);
+            enhetNamn = enhet?.Namn ?? "-";
+        }
+
         return new ProfilData
         {
             Fornamn = emp.Fornamn,
@@ -149,7 +160,7 @@ public class SelfServiceApiClient
             Postnummer = emp.Adress?.Postnummer ?? "",
             Ort = emp.Adress?.Ort ?? "",
             Befattning = aktiv?.Befattningstitel ?? "-",
-            Enhet = "-", // TODO: resolve org unit name
+            Enhet = enhetNamn,
             AnstaldSedan = aktiv?.Giltighetsperiod.Start.ToString("yyyy-MM-dd") ?? "-"
         };
     }
