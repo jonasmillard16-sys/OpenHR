@@ -1,11 +1,13 @@
 @page "/lon/korning/ny"
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
+@using RegionHR.Infrastructure.Payroll
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
+@inject SwedishTaxCalculator TaxCalc
 
 <PageTitle>OpenHR - Ny lönekörning</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text" Color="Color.Primary" Href="/lon/korningar" Style="margin-bottom: 1rem;">Tillbaka</MudButton>
@@ -76,11 +78,12 @@ else
                 var result = PayrollResult.Skapa(run.Id, emp.Id, anst.Id, _year, _month,
                     anst.Manadslon, anst.Sysselsattningsgrad.Value, anst.Kollektivavtal);
                 var brutto = anst.Manadslon.Amount * (anst.Sysselsattningsgrad.Value / 100m);
-                result.Brutto = Money.SEK(Math.Round(brutto, 0));
-                result.Skatt = Money.SEK(Math.Round(brutto * 0.30m, 0));
-                result.Netto = Money.SEK(Math.Round(brutto * 0.70m, 0));
-                result.Arbetsgivaravgifter = Money.SEK(Math.Round(brutto * 0.3142m, 0));
-                result.ArbetsgivaravgiftSats = 31.42m;
+                var lonBerakning = TaxCalc.Berakna(Math.Round(brutto, 0));
+                result.Brutto = Money.SEK(lonBerakning.Brutto);
+                result.Skatt = Money.SEK(lonBerakning.TotalSkatt);
+                result.Netto = Money.SEK(lonBerakning.Netto);
+                result.Arbetsgivaravgifter = Money.SEK(lonBerakning.Arbetsgivaravgift);
+                result.ArbetsgivaravgiftSats = TaxCalc.Arbetsgivaravgift * 100m;
                 run.LaggTillResultat(result);
             }
 
