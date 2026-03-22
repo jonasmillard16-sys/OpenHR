@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Documents.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Dokument</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -69,9 +69,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _documents = await Db.Documents
+            _documents = await db.Documents
                 .Where(d => !d.IsArchived)
                 .OrderByDescending(d => d.UppladdadVid)
                 .Take(50)
@@ -109,3 +110,4 @@
         _ => k.ToString()
     };
 }
+

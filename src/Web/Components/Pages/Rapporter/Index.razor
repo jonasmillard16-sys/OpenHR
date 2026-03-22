@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Reporting.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Rapporter</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rapportbibliotek</MudText>
@@ -65,9 +65,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _scheduledReports = await Db.ReportDefinitions
+            _scheduledReports = await db.ReportDefinitions
                 .Where(r => r.CronExpression != null)
                 .OrderBy(r => r.Namn)
                 .ToListAsync();
@@ -78,3 +79,4 @@
         }
     }
 }
+

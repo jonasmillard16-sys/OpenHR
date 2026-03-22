@@ -4,7 +4,7 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Lönestatistik</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönestatistik</MudText>
@@ -50,9 +50,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _runs = await Db.PayrollRuns.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month).Take(12).ToListAsync();
+            _runs = await db.PayrollRuns.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month).Take(12).ToListAsync();
             if (_runs.Count > 0)
             {
                 _senasteBrutto = _runs[0].TotalBrutto.Amount;
@@ -66,3 +67,4 @@ else
 
     private static string FormatKr(decimal v) => $"{v:N0} kr";
 }
+

@@ -2,7 +2,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Konfiguration</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Systemkonfiguration</MudText>
@@ -44,16 +44,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _antalAnstallda = await Db.Employees.CountAsync();
-            _antalEnheter = await Db.OrganizationUnits.CountAsync();
-            _antalPositioner = await Db.Positions_Table.CountAsync();
-            _antalKorningar = await Db.PayrollRuns.CountAsync();
-            _antalLonearter = await Db.SalaryCodes.CountAsync();
-            _antalPolicyer = await Db.Policies.CountAsync();
+            _antalAnstallda = await db.Employees.CountAsync();
+            _antalEnheter = await db.OrganizationUnits.CountAsync();
+            _antalPositioner = await db.Positions_Table.CountAsync();
+            _antalKorningar = await db.PayrollRuns.CountAsync();
+            _antalLonearter = await db.SalaryCodes.CountAsync();
+            _antalPolicyer = await db.Policies.CountAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta systemstatus: {ex.Message}"; }
         finally { _loading = false; }
     }
 }
+

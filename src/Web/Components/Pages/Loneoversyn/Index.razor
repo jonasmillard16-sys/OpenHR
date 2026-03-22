@@ -4,7 +4,7 @@
 @using RegionHR.SalaryReview.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Löneöversyn</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -72,20 +72,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _rundor = await Db.SalaryReviewRounds.OrderByDescending(r => r.Ar).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _rundor = await db.SalaryReviewRounds.OrderByDescending(r => r.Ar).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private async Task SkapaRunda()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_formNamn)) return;
         _saving = true; _error = null;
         try
         {
             var runda = SalaryReviewRound.Skapa(_formNamn!, _formAr, _formAvtal, Money.SEK(_formBudget), DateOnly.FromDateTime(DateTime.Today.AddMonths(2)));
-            Db.SalaryReviewRounds.Add(runda);
-            await Db.SaveChangesAsync();
+            db.SalaryReviewRounds.Add(runda);
+            await db.SaveChangesAsync();
             _rundor.Insert(0, runda);
             _showForm = false; _success = $"Löneöversynsrunda \"{_formNamn}\" skapad."; _formNamn = "";
         }
@@ -96,3 +98,4 @@ else
     private static string StatusText(SalaryReviewStatus s) => s switch { SalaryReviewStatus.Planering => "Planering", SalaryReviewStatus.FackligAvstemning => "Facklig avstämning", SalaryReviewStatus.Godkand => "Godkänd", SalaryReviewStatus.Genomford => "Genomförd", _ => s.ToString() };
     private static Color StatusFarg(SalaryReviewStatus s) => s switch { SalaryReviewStatus.Genomford => Color.Success, SalaryReviewStatus.Godkand => Color.Success, SalaryReviewStatus.FackligAvstemning => Color.Warning, _ => Color.Info };
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Provisioning
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ProvisioningService ProvService
 
 <PageTitle>OpenHR — Identitetshantering</PageTitle>
@@ -158,11 +158,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _events = await Db.ProvisioningEvents.ToListAsync();
-            _rules = await Db.ProvisioningRules.ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _events = await db.ProvisioningEvents.ToListAsync();
+            _rules = await db.ProvisioningRules.ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -170,6 +171,7 @@ else
 
     private async Task BeraknaAtgarder()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_selectedAnstallId is null) return;
         _calculating = true;
         _lastResult = null;
@@ -182,7 +184,7 @@ else
             emp.Id.Value, $"{emp.Fornamn} {emp.Efternamn}", _selectedTrigger);
 
         // Reload events from DB
-        _events = await Db.ProvisioningEvents.ToListAsync();
+        _events = await db.ProvisioningEvents.ToListAsync();
         _calculating = false;
     }
 
@@ -215,3 +217,4 @@ else
         _ => s.ToString()
     };
 }
+

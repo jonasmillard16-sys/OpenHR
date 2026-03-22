@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Semestersaldon</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Semestersaldon @DateTime.Today.Year</MudText>
@@ -46,14 +46,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var balances = await Db.VacationBalances
+            var balances = await db.VacationBalances
                 .Where(b => b.Ar == DateTime.Today.Year)
                 .ToListAsync();
 
             var anstallIds = balances.Select(b => b.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id.Value))
                 .ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
@@ -74,3 +75,4 @@ else
 
     private record SaldoRad(string Namn, int Tilldelning, int Uttagna, int Sparade, int Tillgangliga);
 }
+

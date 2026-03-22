@@ -69,7 +69,7 @@
 </MudContainer>
 
 @code {
-    [Inject] private RegionHRDbContext Db { get; set; } = default!;
+    [Inject] private IDbContextFactory<RegionHRDbContext> DbFactory { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
     private string _titel = "";
@@ -86,7 +86,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _categories = await Db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _categories = await db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
         if (_categories.Count > 0) _kategoriId = _categories[0].Id;
     }
 
@@ -99,9 +100,10 @@
     {
         try
         {
+            await using var db = await DbFactory.CreateDbContextAsync();
             var article = KnowledgeArticle.Skapa(_titel, _innehall, _kategoriId, ParseTaggar());
-            Db.KnowledgeArticles.Add(article);
-            await Db.SaveChangesAsync();
+            db.KnowledgeArticles.Add(article);
+            await db.SaveChangesAsync();
             _saved = true;
             _error = null;
         }
@@ -115,10 +117,11 @@
     {
         try
         {
+            await using var db = await DbFactory.CreateDbContextAsync();
             var article = KnowledgeArticle.Skapa(_titel, _innehall, _kategoriId, ParseTaggar());
             article.Publicera();
-            Db.KnowledgeArticles.Add(article);
-            await Db.SaveChangesAsync();
+            db.KnowledgeArticles.Add(article);
+            await db.SaveChangesAsync();
             _saved = true;
             _error = null;
         }

@@ -3,7 +3,7 @@
 @using RegionHR.Competence.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Karriarvagar</PageTitle>
 
@@ -115,9 +115,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _careerPaths = await Db.CareerPaths
+            _careerPaths = await db.CareerPaths
                 .Include(cp => cp.Steg)
                 .OrderBy(cp => cp.Namn)
                 .ToListAsync();
@@ -136,11 +137,12 @@ else
 
     private async Task SkapaKarriarvag()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newNamn) || string.IsNullOrWhiteSpace(_newBransch)) return;
 
         var cp = CareerPath.Skapa(_newNamn, _newBransch, _newBeskrivning);
-        await Db.CareerPaths.AddAsync(cp);
-        await Db.SaveChangesAsync();
+        await db.CareerPaths.AddAsync(cp);
+        await db.SaveChangesAsync();
         _careerPaths.Add(cp);
 
         _showForm = false;
@@ -152,13 +154,15 @@ else
 
     private async Task LaggTillSteg(CareerPath cp)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newStepBefattning)) return;
 
         cp.LaggTillSteg(_newStepBefattning, _newStepOrdning, _newStepTid);
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         _newStepBefattning = "";
         _newStepOrdning = cp.Steg.Count + 1;
         _newStepTid = 24;
     }
 }
+

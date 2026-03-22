@@ -5,7 +5,7 @@
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>OpenHR - @L["Cases"]</PageTitle>
@@ -62,15 +62,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var cases = await Db.Cases
+            var cases = await db.Cases
                 .OrderByDescending(c => c.CreatedAt)
                 .Take(50)
                 .ToListAsync();
 
             var anstallIds = cases.Select(c => c.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id))
                 .ToListAsync();
             var names = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
@@ -125,3 +126,4 @@ else
 
     private record ArendeRad(string Typ, string Anstalld, string Beskrivning, string StatusText, Color StatusFarg, string Skapad);
 }
+

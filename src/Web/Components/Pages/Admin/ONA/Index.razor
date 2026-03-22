@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
@@ -105,11 +105,12 @@ else
 
     private async Task LaddaData()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var surveys = await Db.ONASurveys.OrderByDescending(s => s.SkapadVid).ToListAsync();
+            var surveys = await db.ONASurveys.OrderByDescending(s => s.SkapadVid).ToListAsync();
             var surveyIds = surveys.Select(s => s.Id).ToList();
-            var responseCounts = await Db.ONAResponses
+            var responseCounts = await db.ONAResponses
                 .Where(r => surveyIds.Contains(r.SurveyId))
                 .GroupBy(r => r.SurveyId)
                 .Select(g => new { SurveyId = g.Key, Count = g.Count() })
@@ -123,14 +124,15 @@ else
 
     private async Task SkapaSurvey()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var fragor = string.IsNullOrWhiteSpace(_nyFragor)
                 ? """["Vem vänder du dig till för råd om arbetsuppgifter?","Vem samarbetar du mest med?","Vem inspirerar dig?"]"""
                 : _nyFragor;
             var survey = ONASurvey.Skapa(_nyNamn!, _nyPeriod ?? "2026-Q1", fragor);
-            await Db.ONASurveys.AddAsync(survey);
-            await Db.SaveChangesAsync();
+            await db.ONASurveys.AddAsync(survey);
+            await db.SaveChangesAsync();
             Snackbar.Add("Undersökning skapad!", Severity.Success);
             _nyNamn = null; _nyPeriod = null; _nyFragor = null;
             await LaddaData();
@@ -140,32 +142,35 @@ else
 
     private async Task OppnaSurvey(ONASurvey survey)
     {
-        try { survey.Oppna(); await Db.SaveChangesAsync(); Snackbar.Add("Undersökning öppnad!", Severity.Success); await LaddaData(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { survey.Oppna(); await db.SaveChangesAsync(); Snackbar.Add("Undersökning öppnad!", Severity.Success); await LaddaData(); }
         catch (Exception ex) { _error = ex.Message; }
     }
 
     private async Task StangSurvey(ONASurvey survey)
     {
-        try { survey.Stang(); await Db.SaveChangesAsync(); Snackbar.Add("Undersökning stängd.", Severity.Info); await LaddaData(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { survey.Stang(); await db.SaveChangesAsync(); Snackbar.Add("Undersökning stängd.", Severity.Info); await LaddaData(); }
         catch (Exception ex) { _error = ex.Message; }
     }
 
     private async Task AnalyseraSurvey(ONASurvey survey)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var responses = await Db.ONAResponses.Where(r => r.SurveyId == survey.Id).ToListAsync();
+            var responses = await db.ONAResponses.Where(r => r.SurveyId == survey.Id).ToListAsync();
             var result = ONACalculationService.Berakna(survey.Id, responses);
 
-            var existingNodes = await Db.NetworkNodes.Where(n => n.SurveyId == survey.Id).ToListAsync();
-            var existingEdges = await Db.NetworkEdges.Where(e => e.SurveyId == survey.Id).ToListAsync();
-            Db.NetworkNodes.RemoveRange(existingNodes);
-            Db.NetworkEdges.RemoveRange(existingEdges);
+            var existingNodes = await db.NetworkNodes.Where(n => n.SurveyId == survey.Id).ToListAsync();
+            var existingEdges = await db.NetworkEdges.Where(e => e.SurveyId == survey.Id).ToListAsync();
+            db.NetworkNodes.RemoveRange(existingNodes);
+            db.NetworkEdges.RemoveRange(existingEdges);
 
-            await Db.NetworkNodes.AddRangeAsync(result.Nodes);
-            await Db.NetworkEdges.AddRangeAsync(result.Edges);
+            await db.NetworkNodes.AddRangeAsync(result.Nodes);
+            await db.NetworkEdges.AddRangeAsync(result.Edges);
             survey.Analysera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             Snackbar.Add($"Analys klar! {result.Nodes.Count} noder, {result.Edges.Count} kanter.", Severity.Success);
             await LaddaData();
@@ -182,3 +187,4 @@ else
         _ => Color.Default
     };
 }
+

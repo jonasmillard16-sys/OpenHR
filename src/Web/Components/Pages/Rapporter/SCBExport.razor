@@ -2,7 +2,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - SCB-export</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">SCB-export</MudText>
@@ -48,17 +48,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             _preview = employees.Where(e => e.AktivAnstallning(idag) != null).Select(e =>
             {
                 var a = e.AktivAnstallning(idag)!;
                 return new SCBRad($"{e.Fornamn} {e.Efternamn}", a.Befattningstitel ?? "—", a.Anstallningsform.ToString(), a.Sysselsattningsgrad.Value, a.Manadslon.Amount);
             }).OrderBy(r => r.Namn).ToList();
             _totalAnstallda = _preview.Count;
-            _enheter = (await Db.OrganizationUnits.CountAsync());
+            _enheter = (await db.OrganizationUnits.CountAsync());
             _befattningar = _preview.Select(r => r.Befattning).Distinct().Count();
         }
         catch (Exception ex) { _error = $"Kunde inte generera SCB-data: {ex.Message}"; }
@@ -67,3 +68,4 @@ else
 
     private record SCBRad(string Namn, string Befattning, string Form, decimal Sysselsattning, decimal Lon);
 }
+

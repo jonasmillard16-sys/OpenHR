@@ -4,7 +4,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Talangmarknad</PageTitle>
 
@@ -204,16 +204,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _opportunities = await Db.InternalOpportunities
+            _opportunities = await db.InternalOpportunities
                 .Where(o => o.Status == OpportunityStatus.Published)
                 .OrderByDescending(o => o.PeriodFran)
                 .ToListAsync();
-            _skills = await Db.Skills.OrderBy(s => s.Kategori).ThenBy(s => s.Namn).ToListAsync();
-            _employeeSkills = await Db.EmployeeSkills.ToListAsync();
-            _careerPaths = await Db.CareerPaths.ToListAsync();
-            _mentorRelations = await Db.MentorRelations
+            _skills = await db.Skills.OrderBy(s => s.Kategori).ThenBy(s => s.Namn).ToListAsync();
+            _employeeSkills = await db.EmployeeSkills.ToListAsync();
+            _careerPaths = await db.CareerPaths.ToListAsync();
+            _mentorRelations = await db.MentorRelations
                 .Where(m => m.Status == "Active")
                 .ToListAsync();
         }
@@ -269,3 +270,4 @@ else
         _ => Color.Default
     };
 }
+

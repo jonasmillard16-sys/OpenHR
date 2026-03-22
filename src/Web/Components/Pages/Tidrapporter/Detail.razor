@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Tidrapport</PageTitle>
@@ -116,12 +116,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _ts = await Db.Timesheets.FirstOrDefaultAsync(t => t.Id == Id);
+            _ts = await db.Timesheets.FirstOrDefaultAsync(t => t.Id == Id);
             if (_ts != null)
             {
-                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id.Value == _ts.AnstallId);
+                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id.Value == _ts.AnstallId);
                 _empName = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
             }
         }
@@ -131,13 +132,14 @@ else
 
     private async Task GodkannTs()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
         if (_ts == null) return;
         _saving = true;
         try
         {
             _ts.Godkann(Auth.EmployeeId.Value, null);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _actionResult = "Tidrapporten har godkänts.";
             _actionSeverity = Severity.Success;
         }
@@ -147,13 +149,14 @@ else
 
     private async Task AvvisaTs()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Avvisning kräver kopplad anställd."; return; }
         if (_ts == null || string.IsNullOrWhiteSpace(_avvisKommentar)) return;
         _saving = true;
         try
         {
             _ts.Avvisa(Auth.EmployeeId.Value, _avvisKommentar);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _actionResult = "Tidrapporten har avslagits.";
             _actionSeverity = Severity.Error;
         }
@@ -172,3 +175,4 @@ else
         TimesheetStatus.Avslagen => Color.Error, _ => Color.Default
     };
 }
+

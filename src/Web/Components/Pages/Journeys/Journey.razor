@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Journeys
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Journey</PageTitle>
 <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
@@ -101,9 +101,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _instance = await Db.JourneyInstances
+            _instance = await db.JourneyInstances
                 .Include("Steg")
                 .FirstOrDefaultAsync(i => i.Id == InstanceId);
         }
@@ -113,8 +114,10 @@ else
 
     private async Task MarkeraKlar(Guid stegId)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_instance == null) return;
         _instance.MarkeraStegKlart(stegId, "Admin");
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 }
+

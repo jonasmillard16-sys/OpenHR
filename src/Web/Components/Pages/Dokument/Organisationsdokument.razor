@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Documents.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Organisationsdokument</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Organisationsdokument</MudText>
@@ -62,15 +62,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _policyList = await Db.Policies
+            _policyList = await db.Policies
                 .Where(p => p.Status == RegionHR.PolicyManagement.Domain.PolicyStatus.Publicerad)
                 .OrderByDescending(p => p.PubliceradVid).ToListAsync();
             _policyer = _policyList.Count;
 
             // Show all non-archived documents as organizational scope
-            _docList = await Db.Documents
+            _docList = await db.Documents
                 .Where(d => !d.IsArchived)
                 .OrderByDescending(d => d.UppladdadVid)
                 .Take(20).ToListAsync();
@@ -80,3 +81,4 @@ else
         finally { _loading = false; }
     }
 }
+

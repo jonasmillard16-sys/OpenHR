@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - VMS Statistik</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -128,15 +128,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var invoices = await Db.VendorInvoices.ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var invoices = await db.VendorInvoices.ToListAsync();
         _totalInvoiced = invoices.Sum(i => i.Belopp);
         _totalPaid = invoices.Where(i => i.Status == VendorInvoiceStatus.Paid).Sum(i => i.Belopp);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var workers = await Db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
+        var workers = await db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
         _activeWorkers = workers.Count;
 
-        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+        var vendors = await db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
         _vendorCosts = vendors.Select(v => new VendorCost(
             v.Value,
             workers.Where(w => w.VendorId == VendorId.From(v.Key.Value)).Sum(w => w.TimKostnad * 160)
@@ -144,11 +145,12 @@ else
 
         _vendorLabels = _vendorCosts.Select(c => c.Namn).ToArray();
 
-        var perfs = await Db.VendorPerformances.OrderByDescending(p => p.CreatedAt).ToListAsync();
+        var perfs = await db.VendorPerformances.OrderByDescending(p => p.CreatedAt).ToListAsync();
         _avgPerformance = perfs.Count > 0 ? perfs.Average(p => p.Poang) : 0;
         _performances = perfs.Select(p => new PerfRow(p, vendors.GetValueOrDefault(p.VendorId, "Okand"))).ToList();
 
-        _categories = await Db.SpendCategories.OrderBy(c => c.Namn).ToListAsync();
+        _categories = await db.SpendCategories.OrderBy(c => c.Namn).ToListAsync();
         _loading = false;
     }
 }
+

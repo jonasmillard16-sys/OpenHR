@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.CaseManagement.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - MBL-förhandlingar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -70,20 +70,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _forhandlingar = await Db.MBLNegotiations.OrderByDescending(m => m.Datum).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _forhandlingar = await db.MBLNegotiations.OrderByDescending(m => m.Datum).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta MBL-data: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private async Task SkapaMBL()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_formArende) || _formDatum == null) return;
         _saving = true; _error = null;
         try
         {
             var mbl = MBLNegotiation.Skapa(_formArende!, _formTyp, DateOnly.FromDateTime(_formDatum.Value));
-            Db.MBLNegotiations.Add(mbl);
-            await Db.SaveChangesAsync();
+            db.MBLNegotiations.Add(mbl);
+            await db.SaveChangesAsync();
             _forhandlingar.Insert(0, mbl);
             _showForm = false; _success = "MBL-förhandling skapad."; _formArende = "";
         }
@@ -94,3 +96,4 @@ else
     private static string StatusText(MBLStatus s) => s switch { MBLStatus.Kallad => "Kallad", MBLStatus.Pagaende => "Pågående", MBLStatus.Avslutad => "Avslutad", MBLStatus.Protokollfrd => "Protokollförd", _ => s.ToString() };
     private static Color StatusFarg(MBLStatus s) => s switch { MBLStatus.Kallad => Color.Warning, MBLStatus.Pagaende => Color.Info, MBLStatus.Avslutad => Color.Success, MBLStatus.Protokollfrd => Color.Success, _ => Color.Default };
 }
+

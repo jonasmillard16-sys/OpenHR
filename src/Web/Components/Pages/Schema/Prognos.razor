@@ -5,7 +5,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Behovsprognos</PageTitle>
 
@@ -129,7 +129,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _enheter = await Db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _enheter = await db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
         if (_enheter.Count > 0)
         {
             _valdEnhet = _enheter[0].Id.Value;
@@ -146,16 +147,17 @@ else
 
     private async Task LaddaData()
     {
-        _patterns = await Db.DemandPatterns
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _patterns = await db.DemandPatterns
             .Where(p => p.EnhetId == OrganizationId.From(_valdEnhet))
             .ToListAsync();
 
-        _events = await Db.DemandEvents
+        _events = await db.DemandEvents
             .Where(e => e.DatumTill >= DateOnly.FromDateTime(DateTime.Today))
             .OrderBy(e => e.DatumFran)
             .ToListAsync();
 
-        _forecasts = await Db.DemandForecasts
+        _forecasts = await db.DemandForecasts
             .Where(f => f.EnhetId == OrganizationId.From(_valdEnhet))
             .OrderBy(f => f.Datum)
             .Take(30)
@@ -190,3 +192,4 @@ else
         _ => Color.Default
     };
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Recruitment.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Rekryteringspipeline</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Rekryteringspipeline</MudText>
@@ -41,10 +41,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var vacancies = await Db.Vacancies.Where(v => v.Status == VacancyStatus.Publicerad || v.Status == VacancyStatus.Stangd).OrderByDescending(v => v.SistaAnsokningsDag).ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var vacancies = await db.Vacancies.Where(v => v.Status == VacancyStatus.Publicerad || v.Status == VacancyStatus.Stangd).OrderByDescending(v => v.SistaAnsokningsDag).ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
             _vakanser = vacancies.Where(v => v.Ansokngar.Count > 0).Select(v => new VakansVm(v.Titel, enhetNamn.GetValueOrDefault(v.EnhetId.Value, "—"), v.Ansokngar.Count, v.Ansokngar.Select(a => new AnsVm(a.Namn, a.Epost, a.Status.ToString())).ToList())).ToList();
         }
@@ -55,3 +56,4 @@ else
     private record AnsVm(string Namn, string Epost, string Status);
     private record VakansVm(string Titel, string EnhetNamn, int AntalAnsokngar, List<AnsVm> Ansokngar);
 }
+

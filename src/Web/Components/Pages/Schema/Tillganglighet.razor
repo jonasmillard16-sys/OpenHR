@@ -5,7 +5,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Tillganglighet</PageTitle>
@@ -138,7 +138,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
         if (_employees.Count > 0)
         {
             _valdAnstallId = _employees[0].Id.Value;
@@ -155,11 +156,12 @@ else
 
     private async Task LaddaData()
     {
-        _availability = await Db.EmployeeAvailabilities
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _availability = await db.EmployeeAvailabilities
             .Where(a => a.AnstallId == EmployeeId.From(_valdAnstallId))
             .ToListAsync();
 
-        _fatigueScore = await Db.FatigueScores
+        _fatigueScore = await db.FatigueScores
             .Where(f => f.AnstallId == EmployeeId.From(_valdAnstallId))
             .OrderByDescending(f => f.BeraknadVid)
             .FirstOrDefaultAsync();
@@ -167,6 +169,7 @@ else
 
     private async Task LaggTill()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_valdAnstallId == Guid.Empty) return;
 
         var avail = new EmployeeAvailability
@@ -178,8 +181,8 @@ else
             ArRepeterande = _nyRepeterande
         };
 
-        await Db.EmployeeAvailabilities.AddAsync(avail);
-        await Db.SaveChangesAsync();
+        await db.EmployeeAvailabilities.AddAsync(avail);
+        await db.SaveChangesAsync();
         _availability.Add(avail);
 
         Snackbar.Add("Tillganglighet tillagd.", Severity.Success);
@@ -216,3 +219,4 @@ else
         _ => Severity.Info
     };
 }
+

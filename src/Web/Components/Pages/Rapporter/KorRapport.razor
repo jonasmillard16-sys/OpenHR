@@ -2,7 +2,7 @@
 @layout RegionHR.Web.Components.Layout.AdminLayout
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IJSRuntime JS
 
 <PageTitle>OpenHR - @Namn</PageTitle>
@@ -75,6 +75,7 @@ else if (_result != null)
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         await Task.Delay(500); // Simulate generation time
 
         switch (Namn)
@@ -83,7 +84,7 @@ else if (_result != null)
                 _headers = ["Namn", "Personnummer", "Enhet", "Befattning", "Anställd sedan"];
                 try
                 {
-                    var emps = await Db.Employees.Include(e => e.Anstallningar).Take(100).ToListAsync();
+                    var emps = await db.Employees.Include(e => e.Anstallningar).Take(100).ToListAsync();
                     _result = emps.Select(e => new List<string>
                     {
                         $"{e.Fornamn} {e.Efternamn}",
@@ -100,7 +101,7 @@ else if (_result != null)
                 _headers = ["Namn", "Personnummer", "Befattning", "Brutto", "Skatt", "Netto", "AG-avgift"];
                 try
                 {
-                    var loneEmps = await Db.Employees.Include(e => e.Anstallningar).Take(100).ToListAsync();
+                    var loneEmps = await db.Employees.Include(e => e.Anstallningar).Take(100).ToListAsync();
                     _result = loneEmps.Select(e =>
                     {
                         var anst = e.Anstallningar.FirstOrDefault();
@@ -123,7 +124,7 @@ else if (_result != null)
                 _headers = ["Typ", "Antal ansökningar", "Totalt dagar"];
                 try
                 {
-                    var leaves = await Db.LeaveRequests.ToListAsync();
+                    var leaves = await db.LeaveRequests.ToListAsync();
                     _result = leaves.GroupBy(l => l.Typ).Select(g => new List<string>
                         { g.Key.ToString(), g.Count().ToString(), g.Sum(l => l.AntalDagar).ToString() }).ToList();
                 }
@@ -134,9 +135,9 @@ else if (_result != null)
                 _headers = ["Namn", "Anställningsform", "Ackumulerade dagar", "Status"];
                 try
                 {
-                    var accs = await Db.LASAccumulations.ToListAsync();
+                    var accs = await db.LASAccumulations.ToListAsync();
                     var lasEmpIds = accs.Select(a => a.AnstallId.Value).Distinct().ToList();
-                    var lasEmps = await Db.Employees.Where(e => lasEmpIds.Contains(e.Id.Value)).ToListAsync();
+                    var lasEmps = await db.Employees.Where(e => lasEmpIds.Contains(e.Id.Value)).ToListAsync();
                     var lasNames = lasEmps.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
                     _result = accs.OrderByDescending(a => a.AckumuleradeDagar).Select(a => new List<string>
                         { lasNames.GetValueOrDefault(a.AnstallId.Value, "Okänd"), a.Anstallningsform.ToString(), a.AckumuleradeDagar.ToString(), a.Status.ToString() }).ToList();
@@ -149,11 +150,11 @@ else if (_result != null)
                 try
                 {
                     var idagBem = DateOnly.FromDateTime(DateTime.Today);
-                    var todayShifts = await Db.ScheduledShifts.Where(s => s.Datum == idagBem).ToListAsync();
-                    var bemEmps = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+                    var todayShifts = await db.ScheduledShifts.Where(s => s.Datum == idagBem).ToListAsync();
+                    var bemEmps = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
                     var empEnhBem = new Dictionary<Guid, Guid>();
                     foreach (var be in bemEmps) { var ba = be.AktivAnstallning(idagBem); if (ba != null) empEnhBem[be.Id.Value] = ba.EnhetId.Value; }
-                    var enhBem = await Db.OrganizationUnits.ToListAsync();
+                    var enhBem = await db.OrganizationUnits.ToListAsync();
                     _result = enhBem.Select(enhet => {
                         var es = todayShifts.Where(s => empEnhBem.GetValueOrDefault(s.AnstallId.Value) == enhet.Id.Value).ToList();
                         return new List<string> { enhet.Namn, es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Dag).ToString(), es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Kvall).ToString(), es.Count(s => s.PassTyp == RegionHR.Scheduling.Domain.ShiftType.Natt).ToString(), es.Count.ToString() };
@@ -211,3 +212,4 @@ else if (_result != null)
         await JS.InvokeVoidAsync("downloadFile", $"{Namn}.csv", base64, "text/csv");
     }
 }
+

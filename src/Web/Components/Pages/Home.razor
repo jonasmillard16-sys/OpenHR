@@ -7,7 +7,7 @@
 @using RegionHR.CaseManagement.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
@@ -119,20 +119,21 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
 
             // Headcount: anställda med aktiv anställning
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             _headcount = employees.Count(e => e.AktivAnstallning(idag) != null);
 
             // LAS-alarm
-            _lasAlarm = await Db.LASAccumulations
+            _lasAlarm = await db.LASAccumulations
                 .CountAsync(l => l.Status == LASStatus.NaraGrans || l.Status == LASStatus.KritiskNara);
 
             // Positioner — en fråga, gruppera status i minnet
-            var positions = await Db.Positions_Table.ToListAsync();
+            var positions = await db.Positions_Table.ToListAsync();
             var statusCounts = positions.GroupBy(p => p.Status)
                 .ToDictionary(g => g.Key, g => g.Count());
             var aktiva = statusCounts.GetValueOrDefault(PositionStatus.Aktiv);
@@ -140,7 +141,7 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
             _vakantaPositioner = vakanta;
 
             // Väntande godkännanden
-            _godkannanden = await Db.Cases
+            _godkannanden = await db.Cases
                 .CountAsync(c => c.Status == CaseStatus.VantarGodkannande);
 
             // Bemanningsgrad
@@ -148,7 +149,7 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
             _bemanningsgrad = total > 0 ? (int)Math.Round(100.0 * aktiva / total) : 0;
 
             // Bemanning per enhet
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             _bemanningPerEnhet = positions
@@ -169,3 +170,4 @@ else if (_showBemanning && _bemanningPerEnhet.Count == 0 && !_loading)
 
     private record EnhetBemanningVm(string Namn, int Aktiva, int Vakanta);
 }
+

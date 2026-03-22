@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Automation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Automation: @Kategori</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -104,9 +104,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var cat = await Db.AutomationCategories.FirstOrDefaultAsync(c => c.Namn == Kategori);
+            var cat = await db.AutomationCategories.FirstOrDefaultAsync(c => c.Namn == Kategori);
             if (cat == null)
             {
                 _error = $"Kategorin '{Kategori}' hittades inte.";
@@ -116,8 +117,8 @@ else
 
             _kategoriNamn = cat.Namn;
             _kategoriBeskrivning = cat.Beskrivning;
-            _regler = await Db.AutomationRules.Where(r => r.KategoriId == cat.Id).OrderBy(r => r.Namn).ToListAsync();
-            _config = await Db.AutomationLevelConfigs.FirstOrDefaultAsync(c => c.KategoriId == cat.Id);
+            _regler = await db.AutomationRules.Where(r => r.KategoriId == cat.Id).OrderBy(r => r.Namn).ToListAsync();
+            _config = await db.AutomationLevelConfigs.FirstOrDefaultAsync(c => c.KategoriId == cat.Id);
         }
         catch (Exception ex) { _error = $"Kunde inte hamta regler: {ex.Message}"; }
         finally { _loading = false; }
@@ -125,11 +126,12 @@ else
 
     private async Task ToggleRegel(AutomationRule regel, bool aktiv)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             if (aktiv) regel.Aktivera();
             else regel.Inaktivera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"Regel '{regel.Namn}' {(aktiv ? "aktiverad" : "inaktiverad")}.";
         }
         catch (InvalidOperationException ex) { _error = ex.Message; }
@@ -144,3 +146,4 @@ else
         _ => niva.ToString()
     };
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Leverantorer</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -106,10 +106,11 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        var vendors = await Db.Vendors.OrderBy(v => v.Namn).ToListAsync();
-        var performances = await Db.VendorPerformances.ToListAsync();
-        var fskattRegs = await Db.FSkattRegistrations.Where(f => f.VendorId != null).ToListAsync();
+        var vendors = await db.Vendors.OrderBy(v => v.Namn).ToListAsync();
+        var performances = await db.VendorPerformances.ToListAsync();
+        var fskattRegs = await db.FSkattRegistrations.Where(f => f.VendorId != null).ToListAsync();
         _vendors = vendors.Select(v =>
         {
             var scores = performances.Where(p => p.VendorId == v.Id).Select(p => (double)p.Poang).ToList();
@@ -121,10 +122,11 @@ else
 
     private async Task SkapaLeverantor()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
         var vendor = Vendor.Skapa(_namn, _orgNummer, _kontaktperson, _epost, _telefon, _kategori);
-        Db.Vendors.Add(vendor);
-        await Db.SaveChangesAsync();
+        db.Vendors.Add(vendor);
+        await db.SaveChangesAsync();
         _success = $"Leverantor {_namn} skapad.";
         _showForm = false;
         _namn = _orgNummer = _kontaktperson = _epost = _telefon = _kategori = "";
@@ -132,8 +134,8 @@ else
         await Load();
     }
 
-    private async Task Blockera(Vendor v) { v.Blockera(); await Db.SaveChangesAsync(); await Load(); }
-    private async Task Aktivera(Vendor v) { v.Aktivera(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task Blockera(Vendor v) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(v); v.Blockera(); await db.SaveChangesAsync(); await Load(); }
+    private async Task Aktivera(Vendor v) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(v); v.Aktivera(); await db.SaveChangesAsync(); await Load(); }
 
     private Color VendorStatusColor(VendorStatus s) => s switch
     {
@@ -156,3 +158,4 @@ else
         };
     }
 }
+

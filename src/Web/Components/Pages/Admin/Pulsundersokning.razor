@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Pulse.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Pulsundersökningar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -135,11 +135,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var surveys = await Db.PulseSurveys.OrderByDescending(s => s.SkapadVid).ToListAsync();
+            var surveys = await db.PulseSurveys.OrderByDescending(s => s.SkapadVid).ToListAsync();
             var surveyIds = surveys.Select(s => s.Id).ToList();
-            var responses = await Db.PulseSurveyResponses
+            var responses = await db.PulseSurveyResponses
                 .Where(r => surveyIds.Contains(r.SurveyId)).ToListAsync();
 
             _surveys = surveys.Select(s =>
@@ -154,6 +155,7 @@ else
 
     private async Task SkapaEnkat()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newTitel)) return;
         _saving = true; _error = null;
         try
@@ -162,8 +164,8 @@ else
             var ordning = 1;
             foreach (var f in _newFragor.Where(f => !string.IsNullOrWhiteSpace(f)))
                 survey.LaggTillFraga(f, ordning++);
-            Db.PulseSurveys.Add(survey);
-            await Db.SaveChangesAsync();
+            db.PulseSurveys.Add(survey);
+            await db.SaveChangesAsync();
             _surveys.Insert(0, new SurveyVm(survey, 0, []));
             _showCreate = false;
             _success = $"Enkät \"{_newTitel}\" skapad med {survey.Fragor.Count} frågor.";
@@ -175,13 +177,15 @@ else
 
     private async Task OppnaEnkat(PulseSurvey s)
     {
-        try { s.Oppna(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { s.Oppna(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte öppna: {ex.Message}"; }
     }
 
     private async Task StangEnkat(PulseSurvey s)
     {
-        try { s.Stang(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { s.Stang(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte stänga: {ex.Message}"; }
     }
 
@@ -197,3 +201,4 @@ else
 
     private record SurveyVm(PulseSurvey Survey, int AntalSvar, List<PulseSurveyAnswer> AllaSvar);
 }
+

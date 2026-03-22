@@ -4,7 +4,7 @@
 @using RegionHR.Notifications.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 @inject RegionHR.Web.Services.AuthService Auth
 @inject IStringLocalizer<SharedResources> L
@@ -103,9 +103,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _notiser = await Db.Notifications
+            _notiser = await db.Notifications
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(50)
                 .ToListAsync();
@@ -116,21 +117,24 @@ else
 
     private async Task MarkeraLast(Notification n)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         n.MarkAsRead();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task MarkeraAllaLasta()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var unread = _notiser.Where(n => !n.IsRead).ToList();
         foreach (var n in unread)
             n.MarkAsRead();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         Snackbar.Add($"{unread.Count} {L["NotificationsMarkedAsRead"]}", MudBlazor.Severity.Success);
     }
 
     private async Task SkapaTestNotis()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _testCount++;
         if (!Auth.EmployeeId.HasValue) return;
         var notis = Notification.Create(
@@ -138,8 +142,8 @@ else
             $"Testnotis #{_testCount}",
             $"Skapad {DateTime.Now:HH:mm:ss} via {L["CreateTestNotification"]}.",
             NotificationType.Info);
-        Db.Notifications.Add(notis);
-        await Db.SaveChangesAsync();
+        db.Notifications.Add(notis);
+        await db.SaveChangesAsync();
         _notiser.Insert(0, notis);
         Snackbar.Add(L["TestNotificationCreated"].Value, MudBlazor.Severity.Info);
     }
@@ -152,3 +156,4 @@ else
         _ => MudBlazor.Color.Default
     };
 }
+

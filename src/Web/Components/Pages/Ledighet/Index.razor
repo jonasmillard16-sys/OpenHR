@@ -4,7 +4,7 @@
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>OpenHR - @L["LeaveManagement"]</PageTitle>
@@ -60,16 +60,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var requests = await Db.LeaveRequests
+            var requests = await db.LeaveRequests
                 .OrderByDescending(r => r.SkapadVid)
                 .Take(50)
                 .ToListAsync();
 
             // Resolve employee names
             var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id.Value))
                 .ToDictionaryAsync(e => e.Id.Value, e => e.FulltNamn);
 
@@ -104,13 +105,14 @@
 
     private async Task Godkann(LedighetRad row)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = L["ApprovalRequiresEmployee"]; return; }
         try
         {
-            var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
+            var req = await db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
             req.Godkann(Auth.EmployeeId.Value, null);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
             if (idx >= 0)
@@ -128,13 +130,14 @@
 
     private async Task Neka(LedighetRad row)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = L["RejectionRequiresEmployee"]; return; }
         try
         {
-            var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
+            var req = await db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == row.Id);
             if (req == null) return;
             req.Avvisa(Auth.EmployeeId.Value, L["RejectedByManager"]);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             var idx = _rader.IndexOf(row);
             if (idx >= 0)
@@ -182,3 +185,4 @@
 
     private record LedighetRad(Guid Id, string Namn, string TypText, string Period, string Dagar, string StatusText, Color StatusFarg, bool KanGodkannas);
 }
+

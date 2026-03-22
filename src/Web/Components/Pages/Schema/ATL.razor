@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - ATL-efterlevnad</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">ATL-efterlevnad</MudText>
@@ -51,16 +51,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
             var fyraVeckorSedan = idag.AddDays(-28);
 
-            var shifts = await Db.ScheduledShifts
+            var shifts = await db.ScheduledShifts
                 .Where(s => s.Datum >= fyraVeckorSedan && s.Datum <= idag && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
 
-            var employees = await Db.Employees.ToListAsync();
+            var employees = await db.Employees.ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             var perEmployee = shifts.GroupBy(s => s.AnstallId.Value);
@@ -81,3 +82,4 @@ else
 
     private record ATLRad(string Namn, decimal SnittTimmarPerVecka);
 }
+

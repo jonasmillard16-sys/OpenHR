@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Tidrapporter (inhyrda)</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -61,15 +61,16 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        var reports = await Db.ContingentTimeReports.OrderByDescending(r => r.CreatedAt).ToListAsync();
-        var workers = await Db.ContingentWorkers.ToDictionaryAsync(w => w.Id, w => w.Namn);
+        var reports = await db.ContingentTimeReports.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        var workers = await db.ContingentWorkers.ToDictionaryAsync(w => w.Id, w => w.Namn);
         _reports = reports.Select(r => new ReportRow(r, workers.GetValueOrDefault(r.ContingentWorkerId, "Okand"))).ToList();
         _loading = false;
     }
 
-    private async Task SkickaIn(ContingentTimeReport r) { r.SkickaIn(); await Db.SaveChangesAsync(); _success = "Tidrapport inskickad."; await Load(); }
-    private async Task Attestera(ContingentTimeReport r) { r.Attestera(Guid.NewGuid()); await Db.SaveChangesAsync(); _success = "Tidrapport attesterad."; await Load(); }
+    private async Task SkickaIn(ContingentTimeReport r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.SkickaIn(); await db.SaveChangesAsync(); _success = "Tidrapport inskickad."; await Load(); }
+    private async Task Attestera(ContingentTimeReport r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Attestera(Guid.NewGuid()); await db.SaveChangesAsync(); _success = "Tidrapport attesterad."; await Load(); }
 
     private Color ReportStatusColor(TimeReportStatus s) => s switch
     {
@@ -79,3 +80,4 @@ else
         _ => Color.Default
     };
 }
+

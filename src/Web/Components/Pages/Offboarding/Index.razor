@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Offboarding.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Offboarding</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -69,9 +69,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _cases = await Db.OffboardingCases
+            _cases = await db.OffboardingCases
                 .Include(c => c.Steg)
                 .OrderByDescending(c => c.SkapadVid)
                 .Take(50)
@@ -116,3 +117,4 @@
         _ => Color.Info
     };
 }
+

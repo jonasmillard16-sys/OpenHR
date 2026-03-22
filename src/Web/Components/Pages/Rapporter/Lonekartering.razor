@@ -4,7 +4,7 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Lönekartering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönekartering</MudText>
@@ -43,10 +43,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             _rader = employees
                 .Where(e => e.AktivAnstallning(idag) != null)
                 .Select(e =>
@@ -63,3 +64,4 @@ else
 
     private record LonRad(string Namn, string Befattning, decimal Lon, decimal Sysselsattning);
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.CaseManagement.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 @inject NavigationManager Nav
 
@@ -68,6 +68,7 @@ else
 
     private async Task Submit()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_beskrivning))
         {
             _error = "Beskrivning krävs."; return;
@@ -89,8 +90,8 @@ else
                 _beskrivning,
                 string.IsNullOrWhiteSpace(_facklig) ? null : _facklig);
 
-            await Db.Grievances.AddAsync(grievance);
-            await Db.SaveChangesAsync();
+            await db.Grievances.AddAsync(grievance);
+            await db.SaveChangesAsync();
 
             _createdId = grievance.Id.Value;
             _submitted = true;
@@ -99,3 +100,4 @@ else
         finally { _submitting = false; }
     }
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Recruitment.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Rekrytering</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -70,10 +70,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var vacancies = await Db.Vacancies.OrderByDescending(v => v.SistaAnsokningsDag).ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var vacancies = await db.Vacancies.OrderByDescending(v => v.SistaAnsokningsDag).ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             _vakanser = vacancies.Select(v => new VakansVm(
@@ -102,3 +103,4 @@ else
     private record AnsVm(string Namn, string Epost, string Status);
     private record VakansVm(string Titel, string EnhetNamn, EmploymentType Anstallningsform, VacancyStatus Status, DateOnly SistaAnsokningsDag, string Beskrivning, int AntalAnsokngar, List<AnsVm> Ansokngar);
 }
+

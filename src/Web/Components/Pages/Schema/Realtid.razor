@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.Core.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Realtidsvy</PageTitle>
 
@@ -94,10 +94,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            _dagensPass = await Db.ScheduledShifts
+            _dagensPass = await db.ScheduledShifts
                 .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
                 .OrderBy(s => s.PlaneradStart)
                 .ToListAsync();
@@ -107,12 +108,12 @@ else
             _ejStamplade = _dagensPass.Count(s => s.Status == ShiftStatus.Planerad && s.PlaneradStart <= TimeOnly.FromDateTime(DateTime.Now));
 
             var anstallIds = _dagensPass.Select(s => s.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id))
                 .ToListAsync();
             _anstallNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
-            _coverageRequests = await Db.ShiftCoverageRequests
+            _coverageRequests = await db.ShiftCoverageRequests
                 .Where(c => c.Status == CoverageStatus.Open || c.Status == CoverageStatus.Offered)
                 .OrderByDescending(c => c.SkapadVid)
                 .Take(20)
@@ -159,3 +160,4 @@ else
         _ => Color.Default
     };
 }
+

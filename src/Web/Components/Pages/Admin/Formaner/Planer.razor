@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Administrera förmånsplaner</PageTitle>
 
@@ -153,12 +153,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
-            _rules = await Db.EligibilityRules.ToListAsync();
+            _benefits = await db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
+            _rules = await db.EligibilityRules.ToListAsync();
 
-            var counts = await Db.BenefitEnrollments
+            var counts = await db.BenefitEnrollments
                 .Where(e => e.Status == "Active" || e.Status == "Pending")
                 .GroupBy(e => e.BenefitId)
                 .Select(g => new { BenefitId = g.Key, Count = g.Count() })
@@ -171,12 +172,13 @@ else
 
     private async Task SkapaPlan()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             if (!Enum.TryParse<BenefitCategory>(_formKategori, out var kategori)) { _error = "Ogiltig kategori."; return; }
             var benefit = Benefit.Skapa(_formNamn, _formBeskrivning, kategori, _formMaxBelopp, _formArbetsgivarAndel, _formSkattepliktig);
-            Db.Benefits.Add(benefit);
-            await Db.SaveChangesAsync();
+            db.Benefits.Add(benefit);
+            await db.SaveChangesAsync();
             _benefits.Add(benefit);
             _showForm = false;
             _success = $"Förmånsplan '{_formNamn}' skapad.";
@@ -187,12 +189,14 @@ else
 
     private async Task ToggleStatus(Benefit b)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             if (b.ArAktiv) b.Inaktivera(); else b.Aktivera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"Status för '{b.Namn}' uppdaterad.";
         }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
     }
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>OpenHR - @L["ScheduleOverview"]</PageTitle>
@@ -66,6 +66,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -74,17 +75,17 @@ else
             _veckonummer = System.Globalization.ISOWeek.GetWeekOfYear(DateTime.Today);
 
             var sunday = monday.AddDays(6);
-            var shifts = await Db.ScheduledShifts
+            var shifts = await db.ScheduledShifts
                 .Where(s => s.Datum >= monday && s.Datum <= sunday && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
             _totalPass = shifts.Count;
 
-            _enheter = await Db.OrganizationUnits.ToListAsync();
+            _enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             // Get employees to map shift -> unit
             var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
-            var employees = await Db.Employees.Include(e => e.Anstallningar)
+            var employees = await db.Employees.Include(e => e.Anstallningar)
                 .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
             var empEnhet = new Dictionary<Guid, Guid>();
             var idag = DateOnly.FromDateTime(DateTime.Today);
@@ -111,3 +112,4 @@ else
 
     private record EnhetVecka(string Namn, List<int> DagAntal);
 }
+

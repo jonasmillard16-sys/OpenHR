@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Platform.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Webhook-leveranslogg</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -71,10 +71,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _deliveries = await Db.EventDeliveries
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _deliveries = await db.EventDeliveries
             .OrderByDescending(d => d.SkapadVid)
             .Take(200)
             .ToListAsync();
         _loading = false;
     }
 }
+

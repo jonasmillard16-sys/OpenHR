@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Prediktiv analys</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Prediktiv analys</MudText>
@@ -93,12 +93,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _models = await Db.PredictionModels.OrderBy(m => m.Typ).ToListAsync();
+            _models = await db.PredictionModels.OrderBy(m => m.Typ).ToListAsync();
             _modelNames = _models.ToDictionary(m => m.Id, m => m.Namn);
 
-            _results = await Db.PredictionResults
+            _results = await db.PredictionResults
                 .OrderByDescending(r => r.BeraknadVid)
                 .Take(20)
                 .ToListAsync();
@@ -138,3 +139,4 @@ else
         _ => Color.Default
     };
 }
+

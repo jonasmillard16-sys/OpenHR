@@ -3,7 +3,7 @@
 @using RegionHR.Performance.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR — Nytt medarbetarsamtal</PageTitle>
@@ -89,9 +89,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -99,6 +100,7 @@ else
 
     private async Task Skapa()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_anstallId == null || _chefId == null) return;
         _saving = true;
         _error = null;
@@ -107,8 +109,8 @@ else
         try
         {
             var review = PerformanceReview.Skapa(_anstallId.Value, _chefId.Value, _ar);
-            Db.PerformanceReviews.Add(review);
-            await Db.SaveChangesAsync();
+            db.PerformanceReviews.Add(review);
+            await db.SaveChangesAsync();
             _created = review;
         }
         catch (Exception ex) { _error = $"Kunde inte skapa samtal: {ex.Message}"; }
@@ -129,3 +131,4 @@ else
         return emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Recruitment.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Referenskontroller</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Referenskontroller</MudText>
@@ -47,7 +47,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _checks = await Db.ReferenceChecks.OrderByDescending(c => c.SkapadVid).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _checks = await db.ReferenceChecks.OrderByDescending(c => c.SkapadVid).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta referenskontroller: {ex.Message}"; }
         finally { _loading = false; }
     }
@@ -55,3 +56,4 @@ else
     private static string StatusText(ReferenceCheckStatus s) => s switch { ReferenceCheckStatus.Begard => "Begärd", ReferenceCheckStatus.Genomford => "Genomförd", ReferenceCheckStatus.Godkand => "Godkänd", ReferenceCheckStatus.Avvikelse => "Avvikelse", _ => s.ToString() };
     private static Color StatusFarg(ReferenceCheckStatus s) => s switch { ReferenceCheckStatus.Godkand => Color.Success, ReferenceCheckStatus.Begard => Color.Warning, ReferenceCheckStatus.Avvikelse => Color.Error, _ => Color.Default };
 }
+

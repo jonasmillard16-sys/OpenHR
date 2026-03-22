@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Bemanningsöversikt</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Bemanningsöversikt</MudText>
@@ -37,14 +37,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var shifts = await Db.ScheduledShifts
+            var shifts = await db.ScheduledShifts
                 .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
 
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             var empEnhet = new Dictionary<Guid, Guid>();
             foreach (var emp in employees)
             {
@@ -52,7 +53,7 @@ else
                 if (anst != null) empEnhet[emp.Id.Value] = anst.EnhetId.Value;
             }
 
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             _enheter = enheter.Select(enhet =>
             {
                 var enhetShifts = shifts.Where(s => empEnhet.GetValueOrDefault(s.AnstallId.Value) == enhet.Id.Value).ToList();
@@ -69,3 +70,4 @@ else
 
     private record EnhetBemanning(string Namn, int Dag, int Kvall, int Natt);
 }
+

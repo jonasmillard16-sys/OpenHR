@@ -3,7 +3,8 @@
 @using RegionHR.Web.Components.Shared
 @using RegionHR.Leave.Domain
 @using RegionHR.Infrastructure.Persistence
-@inject RegionHRDbContext Db
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 @inject RegionHR.Web.Services.AuthService Auth
 
@@ -144,6 +145,7 @@
 
     private async Task SubmitSickLeave(DateOnly? endDate)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue)
         {
             _error = "Sjukanmälan kräver en kopplad anställd — logga in med en personalprofil.";
@@ -156,7 +158,7 @@
             var anstallId = Auth.EmployeeId.Value;
 
             var notification = SickLeaveNotification.Skapa(anstallId, _startDate);
-            await Db.SickLeaveNotifications.AddAsync(notification);
+            await db.SickLeaveNotifications.AddAsync(notification);
 
             var request = LeaveRequest.Skapa(
                 anstallId,
@@ -165,9 +167,9 @@
                 endDate ?? _startDate.AddDays(1),
                 null);
             request.SkickaIn();
-            await Db.LeaveRequests.AddAsync(request);
+            await db.LeaveRequests.AddAsync(request);
 
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _currentStep = 2;
         }
         catch (Exception ex)
@@ -186,3 +188,4 @@
         }
     }
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Mentorskap</PageTitle>
 
@@ -132,13 +132,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _relations = await Db.MentorRelations.ToListAsync();
-            _employees = await Db.Employees.ToListAsync();
+            _relations = await db.MentorRelations.ToListAsync();
+            _employees = await db.Employees.ToListAsync();
 
-            var empSkills = await Db.EmployeeSkills.ToListAsync();
-            var skills = await Db.Skills.ToListAsync();
+            var empSkills = await db.EmployeeSkills.ToListAsync();
+            var skills = await db.Skills.ToListAsync();
 
             // Find potential mentors: employees with high skill levels
             _potentialMentors = _employees
@@ -187,3 +188,4 @@ else
 
     private record PotentialMentor(Guid Id, string Namn, double AvgNiva, string TopSkills);
 }
+

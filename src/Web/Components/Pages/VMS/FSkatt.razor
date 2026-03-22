@@ -4,7 +4,7 @@
 @using RegionHR.VMS.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - F-skatt compliance</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -169,13 +169,14 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        _registrations = await Db.FSkattRegistrations.OrderByDescending(r => r.KontrolleradVid).ToListAsync();
-        _vendors = await Db.Vendors.OrderBy(v => v.Namn).ToListAsync();
+        _registrations = await db.FSkattRegistrations.OrderByDescending(r => r.KontrolleradVid).ToListAsync();
+        _vendors = await db.Vendors.OrderBy(v => v.Namn).ToListAsync();
         _vendorNames = _vendors.ToDictionary(v => v.Id.Value, v => v.Namn);
-        var workers = await Db.ContingentWorkers.ToListAsync();
+        var workers = await db.ContingentWorkers.ToListAsync();
         _workerNames = workers.ToDictionary(w => w.Id, w => w.Namn);
-        _classifications = await Db.ContractorClassifications.OrderByDescending(c => c.BedömdVid).ToListAsync();
+        _classifications = await db.ContractorClassifications.OrderByDescending(c => c.BedömdVid).ToListAsync();
 
         _activeCount = _registrations.Count(r => r.FSkattStatus == FSkattStatus.Active && !r.HarGåttUt());
         _inactiveCount = _registrations.Count(r => r.FSkattStatus != FSkattStatus.Active || r.HarGåttUt());
@@ -187,12 +188,13 @@ else
 
     private async Task Registrera()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
         var giltigTill = _giltigTill.HasValue ? DateOnly.FromDateTime(_giltigTill.Value) : (DateOnly?)null;
         var vendorId = _selectedVendorId.HasValue ? VendorId.From(_selectedVendorId.Value) : (VendorId?)null;
         var reg = FSkattRegistration.Skapa(_orgNr, Enum.Parse<FSkattStatus>(_fskattStatus), giltigTill, vendorId: vendorId);
-        Db.FSkattRegistrations.Add(reg);
-        await Db.SaveChangesAsync();
+        db.FSkattRegistrations.Add(reg);
+        await db.SaveChangesAsync();
         _success = "F-skattregistrering skapad.";
         _showForm = false;
         _orgNr = "";
@@ -228,3 +230,4 @@ else
         _ => Color.Default
     };
 }
+

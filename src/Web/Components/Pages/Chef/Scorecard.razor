@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Chefsstyrkort</PageTitle>
 
@@ -113,14 +113,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             // Get latest scorecard (in real app, filter by logged-in chef)
-            _scorecard = await Db.ManagerScorecards
+            _scorecard = await db.ManagerScorecards
                 .OrderByDescending(s => s.GenereradVid)
                 .FirstOrDefaultAsync();
 
-            _nudges = await Db.CoachingNudges
+            _nudges = await db.CoachingNudges
                 .Where(n => !n.ArLast)
                 .OrderByDescending(n => n.SkapadVid)
                 .Take(20)
@@ -132,8 +133,9 @@ else
 
     private async Task MarkeraLast(CoachingNudge nudge)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         nudge.MarkeraSomLast();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _nudges.Remove(nudge);
     }
 
@@ -160,3 +162,4 @@ else
         _ => typ
     };
 }
+

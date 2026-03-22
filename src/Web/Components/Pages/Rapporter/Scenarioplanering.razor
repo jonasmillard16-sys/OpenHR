@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Services
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ScenarioCalculationService CalcService
 
 <PageTitle>OpenHR - Scenarioplanering</PageTitle>
@@ -217,8 +217,9 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        _scenarios = await Db.PlanningScenarios
+        _scenarios = await db.PlanningScenarios
             .Include(s => s.Antaganden)
             .Include(s => s.Resultat)
             .OrderByDescending(s => s.SkapadVid)
@@ -236,6 +237,7 @@ else
 
     private async Task SkapaScenario()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
         var scenario = PlanningScenario.Skapa(_namn, _beskrivning, _basÅr, "System");
         foreach (var a in _assumptions)
@@ -243,8 +245,8 @@ else
             var assumption = ScenarioAssumption.Skapa(scenario.Id, a.Typ, a.Värde, a.Beskrivning);
             scenario.Antaganden.Add(assumption);
         }
-        Db.PlanningScenarios.Add(scenario);
-        await Db.SaveChangesAsync();
+        db.PlanningScenarios.Add(scenario);
+        await db.SaveChangesAsync();
 
         // Berakna
         try
@@ -286,3 +288,4 @@ else
         _ => Color.Default
     };
 }
+

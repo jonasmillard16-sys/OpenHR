@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Inhyrd personal (VMS)</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -93,15 +93,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var today = DateOnly.FromDateTime(DateTime.Today);
-        _activeWorkers = await Db.ContingentWorkers.CountAsync(w => w.Slutdatum == null || w.Slutdatum >= today);
-        _activeVendors = await Db.Vendors.CountAsync(v => v.Status == VendorStatus.Active);
+        _activeWorkers = await db.ContingentWorkers.CountAsync(w => w.Slutdatum == null || w.Slutdatum >= today);
+        _activeVendors = await db.Vendors.CountAsync(v => v.Status == VendorStatus.Active);
 
-        var workers = await Db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
+        var workers = await db.ContingentWorkers.Where(w => w.Slutdatum == null || w.Slutdatum >= today).ToListAsync();
         _totalCost = workers.Sum(w => w.TimKostnad * 160);
 
-        _deviations = await Db.VendorInvoices.CountAsync(i => i.Differens.HasValue && i.Differens != 0);
-        _recentRequests = await Db.StaffingRequests.OrderByDescending(r => r.CreatedAt).Take(5).ToListAsync();
+        _deviations = await db.VendorInvoices.CountAsync(i => i.Differens.HasValue && i.Differens != 0);
+        _recentRequests = await db.StaffingRequests.OrderByDescending(r => r.CreatedAt).Take(5).ToListAsync();
 
         _loading = false;
     }
@@ -116,3 +117,4 @@ else
         _ => Color.Default
     };
 }
+

@@ -47,6 +47,9 @@ public static class DependencyInjection
             services.AddDbContext<RegionHRDbContext>((sp, options) =>
                 options.UseInMemoryDatabase("RegionHR-Dev")
                     .AddInterceptors(auditInterceptor, sp.GetRequiredService<DomainEventInterceptor>()));
+
+            services.AddDbContextFactory<RegionHRDbContext>(options =>
+                options.UseInMemoryDatabase("RegionHR-Dev"), ServiceLifetime.Scoped);
         }
         else
         {
@@ -56,6 +59,12 @@ public static class DependencyInjection
                     npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "public");
                 })
                 .AddInterceptors(auditInterceptor, sp.GetRequiredService<DomainEventInterceptor>()));
+
+            services.AddDbContextFactory<RegionHRDbContext>(options =>
+                options.UseNpgsql(connectionString, npgsql =>
+                {
+                    npgsql.MigrationsHistoryTable("__EFMigrationsHistory", "public");
+                }), ServiceLifetime.Scoped);
         }
 
         // Repositories

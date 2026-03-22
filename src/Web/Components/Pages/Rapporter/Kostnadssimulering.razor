@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Kostnadssimulering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kostnadssimulering</MudText>
@@ -43,13 +43,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
-            var positions = await Db.Positions_Table.ToListAsync();
+            var positions = await db.Positions_Table.ToListAsync();
 
             _perEnhet = employees.Where(e => e.AktivAnstallning(idag) != null)
                 .GroupBy(e => e.AktivAnstallning(idag)!.EnhetId.Value)
@@ -67,3 +68,4 @@ else
     private static string FormatKr(decimal v) => $"{v:N0} kr";
     private record EnhetKostnad(string Namn, int Antal, decimal TotalLon);
 }
+

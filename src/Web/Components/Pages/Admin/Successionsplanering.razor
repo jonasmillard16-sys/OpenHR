@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Positions.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Successionsplanering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Successionsplanering</MudText>
@@ -56,11 +56,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var plans = await Db.SuccessionPlans.ToListAsync();
-            var positions = await Db.Positions_Table.ToListAsync();
-            var employees = await Db.Employees.ToListAsync();
+            var plans = await db.SuccessionPlans.ToListAsync();
+            var positions = await db.Positions_Table.ToListAsync();
+            var employees = await db.Employees.ToListAsync();
             var posTitles = positions.ToDictionary(p => p.Id, p => p.Titel);
             var empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -89,3 +90,4 @@ else
 
     private record PlanVm(string PositionTitel, string? NuvarandeNamn, string? KandidatNamn, SuccessionPlan Plan);
 }
+

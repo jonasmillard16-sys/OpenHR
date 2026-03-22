@@ -3,7 +3,7 @@
 @using RegionHR.HalsoSAM.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — HälsoSAM</PageTitle>
 
@@ -172,10 +172,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _cases = await Db.RehabCases.ToListAsync();
-            var employees = await Db.Employees.ToListAsync();
+            _cases = await db.RehabCases.ToListAsync();
+            var employees = await db.Employees.ToListAsync();
             _empNames = employees.ToDictionary(
                 e => e.Id,
                 e => $"{e.Fornamn} {e.Efternamn}");
@@ -245,3 +246,4 @@ else
         _ => Color.Default
     };
 }
+

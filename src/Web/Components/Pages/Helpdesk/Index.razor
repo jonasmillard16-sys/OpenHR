@@ -4,7 +4,7 @@
 @using RegionHR.Helpdesk.Domain
 @using RegionHR.Infrastructure.Services
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Helpdesk</PageTitle>
@@ -121,13 +121,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _requests = await Db.ServiceRequests
+            _requests = await db.ServiceRequests
                 .OrderByDescending(r => r.CreatedAt)
                 .Take(50)
                 .ToListAsync();
-            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+            _categories = await db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hamta arenden: {ex.Message}"; }
         finally { _loading = false; }
@@ -143,6 +144,7 @@ else
 
     private async Task CreateRequest()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var request = ServiceRequest.Skapa(
@@ -150,11 +152,11 @@ else
                 _newPrioritet, "Portal",
                 RegionHR.SharedKernel.Domain.EmployeeId.From(Guid.Empty));
 
-            var router = new ServiceRequestRouter(Db);
+            var router = new ServiceRequestRouter(db);
             await router.RouteAsync(request);
 
-            await Db.ServiceRequests.AddAsync(request);
-            await Db.SaveChangesAsync();
+            await db.ServiceRequests.AddAsync(request);
+            await db.SaveChangesAsync();
 
             _requests.Insert(0, request);
             _showCreate = false;
@@ -182,3 +184,4 @@ else
         _ => Color.Default
     };
 }
+

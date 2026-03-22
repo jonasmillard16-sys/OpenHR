@@ -7,7 +7,7 @@
 @using RegionHR.Audit.Domain
 @using RegionHR.SharedKernel.Domain
 @inject RegionHR.Web.Services.AnstallningService Service
-@inject RegionHR.Infrastructure.Persistence.RegionHRDbContext Db
+@inject IDbContextFactory<RegionHR.Infrastructure.Persistence.RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Anställd</PageTitle>
@@ -291,11 +291,13 @@ else
         {
             _emp = await Service.HamtaAsync(EmployeeId.From(Id));
 
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            var enheter = await db.OrganizationUnits.ToListAsync();
             _enhetsNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
 
             // Lönehistorik
-            var payResults = await Db.PayrollResults
+            var payResults = await db.PayrollResults
                 .Where(r => r.AnstallId == EmployeeId.From(Id))
                 .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
                 .Take(12).ToListAsync();
@@ -304,18 +306,18 @@ else
                 r.OBTillagg.Amount, r.Overtidstillagg.Amount)).ToList();
 
             // Frånvaro
-            _franvaro = await Db.LeaveRequests
+            _franvaro = await db.LeaveRequests
                 .Where(r => r.AnstallId == Id)
                 .OrderByDescending(r => r.FranDatum)
                 .Take(20).ToListAsync();
 
             // Kompetenser (EmployeeSkill + Skill name)
-            var empSkills = await Db.EmployeeSkills
+            var empSkills = await db.EmployeeSkills
                 .Where(es => es.AnstallId == Id).ToListAsync();
             if (empSkills.Count > 0)
             {
                 var skillIds = empSkills.Select(es => es.SkillId).Distinct().ToList();
-                var skills = await Db.Skills
+                var skills = await db.Skills
                     .Where(s => skillIds.Contains(s.Id)).ToListAsync();
                 var skillNames = skills.ToDictionary(s => s.Id, s => (s.Namn, s.Kategori.ToString()));
                 _kompetenser = empSkills.Select(es =>
@@ -326,16 +328,16 @@ else
             }
 
             // Certifieringar
-            _certifieringar = await Db.Certifications
+            _certifieringar = await db.Certifications
                 .Where(c => c.AnstallId == Id).ToListAsync();
 
             // Dokument
-            _dokument = await Db.Documents
+            _dokument = await db.Documents
                 .Where(d => d.AnstallId == Id)
                 .OrderByDescending(d => d.UppladdadVid).ToListAsync();
 
             // Ändringshistorik (direkta Employee-ändringar)
-            _auditEntries = await Db.AuditEntries
+            _auditEntries = await db.AuditEntries
                 .Where(e => e.EntityType == "Employee" && e.EntityId == Id.ToString())
                 .OrderByDescending(e => e.Timestamp)
                 .Take(20).ToListAsync();

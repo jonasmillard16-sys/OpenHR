@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Infrastructure.Storage
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IFileStorageService Storage
 @inject NavigationManager Nav
 
@@ -117,10 +117,11 @@ else if (_error != null)
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
-            _recentDocs = await Db.Documents.OrderByDescending(d => d.UppladdadVid).Take(10).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _recentDocs = await db.Documents.OrderByDescending(d => d.UppladdadVid).Take(10).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -133,6 +134,7 @@ else if (_error != null)
 
     private async Task LaddaUpp()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_selectedFile == null || _anstallId == null) return;
         _uploading = true;
         _error = null;
@@ -159,8 +161,8 @@ else if (_error != null)
                 beskrivning: string.IsNullOrWhiteSpace(_beskrivning) ? null : _beskrivning);
 
             // 3. Persistera i DB
-            Db.Documents.Add(doc);
-            await Db.SaveChangesAsync();
+            db.Documents.Add(doc);
+            await db.SaveChangesAsync();
 
             _recentDocs.Insert(0, doc);
             _uploaded = $"Dokument \"{_selectedFile.Name}\" uppladdat och sparat. Lagringsväg: {storagePath}";
@@ -187,3 +189,4 @@ else if (_error != null)
         return $"{bytes / (1024.0 * 1024):F1} MB";
     }
 }
+

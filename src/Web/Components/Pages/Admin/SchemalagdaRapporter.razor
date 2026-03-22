@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Reporting.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Schemalagda rapporter</PageTitle>
@@ -111,10 +111,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _schemalagda = await Db.ScheduledReports.OrderBy(s => s.NastaKorning).ToListAsync();
-            _rapportmallar = await Db.ReportDefinitions.OrderBy(r => r.Namn).ToListAsync();
+            _schemalagda = await db.ScheduledReports.OrderBy(s => s.NastaKorning).ToListAsync();
+            _rapportmallar = await db.ReportDefinitions.OrderBy(r => r.Namn).ToListAsync();
             _mallNamn = _rapportmallar.ToDictionary(r => r.Id, r => r.Namn);
         }
         catch { /* DB may not be available */ }
@@ -122,10 +123,11 @@ else
 
     private async Task SkapaSchemalagd()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!KanSkapa) return;
         var scheduled = ScheduledReport.Skapa(_nyReportTemplateId, _nyFrekvens, _nyMottagare!, _nyFormat);
-        await Db.ScheduledReports.AddAsync(scheduled);
-        await Db.SaveChangesAsync();
+        await db.ScheduledReports.AddAsync(scheduled);
+        await db.SaveChangesAsync();
         _schemalagda.Add(scheduled);
         Snackbar.Add("Schemalagd rapport skapad!", Severity.Success);
         _nyMottagare = null;
@@ -134,8 +136,9 @@ else
 
     private async Task TaBortSchemalagd(ScheduledReport s)
     {
-        Db.ScheduledReports.Remove(s);
-        await Db.SaveChangesAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.ScheduledReports.Remove(s);
+        await db.SaveChangesAsync();
         _schemalagda.Remove(s);
         Snackbar.Add("Schemalagd rapport borttagen.", Severity.Info);
     }
@@ -156,3 +159,4 @@ else
         _ => Color.Default
     };
 }
+

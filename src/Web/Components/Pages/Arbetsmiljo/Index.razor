@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Arbetsmiljo
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Arbetsmiljö (SAM)</PageTitle>
 
@@ -238,12 +238,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _incidents = await Db.Incidents.ToListAsync();
-            _rounds = await Db.SafetyRounds.ToListAsync();
-            _risks = await Db.RiskAssessments.ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            _incidents = await db.Incidents.ToListAsync();
+            _rounds = await db.SafetyRounds.ToListAsync();
+            _risks = await db.RiskAssessments.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             _enheter = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
             if (_enheter.Count > 0) { _newIncEnhetId = _enheter.Keys.First(); _newRoundEnhetId = _enheter.Keys.First(); }
         }
@@ -260,11 +261,12 @@ else
 
     private async Task SparaIncident()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newIncBeskrivning)) return;
         var inc = Incident.Skapa(DateTime.UtcNow, _newIncRapporterare, _newIncEnhetId, _newIncPlats,
             _newIncBeskrivning, _newIncAllvarlighet, IncidentTyp.Tillbud, _newIncAtgard);
-        Db.Incidents.Add(inc);
-        await Db.SaveChangesAsync();
+        db.Incidents.Add(inc);
+        await db.SaveChangesAsync();
         _incidents.Add(inc);
         _showIncidentForm = false;
         _newIncRapporterare = ""; _newIncPlats = ""; _newIncBeskrivning = ""; _newIncAtgard = "";
@@ -272,11 +274,12 @@ else
 
     private async Task SparaRound()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newRoundDeltagare)) return;
         var round = SafetyRound.Skapa(_newRoundDatum?.ToUniversalTime() ?? DateTime.UtcNow, _newRoundEnhetId,
             _newRoundDeltagare, 0, SafetyRoundStatus.Planerad);
-        Db.SafetyRounds.Add(round);
-        await Db.SaveChangesAsync();
+        db.SafetyRounds.Add(round);
+        await db.SaveChangesAsync();
         _rounds.Add(round);
         _showRoundForm = false;
         _newRoundDeltagare = "";
@@ -284,11 +287,12 @@ else
 
     private async Task SparaRisk()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newRiskNamn)) return;
         var risk = RiskAssessment.Skapa(_newRiskNamn, _newRiskBeskrivning,
             _newRiskSannolikhet, _newRiskKonsekvens, _newRiskAtgard, _newRiskAnsvarig, null);
-        Db.RiskAssessments.Add(risk);
-        await Db.SaveChangesAsync();
+        db.RiskAssessments.Add(risk);
+        await db.SaveChangesAsync();
         _risks.Add(risk);
         _showRiskForm = false;
         _newRiskNamn = ""; _newRiskBeskrivning = ""; _newRiskAtgard = ""; _newRiskAnsvarig = "";
@@ -317,3 +321,4 @@ else
         _ => Color.Success
     };
 }
+

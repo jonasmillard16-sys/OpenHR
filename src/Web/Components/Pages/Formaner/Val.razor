@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR — Öppet val</PageTitle>
@@ -141,16 +141,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
+            _benefits = await db.Benefits.OrderBy(b => b.Kategori).ThenBy(b => b.Namn).ToListAsync();
 
-            _activePeriod = await Db.EnrollmentPeriods
+            _activePeriod = await db.EnrollmentPeriods
                 .FirstOrDefaultAsync(p => p.Status == "Open");
 
             if (Auth.EmployeeId.HasValue)
             {
-                _myEnrollments = await Db.BenefitEnrollments
+                _myEnrollments = await db.BenefitEnrollments
                     .Where(e => e.AnstallId == Auth.EmployeeId.Value)
                     .ToListAsync();
             }
@@ -161,12 +162,13 @@ else
 
     private async Task AnmalForman(Benefit benefit)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Kräver inloggad anställd."; return; }
         try
         {
             var enrollment = BenefitEnrollment.Skapa(Auth.EmployeeId.Value, benefit.Id, DateOnly.FromDateTime(DateTime.Today));
-            Db.BenefitEnrollments.Add(enrollment);
-            await Db.SaveChangesAsync();
+            db.BenefitEnrollments.Add(enrollment);
+            await db.SaveChangesAsync();
             _myEnrollments.Add(enrollment);
             _success = $"Anmäld till {benefit.Namn}. Väntar på aktivering.";
         }
@@ -175,13 +177,14 @@ else
 
     private async Task AvbrytForman(Benefit benefit)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) return;
         var enrollment = _myEnrollments.FirstOrDefault(e => e.BenefitId == benefit.Id && e.Status is "Active" or "Pending");
         if (enrollment is null) return;
         try
         {
             enrollment.Avbryt();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"Förmånsval för {benefit.Namn} avbrutet.";
         }
         catch (Exception ex) { _error = $"Kunde inte avbryta: {ex.Message}"; }
@@ -205,3 +208,4 @@ else
         _ => s
     };
 }
+

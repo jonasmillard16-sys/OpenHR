@@ -4,7 +4,7 @@
 @using RegionHR.VMS.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Bestallningar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -86,15 +86,17 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        _requests = await Db.StaffingRequests.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        _requests = await db.StaffingRequests.OrderByDescending(r => r.CreatedAt).ToListAsync();
         _loading = false;
     }
 
     private async Task SkapaBeställning()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
-        var units = await Db.OrganizationUnits.FirstOrDefaultAsync();
+        var units = await db.OrganizationUnits.FirstOrDefaultAsync();
         var enhetId = units != null ? units.Id : OrganizationId.New();
 
         var request = StaffingRequest.Skapa(
@@ -105,8 +107,8 @@ else
             _antalPersoner,
             _kravprofil);
 
-        Db.StaffingRequests.Add(request);
-        await Db.SaveChangesAsync();
+        db.StaffingRequests.Add(request);
+        await db.SaveChangesAsync();
         _success = $"Bestallning for {_befattning} skapad.";
         _showForm = false;
         _befattning = _kravprofil = "";
@@ -115,10 +117,10 @@ else
         await Load();
     }
 
-    private async Task SkickaIn(StaffingRequest r) { r.SkickaIn(); await Db.SaveChangesAsync(); await Load(); }
-    private async Task Godkann(StaffingRequest r) { r.Godkann(); await Db.SaveChangesAsync(); await Load(); }
-    private async Task Tillsatt(StaffingRequest r) { r.Tillsatt(); await Db.SaveChangesAsync(); await Load(); }
-    private async Task Stang(StaffingRequest r) { r.Stang(); await Db.SaveChangesAsync(); await Load(); }
+    private async Task SkickaIn(StaffingRequest r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.SkickaIn(); await db.SaveChangesAsync(); await Load(); }
+    private async Task Godkann(StaffingRequest r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Godkann(); await db.SaveChangesAsync(); await Load(); }
+    private async Task Tillsatt(StaffingRequest r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Tillsatt(); await db.SaveChangesAsync(); await Load(); }
+    private async Task Stang(StaffingRequest r) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Stang(); await db.SaveChangesAsync(); await Load(); }
 
     private Color StatusColor(StaffingRequestStatus s) => s switch
     {
@@ -130,3 +132,4 @@ else
         _ => Color.Default
     };
 }
+

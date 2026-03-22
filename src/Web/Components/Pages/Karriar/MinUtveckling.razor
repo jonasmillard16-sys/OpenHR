@@ -5,7 +5,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Min karriarutveckling</PageTitle>
 
@@ -235,20 +235,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _allSkills = await Db.Skills.ToListAsync();
-            _allEmpSkills = await Db.EmployeeSkills.ToListAsync();
-            _careerPaths = await Db.CareerPaths
+            _allSkills = await db.Skills.ToListAsync();
+            _allEmpSkills = await db.EmployeeSkills.ToListAsync();
+            _careerPaths = await db.CareerPaths
                 .Include(cp => cp.Steg)
                 .ToListAsync();
-            _devPlans = await Db.DevelopmentPlans
+            _devPlans = await db.DevelopmentPlans
                 .Include(dp => dp.Milstolpar)
                 .ToListAsync();
-            _inferredSkills = await Db.InferredSkills.ToListAsync();
+            _inferredSkills = await db.InferredSkills.ToListAsync();
 
             var anstallIdsWithSkills = _allEmpSkills.Select(es => es.AnstallId).Distinct().ToHashSet();
-            var allEmployees = await Db.Employees.ToListAsync();
+            var allEmployees = await db.Employees.ToListAsync();
             _employeesWithSkills = allEmployees
                 .Where(e => anstallIdsWithSkills.Contains(e.Id.Value))
                 .OrderBy(e => e.Efternamn)
@@ -293,6 +294,7 @@ else
 
     private async Task SkapaPlan()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_selectedAnstallId == null || string.IsNullOrWhiteSpace(_newPlanMalRoll)) return;
 
         var malDatum = _newPlanMalDatum.HasValue
@@ -300,8 +302,8 @@ else
             : null;
         var plan = DevelopmentPlan.Skapa(_selectedAnstallId.Value, _newPlanMalRoll,
             DateOnly.FromDateTime(DateTime.Today), malDatum);
-        await Db.DevelopmentPlans.AddAsync(plan);
-        await Db.SaveChangesAsync();
+        await db.DevelopmentPlans.AddAsync(plan);
+        await db.SaveChangesAsync();
 
         _devPlans.Add(plan);
         _showCreatePlan = false;
@@ -312,8 +314,9 @@ else
 
     private async Task BekraftaSkill(InferredSkill inf)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         inf.Bekrafta();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private static Color ScoreColor(int score) => score switch
@@ -341,3 +344,4 @@ else
 
     private record SkillReq(string Skill, int Niva);
 }
+

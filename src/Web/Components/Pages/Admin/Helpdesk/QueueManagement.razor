@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Helpdesk.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Kohantering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kohantering</MudText>
@@ -81,11 +81,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _queues = await Db.HRQueues.OrderBy(q => q.Namn).ToListAsync();
-            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
-            _slas = await Db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
+            _queues = await db.HRQueues.OrderBy(q => q.Namn).ToListAsync();
+            _categories = await db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+            _slas = await db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
         finally { _loading = false; }
@@ -100,10 +101,12 @@ else
 
     private async Task CreateQueue()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var queue = HRQueue.Skapa(_newQueueName, _newQueueDesc);
-        await Db.HRQueues.AddAsync(queue);
-        await Db.SaveChangesAsync();
+        await db.HRQueues.AddAsync(queue);
+        await db.SaveChangesAsync();
         _queues.Add(queue);
         _showCreateQueue = false;
     }
 }
+

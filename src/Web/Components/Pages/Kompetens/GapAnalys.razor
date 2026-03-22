@@ -4,7 +4,7 @@
 @using RegionHR.Positions.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Gap-analys</PageTitle>
 
@@ -135,15 +135,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var skills = await Db.Skills.ToListAsync();
-            var empSkills = await Db.EmployeeSkills.ToListAsync();
-            var requirements = await Db.PositionSkillRequirements.ToListAsync();
-            var positions = await Db.Positions_Table
+            var skills = await db.Skills.ToListAsync();
+            var empSkills = await db.EmployeeSkills.ToListAsync();
+            var requirements = await db.PositionSkillRequirements.ToListAsync();
+            var positions = await db.Positions_Table
                 .Where(p => p.InnehavareAnstallId != null && p.Status == PositionStatus.Aktiv)
                 .ToListAsync();
-            var employees = await Db.Employees.ToListAsync();
+            var employees = await db.Employees.ToListAsync();
 
             foreach (var pos in positions)
             {
@@ -182,3 +183,4 @@ else
         int Uppfyllda, int AntalGap, bool HarGap, int TackningsgradProcent, List<GapDetalj> Detaljer);
     private record GapDetalj(string SkillNamn, int KravdNiva, int DinNiva);
 }
+

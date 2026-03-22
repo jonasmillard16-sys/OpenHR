@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Fakturor (VMS)</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -81,16 +81,17 @@ else
 
     private async Task Load()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true;
-        var invoices = await Db.VendorInvoices.OrderByDescending(i => i.CreatedAt).ToListAsync();
-        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+        var invoices = await db.VendorInvoices.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        var vendors = await db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
         _invoices = invoices.Select(i => new InvoiceRow(i, vendors.GetValueOrDefault(i.VendorId, "Okand"))).ToList();
         _loading = false;
     }
 
-    private async Task Matcha(VendorInvoice inv) { inv.Matcha(inv.Belopp * 0.98m); await Db.SaveChangesAsync(); _success = "Faktura matchad."; await Load(); }
-    private async Task Godkann(VendorInvoice inv) { inv.Godkann(); await Db.SaveChangesAsync(); _success = "Faktura godkand."; await Load(); }
-    private async Task MarkeraBetald(VendorInvoice inv) { inv.MarkeraBetald(); await Db.SaveChangesAsync(); _success = "Faktura markerad som betald."; await Load(); }
+    private async Task Matcha(VendorInvoice inv) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(inv); inv.Matcha(inv.Belopp * 0.98m); await db.SaveChangesAsync(); _success = "Faktura matchad."; await Load(); }
+    private async Task Godkann(VendorInvoice inv) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(inv); inv.Godkann(); await db.SaveChangesAsync(); _success = "Faktura godkand."; await Load(); }
+    private async Task MarkeraBetald(VendorInvoice inv) { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(inv); inv.MarkeraBetald(); await db.SaveChangesAsync(); _success = "Faktura markerad som betald."; await Load(); }
 
     private Color InvoiceStatusColor(VendorInvoiceStatus s) => s switch
     {
@@ -101,3 +102,4 @@ else
         _ => Color.Default
     };
 }
+

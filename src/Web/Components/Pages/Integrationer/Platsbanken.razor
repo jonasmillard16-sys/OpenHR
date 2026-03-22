@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Recruitment.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Platsbanken</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Platsbanken-integration</MudText>
@@ -39,10 +39,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var vacancies = await Db.Vacancies.Where(v => v.Status == VacancyStatus.Publicerad).ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var vacancies = await db.Vacancies.Where(v => v.Status == VacancyStatus.Publicerad).ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
             _vakanser = vacancies.Select(v => new VakansVm(v.Titel, enhetNamn.GetValueOrDefault(v.EnhetId.Value, "—"), v.Anstallningsform, v.SistaAnsokningsDag, v.Ansokngar.Count, v.PubliceradPlatsbanken)).ToList();
         }
@@ -52,3 +53,4 @@ else
 
     private record VakansVm(string Titel, string Enhet, RegionHR.SharedKernel.Domain.EmploymentType Anstallningsform, DateOnly SistaAnsokningsDag, int AntalAnsokngar, bool PubliceradPlatsbanken);
 }
+

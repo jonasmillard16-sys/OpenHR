@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR — Registrera livshändelse</PageTitle>
@@ -100,12 +100,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _lifeEvents = await Db.LifeEvents.OrderBy(e => e.Namn).ToListAsync();
+            _lifeEvents = await db.LifeEvents.OrderBy(e => e.Namn).ToListAsync();
             if (Auth.EmployeeId.HasValue)
             {
-                _myOccurrences = await Db.LifeEventOccurrences
+                _myOccurrences = await db.LifeEventOccurrences
                     .Where(o => o.AnstallId == Auth.EmployeeId.Value)
                     .ToListAsync();
             }
@@ -116,6 +117,7 @@ else
 
     private async Task RegistreraHandelse()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Kräver inloggad anställd."; return; }
         if (!_selectedEventId.HasValue || _selectedDatum == null) return;
 
@@ -132,8 +134,8 @@ else
             }
 
             var occurrence = LifeEventOccurrence.Registrera(_selectedEventId.Value, Auth.EmployeeId.Value, datum);
-            Db.LifeEventOccurrences.Add(occurrence);
-            await Db.SaveChangesAsync();
+            db.LifeEventOccurrences.Add(occurrence);
+            await db.SaveChangesAsync();
             _myOccurrences.Add(occurrence);
             _success = $"Livshändelse '{lifeEvent.Namn}' registrerad. Du kan nu göra förmånsändringar.";
             _selectedEventId = null; _selectedDatum = null;
@@ -144,3 +146,4 @@ else
 
     private string GetEventName(Guid id) => _lifeEvents.FirstOrDefault(e => e.Id == id)?.Namn ?? "Okänd";
 }
+

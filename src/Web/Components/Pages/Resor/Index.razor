@@ -5,7 +5,7 @@
 @using RegionHR.Travel.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject TraktamentsCalculator TraktCalc
 @inject RegionHR.Web.Services.AuthService Auth
 
@@ -154,11 +154,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var claims = await Db.TravelClaims.OrderByDescending(c => c.ReseDatum).Take(50).ToListAsync();
+            var claims = await db.TravelClaims.OrderByDescending(c => c.ReseDatum).Take(50).ToListAsync();
             var empIds = claims.Select(c => c.AnstallId.Value).Distinct().ToList();
-            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _claims = claims.Select(c => new ClaimVm(c.Id, names.GetValueOrDefault(c.AnstallId.Value, "Okänd"),
@@ -170,14 +171,15 @@ else
 
     private async Task SkapaResekrav()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue || _formDatum == null || string.IsNullOrWhiteSpace(_formBeskrivning)) return;
         _saving = true; _error = null;
         try
         {
             var claim = TravelClaim.Skapa(EmployeeId.From(Auth.EmployeeId.Value), _formBeskrivning, DateOnly.FromDateTime(_formDatum.Value));
             claim.SkickaIn();
-            Db.TravelClaims.Add(claim);
-            await Db.SaveChangesAsync();
+            db.TravelClaims.Add(claim);
+            await db.SaveChangesAsync();
             _claims.Insert(0, new ClaimVm(claim.Id, Auth.UserName ?? "Jag", claim.ReseDatum, claim.Beskrivning, claim.TotalBelopp.Amount, claim.Status, claim));
             _showForm = false; _success = "Resekrav skapat."; _formBeskrivning = ""; _formDatum = null;
         }
@@ -187,11 +189,12 @@ else
 
     private async Task AttesteraKrav(ClaimVm vm)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
         try
         {
             vm.Entity.Attestera(Auth.UserName ?? "Chef");
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = "Resekrav godkänt.";
         }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
@@ -224,3 +227,4 @@ else
 
     private record ClaimVm(Guid Id, string Namn, DateOnly Datum, string Beskrivning, decimal Belopp, TravelClaimStatus Status, TravelClaim Entity);
 }
+

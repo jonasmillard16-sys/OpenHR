@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.PolicyManagement.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Policyer</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -130,11 +130,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var policies = await Db.Policies.OrderByDescending(p => p.SkapadVid).ToListAsync();
-            var confirmations = await Db.PolicyConfirmations.ToListAsync();
-            _totalEmployees = await Db.Employees.CountAsync();
+            var policies = await db.Policies.OrderByDescending(p => p.SkapadVid).ToListAsync();
+            var confirmations = await db.PolicyConfirmations.ToListAsync();
+            _totalEmployees = await db.Employees.CountAsync();
 
             var confByPolicy = confirmations.GroupBy(c => c.PolicyId).ToDictionary(g => g.Key, g => g.Count());
             _policies = policies.Select(p => new PolicyVm(p, confByPolicy.GetValueOrDefault(p.Id))).ToList();
@@ -145,7 +146,7 @@ else
             if (recentConfs.Count > 0)
             {
                 var empIds = recentConfs.Select(c => c.AnstallId).Distinct().ToList();
-                var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+                var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
                 var titles = policies.ToDictionary(p => p.Id, p => p.Titel);
                 _recentConfirmations = recentConfs.Select(c => new RecentConfirmVm(
@@ -160,13 +161,14 @@ else
 
     private async Task SkapaPolicy()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true; _error = null;
         try
         {
             var policy = Policy.Skapa(_newTitel, _newInnehall, _newKategori, _newKraverBekraftelse, "Admin",
                 string.IsNullOrWhiteSpace(_newSammanfattning) ? null : _newSammanfattning);
-            Db.Policies.Add(policy);
-            await Db.SaveChangesAsync();
+            db.Policies.Add(policy);
+            await db.SaveChangesAsync();
             _policies.Insert(0, new PolicyVm(policy, 0));
             _showCreate = false;
             _success = $"Policy \"{_newTitel}\" skapad.";
@@ -178,13 +180,15 @@ else
 
     private async Task PubliceraPolicy(Policy p)
     {
-        try { p.Publicera(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { p.Publicera(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte publicera: {ex.Message}"; }
     }
 
     private async Task ArkiveraPolicy(Policy p)
     {
-        try { p.Arkivera(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { p.Arkivera(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte arkivera: {ex.Message}"; }
     }
 
@@ -195,3 +199,4 @@ else
     private record PolicyVm(Policy Policy, int Confirmations);
     private record RecentConfirmVm(string Datum, string Namn, string PolicyTitel);
 }
+

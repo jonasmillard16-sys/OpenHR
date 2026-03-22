@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Services
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Lonetransparensrapport</PageTitle>
@@ -190,9 +190,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _rapport = await Db.PayTransparencyReports
+            _rapport = await db.PayTransparencyReports
                 .Include(r => r.Analyser)
                     .ThenInclude(a => a.Kohorter)
                 .FirstOrDefaultAsync(r => r.Id == Id);
@@ -206,11 +207,12 @@ else
 
     private async Task PubliceraRapport()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_rapport == null) return;
         try
         {
             _rapport.Publicera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             StateHasChanged();
         }
         catch (Exception ex) { _error = $"Publicering misslyckades: {ex.Message}"; }
@@ -219,3 +221,4 @@ else
     private static Color GapColor(decimal gap) =>
         gap > 5 ? Color.Error : gap > 3 ? Color.Warning : Color.Success;
 }
+

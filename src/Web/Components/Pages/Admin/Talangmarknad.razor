@@ -4,7 +4,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Hantera talangmarknad</PageTitle>
 
@@ -133,13 +133,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _opportunities = await Db.InternalOpportunities
+            _opportunities = await db.InternalOpportunities
                 .OrderByDescending(o => o.PeriodFran)
                 .ToListAsync();
-            _applications = await Db.OpportunityApplications.ToListAsync();
-            _units = await Db.OrganizationUnits.OrderBy(u => u.Namn).ToListAsync();
+            _applications = await db.OpportunityApplications.ToListAsync();
+            _units = await db.OrganizationUnits.OrderBy(u => u.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hamta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -147,6 +148,7 @@ else
 
     private async Task SkapaMojlighet()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newTitel) || _newEnhetId == null) return;
 
         var periodFran = _newPeriodFran.HasValue ? (DateOnly?)DateOnly.FromDateTime(_newPeriodFran.Value) : null;
@@ -154,8 +156,8 @@ else
 
         var opp = InternalOpportunity.Skapa(_newTyp, _newTitel, _newEnhetId.Value, periodFran, periodTill);
         opp.Publicera();
-        await Db.InternalOpportunities.AddAsync(opp);
-        await Db.SaveChangesAsync();
+        await db.InternalOpportunities.AddAsync(opp);
+        await db.SaveChangesAsync();
         _opportunities.Insert(0, opp);
 
         _showForm = false;
@@ -165,20 +167,23 @@ else
 
     private async Task PubliceraMojlighet(InternalOpportunity opp)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         opp.Publicera();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task StangMojlighet(InternalOpportunity opp)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         opp.Stang();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task TillsattMojlighet(InternalOpportunity opp)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         opp.Tillsatt();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private static Color StatusFarg(OpportunityStatus s) => s switch
@@ -190,3 +195,4 @@ else
         _ => Color.Default
     };
 }
+

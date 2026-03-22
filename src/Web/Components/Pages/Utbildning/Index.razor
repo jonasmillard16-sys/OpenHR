@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.LMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Utbildning</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -102,15 +102,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _courses = await Db.Courses
+            _courses = await db.Courses
                 .OrderByDescending(c => c.SkapadVid)
                 .Take(50)
                 .ToListAsync();
 
             var courseIds = _courses.Select(c => c.Id).ToList();
-            _enrollments = await Db.CourseEnrollments
+            _enrollments = await db.CourseEnrollments
                 .Where(e => courseIds.Contains(e.CourseId))
                 .ToListAsync();
         }
@@ -139,3 +140,4 @@
         return $"{minuter} min";
     }
 }
+

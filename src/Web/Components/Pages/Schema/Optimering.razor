@@ -6,7 +6,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Schemaoptimering</PageTitle>
@@ -126,10 +126,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _enheter = await Db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _enheter = await db.OrganizationUnits.OrderBy(e => e.Namn).ToListAsync();
         if (_enheter.Count > 0) _valdEnhet = _enheter[0].Id.Value;
 
-        _tidigareKorningar = await Db.SchedulingRuns
+        _tidigareKorningar = await db.SchedulingRuns
             .OrderByDescending(r => r.SkapadVid)
             .Take(10)
             .ToListAsync();
@@ -137,6 +138,7 @@
 
     private async Task KorOptimering()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_valdEnhet == Guid.Empty || _periodFran is null || _periodTill is null) return;
 
         _optimerar = true;
@@ -152,7 +154,7 @@
                 System.Text.Json.JsonSerializer.Serialize(new { _valdEnhet, fran, till }));
 
             var solver = new ConstraintScheduleSolver();
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             var idag = DateOnly.FromDateTime(DateTime.Today);
             var personal = employees
                 .Where(e => e.Anstallningar.Any(a => a.EnhetId == OrganizationId.From(_valdEnhet) && a.Giltighetsperiod.IsActiveOn(idag)))
@@ -183,8 +185,8 @@
             var solution = solver.Solve(problem);
             run.Slutfor(solution.Tilldelningar.Count, solution.TotalKostnad.Amount, 0m, solution.ObemannadeBehov.Count == 0);
 
-            await Db.SchedulingRuns.AddAsync(run);
-            await Db.SaveChangesAsync();
+            await db.SchedulingRuns.AddAsync(run);
+            await db.SaveChangesAsync();
 
             _resultat = run;
             _tidigareKorningar.Insert(0, run);
@@ -208,3 +210,4 @@
         _ => Color.Default
     };
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.CaseManagement.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Klagomål detalj</PageTitle>
@@ -153,9 +153,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _grievance = await Db.Grievances
+            _grievance = await db.Grievances
                 .Include(g => g.Utredningar)
                 .Include(g => g.Forhandlingar)
                 .Include(g => g.Overklaganden)
@@ -163,7 +164,7 @@ else
 
             if (_grievance != null)
             {
-                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id == _grievance.AnstallId);
+                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == _grievance.AnstallId);
                 _anstallNamn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
             }
         }
@@ -173,46 +174,53 @@ else
 
     private async Task Bekrafta()
     {
-        try { _grievance!.Bekrafta(); await Db.SaveChangesAsync(); _actionMsg = "Klagomål bekräftat."; _actionSev = Severity.Success; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _grievance!.Bekrafta(); await db.SaveChangesAsync(); _actionMsg = "Klagomål bekräftat."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task StartaUtredning()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_utredare)) { _actionMsg = "Ange en utredare."; _actionSev = Severity.Warning; return; }
-        try { _grievance!.StartaUtredning(_utredare); await Db.SaveChangesAsync(); _actionMsg = "Utredning startad."; _actionSev = Severity.Success; }
+        try { _grievance!.StartaUtredning(_utredare); await db.SaveChangesAsync(); _actionMsg = "Utredning startad."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task HallForhandling()
     {
-        try { _grievance!.HallForhandling(DateTime.UtcNow, new List<string> { "HR", _grievance.FackligRepresentant ?? "Fackombud" }); await Db.SaveChangesAsync(); _actionMsg = "Förhandling registrerad."; _actionSev = Severity.Success; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _grievance!.HallForhandling(DateTime.UtcNow, new List<string> { "HR", _grievance.FackligRepresentant ?? "Fackombud" }); await db.SaveChangesAsync(); _actionMsg = "Förhandling registrerad."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task FattaBeslut()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_beslut)) { _actionMsg = "Ange beslut."; _actionSev = Severity.Warning; return; }
-        try { _grievance!.FattaBeslut(_beslut); await Db.SaveChangesAsync(); _actionMsg = "Beslut fattat."; _actionSev = Severity.Success; }
+        try { _grievance!.FattaBeslut(_beslut); await db.SaveChangesAsync(); _actionMsg = "Beslut fattat."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task Overklaga()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_overklaganGrund)) { _actionMsg = "Ange grund."; _actionSev = Severity.Warning; return; }
-        try { _grievance!.Overklaga(_overklaganGrund); await Db.SaveChangesAsync(); _actionMsg = "Överklagande registrerat."; _actionSev = Severity.Success; }
+        try { _grievance!.Overklaga(_overklaganGrund); await db.SaveChangesAsync(); _actionMsg = "Överklagande registrerat."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task Los()
     {
-        try { _grievance!.Los(); await Db.SaveChangesAsync(); _actionMsg = "Klagomål markerat som löst."; _actionSev = Severity.Success; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _grievance!.Los(); await db.SaveChangesAsync(); _actionMsg = "Klagomål markerat som löst."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
     private async Task Stang()
     {
-        try { _grievance!.Stang(); await Db.SaveChangesAsync(); _actionMsg = "Ärende stängt."; _actionSev = Severity.Success; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _grievance!.Stang(); await db.SaveChangesAsync(); _actionMsg = "Ärende stängt."; _actionSev = Severity.Success; }
         catch (Exception ex) { _actionMsg = $"Fel: {ex.Message}"; _actionSev = Severity.Error; }
     }
 
@@ -255,3 +263,4 @@ else
     private Color StepColor(GrievanceStatus step) =>
         (int)_grievance!.Status >= (int)step ? Color.Success : Color.Default;
 }
+

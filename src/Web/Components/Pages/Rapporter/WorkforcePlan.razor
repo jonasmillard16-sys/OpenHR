@@ -6,7 +6,7 @@
 @using RegionHR.Infrastructure.Payroll
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject SwedishTaxCalculator TaxCalc
 
 <PageTitle>OpenHR — Bemanningsrapport</PageTitle>
@@ -134,16 +134,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
             var agSats = TaxCalc.Arbetsgivaravgift;
 
             // Hämta data
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
-            var positions = await Db.Positions_Table.ToListAsync();
-            var enheter = await Db.OrganizationUnits.ToListAsync();
-            var budgets = await Db.HeadcountPlans.Where(h => h.Ar == DateTime.Today.Year).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var positions = await db.Positions_Table.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
+            var budgets = await db.HeadcountPlans.Where(h => h.Ar == DateTime.Today.Year).ToListAsync();
 
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
@@ -194,3 +195,4 @@ else
     private record EnhetRad(string EnhetNamn, int Headcount, decimal Lonekostnad, decimal AGAvgift, decimal TotalKostnad, int AntalPositioner, int Vakanta, double VakansgradProcent);
     private record BudgetRad(string EnhetNamn, int BudgeteradePositioner, int FaktiskaPositioner, decimal BudgeteradKostnad, decimal FaktiskKostnad);
 }
+

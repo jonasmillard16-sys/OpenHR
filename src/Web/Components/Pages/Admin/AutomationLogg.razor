@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Automation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Automationslogg</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -92,20 +92,21 @@ else
 
     private async Task Filtrera()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _loading = true; _error = null;
         try
         {
             var from = _franDatum ?? DateTime.Today.AddDays(-30);
             var to = (_tillDatum ?? DateTime.Today).AddDays(1);
 
-            _exekveringar = await Db.AutomationExecutions
+            _exekveringar = await db.AutomationExecutions
                 .Where(e => e.Tidsstampel >= from && e.Tidsstampel <= to)
                 .OrderByDescending(e => e.Tidsstampel)
                 .Take(500)
                 .ToListAsync();
 
             var regelIds = _exekveringar.Select(e => e.RegelId).Distinct().ToList();
-            var regler = await Db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
             _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
         }
         catch (Exception ex) { _error = $"Kunde inte hamta logg: {ex.Message}"; }
@@ -121,3 +122,4 @@ else
         _ => niva.ToString()
     };
 }
+

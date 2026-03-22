@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Teamkalender</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Teamkalender — @_currentMonth.ToString("MMMM yyyy", _sv)</MudText>
@@ -209,18 +209,19 @@ else
 
     private async Task LoadLeaveDataAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var monthStart = new DateOnly(_currentMonth.Year, _currentMonth.Month, 1);
             var monthEnd = new DateOnly(_currentMonth.Year, _currentMonth.Month, _daysInMonth);
 
-            var requests = await Db.LeaveRequests
+            var requests = await db.LeaveRequests
                 .Where(r => r.FranDatum <= monthEnd && r.TillDatum >= monthStart
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
                 .ToListAsync();
 
             var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id.Value))
                 .ToListAsync();
             _empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
@@ -346,3 +347,4 @@ else
     private record DayCell(string Symbol, string? Bg);
     private record WeekRow(string Name, List<DayCell> Days);
 }
+

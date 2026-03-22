@@ -8,13 +8,14 @@ namespace RegionHR.Web.Services;
 
 public class AnstallningService
 {
-    private readonly RegionHRDbContext _db;
+    private readonly IDbContextFactory<RegionHRDbContext> _dbFactory;
 
-    public AnstallningService(RegionHRDbContext db) => _db = db;
+    public AnstallningService(IDbContextFactory<RegionHRDbContext> dbFactory) => _dbFactory = dbFactory;
 
     public async Task<List<EmployeeListItem>> HamtaAllaAsync(string? sokterm = null, CancellationToken ct = default)
     {
-        var query = _db.Employees
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var query = db.Employees
             .Include(e => e.Anstallningar)
             .AsQueryable();
 
@@ -47,7 +48,8 @@ public class AnstallningService
 
     public async Task<Employee?> HamtaAsync(EmployeeId id, CancellationToken ct = default)
     {
-        return await _db.Employees
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.Employees
             .Include(e => e.Anstallningar)
             .FirstOrDefaultAsync(e => e.Id == id, ct);
     }
@@ -56,32 +58,35 @@ public class AnstallningService
         string personnummer, string fornamn, string efternamn,
         string? epost = null, CancellationToken ct = default)
     {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var pnr = new Personnummer(personnummer);
         var employee = Employee.Skapa(pnr, fornamn, efternamn);
         if (epost is not null)
             employee.UppdateraKontaktuppgifter(epost, null, null);
 
-        await _db.Employees.AddAsync(employee, ct);
-        await _db.SaveChangesAsync(ct);
+        await db.Employees.AddAsync(employee, ct);
+        await db.SaveChangesAsync(ct);
         return employee.Id;
     }
 
     public async Task UppdateraKontaktuppgifterAsync(
         EmployeeId id, string? epost, string? telefon, CancellationToken ct = default)
     {
-        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (employee is null) return;
         employee.UppdateraKontaktuppgifter(epost, telefon, null);
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task UppdateraKontaktuppgifterMedAdressAsync(
         EmployeeId id, string? epost, string? telefon, Address? adress, CancellationToken ct = default)
     {
-        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (employee is null) return;
         employee.UppdateraKontaktuppgifter(epost, telefon, adress);
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task UppdateraSkatteuppgifterAsync(
@@ -89,15 +94,17 @@ public class AnstallningService
         decimal kommunalSkattesats, bool harKyrkoavgift, decimal? kyrkoavgiftssats,
         CancellationToken ct = default)
     {
-        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (employee is null) return;
         employee.UppdateraSkatteuppgifter(skattetabell, skattekolumn, kommun, kommunalSkattesats, harKyrkoavgift, kyrkoavgiftssats);
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<List<OrganizationUnit>> HamtaOrganisationAsync(CancellationToken ct = default)
     {
-        return await _db.OrganizationUnits
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        return await db.OrganizationUnits
             .Include(o => o.Underenheter)
             .Where(o => o.OverordnadEnhetId == null)
             .ToListAsync(ct);

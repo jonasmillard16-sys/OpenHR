@@ -4,7 +4,7 @@
 @using RegionHR.Competence.Domain
 @using RegionHR.Web.Components.Shared
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Kompetensregister</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -157,9 +157,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _certs = await Db.Certifications
+            _certs = await db.Certifications
                 .OrderByDescending(x => x.GiltigTill)
                 .Take(50)
                 .ToListAsync();
@@ -184,7 +185,7 @@
         }
 
         // Mandatory training from DB
-        var mandatoryTrainings = await Db.MandatoryTrainings.ToListAsync();
+        var mandatoryTrainings = await db.MandatoryTrainings.ToListAsync();
         _mandatoryRows = mandatoryTrainings.Select(m => new MandatoryRow(m.UtbildningNamn, m.RollNamn, 0, 0)).ToList();
     }
 
@@ -245,3 +246,4 @@
         public double Andel => Totalt > 0 ? (double)Genomforda / Totalt * 100 : 0;
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Förmånsval</PageTitle>
 
@@ -161,11 +161,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _benefits = await Db.Benefits.OrderBy(b => b.Kategori).ToListAsync();
-            _selections = await Db.EmployeeBenefits.ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _benefits = await db.Benefits.OrderBy(b => b.Kategori).ToListAsync();
+            _selections = await db.EmployeeBenefits.ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -173,13 +174,14 @@ else
 
     private async Task SparaVal()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formAnstallId is null || _formBenefitId is null) return;
         var val = EmployeeBenefit.Anmala(
             _formAnstallId.Value, _formBenefitId.Value,
             DateOnly.FromDateTime(DateTime.Today), _formBelopp,
             string.IsNullOrWhiteSpace(_formLivshandelse) ? null : _formLivshandelse);
-        Db.EmployeeBenefits.Add(val);
-        await Db.SaveChangesAsync();
+        db.EmployeeBenefits.Add(val);
+        await db.SaveChangesAsync();
         _selections.Add(val);
         _showForm = false;
         _success = $"Förmånsval registrerat för {GetEmployeeName(_formAnstallId.Value)}.";
@@ -188,8 +190,9 @@ else
 
     private async Task GodkannVal(EmployeeBenefit val)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         val.Godkann();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private string GetEmployeeName(Guid id)
@@ -219,3 +222,4 @@ else
         _ => s.ToString()
     };
 }
+

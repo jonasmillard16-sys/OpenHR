@@ -4,7 +4,7 @@
 @using RegionHR.Configuration.Domain
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - @(_customObject?.PluralNamn ?? ObjektNamn)</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -138,13 +138,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _customObject = await Db.CustomObjects.FirstOrDefaultAsync(o => o.Namn == ObjektNamn);
+            _customObject = await db.CustomObjects.FirstOrDefaultAsync(o => o.Namn == ObjektNamn);
             if (_customObject != null)
             {
                 _fields = ParseSchema(_customObject.FaltSchema);
-                _records = await Db.CustomObjectRecords
+                _records = await db.CustomObjectRecords
                     .Where(r => r.CustomObjectId == _customObject.Id)
                     .OrderByDescending(r => r.SkapadVid)
                     .ToListAsync();
@@ -207,19 +208,20 @@ else
 
     private async Task SparaPost()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var data = JsonSerializer.Serialize(_formValues);
 
         if (_editRecord != null)
         {
             _editRecord.UppdateraData(data);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = "Post uppdaterad";
         }
         else
         {
             var record = CustomObjectRecord.Skapa(_customObject!.Id, data, "System");
-            await Db.CustomObjectRecords.AddAsync(record);
-            await Db.SaveChangesAsync();
+            await db.CustomObjectRecords.AddAsync(record);
+            await db.SaveChangesAsync();
             _records.Insert(0, record);
             _success = "Ny post skapad";
         }
@@ -229,8 +231,9 @@ else
 
     private async Task TaBortPost(CustomObjectRecord record)
     {
-        Db.CustomObjectRecords.Remove(record);
-        await Db.SaveChangesAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.CustomObjectRecords.Remove(record);
+        await db.SaveChangesAsync();
         _records.Remove(record);
         _success = "Post borttagen";
     }
@@ -243,3 +246,4 @@ else
         public string[]? Options { get; set; }
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Compensation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Bonusplaner</PageTitle>
@@ -77,9 +77,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _planer = await Db.BonusPlans
+            _planer = await db.BonusPlans
                 .Include(p => p.Targets)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -90,9 +91,10 @@ else
 
     private async Task SkapaBonusPlan()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var plan = BonusPlan.Skapa(_nyNamn, _nyTyp, string.IsNullOrWhiteSpace(_nyUtbetalning) ? null : _nyUtbetalning);
-        await Db.BonusPlans.AddAsync(plan);
-        await Db.SaveChangesAsync();
+        await db.BonusPlans.AddAsync(plan);
+        await db.SaveChangesAsync();
         _planer.Insert(0, plan);
         _visaNyDialog = false;
         _nyNamn = "";
@@ -115,3 +117,4 @@ else
         _ => Color.Default
     };
 }
+

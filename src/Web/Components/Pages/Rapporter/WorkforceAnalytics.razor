@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Positions.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Workforce Analytics</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Workforce Analytics</MudText>
@@ -39,15 +39,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
             _totalAnstallda = employees.Count;
             _tillsvidareanstallda = employees.Count(e => e.AktivAnstallning(idag)?.ArTillsvidareanstallning == true);
             _vikarier = employees.Count(e => e.AktivAnstallning(idag)?.ArTidsbegransad == true);
 
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
             _perEnhet = employees
                 .Where(e => e.AktivAnstallning(idag) != null)
@@ -72,3 +73,4 @@ else
 
     private record EnhetAnalys(string Namn, int Antal, int Tillsvidare, int Vikarier);
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Helpdesk.Domain
 @using RegionHR.Infrastructure.Services
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Agent Workspace</PageTitle>
@@ -78,7 +78,7 @@ else
                             @if (context.Status == ServiceRequestStatus.Assigned)
                             {
                                 <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                           OnClick="@(async () => { context.PaborjaArbete(); await Db.SaveChangesAsync(); })">
+                                           OnClick="@(async () => { await using var db2 = await DbFactory.CreateDbContextAsync(); db2.Attach(context); context.PaborjaArbete(); await db2.SaveChangesAsync(); })">
                                     Paborja
                                 </MudButton>
                             }
@@ -118,7 +118,7 @@ else
                         <MudTd>@context.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
                         <MudTd>
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                       OnClick="@(async () => { context.Tilldela(_currentAgentId); await Db.SaveChangesAsync(); _myRequests.Add(context); _unassigned.Remove(context); })">
+                                       OnClick="@(async () => { await using var db2 = await DbFactory.CreateDbContextAsync(); db2.Attach(context); context.Tilldela(_currentAgentId); await db2.SaveChangesAsync(); _myRequests.Add(context); _unassigned.Remove(context); })">
                                 Tilldela mig
                             </MudButton>
                         </MudTd>
@@ -188,33 +188,34 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var now = DateTime.UtcNow;
             var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
 
-            _myRequests = await Db.ServiceRequests
+            _myRequests = await db.ServiceRequests
                 .Where(r => r.TilldeladAgent != null && r.Status != ServiceRequestStatus.Closed && r.Status != ServiceRequestStatus.Resolved)
                 .OrderBy(r => r.SLADeadline)
                 .Take(50)
                 .ToListAsync();
 
-            _unassigned = await Db.ServiceRequests
+            _unassigned = await db.ServiceRequests
                 .Where(r => r.TilldeladAgent == null && r.Status == ServiceRequestStatus.New)
                 .OrderByDescending(r => r.Prioritet)
                 .ThenBy(r => r.CreatedAt)
                 .Take(50)
                 .ToListAsync();
 
-            _breached = await Db.ServiceRequests
+            _breached = await db.ServiceRequests
                 .Where(r => r.SLADeadline.HasValue && r.SLADeadline < now &&
                             r.Status != ServiceRequestStatus.Resolved && r.Status != ServiceRequestStatus.Closed)
                 .ToListAsync();
 
-            _resolvedToday = await Db.ServiceRequests
+            _resolvedToday = await db.ServiceRequests
                 .CountAsync(r => r.LostVid.HasValue && r.LostVid >= todayStart);
 
-            _templates = await Db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
+            _templates = await db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte ladda workspace: {ex.Message}"; }
         finally { _loading = false; }
@@ -229,9 +230,10 @@ else
 
     private async Task ResolveRequest()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_resolveTarget is null || string.IsNullOrWhiteSpace(_resolveText)) return;
 
-        var req = await Db.ServiceRequests
+        var req = await db.ServiceRequests
             .Include(r => r.Kommentarer)
             .Include(r => r.SLAMilestones)
             .FirstOrDefaultAsync(r => r.Id == _resolveTarget.Id);
@@ -241,7 +243,7 @@ else
         var resMilestone = req.SLAMilestones.FirstOrDefault(m => m.Typ == "Resolution" && m.FaktiskTid is null);
         resMilestone?.Uppfyll(DateTime.UtcNow);
 
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _myRequests.Remove(_resolveTarget);
         _showResolve = false;
     }
@@ -266,3 +268,4 @@ else
         _ => Color.Default
     };
 }
+

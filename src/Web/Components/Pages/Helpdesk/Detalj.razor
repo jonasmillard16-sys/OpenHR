@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Helpdesk.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Arende @Id</PageTitle>
@@ -161,9 +161,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _request = await Db.ServiceRequests
+            _request = await db.ServiceRequests
                 .Include(r => r.Kommentarer)
                 .Include(r => r.SLAMilestones)
                 .FirstOrDefaultAsync(r => r.Id == Id);
@@ -173,26 +174,29 @@ else
 
     private async Task AddComment()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_request is null || string.IsNullOrWhiteSpace(_newComment)) return;
         _request.LaggTillKommentar(null, _newComment, false);
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _newComment = "";
     }
 
     private async Task CloseRequest()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_request is null) return;
         _request.Stang();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     private async Task SubmitSatisfaction()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_request is null || _satisfactionRating < 1) return;
         _request.SattNojdhet(_satisfactionRating);
         var satisfaction = CaseSatisfaction.Skapa(_request.Id, _satisfactionRating, _satisfactionComment);
-        await Db.CaseSatisfactions.AddAsync(satisfaction);
-        await Db.SaveChangesAsync();
+        await db.CaseSatisfactions.AddAsync(satisfaction);
+        await db.SaveChangesAsync();
     }
 
     private Color GetStatusColor(ServiceRequestStatus status) => status switch
@@ -215,3 +219,4 @@ else
         _ => Color.Default
     };
 }
+

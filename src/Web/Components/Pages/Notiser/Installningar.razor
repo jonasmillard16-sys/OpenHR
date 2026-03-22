@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Notifications.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Notisinställningar</PageTitle>
@@ -49,11 +49,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _loading = false; return; }
         try
         {
             var empId = Auth.EmployeeId.Value;
-            _prefs = await Db.NotificationPreferences
+            _prefs = await db.NotificationPreferences
                 .Where(p => p.AnstallId == empId)
                 .ToListAsync();
 
@@ -63,13 +64,13 @@ else
                 if (!_prefs.Any(p => p.NotisTyp == typ))
                 {
                     var pref = NotificationPreference.Skapa(empId, typ);
-                    Db.NotificationPreferences.Add(pref);
+                    db.NotificationPreferences.Add(pref);
                     _prefs.Add(pref);
                 }
             }
-            if (_prefs.Count > _defaultTyper.Length || Db.ChangeTracker.HasChanges())
+            if (_prefs.Count > _defaultTyper.Length || db.ChangeTracker.HasChanges())
             {
-                await Db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
         }
         catch (Exception ex) { _error = $"Kunde inte hämta inställningar: {ex.Message}"; }
@@ -78,10 +79,11 @@ else
 
     private async Task Spara()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true; _error = null;
         try
         {
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _sparad = true;
             _dirty = false;
         }
@@ -89,3 +91,4 @@ else
         finally { _saving = false; }
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - 360-feedback</PageTitle>
@@ -80,11 +80,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var rounds = await Db.FeedbackRounds.OrderByDescending(r => r.SkapadVid).ToListAsync();
-            var responses = await Db.FeedbackResponses.ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var rounds = await db.FeedbackRounds.OrderByDescending(r => r.SkapadVid).ToListAsync();
+            var responses = await db.FeedbackResponses.ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             var respByRound = responses.GroupBy(r => r.RoundId).ToDictionary(g => g.Key, g => g.ToList());
 
@@ -102,13 +103,14 @@ else
 
     private async Task SkapaRunda()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formAnstallId == null || string.IsNullOrWhiteSpace(_formTitel)) return;
         _saving = true; _error = null;
         try
         {
             var round = FeedbackRound.Skapa(_formAnstallId.Value, _formTitel!);
-            Db.FeedbackRounds.Add(round);
-            await Db.SaveChangesAsync();
+            db.FeedbackRounds.Add(round);
+            await db.SaveChangesAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _rounds.Insert(0, new RoundVm(names.GetValueOrDefault(_formAnstallId.Value, "Okänd"), round, 0, 0));
             _showCreate = false; _success = "Feedbackrunda skapad."; _formTitel = "";
@@ -117,11 +119,12 @@ else
         finally { _saving = false; }
     }
 
-    private async Task OppnaRunda(FeedbackRound r) { try { r.Oppna(); await Db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
-    private async Task StangRunda(FeedbackRound r) { try { r.Stang(); await Db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
+    private async Task OppnaRunda(FeedbackRound r) { try { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Oppna(); await db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
+    private async Task StangRunda(FeedbackRound r) { try { await using var db = await DbFactory.CreateDbContextAsync(); db.Attach(r); r.Stang(); await db.SaveChangesAsync(); } catch (Exception ex) { _error = $"Fel: {ex.Message}"; } }
 
     private static string StatusText(FeedbackRoundStatus s) => s switch { FeedbackRoundStatus.Utkast => "Utkast", FeedbackRoundStatus.Oppnad => "Öppen", FeedbackRoundStatus.Stangd => "Stängd", _ => s.ToString() };
     private static Color StatusFarg(FeedbackRoundStatus s) => s switch { FeedbackRoundStatus.Oppnad => Color.Success, FeedbackRoundStatus.Stangd => Color.Info, _ => Color.Default };
 
     private record RoundVm(string AnstallNamn, FeedbackRound Round, int AntalSvar, double SnittBetyg);
 }
+

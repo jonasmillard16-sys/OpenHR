@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Frånvarokalender</PageTitle>
 
@@ -61,19 +61,20 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             var monday = today.AddDays(-((int)today.DayOfWeek + 6) % 7);
             var friday = monday.AddDays(4);
 
-            var requests = await Db.LeaveRequests
+            var requests = await db.LeaveRequests
                 .Where(r => r.TillDatum >= monday && r.FranDatum <= friday
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
                 .ToListAsync();
 
             var anstallIds = requests.Select(r => r.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -109,3 +110,4 @@ else
 
     private record FranvaroRad(string Namn, string TypText, DateOnly FranDatum, DateOnly TillDatum, string StatusText, Color StatusFarg);
 }
+

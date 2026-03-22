@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Infrastructure.Authorization
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Delegering</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -100,10 +100,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var delegs = await Db.DelegatedAccesses.OrderByDescending(d => d.SkapadVid).ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var delegs = await db.DelegatedAccesses.OrderByDescending(d => d.SkapadVid).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _rader = delegs.Select(d => new DelegVm(
@@ -121,14 +122,15 @@ else
 
     private async Task SkapaDelegering()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formDelegator == null || _formDelegat == null || _formFran == null || _formTill == null) return;
         _saving = true; _error = null;
         try
         {
             var d = DelegatedAccess.Skapa(_formDelegator.Value, _formDelegat.Value, _formRoll,
                 DateOnly.FromDateTime(_formFran.Value), DateOnly.FromDateTime(_formTill.Value), _formAnledning);
-            Db.DelegatedAccesses.Add(d);
-            await Db.SaveChangesAsync();
+            db.DelegatedAccesses.Add(d);
+            await db.SaveChangesAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _rader.Insert(0, new DelegVm(names.GetValueOrDefault(d.DelegatorId, "Okänd"), names.GetValueOrDefault(d.DelegatId, "Okänd"), d));
             _showForm = false; _success = "Delegering skapad.";
@@ -139,3 +141,4 @@ else
 
     private record DelegVm(string DelegatorNamn, string DelegatNamn, DelegatedAccess Deleg);
 }
+

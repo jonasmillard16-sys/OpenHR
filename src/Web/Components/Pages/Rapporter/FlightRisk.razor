@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 @inject FlightRiskService RiskService
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Uppsägningsrisk</PageTitle>
 
@@ -151,9 +151,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Include(e => e.Anstallningar)
                 .ToListAsync();
 
@@ -185,3 +186,4 @@ else
         _ => "—"
     };
 }
+

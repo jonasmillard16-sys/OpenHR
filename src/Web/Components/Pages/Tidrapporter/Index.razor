@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Scheduling.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Tidrapporter</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -72,14 +72,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var timesheets = await Db.Timesheets
+            var timesheets = await db.Timesheets
                 .OrderByDescending(t => t.Ar).ThenByDescending(t => t.Manad)
                 .Take(50).ToListAsync();
 
             var anstallIds = timesheets.Select(t => t.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -115,3 +116,4 @@ else
 
     private record TimesheetVm(Guid Id, string Namn, string Period, decimal Planerade, decimal Faktiska, decimal Overtid, TimesheetStatus Status);
 }
+

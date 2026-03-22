@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Platform.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - API-nycklar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -108,11 +108,13 @@ else
 
     private async Task LoadKeys()
     {
-        _keys = await Db.ApiKeys.OrderByDescending(k => k.SkapadVid).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _keys = await db.ApiKeys.OrderByDescending(k => k.SkapadVid).ToListAsync();
     }
 
     private async Task SkapaNyckel()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
         var scope = string.IsNullOrWhiteSpace(_formScope) ? "{}" : _formScope;
         var (entity, plaintext) = RegionHR.Platform.Domain.ApiKey.Skapa(
@@ -121,8 +123,8 @@ else
             scope,
             _formExpiry);
 
-        Db.ApiKeys.Add(entity);
-        await Db.SaveChangesAsync();
+        db.ApiKeys.Add(entity);
+        await db.SaveChangesAsync();
 
         _newPlaintext = plaintext;
         _success = $"API-nyckel '{_formNamn}' skapad.";
@@ -134,10 +136,12 @@ else
 
     private async Task InaktiveraNyckel(RegionHR.Platform.Domain.ApiKey key)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         key.Inaktivera();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _success = $"API-nyckel '{key.Namn}' inaktiverad.";
         _newPlaintext = null;
         await LoadKeys();
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Automation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Automation</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -93,11 +93,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var cats = await Db.AutomationCategories.ToListAsync();
-            var rules = await Db.AutomationRules.ToListAsync();
-            var configs = await Db.AutomationLevelConfigs.ToListAsync();
+            var cats = await db.AutomationCategories.ToListAsync();
+            var rules = await db.AutomationRules.ToListAsync();
+            var configs = await db.AutomationLevelConfigs.ToListAsync();
 
             _kategorier = cats.Select(c => new KategoriVm(
                 c,
@@ -107,9 +108,9 @@ else
             )).ToList();
 
             _antalAktiva = rules.Count(r => r.ArAktiv);
-            _antalForslag = await Db.AutomationSuggestions.CountAsync(s => s.Status == SuggestionStatus.Pending);
+            _antalForslag = await db.AutomationSuggestions.CountAsync(s => s.Status == SuggestionStatus.Pending);
             var sedan30d = DateTime.UtcNow.AddDays(-30);
-            _antalExekveringar = await Db.AutomationExecutions.CountAsync(e => e.Tidsstampel >= sedan30d);
+            _antalExekveringar = await db.AutomationExecutions.CountAsync(e => e.Tidsstampel >= sedan30d);
         }
         catch (Exception ex) { _error = $"Kunde inte hamta automationsdata: {ex.Message}"; }
         finally { _loading = false; }
@@ -117,11 +118,12 @@ else
 
     private async Task AndraNiva(KategoriVm k, AutomationLevel nyNiva)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var minNiva = k.Regler.Where(r => r.ArSystemRegel).Select(r => r.MinimumNiva).DefaultIfEmpty(AutomationLevel.Notify).Max();
             k.Config.AndraNiva(nyNiva, minNiva);
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"Niva andrad till {NivaNamn(nyNiva)} for {k.Kategori.Namn}";
         }
         catch (InvalidOperationException ex)
@@ -141,3 +143,4 @@ else
 
     private record KategoriVm(AutomationCategory Kategori, List<AutomationRule> Regler, AutomationLevelConfig Config);
 }
+

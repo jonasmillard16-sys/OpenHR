@@ -5,7 +5,7 @@
 @using RegionHR.Platform.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ExtensionPackageService PackageService
 
 <PageTitle>OpenHR - Tillagg</PageTitle>
@@ -142,10 +142,11 @@ else
 
     private async Task LaddaData()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var exts = await Db.Extensions.OrderBy(e => e.Namn).ToListAsync();
-            var installs = await Db.ExtensionInstallations.ToListAsync();
+            var exts = await db.Extensions.OrderBy(e => e.Namn).ToListAsync();
+            var installs = await db.ExtensionInstallations.ToListAsync();
 
             _extensions = exts.Select(e => new ExtensionVm(
                 e,
@@ -162,11 +163,12 @@ else
 
     private async Task Installera(ExtensionVm vm)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var installation = ExtensionInstallation.Installera(vm.Extension.Id, vm.Extension.Version);
-            await Db.ExtensionInstallations.AddAsync(installation);
-            await Db.SaveChangesAsync();
+            await db.ExtensionInstallations.AddAsync(installation);
+            await db.SaveChangesAsync();
             _success = $"'{vm.Extension.Namn}' installerat.";
             _loading = true;
             await LaddaData();
@@ -176,10 +178,11 @@ else
 
     private async Task Inaktivera(ExtensionVm vm)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             vm.Installation!.Inaktivera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"'{vm.Extension.Namn}' inaktiverat.";
             _loading = true;
             await LaddaData();
@@ -189,10 +192,11 @@ else
 
     private async Task Aktivera(ExtensionVm vm)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             vm.Installation!.Aktivera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = $"'{vm.Extension.Namn}' aktiverat.";
             _loading = true;
             await LaddaData();
@@ -226,3 +230,4 @@ else
 
     private record ExtensionVm(Extension Extension, ExtensionInstallation? Installation);
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Communication.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Beröm</PageTitle>
@@ -78,10 +78,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var recs = await Db.Recognitions.OrderByDescending(r => r.SkapadVid).ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            var recs = await db.Recognitions.OrderByDescending(r => r.SkapadVid).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _items = recs.Select(r => new RecVm(names.GetValueOrDefault(r.FranAnstallId, "Okänd"), names.GetValueOrDefault(r.TillAnstallId, "Okänd"), r)).ToList();
         }
@@ -91,13 +92,14 @@ else
 
     private async Task SkickaBerom()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue || _formTill == null || string.IsNullOrWhiteSpace(_formMeddelande)) return;
         _saving = true; _error = null;
         try
         {
             var rec = Recognition.Skapa(Auth.EmployeeId.Value, _formTill.Value, _formKategori ?? "Samarbete", _formMeddelande!);
-            Db.Recognitions.Add(rec);
-            await Db.SaveChangesAsync();
+            db.Recognitions.Add(rec);
+            await db.SaveChangesAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _items.Insert(0, new RecVm(Auth.UserName ?? "Jag", names.GetValueOrDefault(_formTill.Value, "Okänd"), rec));
             _showForm = false; _success = "Beröm skickat!"; _formMeddelande = ""; _formTill = null;
@@ -108,3 +110,4 @@ else
 
     private record RecVm(string FranNamn, string TillNamn, Recognition Rec);
 }
+

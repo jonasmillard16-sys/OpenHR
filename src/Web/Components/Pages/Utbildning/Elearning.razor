@@ -3,7 +3,7 @@
 @using RegionHR.LMS.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — E-learning</PageTitle>
 
@@ -148,11 +148,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _courses = await Db.Courses.ToListAsync();
-            _enrollments = await Db.CourseEnrollments.ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _courses = await db.Courses.ToListAsync();
+            _enrollments = await db.CourseEnrollments.ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             RebuildEnrollCounts();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
@@ -165,10 +166,11 @@ else
 
     private async Task SparaAnmalan()
     {
+        using var db = DbFactory.CreateDbContext();
         if (_enrollAnstallId == null || _enrollCourseId == null) return;
         var enrollment = CourseEnrollment.Anmala(_enrollAnstallId.Value, _enrollCourseId.Value);
-        Db.CourseEnrollments.Add(enrollment);
-        await Db.SaveChangesAsync();
+        db.CourseEnrollments.Add(enrollment);
+        await db.SaveChangesAsync();
         _enrollments.Add(enrollment);
         RebuildEnrollCounts();
         _showEnroll = false;
@@ -202,3 +204,4 @@ else
         _ => p.ToString()
     };
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Compensation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Kompensationsmodellering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Kompensationsmodellering</MudText>
@@ -119,7 +119,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _band = await Db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _band = await db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
         if (_band.Count > 0) _befattning = _band[0].Befattningskategori;
     }
 
@@ -168,3 +169,4 @@
         public decimal? BandMax { get; set; }
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Automation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Automationsforslag</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -101,15 +101,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _forslag = await Db.AutomationSuggestions
+            _forslag = await db.AutomationSuggestions
                 .OrderByDescending(s => s.SkapadVid)
                 .Take(200)
                 .ToListAsync();
 
             var regelIds = _forslag.Select(f => f.RegelId).Distinct().ToList();
-            var regler = await Db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
             _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
 
             _vantande = _forslag.Count(f => f.Status == SuggestionStatus.Pending);
@@ -122,10 +123,11 @@ else
 
     private async Task Acceptera(AutomationSuggestion forslag)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             forslag.Acceptera();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = "Forslag accepterat.";
             _vantande--; _accepterade++;
         }
@@ -134,10 +136,11 @@ else
 
     private async Task Avvisa(AutomationSuggestion forslag)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             forslag.Avvisa();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _success = "Forslag avvisat.";
             _vantande--; _avvisade++;
         }
@@ -153,3 +156,4 @@ else
         _ => status.ToString()
     };
 }
+

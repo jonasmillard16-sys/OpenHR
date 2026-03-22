@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - 1:1-möten</PageTitle>
@@ -145,9 +145,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var emps = await Db.Employees.OrderBy(e => e.Efternamn).Take(200).ToListAsync();
+            var emps = await db.Employees.OrderBy(e => e.Efternamn).Take(200).ToListAsync();
             _employees = emps.Select(e => (e.Id.Value, $"{e.Fornamn} {e.Efternamn}")).ToList();
             _employeeNames = emps.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -158,16 +159,17 @@ else
 
     private async Task LaddaData()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var now = DateTime.UtcNow;
-        _upcoming = await Db.OneOnOneMeetings
+        _upcoming = await db.OneOnOneMeetings
             .Where(m => m.Status == MeetingStatus.Scheduled)
             .OrderBy(m => m.Datum).Take(50).ToListAsync();
 
-        _past = await Db.OneOnOneMeetings
+        _past = await db.OneOnOneMeetings
             .Where(m => m.Status != MeetingStatus.Scheduled)
             .OrderByDescending(m => m.Datum).Take(50).ToListAsync();
 
-        _actionItems = await Db.MeetingActionItems
+        _actionItems = await db.MeetingActionItems
             .Where(a => a.Status != ActionItemStatus.Done)
             .OrderBy(a => a.Deadline).Take(50).ToListAsync();
     }
@@ -176,12 +178,13 @@ else
 
     private async Task SkapaMote()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var datum = _nyDatum ?? DateTime.Today.AddDays(7);
             var meeting = OneOnOneMeeting.Skapa(Guid.NewGuid(), _nyAnstallId, datum, _nyAgenda);
-            await Db.OneOnOneMeetings.AddAsync(meeting);
-            await Db.SaveChangesAsync();
+            await db.OneOnOneMeetings.AddAsync(meeting);
+            await db.SaveChangesAsync();
             Snackbar.Add("Möte bokat!", Severity.Success);
             _nyAgenda = null;
             await LaddaData();
@@ -191,10 +194,11 @@ else
 
     private async Task GenomforMote(OneOnOneMeeting meeting)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             meeting.Genomfor("Möte genomfört.");
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             Snackbar.Add("Möte markerat som genomfört!", Severity.Success);
             await LaddaData();
         }
@@ -203,10 +207,11 @@ else
 
     private async Task AvbokaMote(OneOnOneMeeting meeting)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             meeting.Avboka();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             Snackbar.Add("Möte avbokat.", Severity.Warning);
             await LaddaData();
         }
@@ -215,10 +220,11 @@ else
 
     private async Task PaborjaAction(MeetingActionItem item)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             item.Paborja();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             await LaddaData();
         }
         catch (Exception ex) { _error = ex.Message; }
@@ -226,10 +232,11 @@ else
 
     private async Task SlutforAction(MeetingActionItem item)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             item.Slutfor();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             Snackbar.Add("Åtgärd slutförd!", Severity.Success);
             await LaddaData();
         }
@@ -244,3 +251,4 @@ else
         _ => Color.Default
     };
 }
+

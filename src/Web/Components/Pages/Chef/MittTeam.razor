@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Mitt team</PageTitle>
@@ -93,10 +93,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var allEmployees = await Db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync();
+            var allEmployees = await db.Employees.Include(e => e.Anstallningar).OrderBy(e => e.Efternamn).ToListAsync();
 
             // Filter on chef's unit if auth provides EmployeeId
             Guid? chefEnhetId = null;
@@ -107,7 +108,7 @@ else
                 if (chefAnst != null)
                 {
                     chefEnhetId = chefAnst.EnhetId.Value;
-                    var enhet = await Db.OrganizationUnits.FirstOrDefaultAsync(e => e.Id.Value == chefEnhetId.Value);
+                    var enhet = await db.OrganizationUnits.FirstOrDefaultAsync(e => e.Id.Value == chefEnhetId.Value);
                     _enhetNamn = enhet?.Namn;
                 }
             }
@@ -117,18 +118,18 @@ else
                 : allEmployees;
 
             // Aktiva frånvaroperioder idag
-            var aktivFranvaro = await Db.LeaveRequests
+            var aktivFranvaro = await db.LeaveRequests
                 .Where(r => r.FranDatum <= idag && r.TillDatum >= idag
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand))
                 .ToListAsync();
             var franvaroPerAnstall = aktivFranvaro.ToDictionary(r => r.AnstallId, r => r.Typ);
 
             // Semestersaldo
-            var balances = await Db.VacationBalances.Where(b => b.Ar == idag.Year).ToListAsync();
+            var balances = await db.VacationBalances.Where(b => b.Ar == idag.Year).ToListAsync();
             var balansPerAnstall = balances.ToDictionary(b => b.AnstallId, b => b.TillgangligaDagar);
 
             // Enhetnamn
-            var enheter = await Db.OrganizationUnits.ToListAsync();
+            var enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             _team = employees.Select(e =>
@@ -167,3 +168,4 @@ else
 
     private record TeamMedlem(string Namn, string Befattning, string Tjanstegrad, string? AktivFranvaro, Color FranvaroFarg, int? SemesterKvar, string? Telefon, string? Epost, string Enhet);
 }
+

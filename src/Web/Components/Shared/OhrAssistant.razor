@@ -95,7 +95,7 @@
         + "Fråga mig vad som helst!")];
 
     [Inject] private NavigationManager? Nav { get; set; }
-    [Inject] private RegionHRDbContext? Db { get; set; }
+    [Inject] private IDbContextFactory<RegionHRDbContext>? DbFactory { get; set; }
     [Inject] private RegionHR.Web.Services.AuthService? Auth { get; set; }
     [Inject] private KnowledgeBaseService? KbService { get; set; }
 
@@ -121,24 +121,25 @@
 
         try
         {
-            if (Db == null) return;
+            if (DbFactory == null) return;
+            await using var db = await DbFactory.CreateDbContextAsync();
             var empId = Auth?.EmployeeId;
             if (empId.HasValue)
             {
-                var emp = await Db.Employees.FirstOrDefaultAsync(e => e.Id == EmployeeId.From(empId.Value));
+                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == EmployeeId.From(empId.Value));
                 if (emp != null) _userName = emp.Fornamn;
 
                 var year = DateTime.Today.Year;
-                var balance = await Db.VacationBalances.FirstOrDefaultAsync(b => b.AnstallId == empId.Value && b.Ar == year);
+                var balance = await db.VacationBalances.FirstOrDefaultAsync(b => b.AnstallId == empId.Value && b.Ar == year);
                 if (balance != null) { _semesterKvar = balance.TillgangligaDagar; _semesterTotalt = balance.Tilldelning; _semesterUttagna = balance.UttagnaDagar; }
 
                 var idag = DateOnly.FromDateTime(DateTime.Today);
-                var nastaShift = await Db.ScheduledShifts
+                var nastaShift = await db.ScheduledShifts
                     .Where(s => s.AnstallId == EmployeeId.From(empId.Value) && s.Datum >= idag)
                     .OrderBy(s => s.Datum).FirstOrDefaultAsync();
                 if (nastaShift != null) _nastaPass = $"{nastaShift.Datum:ddd d/M} {nastaShift.PassTyp} {nastaShift.PlaneradStart:HH:mm}\u2013{nastaShift.PlaneradSlut:HH:mm}";
 
-                var senasteLon = await Db.PayrollResults
+                var senasteLon = await db.PayrollResults
                     .Where(r => r.AnstallId == EmployeeId.From(empId.Value))
                     .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
                     .FirstOrDefaultAsync();
@@ -146,8 +147,8 @@
 
                 // Start conversation session
                 var session = ConversationSession.Starta(empId);
-                Db.ConversationSessions.Add(session);
-                await Db.SaveChangesAsync();
+                db.ConversationSessions.Add(session);
+                await db.SaveChangesAsync();
                 _sessionId = session.Id;
             }
         }
@@ -192,15 +193,16 @@
     {
         try
         {
-            if (Db == null || !_sessionId.HasValue) return;
+            if (DbFactory == null || !_sessionId.HasValue) return;
+            await using var db = await DbFactory.CreateDbContextAsync();
             var msg = ConversationMessage.Skapa(_sessionId.Value, sender, content, articleId, action);
-            Db.ConversationMessages.Add(msg);
+            db.ConversationMessages.Add(msg);
 
             // Update session activity
-            var session = await Db.ConversationSessions.FirstOrDefaultAsync(s => s.Id == _sessionId.Value);
+            var session = await db.ConversationSessions.FirstOrDefaultAsync(s => s.Id == _sessionId.Value);
             session?.UppdateraAktivitet();
 
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
         catch { /* Non-critical — don't break the chat */ }
     }

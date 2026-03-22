@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Medarbetarsamtal</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -71,9 +71,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _reviews = await Db.PerformanceReviews
+            _reviews = await db.PerformanceReviews
                 .OrderByDescending(x => x.SkapadVid)
                 .Take(50)
                 .ToListAsync();
@@ -103,3 +104,4 @@
         _ => s.ToString()
     };
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Services
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject PayEquityCalculationService CalcService
 @inject NavigationManager Nav
 
@@ -151,9 +151,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _rapporter = await Db.PayTransparencyReports
+            _rapporter = await db.PayTransparencyReports
                 .OrderByDescending(r => r.Ar)
                 .ThenByDescending(r => r.GenereradVid)
                 .ToListAsync();
@@ -162,7 +163,7 @@ else
 
             if (_latestReport != null)
             {
-                var reportWithDetails = await Db.PayTransparencyReports
+                var reportWithDetails = await db.PayTransparencyReports
                     .Include(r => r.Analyser)
                         .ThenInclude(a => a.Kohorter)
                     .FirstOrDefaultAsync(r => r.Id == _latestReport.Id);
@@ -180,15 +181,17 @@ else
 
     private async Task BeraknaRapport()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _calculating = true;
         try
         {
             var rapport = await CalcService.BeraknaRapportAsync(DateTime.Today.Year);
-            Db.PayTransparencyReports.Add(rapport);
-            await Db.SaveChangesAsync();
+            db.PayTransparencyReports.Add(rapport);
+            await db.SaveChangesAsync();
             Nav.NavigateTo($"/rapporter/lonetransparens/{rapport.Id}");
         }
         catch (Exception ex) { _error = $"Berakning misslyckades: {ex.Message}"; }
         finally { _calculating = false; }
     }
 }
+

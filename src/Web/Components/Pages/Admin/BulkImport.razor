@@ -4,7 +4,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Import</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">CSV-import av anställda</MudText>
@@ -46,6 +46,7 @@
 
     private async Task Importera()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true; _error = null; _valideringsfel = []; _imported = 0;
         try
         {
@@ -69,7 +70,7 @@
                     {
                         emp.UppdateraKontaktuppgifter(parts[3].Trim(), null, null);
                     }
-                    Db.Employees.Add(emp);
+                    db.Employees.Add(emp);
                     created.Add(emp);
                 }
                 catch (Exception ex)
@@ -80,7 +81,7 @@
 
             if (created.Count > 0)
             {
-                await Db.SaveChangesAsync();
+                await db.SaveChangesAsync();
                 _imported = created.Count;
                 _csvData = "";
             }
@@ -89,3 +90,4 @@
         finally { _saving = false; }
     }
 }
+

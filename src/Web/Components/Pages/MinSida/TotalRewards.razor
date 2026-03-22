@@ -5,7 +5,7 @@
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Authorization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject AuthenticationStateProvider AuthState
 
 <PageTitle>OpenHR - Total Rewards</PageTitle>
@@ -110,6 +110,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var auth = await AuthState.GetAuthenticationStateAsync();
@@ -123,18 +124,18 @@ else
             }
             else
             {
-                var first = await Db.Employees.FirstOrDefaultAsync();
+                var first = await db.Employees.FirstOrDefaultAsync();
                 if (first == null) { _error = "Ingen anstalld hittad"; return; }
                 anstallId = first.Id.Value;
             }
 
             var year = DateTime.Now.Year;
-            _statement = await Db.TotalRewardsStatements
+            _statement = await db.TotalRewardsStatements
                 .FirstOrDefaultAsync(s => s.AnstallId == EmployeeId.From(anstallId) && s.Ar == year);
 
             if (_statement == null)
             {
-                var emp = await Db.Employees.Include(e => e.Anstallningar)
+                var emp = await db.Employees.Include(e => e.Anstallningar)
                     .FirstOrDefaultAsync(e => e.Id == EmployeeId.From(anstallId));
                 if (emp == null) { _error = "Anstalld hittades inte"; return; }
 
@@ -146,8 +147,8 @@ else
                     EmployeeId.From(anstallId), year,
                     grundLon, grundLon * 0.05m, grundLon * 0.045m,
                     800m, 2500m, grundLon * 0.3142m);
-                await Db.TotalRewardsStatements.AddAsync(_statement);
-                await Db.SaveChangesAsync();
+                await db.TotalRewardsStatements.AddAsync(_statement);
+                await db.SaveChangesAsync();
             }
 
             _rows =
@@ -168,3 +169,4 @@ else
 
     private record RowData(string Label, decimal Manad, Color Color);
 }
+

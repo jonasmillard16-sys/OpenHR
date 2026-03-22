@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Offboarding.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Nytt offboarding-ärende</PageTitle>
@@ -70,13 +70,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private async Task SkapaArende()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formAnstallId == null || _formSistaDag == null) return;
         _saving = true; _error = null;
         try
@@ -86,8 +88,8 @@ else
 
             _case = OffboardingCase.Skapa(_formAnstallId.Value, _formAnledning, DateOnly.FromDateTime(_formSistaDag.Value));
             _case.MarkeraSomPagar();
-            Db.OffboardingCases.Add(_case);
-            await Db.SaveChangesAsync();
+            db.OffboardingCases.Add(_case);
+            await db.SaveChangesAsync();
             _created = true;
         }
         catch (Exception ex) { _error = $"Kunde inte skapa: {ex.Message}"; }
@@ -102,3 +104,4 @@ else
         AvslutAnledning.Dodsfall => "Dödsfall", AvslutAnledning.Annat => "Annat", _ => a.ToString()
     };
 }
+

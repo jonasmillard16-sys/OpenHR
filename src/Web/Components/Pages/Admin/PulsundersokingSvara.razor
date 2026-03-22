@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Pulse.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR — Svara på pulsundersökning</PageTitle>
@@ -76,9 +76,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _survey = await Db.PulseSurveys
+            _survey = await db.PulseSurveys
                 .FirstOrDefaultAsync(s => s.Id == SurveyId);
 
             if (_survey?.Fragor.Count > 0)
@@ -92,6 +93,7 @@ else
 
     private async Task SkickaSvar()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_survey == null || _svar.Any(v => v == 0)) return;
         _saving = true; _error = null;
 
@@ -104,11 +106,12 @@ else
                 response.LaggTillSvar(fragor[i].Id, _svar[i]);
             }
 
-            Db.PulseSurveyResponses.Add(response);
-            await Db.SaveChangesAsync();
+            db.PulseSurveyResponses.Add(response);
+            await db.SaveChangesAsync();
             _submitted = true;
         }
         catch (Exception ex) { _error = $"Kunde inte spara svar: {ex.Message}"; }
         finally { _saving = false; }
     }
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.Agreements.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR — Avtalsdetalj</PageTitle>
@@ -309,43 +309,44 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var avtalsId = CollectiveAgreementId.From(Id);
 
-            _avtal = await Db.CollectiveAgreements
+            _avtal = await db.CollectiveAgreements
                 .FirstOrDefaultAsync(a => a.Id == avtalsId);
 
             if (_avtal != null)
             {
-                _obSatser = await Db.AgreementOBRates
+                _obSatser = await db.AgreementOBRates
                     .Where(r => r.AvtalsId == avtalsId)
                     .OrderBy(r => r.Tidstyp)
                     .ToListAsync();
 
-                _overtidsRegler = await Db.AgreementOvertimeRules
+                _overtidsRegler = await db.AgreementOvertimeRules
                     .Where(r => r.AvtalsId == avtalsId)
                     .OrderBy(r => r.Troskel)
                     .ToListAsync();
 
-                _semesterRegler = await Db.AgreementVacationRules
+                _semesterRegler = await db.AgreementVacationRules
                     .Where(r => r.AvtalsId == avtalsId)
                     .ToListAsync();
 
-                _pensionsRegler = await Db.AgreementPensionRules
+                _pensionsRegler = await db.AgreementPensionRules
                     .Where(r => r.AvtalsId == avtalsId)
                     .OrderBy(r => r.PensionsTyp)
                     .ToListAsync();
 
-                _viloRegler = await Db.AgreementRestRules
+                _viloRegler = await db.AgreementRestRules
                     .Where(r => r.AvtalsId == avtalsId)
                     .ToListAsync();
 
-                _arbetstidsRegler = await Db.AgreementWorkingHours
+                _arbetstidsRegler = await db.AgreementWorkingHours
                     .Where(r => r.AvtalsId == avtalsId)
                     .ToListAsync();
 
-                _forsakringsRegler = await Db.AgreementInsurancePackages
+                _forsakringsRegler = await db.AgreementInsurancePackages
                     .Where(r => r.AvtalsId == avtalsId)
                     .ToListAsync();
             }
@@ -409,3 +410,4 @@ else
         _ => typ.ToString()
     };
 }
+

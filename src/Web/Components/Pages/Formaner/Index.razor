@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Benefits.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Förmåner</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -105,15 +105,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        using var db = DbFactory.CreateDbContext();
         try
         {
-            _benefits = await Db.Benefits
+            _benefits = await db.Benefits
                 .OrderByDescending(b => b.SkapadVid)
                 .Take(50)
                 .ToListAsync();
 
             var benefitIds = _benefits.Select(b => b.Id).ToList();
-            _employeeBenefits = await Db.EmployeeBenefits
+            _employeeBenefits = await db.EmployeeBenefits
                 .Where(eb => benefitIds.Contains(eb.BenefitId) &&
                              (eb.Status == EnrollmentStatus.Aktiv || eb.Status == EnrollmentStatus.Ansokt))
                 .ToListAsync();
@@ -136,3 +137,4 @@
         _ => k.ToString()
     };
 }
+

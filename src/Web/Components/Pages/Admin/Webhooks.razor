@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Platform.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Webhooks</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -119,19 +119,21 @@ else
 
     private async Task LoadSubscriptions()
     {
-        _subscriptions = await Db.EventSubscriptions.OrderByDescending(s => s.SkapadVid).ToListAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _subscriptions = await db.EventSubscriptions.OrderByDescending(s => s.SkapadVid).ToListAsync();
     }
 
     private async Task SkapaWebhook()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true;
         var filter = _selectedEvents.Any()
             ? "[" + string.Join(",", _selectedEvents.Select(e => $"\"{e}\"")) + "]"
             : "[]";
 
         var sub = EventSubscription.Skapa(_formNamn, _formUrl, _formSecret, filter);
-        Db.EventSubscriptions.Add(sub);
-        await Db.SaveChangesAsync();
+        db.EventSubscriptions.Add(sub);
+        await db.SaveChangesAsync();
         _success = $"Webhook '{_formNamn}' skapad.";
         _formNamn = ""; _formUrl = ""; _formSecret = "";
         _selectedEvents = Array.Empty<string>();
@@ -142,25 +144,29 @@ else
 
     private async Task PauseSubscription(EventSubscription sub)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         sub.Pausa();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _success = $"Webhook '{sub.Namn}' pausad.";
         await LoadSubscriptions();
     }
 
     private async Task ActivateSubscription(EventSubscription sub)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         sub.Aktivera();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _success = $"Webhook '{sub.Namn}' aktiverad.";
         await LoadSubscriptions();
     }
 
     private async Task DeleteSubscription(EventSubscription sub)
     {
-        Db.EventSubscriptions.Remove(sub);
-        await Db.SaveChangesAsync();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.EventSubscriptions.Remove(sub);
+        await db.SaveChangesAsync();
         _success = $"Webhook '{sub.Namn}' borttagen.";
         await LoadSubscriptions();
     }
 }
+

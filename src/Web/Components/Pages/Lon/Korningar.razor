@@ -5,7 +5,7 @@
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>OpenHR - @L["PayRuns"]</PageTitle>
@@ -58,9 +58,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var runs = await Db.PayrollRuns
+            var runs = await db.PayrollRuns
                 .OrderByDescending(r => r.Year)
                 .ThenByDescending(r => r.Month)
                 .Take(20)
@@ -107,3 +108,4 @@ else
 
     private record KorningRad(Guid Id, string Period, string Status, int Antal, string Brutto, string Netto, Color StatusFarg);
 }
+

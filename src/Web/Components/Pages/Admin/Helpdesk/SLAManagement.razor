@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Helpdesk.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - SLA-hantering</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">SLA-hantering</MudText>
@@ -102,16 +102,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _slaDefinitions = await Db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
-            _slaMetCount = await Db.SLAMilestones.CountAsync(m => m.ArUppfylld == true);
-            _slaBreachedCount = await Db.SLAMilestones.CountAsync(m => m.ArUppfylld == false);
+            _slaDefinitions = await db.SLADefinitions.OrderBy(s => s.Namn).ToListAsync();
+            _slaMetCount = await db.SLAMilestones.CountAsync(m => m.ArUppfylld == true);
+            _slaBreachedCount = await db.SLAMilestones.CountAsync(m => m.ArUppfylld == false);
             _compliancePercent = _slaMetCount + _slaBreachedCount > 0
                 ? Math.Round(100.0 * _slaMetCount / (_slaMetCount + _slaBreachedCount), 1)
                 : 100;
 
-            var resolvedRequests = await Db.ServiceRequests
+            var resolvedRequests = await db.ServiceRequests
                 .Where(r => r.LostVid.HasValue)
                 .Select(r => new { r.CreatedAt, r.LostVid })
                 .ToListAsync();
@@ -135,9 +136,10 @@ else
 
     private async Task CreateSLA()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var sla = SLADefinition.Skapa(_slaName, _slaResponseMin, _slaResolutionMin, _slaEscalationMin);
-        await Db.SLADefinitions.AddAsync(sla);
-        await Db.SaveChangesAsync();
+        await db.SLADefinitions.AddAsync(sla);
+        await db.SaveChangesAsync();
         _slaDefinitions.Add(sla);
         _showCreateSLA = false;
     }
@@ -149,3 +151,4 @@ else
         return $"{minutes / 1440}d {(minutes % 1440) / 60}h";
     }
 }
+

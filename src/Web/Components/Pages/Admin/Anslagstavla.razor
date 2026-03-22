@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Communication.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Anslagstavla</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -75,19 +75,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _anslag = await Db.Announcements.OrderByDescending(a => a.SkapadVid).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _anslag = await db.Announcements.OrderByDescending(a => a.SkapadVid).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta anslag: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private async Task SkapaAnslag()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true; _error = null;
         try
         {
             var a = Announcement.Skapa(_newTitel!, _newInnehall!, _newPrioritet, "Admin");
-            Db.Announcements.Add(a);
-            await Db.SaveChangesAsync();
+            db.Announcements.Add(a);
+            await db.SaveChangesAsync();
             _anslag.Insert(0, a);
             _showForm = false; _success = "Anslag skapat."; _newTitel = ""; _newInnehall = "";
         }
@@ -97,16 +99,19 @@ else
 
     private async Task PubliceraAnslag(Announcement a)
     {
-        try { a.Publicera(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { a.Publicera(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte publicera: {ex.Message}"; }
     }
 
     private async Task ArkiveraAnslag(Announcement a)
     {
-        try { a.Arkivera(); await Db.SaveChangesAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { a.Arkivera(); await db.SaveChangesAsync(); }
         catch (Exception ex) { _error = $"Kunde inte arkivera: {ex.Message}"; }
     }
 
     private static string StatusText(AnnouncementStatus s) => s switch { AnnouncementStatus.Utkast => "Utkast", AnnouncementStatus.Publicerad => "Publicerad", AnnouncementStatus.Arkiverad => "Arkiverad", _ => s.ToString() };
     private static Color StatusColor(AnnouncementStatus s) => s switch { AnnouncementStatus.Publicerad => Color.Success, AnnouncementStatus.Arkiverad => Color.Default, _ => Color.Info };
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Configuration.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Arbetsflodeskornigar</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -77,10 +77,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _workflow = await Db.WorkflowDefinitions.FirstOrDefaultAsync(w => w.Id == Id);
-            _instances = await Db.WorkflowRunInstances
+            _workflow = await db.WorkflowDefinitions.FirstOrDefaultAsync(w => w.Id == Id);
+            _instances = await db.WorkflowRunInstances
                 .Where(i => i.WorkflowDefinitionId == Id)
                 .OrderByDescending(i => i.StartadVid)
                 .ToListAsync();
@@ -98,3 +99,4 @@ else
         _ => Color.Default
     };
 }
+

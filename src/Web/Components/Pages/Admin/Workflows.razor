@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Configuration.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Arbetsfloden</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -113,11 +113,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _workflows = await Db.WorkflowDefinitions.OrderBy(w => w.Namn).ToListAsync();
-            _nodes = await Db.WorkflowNodes.OrderBy(n => n.WorkflowDefinitionId).ThenBy(n => n.Ordning).ToListAsync();
-            _runningInstances = await Db.WorkflowRunInstances.CountAsync(i => i.Status == WorkflowRunStatus.Running);
+            _workflows = await db.WorkflowDefinitions.OrderBy(w => w.Namn).ToListAsync();
+            _nodes = await db.WorkflowNodes.OrderBy(n => n.WorkflowDefinitionId).ThenBy(n => n.Ordning).ToListAsync();
+            _runningInstances = await db.WorkflowRunInstances.CountAsync(i => i.Status == WorkflowRunStatus.Running);
             if (_workflows.Any()) _selectedWfId = _workflows.First().Id;
         }
         catch (Exception ex) { _error = $"Kunde inte hamta arbetsfloden: {ex.Message}"; }
@@ -137,11 +138,12 @@ else
 
     private async Task LaggTillNod()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_newNodeNamn) || _selectedWfId == Guid.Empty) return;
 
         var node = WorkflowNode.Skapa(_selectedWfId, _newNodeOrdning, _newNodeTyp, _newNodeNamn);
-        await Db.WorkflowNodes.AddAsync(node);
-        await Db.SaveChangesAsync();
+        await db.WorkflowNodes.AddAsync(node);
+        await db.SaveChangesAsync();
 
         _nodes.Add(node);
         _showAddNode = false;
@@ -150,3 +152,4 @@ else
         _newNodeOrdning = 1;
     }
 }
+

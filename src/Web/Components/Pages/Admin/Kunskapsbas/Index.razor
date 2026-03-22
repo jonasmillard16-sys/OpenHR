@@ -148,7 +148,7 @@
 </MudContainer>
 
 @code {
-    [Inject] private RegionHRDbContext Db { get; set; } = default!;
+    [Inject] private IDbContextFactory<RegionHRDbContext> DbFactory { get; set; } = default!;
 
     private List<KnowledgeArticle> _articles = [];
     private List<KnowledgeCategory> _categories = [];
@@ -171,10 +171,11 @@
 
     private async Task LoadDataAsync()
     {
-        _articles = await Db.KnowledgeArticles.OrderBy(a => a.Titel).ToListAsync();
-        _categories = await Db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
-        _topViewed = await Db.KnowledgeArticles.OrderByDescending(a => a.VisningsAntal).Take(10).ToListAsync();
-        _lowestRated = await Db.KnowledgeArticles
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _articles = await db.KnowledgeArticles.OrderBy(a => a.Titel).ToListAsync();
+        _categories = await db.KnowledgeCategories.OrderBy(c => c.Ordning).ToListAsync();
+        _topViewed = await db.KnowledgeArticles.OrderByDescending(a => a.VisningsAntal).Take(10).ToListAsync();
+        _lowestRated = await db.KnowledgeArticles
             .Where(a => a.HjalpsamhetPoang > 0 && a.HjalpsamhetPoang < 3)
             .OrderBy(a => a.HjalpsamhetPoang)
             .Take(10).ToListAsync();
@@ -194,11 +195,13 @@
 
     private async Task TogglePublishAsync(KnowledgeArticle article)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Attach(article);
         if (article.ArPublicerad)
             article.Avpublicera();
         else
             article.Publicera();
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         await LoadDataAsync();
     }
 }

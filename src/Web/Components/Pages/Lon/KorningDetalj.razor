@@ -5,7 +5,7 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Lönekörning</PageTitle>
 
@@ -94,9 +94,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var run = await Db.PayrollRuns
+            var run = await db.PayrollRuns
                 .Include(r => r.Resultat)
                 .FirstOrDefaultAsync(r => r.Id == PayrollRunId.From(Id));
 
@@ -127,7 +128,7 @@ else
                 if (anomalousResults.Count > 0)
                 {
                     var anstallIds = anomalousResults.Select(r => r.AnstallId.Value).Distinct().ToList();
-                    var employees = await Db.Employees
+                    var employees = await db.Employees
                         .Where(e => anstallIds.Contains(e.Id.Value))
                         .ToListAsync();
                     var empNames = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
@@ -181,3 +182,4 @@ else
 
     private record Anomali(string Namn, string Belopp, string Forklaring);
 }
+

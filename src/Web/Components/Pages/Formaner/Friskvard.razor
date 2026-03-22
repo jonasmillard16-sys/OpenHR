@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Wellness.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Friskvårdsbidrag</PageTitle>
@@ -98,11 +98,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var claims = await Db.WellnessClaims.OrderByDescending(c => c.SkapadVid).ToListAsync();
+            var claims = await db.WellnessClaims.OrderByDescending(c => c.SkapadVid).ToListAsync();
             var empIds = claims.Select(c => c.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
             _claims = claims.Select(c => new ClaimVm(names.GetValueOrDefault(c.AnstallId, "Okänd"), c)).ToList();
         }
@@ -112,13 +113,14 @@ else
 
     private async Task SkapaAnsokan()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
         _saving = true; _error = null;
         try
         {
             var claim = WellnessClaim.Skapa(Auth.EmployeeId.Value, _formAktivitet, _formBelopp, DateOnly.FromDateTime(_formDatum!.Value));
-            Db.WellnessClaims.Add(claim);
-            await Db.SaveChangesAsync();
+            db.WellnessClaims.Add(claim);
+            await db.SaveChangesAsync();
             _claims.Insert(0, new ClaimVm(Auth.UserName ?? "Jag", claim));
             _showForm = false; _success = "Friskvårdsansökan inskickad."; _formAktivitet = ""; _formBelopp = 0;
         }
@@ -128,8 +130,9 @@ else
 
     private async Task GodkannClaim(ClaimVm vm)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Kräver kopplad anställd."; return; }
-        try { vm.Claim.Godkann(Auth.EmployeeId.Value); await Db.SaveChangesAsync(); _success = "Ansökan godkänd."; }
+        try { vm.Claim.Godkann(Auth.EmployeeId.Value); await db.SaveChangesAsync(); _success = "Ansökan godkänd."; }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
     }
 
@@ -137,3 +140,4 @@ else
     private static Color StatusFarg(WellnessClaimStatus s) => s switch { WellnessClaimStatus.Inskickad => Color.Warning, WellnessClaimStatus.Godkand => Color.Success, WellnessClaimStatus.Avslagen => Color.Error, _ => Color.Default };
     private record ClaimVm(string Namn, WellnessClaim Claim);
 }
+

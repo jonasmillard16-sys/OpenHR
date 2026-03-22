@@ -4,7 +4,7 @@
 @using RegionHR.Core.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Kompetensbekraftelser</PageTitle>
 
@@ -142,14 +142,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _endorsements = await Db.SkillEndorsements.ToListAsync();
-            _employeeSkills = await Db.EmployeeSkills.ToListAsync();
-            _skills = await Db.Skills.ToListAsync();
+            _endorsements = await db.SkillEndorsements.ToListAsync();
+            _employeeSkills = await db.EmployeeSkills.ToListAsync();
+            _skills = await db.Skills.ToListAsync();
 
             var empIdsWithSkills = _employeeSkills.Select(es => es.AnstallId).Distinct().ToHashSet();
-            _employees = (await Db.Employees.ToListAsync())
+            _employees = (await db.Employees.ToListAsync())
                 .Where(e => empIdsWithSkills.Contains(e.Id.Value))
                 .OrderBy(e => e.Efternamn)
                 .ToList();
@@ -162,10 +163,12 @@ else
 
     private async Task Endorsera(Guid skillId, Guid anstallId)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var endorsement = SkillEndorsement.Skapa(skillId, anstallId, _currentUserId);
-        await Db.SkillEndorsements.AddAsync(endorsement);
-        await Db.SaveChangesAsync();
+        await db.SkillEndorsements.AddAsync(endorsement);
+        await db.SaveChangesAsync();
         _endorsements.Add(endorsement);
         _endorsed = true;
     }
 }
+

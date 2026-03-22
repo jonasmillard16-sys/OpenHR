@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Payroll.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Lönearter</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Lönearter</MudText>
@@ -48,11 +48,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _lonearter = await Db.SalaryCodes.OrderBy(s => s.Kod).ToListAsync();
+            _lonearter = await db.SalaryCodes.OrderBy(s => s.Kod).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta lönearter: {ex.Message}"; }
         finally { _loading = false; }
     }
 }
+

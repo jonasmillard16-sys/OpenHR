@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Journeys
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Medarbetarresor</PageTitle>
 
@@ -112,11 +112,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _templates = await Db.JourneyTemplates.Include("Steg").ToListAsync();
-            _instances = await Db.JourneyInstances.Include("Steg").ToListAsync();
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _templates = await db.JourneyTemplates.Include("Steg").ToListAsync();
+            _instances = await db.JourneyInstances.Include("Steg").ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -124,6 +125,7 @@ else
 
     private async Task SkapaInstans()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_createTemplateId is null || _createAnstallId is null) return;
         var mall = _templates.FirstOrDefault(t => t.Id == _createTemplateId);
         var emp = _employees.FirstOrDefault(e => e.Id.Value == _createAnstallId);
@@ -131,10 +133,11 @@ else
 
         var inst = JourneyInstance.SkapaFranMall(mall, emp.Id.Value,
             $"{emp.Fornamn} {emp.Efternamn}", _createStart?.ToUniversalTime() ?? DateTime.UtcNow);
-        Db.JourneyInstances.Add(inst);
-        await Db.SaveChangesAsync();
+        db.JourneyInstances.Add(inst);
+        await db.SaveChangesAsync();
         _instances.Add(inst);
         _showCreate = false;
         _success = $"Journey \"{mall.Namn}\" startad för {emp.Fornamn} {emp.Efternamn}.";
     }
 }
+

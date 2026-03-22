@@ -4,7 +4,7 @@
 @using RegionHR.Positions.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Positioner</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -110,17 +110,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var positions = await Db.Positions_Table.ToListAsync();
-            _enheter = await Db.OrganizationUnits.ToListAsync();
+            var positions = await db.Positions_Table.ToListAsync();
+            _enheter = await db.OrganizationUnits.ToListAsync();
             var enhetNamn = _enheter.ToDictionary(e => e.Id.Value, e => e.Namn);
 
             var innehavarIds = positions
                 .Where(p => p.InnehavareAnstallId.HasValue)
                 .Select(p => p.InnehavareAnstallId!.Value)
                 .Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => innehavarIds.Contains(e.Id.Value))
                 .ToListAsync();
             var empNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
@@ -145,6 +146,7 @@ else
 
     private async Task SkapaPosition()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_formTitel) || _formEnhetId == null) return;
         _saving = true;
         _error = null;
@@ -152,8 +154,8 @@ else
         try
         {
             var position = RegionHR.Positions.Domain.Position.Skapa(_formEnhetId.Value, _formTitel, _formBudget, _formSysselsattning);
-            Db.Positions_Table.Add(position);
-            await Db.SaveChangesAsync();
+            db.Positions_Table.Add(position);
+            await db.SaveChangesAsync();
 
             var enhetNamn = _enheter.FirstOrDefault(e => e.Id.Value == _formEnhetId.Value)?.Namn ?? "Okänd";
             _rader.Add(new PositionRad(position.Id, position.Titel, enhetNamn, "—", position.Sysselsattningsgrad, position.Status));
@@ -186,3 +188,4 @@ else
 
     private record PositionRad(Guid Id, string Titel, string Enhet, string Anstalld, decimal Sysselsattningsgrad, PositionStatus Status);
 }
+

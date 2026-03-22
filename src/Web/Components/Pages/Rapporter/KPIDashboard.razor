@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Services
 @using RegionHR.Analytics.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject KPICalculationService KPICalcService
 
 <PageTitle>OpenHR - KPI Dashboard</PageTitle>
@@ -105,15 +105,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var definitions = await Db.KPIDefinitions
+            var definitions = await db.KPIDefinitions
                 .Where(k => k.ArAktiv)
                 .OrderBy(k => k.Kategori).ThenBy(k => k.Namn)
                 .ToListAsync();
 
             var defIds = definitions.Select(d => d.Id).ToList();
-            var snapshots = await Db.KPISnapshots
+            var snapshots = await db.KPISnapshots
                 .Where(s => defIds.Contains(s.KPIDefinitionId))
                 .ToListAsync();
 
@@ -208,3 +209,4 @@ else
         decimal GronTroskel, decimal GulTroskel, decimal RodTroskel,
         decimal? Varde, decimal? JamforelseVarde, string Trend, string Period);
 }
+

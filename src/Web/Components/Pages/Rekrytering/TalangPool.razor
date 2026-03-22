@@ -3,7 +3,7 @@
 @using RegionHR.Recruitment.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Talangpool</PageTitle>
 
@@ -151,9 +151,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _candidates = await Db.TalentPoolEntries.ToListAsync();
+            _candidates = await db.TalentPoolEntries.ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -161,16 +162,18 @@ else
 
     private async Task SparaKandidat()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_formNamn) || string.IsNullOrWhiteSpace(_formEpost)) return;
         var kandidat = TalentPoolEntry.Skapa(
             _formNamn, _formEpost,
             string.IsNullOrWhiteSpace(_formKompetens) ? null : _formKompetens,
             string.IsNullOrWhiteSpace(_formAnteckningar) ? null : _formAnteckningar);
-        Db.TalentPoolEntries.Add(kandidat);
-        await Db.SaveChangesAsync();
+        db.TalentPoolEntries.Add(kandidat);
+        await db.SaveChangesAsync();
         _candidates.Add(kandidat);
         _showForm = false;
         _success = $"Kandidat {_formNamn} tillagd i talangpoolen.";
         _formNamn = ""; _formEpost = ""; _formKompetens = ""; _formAnteckningar = "";
     }
 }
+

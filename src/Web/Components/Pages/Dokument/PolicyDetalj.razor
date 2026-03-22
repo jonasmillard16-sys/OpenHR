@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.PolicyManagement.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Policy</PageTitle>
@@ -89,13 +89,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _policy = await Db.Policies.FirstOrDefaultAsync(p => p.Id == PolicyId);
+            _policy = await db.Policies.FirstOrDefaultAsync(p => p.Id == PolicyId);
 
             if (_policy != null && Auth.EmployeeId.HasValue)
             {
-                var existing = await Db.PolicyConfirmations
+                var existing = await db.PolicyConfirmations
                     .FirstOrDefaultAsync(c => c.PolicyId == PolicyId && c.AnstallId == Auth.EmployeeId.Value);
                 if (existing != null)
                 {
@@ -110,6 +111,7 @@ else
 
     private async Task BekraftaPolicy()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue || _policy == null)
         {
             _error = "Bekräftelse kräver kopplad anställd.";
@@ -120,8 +122,8 @@ else
         try
         {
             var confirmation = PolicyConfirmation.Skapa(_policy.Id, Auth.EmployeeId.Value, _policy.Version);
-            Db.PolicyConfirmations.Add(confirmation);
-            await Db.SaveChangesAsync();
+            db.PolicyConfirmations.Add(confirmation);
+            await db.SaveChangesAsync();
             _alreadyConfirmed = true;
             _confirmedDate = confirmation.BekraftadVid.ToLocalTime().ToString("yyyy-MM-dd");
         }
@@ -133,3 +135,4 @@ else
     private static Color StatusColor(PolicyStatus s) => s switch { PolicyStatus.Publicerad => Color.Success, PolicyStatus.Arkiverad => Color.Default, _ => Color.Info };
     private static string KategoriText(PolicyCategory k) => k switch { PolicyCategory.ITSakerhet => "IT-säkerhet", PolicyCategory.Arbetsmiljo => "Arbetsmiljö", PolicyCategory.GDPR => "GDPR", PolicyCategory.Personalhandbok => "Personalhandbok", PolicyCategory.Medicinsk => "Medicinsk", PolicyCategory.Juridisk => "Juridisk", _ => "Övrigt" };
 }
+

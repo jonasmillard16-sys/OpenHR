@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Instämpling</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Instämpling idag</MudText>
@@ -57,20 +57,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var shifts = await Db.ScheduledShifts
+            var shifts = await db.ScheduledShifts
                 .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
 
-            var clockEvents = await Db.TimeClockEvents
+            var clockEvents = await db.TimeClockEvents
                 .Where(e => e.Tidpunkt.Date == DateTime.Today.Date && e.Typ == ClockEventType.In)
                 .ToListAsync();
             var clockByEmployee = clockEvents.ToDictionary(e => e.AnstallId.Value, e => e.Tidpunkt);
 
             var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
-            var employees = await Db.Employees.Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
+            var employees = await db.Employees.Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             foreach (var s in shifts.OrderBy(s => s.PlaneradStart))
@@ -107,3 +108,4 @@ else
 
     private record StamplingRad(string Namn, string Planerat, string? StamplatIn, string StatusText, Color StatusFarg);
 }
+

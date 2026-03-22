@@ -5,7 +5,7 @@
 @using RegionHR.Leave.Domain
 @using RegionHR.Performance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Chefsportal</PageTitle>
 
@@ -113,17 +113,18 @@ else if (!_loading)
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             // Pending leave requests
-            var pendingLeave = await Db.LeaveRequests
+            var pendingLeave = await db.LeaveRequests
                 .Where(r => r.Status == LeaveRequestStatus.Inskickad)
                 .OrderBy(r => r.SkapadVid).Take(20).ToListAsync();
 
             if (pendingLeave.Count > 0)
             {
                 var anstallIds = pendingLeave.Select(r => r.AnstallId).Distinct().ToList();
-                var employees = await Db.Employees
+                var employees = await db.Employees
                     .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -141,14 +142,14 @@ else if (!_loading)
             }
 
             // KPIs
-            _teamAntal = await Db.Employees.CountAsync();
+            _teamAntal = await db.Employees.CountAsync();
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            _franvaroIdag = await Db.LeaveRequests
+            _franvaroIdag = await db.LeaveRequests
                 .CountAsync(r => r.FranDatum <= idag && r.TillDatum >= idag
                     && (r.Status == LeaveRequestStatus.Inskickad || r.Status == LeaveRequestStatus.Godkand));
 
             // Coaching nudges
-            _nudges = await Db.CoachingNudges
+            _nudges = await db.CoachingNudges
                 .Where(n => !n.ArLast)
                 .OrderByDescending(n => n.SkapadVid)
                 .Take(5)
@@ -163,15 +164,16 @@ else if (!_loading)
 
     private async Task Godkann(ApprovalItem item)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Godkännande kräver kopplad anställd."; return; }
         try
         {
             if (item.EntityType == "LeaveRequest")
             {
-                var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
+                var req = await db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
                 req.Godkann(Auth.EmployeeId.Value, null);
-                await Db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
             _approvals.Remove(item);
         }
@@ -180,15 +182,16 @@ else if (!_loading)
 
     private async Task Neka(ApprovalItem item)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _error = "Avslag kräver kopplad anställd."; return; }
         try
         {
             if (item.EntityType == "LeaveRequest")
             {
-                var req = await Db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
+                var req = await db.LeaveRequests.FirstOrDefaultAsync(r => r.Id == item.Id);
                 if (req == null) return;
                 req.Avvisa(Auth.EmployeeId.Value, "Nekad av chef");
-                await Db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
             _approvals.Remove(item);
         }
@@ -197,10 +200,11 @@ else if (!_loading)
 
     private async Task MarkeraNudgeLast(CoachingNudge nudge)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             nudge.MarkeraSomLast();
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _nudges.Remove(nudge);
         }
         catch (Exception ex) { _error = ex.Message; }
@@ -222,3 +226,4 @@ else if (!_loading)
         public string EntityType { get; set; } = "";
     }
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Helpdesk.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Svarsmallar</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Svarsmallar</MudText>
@@ -86,10 +86,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _templates = await Db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
-            _categories = await Db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
+            _templates = await db.CaseTemplates_Helpdesk.OrderBy(t => t.Namn).ToListAsync();
+            _categories = await db.ServiceCategories.OrderBy(c => c.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
         finally { _loading = false; }
@@ -105,14 +106,16 @@ else
 
     private async Task CreateTemplate()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var checklist = _newChecklistText
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
 
         var template = CaseTemplate.Skapa(_newTemplateName, _newTemplateCategory, _newTemplateContent, checklist);
-        await Db.CaseTemplates_Helpdesk.AddAsync(template);
-        await Db.SaveChangesAsync();
+        await db.CaseTemplates_Helpdesk.AddAsync(template);
+        await db.SaveChangesAsync();
         _templates.Add(template);
         _showCreateTemplate = false;
     }
 }
+

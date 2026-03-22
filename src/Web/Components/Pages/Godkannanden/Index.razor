@@ -4,7 +4,7 @@
 @using RegionHR.SharedKernel.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR — Godkännanden</PageTitle>
@@ -72,15 +72,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _pending = await Db.Cases
+            _pending = await db.Cases
                 .Include("Godkannanden")
                 .Where(c => c.Status == CaseStatus.VantarGodkannande)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
-            var employees = await Db.Employees.ToListAsync();
+            var employees = await db.Employees.ToListAsync();
             _empNames = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
@@ -92,12 +93,13 @@ else
 
     private async Task GodkannCase(Case c)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var approval = c.Godkannanden.LastOrDefault(g => g.Status == ApprovalStatus.Vantar);
         if (approval == null) return;
 
         // Använder domänmetod Case.Godkann()
         c.Godkann(approval.GodkannareId);
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         _pending.Remove(c);
         Snackbar.Add($"Ärende godkänt: {c.Beskrivning}", MudBlazor.Severity.Success);
     }
@@ -105,3 +107,4 @@ else
     // Avslå borttaget i v1.5 — Case.Avsla() domänmetod saknas.
     // Tilläggs när domänmodellen utökas med riktig avslagslogik.
 }
+

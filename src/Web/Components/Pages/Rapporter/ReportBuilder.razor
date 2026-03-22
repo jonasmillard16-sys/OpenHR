@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Reporting.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - Rapportbyggare</PageTitle>
@@ -133,9 +133,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _sparadeRapporter = await Db.ReportDefinitions
+            _sparadeRapporter = await db.ReportDefinitions
                 .Where(r => r.VisualiseringsTyp != null)
                 .OrderByDescending(r => r.Namn)
                 .Take(10)
@@ -164,6 +165,7 @@
 
     private async Task SparaRapport()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!KanSpara) return;
 
         var def = ReportDefinition.Skapa(_namn!, _beskrivning ?? "", ReportType.AdHoc);
@@ -171,8 +173,8 @@
         var filterJson = System.Text.Json.JsonSerializer.Serialize(new { Enhet = _filterEnhet, Status = _filterStatus });
         def.SattRapportmall(kolumnerJson, filterJson, _gruppering, _visualiseringsTyp);
 
-        await Db.ReportDefinitions.AddAsync(def);
-        await Db.SaveChangesAsync();
+        await db.ReportDefinitions.AddAsync(def);
+        await db.SaveChangesAsync();
 
         _sparadeRapporter.Insert(0, def);
         Snackbar.Add($"Rapport '{_namn}' sparad!", Severity.Success);
@@ -191,3 +193,4 @@
         _visualiseringsTyp = "Table";
     }
 }
+

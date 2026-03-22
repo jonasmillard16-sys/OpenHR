@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.VMS.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Ramavtal</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -79,11 +79,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var agreements = await Db.FrameworkAgreements
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var agreements = await db.FrameworkAgreements
             .Include(a => a.RateCards)
             .OrderBy(a => a.GiltigFran)
             .ToListAsync();
-        var vendors = await Db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
+        var vendors = await db.Vendors.ToDictionaryAsync(v => v.Id, v => v.Namn);
 
         _agreements = agreements.Select(a => new AgreementRow
         {
@@ -96,3 +97,4 @@ else
 
     private void ToggleExpand(AgreementRow row) => row.Expanded = !row.Expanded;
 }
+

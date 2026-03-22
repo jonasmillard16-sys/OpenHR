@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Insurance.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Försäkringar</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">Försäkringar</MudText>
@@ -38,8 +38,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _forsakringar = await Db.InsuranceCoverages.OrderBy(f => f.Typ).ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _forsakringar = await db.InsuranceCoverages.OrderBy(f => f.Typ).ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta försäkringar: {ex.Message}"; }
         finally { _loading = false; }
     }
 }
+

@@ -4,7 +4,7 @@
 @using RegionHR.CaseManagement.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Klagomål</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -80,15 +80,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var items = await Db.Grievances
+            var items = await db.Grievances
                 .OrderByDescending(g => g.SkapadVid)
                 .Take(50)
                 .ToListAsync();
 
             var anstallIds = items.Select(g => g.AnstallId).Distinct().ToList();
-            var employees = await Db.Employees
+            var employees = await db.Employees
                 .Where(e => anstallIds.Contains(e.Id))
                 .ToListAsync();
             var names = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
@@ -144,3 +145,4 @@ else
     private record KlagomalRad(Guid Id, GrievanceType Typ, string AnstallNamn,
         string Beskrivning, string? FackligRepresentant, GrievanceStatus Status, DateTime InlamnadVid);
 }
+

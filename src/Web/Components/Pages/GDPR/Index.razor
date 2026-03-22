@@ -4,7 +4,7 @@
 @using RegionHR.GDPR.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - GDPR</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">GDPR-efterlevnad</MudText>
@@ -119,9 +119,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _requests = await Db.DataSubjectRequests
+            _requests = await db.DataSubjectRequests
                 .OrderByDescending(r => r.Mottagen)
                 .Take(50)
                 .ToListAsync();
@@ -148,6 +149,7 @@ else
 
     private async Task HamtaRegisterutdrag()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Guid.TryParse(_registerutdragAnstallId, out var anstallId))
         {
             _registerutdragResult = "Ogiltigt anställd-ID. Ange ett giltigt GUID.";
@@ -156,7 +158,7 @@ else
 
         try
         {
-            var employee = await Db.Employees
+            var employee = await db.Employees
                 .Include(e => e.Anstallningar)
                 .FirstOrDefaultAsync(e => e.Id == EmployeeId.From(anstallId));
 
@@ -195,3 +197,4 @@ else
         _ => typ.ToString()
     };
 }
+

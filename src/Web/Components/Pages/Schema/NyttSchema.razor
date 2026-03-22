@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Skapa schema</PageTitle>
@@ -61,13 +61,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _enheter = await Db.OrganizationUnits.ToListAsync(); }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { _enheter = await db.OrganizationUnits.ToListAsync(); }
         catch (Exception ex) { _error = $"Kunde inte hämta enheter: {ex.Message}"; }
         finally { _loading = false; }
     }
 
     private async Task SkapaSchema()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formEnhetId == null || _formFran == null || _formTill == null || string.IsNullOrWhiteSpace(_formNamn)) return;
         _saving = true; _error = null;
         try
@@ -79,11 +81,12 @@ else
                 new OrganizationId(_formEnhetId.Value), _formNamn,
                 DateOnly.FromDateTime(_formFran.Value), DateOnly.FromDateTime(_formTill.Value));
 
-            Db.Schedules.Add(_schema);
-            await Db.SaveChangesAsync();
+            db.Schedules.Add(_schema);
+            await db.SaveChangesAsync();
             _created = true;
         }
         catch (Exception ex) { _error = $"Kunde inte skapa schema: {ex.Message}"; }
         finally { _saving = false; }
     }
 }
+

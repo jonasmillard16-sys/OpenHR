@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Agreements.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR — Kollektivavtal</PageTitle>
@@ -75,9 +75,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _avtal = await Db.CollectiveAgreements
+            _avtal = await db.CollectiveAgreements
                 .OrderBy(a => a.Namn)
                 .ToListAsync();
         }
@@ -118,3 +119,4 @@ else
         _ => bransch.ToString()
     };
 }
+

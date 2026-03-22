@@ -4,7 +4,7 @@
 @using RegionHR.Platform.Domain
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Tillggsdetalj</PageTitle>
 
@@ -133,16 +133,17 @@ else if (_extension != null)
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _extension = await Db.Extensions.FirstOrDefaultAsync(e => e.Id == Id);
+            _extension = await db.Extensions.FirstOrDefaultAsync(e => e.Id == Id);
             if (_extension is null)
             {
                 _error = "Tillagget hittades inte.";
                 return;
             }
 
-            _installation = await Db.ExtensionInstallations.FirstOrDefaultAsync(i => i.ExtensionId == Id);
+            _installation = await db.ExtensionInstallations.FirstOrDefaultAsync(i => i.ExtensionId == Id);
 
             ParseInnehall();
         }
@@ -167,6 +168,7 @@ else if (_extension != null)
 
     private async Task VaxlaStatus()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             if (_installation!.Status == InstallationStatus.Active)
@@ -179,20 +181,22 @@ else if (_extension != null)
                 _installation.Aktivera();
                 _success = "Tillagget aktiverat.";
             }
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
         catch (Exception ex) { _error = ex.Message; }
     }
 
     private async Task Installera()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             _installation = ExtensionInstallation.Installera(_extension!.Id, _extension.Version);
-            await Db.ExtensionInstallations.AddAsync(_installation);
-            await Db.SaveChangesAsync();
+            await db.ExtensionInstallations.AddAsync(_installation);
+            await db.SaveChangesAsync();
             _success = "Tillagget installerat.";
         }
         catch (Exception ex) { _error = ex.Message; }
     }
 }
+

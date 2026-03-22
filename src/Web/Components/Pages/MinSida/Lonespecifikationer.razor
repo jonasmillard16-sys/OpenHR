@@ -4,7 +4,7 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR - Lönespecifikationer</PageTitle>
@@ -51,10 +51,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _loading = false; return; }
         try
         {
-            _results = await Db.PayrollResults
+            _results = await db.PayrollResults
                 .Where(r => r.AnstallId == EmployeeId.From(Auth.EmployeeId.Value))
                 .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
                 .Take(12).ToListAsync();
@@ -63,3 +64,4 @@ else
         finally { _loading = false; }
     }
 }
+

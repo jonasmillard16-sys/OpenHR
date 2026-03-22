@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Behörighetsregler</PageTitle>
 
@@ -152,10 +152,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _benefits = await Db.Benefits.OrderBy(b => b.Namn).ToListAsync();
-            _rules = await Db.EligibilityRules.Include(r => r.Villkor).OrderBy(r => r.Namn).ToListAsync();
+            _benefits = await db.Benefits.OrderBy(b => b.Namn).ToListAsync();
+            _rules = await db.EligibilityRules.Include(r => r.Villkor).OrderBy(r => r.Namn).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -163,6 +164,7 @@ else
 
     private async Task SkapaRegel()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!_formBenefitId.HasValue || string.IsNullOrWhiteSpace(_formNamn)) return;
         try
         {
@@ -171,8 +173,8 @@ else
             {
                 regel.LaggTillVillkor(v.Falt, v.Operator, v.Varde);
             }
-            Db.EligibilityRules.Add(regel);
-            await Db.SaveChangesAsync();
+            db.EligibilityRules.Add(regel);
+            await db.SaveChangesAsync();
             _rules.Add(regel);
             _showForm = false;
             _success = $"Behörighetsregel '{_formNamn}' skapad.";
@@ -188,3 +190,4 @@ else
         public string Varde { get; set; } = "";
     }
 }
+

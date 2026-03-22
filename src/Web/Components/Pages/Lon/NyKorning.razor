@@ -4,7 +4,7 @@
 @using RegionHR.Payroll.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 
 <PageTitle>OpenHR - Ny lönekörning</PageTitle>
@@ -59,6 +59,7 @@ else
 
     private async Task SkapaKorning()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         _saving = true; _error = null;
         try
         {
@@ -66,7 +67,7 @@ else
             run.Paborja();
 
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var employees = await Db.Employees.Include(e => e.Anstallningar).ToListAsync();
+            var employees = await db.Employees.Include(e => e.Anstallningar).ToListAsync();
 
             foreach (var emp in employees)
             {
@@ -84,8 +85,8 @@ else
             }
 
             run.MarkeraSomBeraknad();
-            Db.PayrollRuns.Add(run);
-            await Db.SaveChangesAsync();
+            db.PayrollRuns.Add(run);
+            await db.SaveChangesAsync();
             _run = run;
             _created = true;
         }
@@ -93,3 +94,4 @@ else
         finally { _saving = false; }
     }
 }
+

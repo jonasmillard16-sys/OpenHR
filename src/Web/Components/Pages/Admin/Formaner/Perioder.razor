@@ -3,7 +3,7 @@
 @using RegionHR.Benefits.Domain
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR — Valperioder</PageTitle>
 
@@ -122,9 +122,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _periods = await Db.EnrollmentPeriods.OrderByDescending(p => p.StartDatum).ToListAsync();
+            _periods = await db.EnrollmentPeriods.OrderByDescending(p => p.StartDatum).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hämta data: {ex.Message}"; }
         finally { _loading = false; }
@@ -132,14 +133,15 @@ else
 
     private async Task SkapaPeriod()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrWhiteSpace(_formNamn) || _formStartDatum == null || _formSlutDatum == null) return;
         try
         {
             var period = EnrollmentPeriod.Skapa(_formNamn,
                 DateOnly.FromDateTime(_formStartDatum.Value),
                 DateOnly.FromDateTime(_formSlutDatum.Value));
-            Db.EnrollmentPeriods.Add(period);
-            await Db.SaveChangesAsync();
+            db.EnrollmentPeriods.Add(period);
+            await db.SaveChangesAsync();
             _periods.Insert(0, period);
             _showForm = false;
             _success = $"Valperiod '{_formNamn}' skapad.";
@@ -150,13 +152,15 @@ else
 
     private async Task OppnaPeriod(EnrollmentPeriod p)
     {
-        try { p.Oppna(); await Db.SaveChangesAsync(); _success = $"Period '{p.Namn}' öppnad."; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { p.Oppna(); await db.SaveChangesAsync(); _success = $"Period '{p.Namn}' öppnad."; }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
     }
 
     private async Task StangPeriod(EnrollmentPeriod p)
     {
-        try { p.Stang(); await Db.SaveChangesAsync(); _success = $"Period '{p.Namn}' stängd."; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        try { p.Stang(); await db.SaveChangesAsync(); _success = $"Period '{p.Namn}' stängd."; }
         catch (Exception ex) { _error = $"Fel: {ex.Message}"; }
     }
 
@@ -176,3 +180,4 @@ else
         _ => s
     };
 }
+

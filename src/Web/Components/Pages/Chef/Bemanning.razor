@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Bemanning idag</PageTitle>
 
@@ -68,17 +68,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             var idag = DateOnly.FromDateTime(DateTime.Today);
-            var shifts = await Db.ScheduledShifts
+            var shifts = await db.ScheduledShifts
                 .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
 
             if (shifts.Count > 0)
             {
                 var anstallIds = shifts.Select(s => s.AnstallId.Value).Distinct().ToList();
-                var employees = await Db.Employees
+                var employees = await db.Employees
                     .Where(e => anstallIds.Contains(e.Id.Value)).ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
@@ -116,3 +117,4 @@ else
     private record PassGrupp(string PassTypText, int Antal);
     private record SkiftRad(string Namn, ShiftType PassTyp, TimeOnly Start, TimeOnly Slut, ShiftStatus Status);
 }
+

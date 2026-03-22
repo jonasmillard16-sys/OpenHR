@@ -5,7 +5,7 @@
 @using Microsoft.Extensions.Localization
 @inject NavigationManager Nav
 @inject RegionHR.Web.Services.AuthService Auth
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["Login"] — OpenHR</PageTitle>
@@ -344,6 +344,7 @@
     // ── Login ──
     private async Task HandleLogin()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (string.IsNullOrEmpty(_selectedUser))
         {
             _errorMessage = L["SelectProfileError"];
@@ -362,7 +363,7 @@
             var parts = _selectedUser.Split(' ', 2);
             if (parts.Length == 2)
             {
-                var employee = await Db.Employees
+                var employee = await db.Employees
                     .FirstOrDefaultAsync(e => e.Fornamn == parts[0] && e.Efternamn == parts[1]);
                 employeeId = employee?.Id.Value;
             }
@@ -404,3 +405,4 @@
         LayoutProperties = new LayoutProperties { DefaultBorderRadius = "12px" }
     };
 }
+

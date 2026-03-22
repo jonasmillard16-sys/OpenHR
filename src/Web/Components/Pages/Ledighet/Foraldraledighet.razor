@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Leave.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Föräldraledighet</PageTitle>
 <div class="d-flex justify-space-between align-center mb-4">
@@ -167,14 +167,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var requests = await Db.LeaveRequests
+            var requests = await db.LeaveRequests
                 .Where(r => r.Typ == LeaveType.Foraldraledighet)
                 .OrderByDescending(r => r.SkapadVid)
                 .ToListAsync();
 
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             var names = _employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _rader = requests.Select(r => new ForaldraRad(
@@ -188,6 +189,7 @@ else
 
     private async Task SkapaAnsolan()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_formAnstallId == null || _formFran == null || _formTill == null) return;
         _saving = true;
         _error = null;
@@ -202,8 +204,8 @@ else
                 string.IsNullOrWhiteSpace(_formBeskrivning) ? null : _formBeskrivning);
             request.SkickaIn();
 
-            Db.LeaveRequests.Add(request);
-            await Db.SaveChangesAsync();
+            db.LeaveRequests.Add(request);
+            await db.SaveChangesAsync();
 
             var emp = _employees.FirstOrDefault(e => e.Id.Value == _formAnstallId.Value);
             var namn = emp != null ? $"{emp.Fornamn} {emp.Efternamn}" : "Okänd";
@@ -238,3 +240,4 @@ else
 
     private record ForaldraRad(string Namn, DateOnly FranDatum, DateOnly TillDatum, int AntalDagar, LeaveRequestStatus Status, string? Beskrivning);
 }
+

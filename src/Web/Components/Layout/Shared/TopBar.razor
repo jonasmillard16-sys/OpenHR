@@ -78,7 +78,7 @@
     private string _currentLang = "sv";
     private List<string> _recentSearches = new();
 
-    [Inject] private RegionHRDbContext? Db { get; set; }
+    [Inject] private IDbContextFactory<RegionHRDbContext>? DbFactory { get; set; }
     [Inject] private NavigationManager? Nav { get; set; }
     [Inject] private IJSRuntime? JS { get; set; }
     [Inject] private RegionHR.Web.Services.AuthService? AuthService { get; set; }
@@ -179,11 +179,12 @@
             .Take(5);
         results.AddRange(navMatches);
 
-        if (Db is not null)
+        if (DbFactory is not null)
         {
             try
             {
-                var employees = await Db.Employees
+                await using var db = await DbFactory.CreateDbContextAsync(ct);
+                var employees = await db.Employees
                     .Where(e => e.Fornamn.ToLower().Contains(term) || e.Efternamn.ToLower().Contains(term))
                     .Take(10)
                     .Select(e => $"{e.Fornamn} {e.Efternamn} ({e.Id.Value})")

@@ -5,7 +5,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 @inject NavigationManager Nav
 
@@ -112,9 +112,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _shift = await Db.OpenShifts
+            _shift = await db.OpenShifts
                 .Include(s => s.Bud)
                 .FirstOrDefaultAsync(s => s.Id == Id);
 
@@ -124,7 +125,7 @@ else
                 if (_shift.TilldeladAnstallId.HasValue)
                     anstallIds.Add(_shift.TilldeladAnstallId.Value.Value);
 
-                var employees = await Db.Employees
+                var employees = await db.Employees
                     .Where(e => anstallIds.Contains(e.Id.Value))
                     .ToListAsync();
                 var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
@@ -146,6 +147,7 @@ else
 
     private async Task TilldelaPass()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_shift == null) return;
 
         try
@@ -153,15 +155,15 @@ else
             var bud = _shift.Bud.Where(b => b.Status == ShiftBidStatus.Pending).ToList();
             var anstallIds = bud.Select(b => b.AnstallId.Value).ToList();
 
-            var employments = await Db.Employments
+            var employments = await db.Employments
                 .Where(e => anstallIds.Contains(e.AnstallId.Value))
                 .ToListAsync();
 
-            var fatigueScores = await Db.FatigueScores
+            var fatigueScores = await db.FatigueScores
                 .Where(f => anstallIds.Contains(f.AnstallId.Value))
                 .ToListAsync();
 
-            var scheduledShifts = await Db.ScheduledShifts
+            var scheduledShifts = await db.ScheduledShifts
                 .Where(s => anstallIds.Contains(s.AnstallId.Value) && s.Datum == _shift.Datum)
                 .ToListAsync();
 
@@ -193,9 +195,9 @@ else
             }
 
             if (result.BidResult is not null)
-                await Db.ShiftBidResults.AddAsync(result.BidResult);
+                await db.ShiftBidResults.AddAsync(result.BidResult);
 
-            await Db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             _actionMsg = $"Pass tilldelat! Metod: {result.Metod}. {result.Motivering}";
             _actionSev = Severity.Success;
 
@@ -224,3 +226,4 @@ else
 
     private record BudRad(Guid Id, string Namn, int Prioritet, string? Motivering, ShiftBidStatus Status, DateTime SkapadVid);
 }
+

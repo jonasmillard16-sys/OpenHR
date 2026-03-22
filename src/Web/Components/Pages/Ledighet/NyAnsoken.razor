@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Localization
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
 
@@ -115,11 +115,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _employees = await Db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
+            _employees = await db.Employees.OrderBy(e => e.Efternamn).ToListAsync();
             var year = DateTime.Today.Year;
-            var balances = await Db.VacationBalances
+            var balances = await db.VacationBalances
                 .Where(b => b.Ar == year)
                 .ToListAsync();
             _balansPerAnstall = balances.ToDictionary(b => b.AnstallId);
@@ -130,6 +131,7 @@ else
 
     private async Task Skapa()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (_anstallId == null || _franDatum == null || _tillDatum == null) return;
         _saving = true;
         _error = null;
@@ -149,8 +151,8 @@ else
             request.SkickaIn();
 
             // 3. Persistera
-            Db.LeaveRequests.Add(request);
-            await Db.SaveChangesAsync();
+            db.LeaveRequests.Add(request);
+            await db.SaveChangesAsync();
 
             _created = request;
         }
@@ -200,3 +202,4 @@ else
         _ => t.ToString()
     };
 }
+

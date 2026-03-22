@@ -4,7 +4,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using Microsoft.EntityFrameworkCore
 @using System.Text.Json
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 
 <PageTitle>OpenHR — Förmånssammanställning</PageTitle>
@@ -113,18 +113,19 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
             if (!Auth.EmployeeId.HasValue) { _loading = false; return; }
             var anstallId = Auth.EmployeeId.Value;
 
-            _benefits = await Db.Benefits.ToListAsync();
+            _benefits = await db.Benefits.ToListAsync();
 
-            _activeEnrollments = await Db.BenefitEnrollments
+            _activeEnrollments = await db.BenefitEnrollments
                 .Where(e => e.AnstallId == anstallId && e.Status == "Active")
                 .ToListAsync();
 
-            _transactions = await Db.BenefitTransactions
+            _transactions = await db.BenefitTransactions
                 .Where(t => t.AnstallId == anstallId && t.Datum.Year == _year)
                 .ToListAsync();
 
@@ -135,3 +136,4 @@ else
         finally { _loading = false; }
     }
 }
+

@@ -5,7 +5,7 @@
 @using RegionHR.LAS.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject ISnackbar Snackbar
 
 <PageTitle>OpenHR - LAS-uppföljning</PageTitle>
@@ -84,11 +84,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var accs = await Db.LASAccumulations.ToListAsync();
+            var accs = await db.LASAccumulations.ToListAsync();
             var empIds = accs.Select(a => a.AnstallId.Value).Distinct().ToList();
-            var employees = await Db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
+            var employees = await db.Employees.Where(e => empIds.Contains(e.Id.Value)).ToListAsync();
             var names = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 
             _rader = accs
@@ -115,3 +116,4 @@ else
 
     private record LASVm(string Namn, EmploymentType Anstallningsform, int AckumuleradeDagar, LASStatus Status, LASAccumulation Ack);
 }
+

@@ -3,7 +3,7 @@
 @using RegionHR.Infrastructure.Persistence
 @using RegionHR.Compensation.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 
 <PageTitle>OpenHR - Loneband</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight: 700;">Loneband</MudText>
@@ -76,9 +76,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            _band = await Db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
+            _band = await db.CompensationBands.OrderBy(b => b.Befattningskategori).ToListAsync();
         }
         catch (Exception ex) { _error = $"Kunde inte hamta loneband: {ex.Message}"; }
         finally { _loading = false; }
@@ -86,3 +87,4 @@ else
 
     private static string FormatKr(decimal v) => $"{v:N0} kr";
 }
+

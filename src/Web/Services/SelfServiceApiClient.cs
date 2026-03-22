@@ -7,31 +7,32 @@ namespace RegionHR.Web.Services;
 
 public class SelfServiceApiClient
 {
-    private readonly RegionHRDbContext _db;
-    public SelfServiceApiClient(RegionHRDbContext db) => _db = db;
+    private readonly IDbContextFactory<RegionHRDbContext> _dbFactory;
+    public SelfServiceApiClient(IDbContextFactory<RegionHRDbContext> dbFactory) => _dbFactory = dbFactory;
 
     public async Task<DashboardData> GetDashboardAsync(EmployeeId id, CancellationToken ct = default)
     {
-        var emp = await _db.Employees
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var emp = await db.Employees
             .Include(e => e.Anstallningar)
             .FirstOrDefaultAsync(e => e.Id == id, ct);
 
         var year = DateTime.Today.Year;
-        var vacBalance = await _db.VacationBalances
+        var vacBalance = await db.VacationBalances
             .FirstOrDefaultAsync(b => b.AnstallId == id.Value && b.Ar == year, ct);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var weekEnd = today.AddDays(7);
-        var shifts = await _db.ScheduledShifts
+        var shifts = await db.ScheduledShifts
             .Where(s => s.AnstallId == id && s.Datum >= today && s.Datum <= weekEnd)
             .OrderBy(s => s.Datum)
             .Take(5)
             .ToListAsync(ct);
 
-        var openCases = await _db.Cases
+        var openCases = await db.Cases
             .CountAsync(c => c.AnstallId == id && c.Status != CaseStatus.Avslutad, ct);
 
-        var unreadNotifs = await _db.Notifications
+        var unreadNotifs = await db.Notifications
             .CountAsync(n => n.UserId == id.Value && !n.IsRead, ct);
 
         return new DashboardData
@@ -51,9 +52,10 @@ public class SelfServiceApiClient
     // For MittSchema.razor
     public async Task<List<SchemaPassData>> GetUpcomingShiftsAsync(EmployeeId id, int days = 7, CancellationToken ct = default)
     {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
         var today = DateOnly.FromDateTime(DateTime.Today);
         var end = today.AddDays(days);
-        var shifts = await _db.ScheduledShifts
+        var shifts = await db.ScheduledShifts
             .Where(s => s.AnstallId == id && s.Datum >= today && s.Datum <= end)
             .OrderBy(s => s.Datum)
             .ToListAsync(ct);
@@ -73,7 +75,8 @@ public class SelfServiceApiClient
     // For MinLedighet.razor
     public async Task<SemesterSaldoData?> GetVacationBalanceAsync(Guid anstallId, int year, CancellationToken ct = default)
     {
-        var balance = await _db.VacationBalances
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var balance = await db.VacationBalances
             .FirstOrDefaultAsync(b => b.AnstallId == anstallId && b.Ar == year, ct);
         if (balance is null) return null;
         return new SemesterSaldoData
@@ -88,7 +91,8 @@ public class SelfServiceApiClient
     // For MinLon.razor
     public async Task<List<LonespecData>> GetSalaryHistoryAsync(EmployeeId id, int limit = 12, CancellationToken ct = default)
     {
-        var results = await _db.PayrollResults
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var results = await db.PayrollResults
             .Where(r => r.AnstallId == id)
             .OrderByDescending(r => r.Year).ThenByDescending(r => r.Month)
             .Take(limit)
@@ -108,7 +112,8 @@ public class SelfServiceApiClient
     // For MinaArenden.razor
     public async Task<List<ArendeData>> GetMyCasesAsync(EmployeeId id, CancellationToken ct = default)
     {
-        var cases = await _db.Cases
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var cases = await db.Cases
             .Where(c => c.AnstallId == id)
             .OrderByDescending(c => c.CreatedAt)
             .Take(50)
@@ -127,7 +132,8 @@ public class SelfServiceApiClient
     // For MinProfil.razor
     public async Task<ProfilData?> GetProfileAsync(EmployeeId id, CancellationToken ct = default)
     {
-        var emp = await _db.Employees.Include(e => e.Anstallningar)
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var emp = await db.Employees.Include(e => e.Anstallningar)
             .FirstOrDefaultAsync(e => e.Id == id, ct);
         if (emp is null) return null;
 
@@ -150,12 +156,13 @@ public class SelfServiceApiClient
 
     public async Task SaveContactInfoAsync(EmployeeId id, string? epost, string? telefon, string? gatuadress, string? postnummer, string? ort, CancellationToken ct = default)
     {
-        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == id, ct);
         if (emp is null) return;
 
         Address? adress = gatuadress != null ? new Address(gatuadress, postnummer ?? "", ort ?? "") : null;
         emp.UppdateraKontaktuppgifter(epost ?? emp.Epost, telefon ?? emp.Telefon, adress ?? emp.Adress);
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
     }
 }
 

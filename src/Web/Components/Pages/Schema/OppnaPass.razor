@@ -4,7 +4,7 @@
 @using RegionHR.Scheduling.Domain
 @using RegionHR.SharedKernel.Domain
 @using Microsoft.EntityFrameworkCore
-@inject RegionHRDbContext Db
+@inject IDbContextFactory<RegionHRDbContext> DbFactory
 @inject RegionHR.Web.Services.AuthService Auth
 @inject NavigationManager Nav
 
@@ -92,16 +92,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            var shifts = await Db.OpenShifts
+            var shifts = await db.OpenShifts
                 .Include(s => s.Bud)
                 .OrderBy(s => s.Datum).ThenBy(s => s.StartTid)
                 .Take(50)
                 .ToListAsync();
 
             var enhetIds = shifts.Select(s => s.EnhetId).Distinct().ToList();
-            var enheter = await Db.OrganizationUnits
+            var enheter = await db.OrganizationUnits
                 .Where(e => enhetIds.Contains(e.Id))
                 .ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
@@ -122,10 +123,11 @@ else
 
     private async Task LaggBud(PassRad rad)
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         if (!Auth.EmployeeId.HasValue) { _actionMsg = "Du måste vara kopplad till en anställd."; _actionSev = Severity.Error; return; }
         try
         {
-            var shift = await Db.OpenShifts.Include(s => s.Bud).FirstOrDefaultAsync(s => s.Id == rad.Id);
+            var shift = await db.OpenShifts.Include(s => s.Bud).FirstOrDefaultAsync(s => s.Id == rad.Id);
             if (shift is null) { _actionMsg = "Passet hittades inte."; _actionSev = Severity.Error; return; }
 
             var myEmpId = EmployeeId.From(Auth.EmployeeId.Value);
@@ -134,8 +136,8 @@ else
 
             var bud = ShiftBid.Skapa(shift.Id, myEmpId, 1, null);
             shift.LaggTillBud(bud);
-            await Db.ShiftBids.AddAsync(bud);
-            await Db.SaveChangesAsync();
+            await db.ShiftBids.AddAsync(bud);
+            await db.SaveChangesAsync();
 
             rad = rad with { AntalBud = rad.AntalBud + 1 };
             _actionMsg = $"Bud lagt! Du är nu med i budgivningen."; _actionSev = Severity.Success;
@@ -173,3 +175,4 @@ else
     private record PassRad(Guid Id, DateOnly Datum, string PassTyp, TimeOnly StartTid, TimeOnly SlutTid,
         string EnhetNamn, string Ersattning, string? KravProfil, int AntalBud, OpenShiftStatus Status);
 }
+
