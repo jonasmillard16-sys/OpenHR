@@ -20,9 +20,47 @@ else if (_error != null)
 }
 else
 {
+    <OhrBreadcrumb CurrentPage="Min sida" />
+
     <MudText Typo="Typo.h4" Class="mb-6" Style="font-weight: 700;">
         @L["HelloUser"] @_data.Fornamn!
     </MudText>
+
+    <MudText Typo="Typo.h6" Class="mb-3" Style="font-weight: 600;">Vad vill du göra?</MudText>
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Href="/minsida/sjukanmalan" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Sick"
+                       Style="min-height: 56px; text-transform: none; font-size: 1rem;">
+                Sjukanmäl dig
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Href="/ledighet/ny" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.BeachAccess"
+                       Style="min-height: 56px; text-transform: none; font-size: 1rem;">
+                Begär ledighet
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Href="/minsida/schema" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.CalendarMonth"
+                       Style="min-height: 56px; text-transform: none; font-size: 1rem;">
+                Se mitt schema
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Href="/minsida/lon" Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Payments"
+                       Style="min-height: 56px; text-transform: none; font-size: 1rem;">
+                Se min lön
+            </MudButton>
+        </MudItem>
+    </MudGrid>
 
     @if (_tips.Count > 0)
     {
@@ -41,9 +79,13 @@ else
                         Href="/minsida/schema" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="🌴" Title="@L["MyLeave"]" Description="@L["MyLeaveDesc"]"
+            <OhrBigCard Icon="🌴" Title="@L["MyLeave"]"
+                        Description="@($"Du har {_data.SemesterdagarKvar} dagar ledigt kvar i år")"
                         BadgeValue="@($"{_data.SemesterdagarKvar} {L["DaysLeft"]}")"
                         Href="/minsida/ledighet" />
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-top: 0.25rem; display: block;">
+                Vad är <OhrTerm Term="Semester" DisplayText="dagar ledigt" />?
+            </MudText>
         </MudItem>
         <MudItem xs="12" sm="6">
             <OhrBigCard Icon="💰" Title="@L["MySalary"]" Description="@L["MySalaryDesc"]" Href="/minsida/lon" />
@@ -52,8 +94,8 @@ else
             <OhrBigCard Icon="😷" Title="@L["ImSick"]" Description="@L["ImSickDesc"]" Href="/minsida/sjukanmalan" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <OhrBigCard Icon="📋" Title="@L["MyThings"]" Description="@L["MyThingsDesc"]"
-                        BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} {L["OpenItems"]}" : null)"
+            <OhrBigCard Icon="📋" Title="Dina ansökningar och förfrågningar" Description="@L["MyThingsDesc"]"
+                        BadgeValue="@(_data.OppnaArenden > 0 ? $"{_data.OppnaArenden} öppna" : null)"
                         Href="/minsida/arenden" />
         </MudItem>
         <MudItem xs="12" sm="6">

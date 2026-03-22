@@ -1,5 +1,6 @@
 @page "/minsida/schema"
 @layout RegionHR.Web.Components.Layout.AdminLayout
+@using RegionHR.Web.Components.Shared
 @using RegionHR.Web.Services
 @using RegionHR.SharedKernel.Domain
 @inject SelfServiceApiClient SelfService
@@ -7,15 +8,26 @@
 
 <PageTitle>OpenHR - Mitt schema</PageTitle>
 
-<MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Variant="Variant.Text"
-           Color="Color.Primary" Href="/minsida" Style="margin-bottom: 1rem;">
-    Tillbaka
-</MudButton>
+<OhrBreadcrumb CurrentPage="Mitt schema" ExtraItems="@(new List<BreadcrumbItem> { new("Min sida", "/minsida") })" />
 
 <MudText Typo="Typo.h4" Class="mb-4" Style="font-weight: 700;">📅 Mitt schema</MudText>
-<MudText Typo="Typo.body1" Class="mb-6" Style="color: var(--mud-palette-text-secondary);">
-    Dina kommande pass den här veckan
-</MudText>
+
+@if (_schemaFel != null)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">@_schemaFel</MudAlert>
+}
+
+<div class="d-flex align-center justify-space-between mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Color="Color.Primary"
+                   Size="Size.Large" aria-label="Föregående vecka"
+                   OnClick="ForegaendeVecka" />
+    <MudText Typo="Typo.h6" Style="font-weight: 600;">
+        Vecka @_veckaNummer — @_veckoStart.ToString("d MMM") till @_veckoSlut.ToString("d MMM yyyy")
+    </MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Primary"
+                   Size="Size.Large" aria-label="Nästa vecka"
+                   OnClick="NastaVecka" />
+</div>
 
 <MudSimpleTable Hover="true" Dense="false" Elevation="2" Style="font-size: 1.125rem;">
     <thead>
@@ -52,8 +64,29 @@
 
 @code {
     private List<SchemaRad> _veckoschema = [];
+    private string? _schemaFel;
+    private int _veckaOffset = 0;
+    private DateOnly _veckoStart;
+    private DateOnly _veckoSlut;
+    private int _veckaNummer;
 
     protected override async Task OnInitializedAsync()
+    {
+        BeraknaVeckodatum();
+        await LaddaSchema();
+    }
+
+    private void BeraknaVeckodatum()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        // Find Monday of current week + offset
+        int daysFromMonday = ((int)today.DayOfWeek - 1 + 7) % 7;
+        _veckoStart = today.AddDays(-daysFromMonday + _veckaOffset * 7);
+        _veckoSlut = _veckoStart.AddDays(6);
+        _veckaNummer = System.Globalization.ISOWeek.GetWeekOfYear(_veckoStart.ToDateTime(TimeOnly.MinValue));
+    }
+
+    private async Task LaddaSchema()
     {
         if (Auth.EmployeeId == null) return;
         try
@@ -65,15 +98,36 @@
                 s.DagNamn, s.PassTyp,
                 $"{s.Start} - {s.Slut}",
                 $"{(int)s.Rast.TotalMinutes} min",
-                s.Timmar.ToString("0.##").Replace('.', ','),
+                FormatTimmar(s.Timmar),
                 s.PassTyp switch { "Dag" => Color.Info, "Kvall" => Color.Warning, "Natt" => Color.Error, _ => Color.Default },
                 false
             )).ToList();
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"MittSchema: {ex.Message}");
+            _schemaFel = "Det gick inte att hämta schemat just nu. Försök igen om en stund.";
         }
+    }
+
+    private async Task ForegaendeVecka()
+    {
+        _veckaOffset--;
+        BeraknaVeckodatum();
+        await LaddaSchema();
+    }
+
+    private async Task NastaVecka()
+    {
+        _veckaOffset++;
+        BeraknaVeckodatum();
+        await LaddaSchema();
+    }
+
+    private static string FormatTimmar(decimal timmar)
+    {
+        int hela = (int)timmar;
+        int minuter = (int)Math.Round((timmar - hela) * 60);
+        return minuter == 0 ? $"{hela} tim" : $"{hela} tim {minuter} min";
     }
 
     private record SchemaRad(string Dag, string PassTyp, string Tid, string Rast, string Timmar, Color ChipColor, bool ArLedig);
