@@ -74,6 +74,18 @@ public sealed class RehabCase : AggregateRoot<Guid>
         };
     }
 
+    public void StartaRehab(DateTime rehabStartDatum)
+    {
+        if (Status != RehabStatus.Signal)
+            throw new InvalidOperationException("Rehab kan bara startas från Signal-status");
+
+        Status = RehabStatus.AktivRehab;
+        Uppfoljning14Dagar = rehabStartDatum.AddDays(14);
+        Uppfoljning90Dagar = rehabStartDatum.AddDays(90);
+        Uppfoljning180Dagar = rehabStartDatum.AddDays(180);
+        Uppfoljning365Dagar = rehabStartDatum.AddDays(365);
+    }
+
     public void TilldelaArendeagare(EmployeeId hrPerson)
     {
         ArendeagareHR = hrPerson;
@@ -117,7 +129,8 @@ public enum RehabTrigger
     FjortonSammanhangandeDagar,     // 14+ sammanhängande sjukdagar
     MonsterDetekterat,              // Mönsterdetektering (t.ex. alltid fredagar)
     ChefInitierat,                  // Initierat av chef
-    MedarbetareInitierat            // Initierat av medarbetaren själv
+    MedarbetareInitierat,           // Initierat av medarbetaren själv
+    Langtidssjuk                    // Långtidssjukskrivning
 }
 
 public enum RehabStatus

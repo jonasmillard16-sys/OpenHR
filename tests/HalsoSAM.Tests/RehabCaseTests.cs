@@ -167,4 +167,26 @@ public class RehabCaseTests
         Assert.Equal(14, rehabCase.Uppfoljningar[0].DagNr);
         Assert.Equal(90, rehabCase.Uppfoljningar[1].DagNr);
     }
+
+    [Fact]
+    public void StartaRehab_RecalculatesMilestones_FromRehabStartDate()
+    {
+        var rehab = RehabCase.Skapa(EmployeeId.From(Guid.NewGuid()), RehabTrigger.Langtidssjuk);
+        var startDate = new DateTime(2026, 4, 1);
+        rehab.StartaRehab(startDate);
+
+        Assert.Equal(RehabStatus.AktivRehab, rehab.Status);
+        Assert.Equal(new DateTime(2026, 4, 15), rehab.Uppfoljning14Dagar);
+        Assert.Equal(new DateTime(2026, 6, 30), rehab.Uppfoljning90Dagar);
+        Assert.Equal(new DateTime(2026, 9, 28), rehab.Uppfoljning180Dagar);
+        Assert.Equal(new DateTime(2027, 4, 1), rehab.Uppfoljning365Dagar);
+    }
+
+    [Fact]
+    public void StartaRehab_ThrowsIfNotInSignalStatus()
+    {
+        var rehab = RehabCase.Skapa(EmployeeId.From(Guid.NewGuid()), RehabTrigger.Langtidssjuk);
+        rehab.StartaRehab(DateTime.UtcNow); // Move to AktivRehab
+        Assert.Throws<InvalidOperationException>(() => rehab.StartaRehab(DateTime.UtcNow));
+    }
 }
