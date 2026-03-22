@@ -1,0 +1,87 @@
+@namespace RegionHR.Web.Components.Shared
+@inject NavigationManager Nav
+@inject Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage.ProtectedLocalStorage Storage
+
+@if (_showTour)
+{
+    <MudOverlay Visible="true" DarkBackground="true" ZIndex="1400" />
+    <MudPaper Elevation="8" Class="pa-6"
+              Style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                     z-index: 1500; max-width: 500px; width: 90%; border-radius: 16px;">
+        <MudText Typo="Typo.h5" Class="mb-2" Style="font-weight: 700;">@_steps[_currentStep].Title</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">@_steps[_currentStep].Description</MudText>
+        <MudProgressLinear Value="@((_currentStep + 1) * 100.0 / _steps.Count)" Color="Color.Primary" Rounded="true" Class="mb-4" />
+        <div class="d-flex justify-space-between">
+            <MudButton Variant="Variant.Text" OnClick="SkipTour" Style="min-height: 44px;">Hoppa över</MudButton>
+            <div class="d-flex gap-2">
+                @if (_currentStep > 0)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="PrevStep" Style="min-height: 44px;">Tillbaka</MudButton>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NextStep" Style="min-height: 44px;">
+                    @(_currentStep < _steps.Count - 1 ? "Nästa" : "Kom igång!")
+                </MudButton>
+            </div>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private bool _showTour;
+    private int _currentStep;
+    private List<TourStep> _steps = [];
+
+    [Parameter] public string UserRole { get; set; } = "Anstalld";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var result = await Storage.GetAsync<bool>("ohr-tour-completed");
+            if (!result.Success || !result.Value)
+            {
+                _steps = GetStepsForRole(UserRole);
+                _showTour = true;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private async Task NextStep()
+    {
+        if (_currentStep < _steps.Count - 1) _currentStep++;
+        else await CompleteTour();
+    }
+    private void PrevStep() { if (_currentStep > 0) _currentStep--; }
+    private async Task SkipTour() => await CompleteTour();
+    private async Task CompleteTour() { _showTour = false; await Storage.SetAsync("ohr-tour-completed", true); }
+
+    private static List<TourStep> GetStepsForRole(string role) => role switch
+    {
+        "Anstalld" => [
+            new("Välkommen till OpenHR!", "Här hanterar du allt kring din anställning — ledighet, lön, schema och mer."),
+            new("Min Sida", "Under 'Min Sida' hittar du ditt schema, din lön, ledighetsansökningar och dina ärenden."),
+            new("Sjukanmälan", "Behöver du sjukanmäla dig? Gå till Min Sida → Sjukanmälan. Systemet meddelar din chef automatiskt."),
+            new("Ledighet", "Vill du ansöka om semester? Gå till Ledighet → Ny ansökan. Din chef godkänner sedan."),
+            new("Behöver du hjälp?", "Tryck på ?-knappen uppe till höger på varje sida, eller sök i ordlistan.")
+        ],
+        "Chef" => [
+            new("Välkommen till OpenHR!", "Som chef hanterar du ditt team, godkänner ledighet och följer upp frånvaro."),
+            new("Mitt Team", "Under 'Chef' hittar du ditt team, bemanningsöversikt och frånvarokalender."),
+            new("Godkännanden", "Under 'Godkännanden' ser du allt som väntar på ditt beslut."),
+            new("Schema", "Under 'Schema' planerar du arbetstider och hanterar passbyten."),
+            new("Behöver du hjälp?", "Tryck på ?-knappen för sidspecifik hjälp, eller sök i ordlistan.")
+        ],
+        _ => [
+            new("Välkommen till OpenHR!", "Här hanterar du hela HR-livscykeln — personal, lön, schema och ärenden."),
+            new("Personal", "Under 'Personal' hittar du alla anställda och organisationsstruktur."),
+            new("Lön", "Under 'Lön' kör du lönekörningar och gör löneöversyn."),
+            new("Rapporter", "Under 'Rapporter' hittar du analyser, KPI:er och lagstadgade rapporter."),
+            new("Behöver du hjälp?", "Varje sida har en ?-knapp med hjälp. Ordlistan förklarar alla termer.")
+        ]
+    };
+
+    private record TourStep(string Title, string Description);
+}
