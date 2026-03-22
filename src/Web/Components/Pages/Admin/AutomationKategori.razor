@@ -129,10 +129,15 @@ else
         await using var db = await DbFactory.CreateDbContextAsync();
         try
         {
-            if (aktiv) regel.Aktivera();
-            else regel.Inaktivera();
+            var dbRegel = await db.AutomationRules.FindAsync(regel.Id);
+            if (dbRegel == null) { _error = "Regeln hittades inte."; return; }
+            if (aktiv) dbRegel.Aktivera();
+            else dbRegel.Inaktivera();
             await db.SaveChangesAsync();
-            _success = $"Regel '{regel.Namn}' {(aktiv ? "aktiverad" : "inaktiverad")}.";
+            // Update in-memory list
+            var idx = _regler.FindIndex(r => r.Id == regel.Id);
+            if (idx >= 0) _regler[idx] = dbRegel;
+            _success = $"Regel '{dbRegel.Namn}' {(aktiv ? "aktiverad" : "inaktiverad")}.";
         }
         catch (InvalidOperationException ex) { _error = ex.Message; }
     }

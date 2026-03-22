@@ -107,9 +107,9 @@ else
             _instamplade = _dagensPass.Count(s => s.Status is ShiftStatus.Pagaende or ShiftStatus.Avslutad);
             _ejStamplade = _dagensPass.Count(s => s.Status == ShiftStatus.Planerad && s.PlaneradStart <= TimeOnly.FromDateTime(DateTime.Now));
 
-            var anstallIds = _dagensPass.Select(s => s.AnstallId).Distinct().ToList();
+            var anstallIds = _dagensPass.Select(s => s.AnstallId.Value).Distinct().ToList();
             var employees = await db.Employees
-                .Where(e => anstallIds.Contains(e.Id))
+                .Where(e => anstallIds.Contains(e.Id.Value))
                 .ToListAsync();
             _anstallNamn = employees.ToDictionary(e => e.Id.Value, e => $"{e.Fornamn} {e.Efternamn}");
 

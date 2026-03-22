@@ -65,8 +65,9 @@ else
                 .Where(s => s.Datum == idag && s.Status != ShiftStatus.Avbokad)
                 .ToListAsync();
 
+            var todayUtc = DateTime.UtcNow.Date;
             var clockEvents = await db.TimeClockEvents
-                .Where(e => e.Tidpunkt.Date == DateTime.Today.Date && e.Typ == ClockEventType.In)
+                .Where(e => e.Tidpunkt.Date == todayUtc && e.Typ == ClockEventType.In)
                 .ToListAsync();
             var clockByEmployee = clockEvents.ToDictionary(e => e.AnstallId.Value, e => e.Tidpunkt);
 

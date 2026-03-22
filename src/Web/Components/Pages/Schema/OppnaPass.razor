@@ -101,9 +101,9 @@ else
                 .Take(50)
                 .ToListAsync();
 
-            var enhetIds = shifts.Select(s => s.EnhetId).Distinct().ToList();
+            var enhetIds = shifts.Select(s => s.EnhetId.Value).Distinct().ToList();
             var enheter = await db.OrganizationUnits
-                .Where(e => enhetIds.Contains(e.Id))
+                .Where(e => enhetIds.Contains(e.Id.Value))
                 .ToListAsync();
             var enhetNamn = enheter.ToDictionary(e => e.Id, e => e.Namn);
 

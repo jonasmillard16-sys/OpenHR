@@ -80,8 +80,8 @@ else
 @code {
     private List<AutomationExecution> _exekveringar = [];
     private Dictionary<RegionHR.SharedKernel.Domain.AutomationRuleId, string> _regelNamn = [];
-    private DateTime? _franDatum = DateTime.Today.AddDays(-30);
-    private DateTime? _tillDatum = DateTime.Today.AddDays(1);
+    private DateTime? _franDatum = DateTime.UtcNow.Date.AddDays(-30);
+    private DateTime? _tillDatum = DateTime.UtcNow.Date.AddDays(1);
     private bool _loading = true;
     private string? _error;
 
@@ -96,8 +96,8 @@ else
         _loading = true; _error = null;
         try
         {
-            var from = _franDatum ?? DateTime.Today.AddDays(-30);
-            var to = (_tillDatum ?? DateTime.Today).AddDays(1);
+            var from = _franDatum ?? DateTime.UtcNow.Date.AddDays(-30);
+            var to = (_tillDatum ?? DateTime.UtcNow.Date).AddDays(1);
 
             _exekveringar = await db.AutomationExecutions
                 .Where(e => e.Tidsstampel >= from && e.Tidsstampel <= to)
@@ -105,8 +105,8 @@ else
                 .Take(500)
                 .ToListAsync();
 
-            var regelIds = _exekveringar.Select(e => e.RegelId).Distinct().ToList();
-            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            var regelIds = _exekveringar.Select(e => e.RegelId.Value).Distinct().ToList();
+            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id.Value)).ToListAsync();
             _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
         }
         catch (Exception ex) { _error = $"Kunde inte hamta logg: {ex.Message}"; }

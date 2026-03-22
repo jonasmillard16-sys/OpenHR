@@ -70,9 +70,9 @@ else
                 .Take(50)
                 .ToListAsync();
 
-            var anstallIds = cases.Select(c => c.AnstallId).Distinct().ToList();
+            var anstallIds = cases.Select(c => c.AnstallId.Value).Distinct().ToList();
             var employees = await db.Employees
-                .Where(e => anstallIds.Contains(e.Id))
+                .Where(e => anstallIds.Contains(e.Id.Value))
                 .ToListAsync();
             var names = employees.ToDictionary(e => e.Id, e => $"{e.Fornamn} {e.Efternamn}");
 

@@ -109,8 +109,8 @@ else
                 .Take(200)
                 .ToListAsync();
 
-            var regelIds = _forslag.Select(f => f.RegelId).Distinct().ToList();
-            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id)).ToListAsync();
+            var regelIds = _forslag.Select(f => f.RegelId.Value).Distinct().ToList();
+            var regler = await db.AutomationRules.Where(r => regelIds.Contains(r.Id.Value)).ToListAsync();
             _regelNamn = regler.ToDictionary(r => r.Id, r => r.Namn);
 
             _vantande = _forslag.Count(f => f.Status == SuggestionStatus.Pending);

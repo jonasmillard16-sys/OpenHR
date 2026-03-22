@@ -122,8 +122,20 @@ else
         try
         {
             var minNiva = k.Regler.Where(r => r.ArSystemRegel).Select(r => r.MinimumNiva).DefaultIfEmpty(AutomationLevel.Notify).Max();
-            k.Config.AndraNiva(nyNiva, minNiva);
+            var config = await db.AutomationLevelConfigs.FirstOrDefaultAsync(c => c.KategoriId == k.Kategori.Id);
+            if (config == null)
+            {
+                config = AutomationLevelConfig.Skapa(k.Kategori.Id, nyNiva);
+                db.AutomationLevelConfigs.Add(config);
+            }
+            else
+            {
+                config.AndraNiva(nyNiva, minNiva);
+            }
             await db.SaveChangesAsync();
+            k = k with { Config = config };
+            var idx = _kategorier.FindIndex(x => x.Kategori.Id == k.Kategori.Id);
+            if (idx >= 0) _kategorier[idx] = k;
             _success = $"Niva andrad till {NivaNamn(nyNiva)} for {k.Kategori.Namn}";
         }
         catch (InvalidOperationException ex)
