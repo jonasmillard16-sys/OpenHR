@@ -1,13 +1,13 @@
 # OpenHR — Komplett HR-system för svensk region
 
 ## Projektbeskrivning
-Modular monolith HR-system (AGPL-3.0) som ersätter HEROMA. 25 moduler, 494 tester, 96 Blazor-sidor, 94 rutter, 75 infrastrukturfiler. Hanterar hela HR-livscykeln: personalregister, lön/payroll (svensk skattelagstiftning + kollektivavtal AB/HOK), schemaplanering (24/7 sjukvård), självservice, ärendehantering, LAS-uppföljning med konverteringsflöde, rehabilitering (HälsoSAM), löneöversyn, resor/utlägg, rekrytering med pipeline, ledighetshantering med interaktiv kalender, dokumenthantering med mallgenerering och PDF-förhandsvisning, medarbetarsamtal med 360-feedback, kompetensregister med gap-analys, rapportering med diagram, GDPR-efterlevnad, granskningslogg med ändringshistorik per anställd, notifieringar (InApp + Email + SMS + SignalR), pulsundersökningar, peer recognition, offboarding, onboarding, förmåner, utbildning/e-learning, MBL-förhandlingar, godkännandeflöden med batch-operationer, samt integrationer mot ~15 externa system.
+Modular monolith HR-system (AGPL-3.0) som ersätter HEROMA. 38 moduler, ~1 123 tester, 178 sidor, ~178 rutter, 329 i18n-nycklar. Hanterar hela HR-livscykeln: personalregister, lön/payroll (svensk skattelagstiftning + kollektivavtal AB/HOK), schemaplanering (24/7 sjukvård), självservice, ärendehantering, LAS-uppföljning med konverteringsflöde, rehabilitering (HälsoSAM), löneöversyn, resor/utlägg, rekrytering med pipeline, ledighetshantering med interaktiv kalender, dokumenthantering med mallgenerering och PDF-förhandsvisning, medarbetarsamtal med 360-feedback, kompetensregister med gap-analys, rapportering med diagram, GDPR-efterlevnad, granskningslogg med ändringshistorik per anställd, notifieringar (InApp + Email + SMS + SignalR), pulsundersökningar, peer recognition, offboarding, onboarding, förmåner, utbildning/e-learning, MBL-förhandlingar, godkännandeflöden med batch-operationer, samt integrationer mot ~15 externa system.
 
 ## Bygga och köra
 ```bash
 # Utan Docker
 dotnet build RegionHR.sln          # 0 errors, 0 warnings
-dotnet test RegionHR.sln           # 494 tester, 0 failures
+dotnet test RegionHR.sln           # ~1 123 tester, 0 failures
 dotnet run --project src/Web/RegionHR.Web.csproj  # http://localhost:5076
 
 # Med Docker
@@ -30,7 +30,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - **Tema**: Nordic Refined — Plus Jakarta Sans, teal primary, dark mode (persistent via ProtectedSessionStorage)
 - **Auth**: Rollbaserad (Admin/HR/Chef/Anställd) med SITHS/BankID-simulering, persistent session
 - **Databas**: PostgreSQL med EF Core migrationer + seed data (10 anställda, 6 enheter)
-- **Export**: CSV med kopiera/ladda ner, PDF-förhandsvisning (text-baserad, QuestPDF-redo)
+- **Export**: CSV med kopiera/ladda ner, PDF via PdfSharpCore (lönespecifikationer). Övriga dokumentmallar: textbaserad platshållare.
 - **Notifieringar**: InApp + Email (MailKit) + SMS (HTTP gateway) + SignalR real-time
 - **Bakgrundsjobb**: NotificationReminder, RetentionCleanup, ScheduledReports, CertificationReminder, LASAlert
 - **Säkerhet**: CSP headers, X-Frame-Options, rate limiting (100 req/min), CSRF-skydd
@@ -40,7 +40,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - **Prestanda**: CSS containment, will-change, content-visibility, smooth scroll
 - All teknologi är 100% FOSS/open source, inga kommersiella beroenden
 
-## Modulstruktur (25 moduler)
+## Modulstruktur (38 moduler)
 
 ### Kärnmoduler
 - `src/SharedKernel/` — Domänprimitiver (Personnummer, Money, DateRange, EmployeeId) med EF Core ValueConverters
@@ -73,7 +73,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 
 ### Presentation & Infrastruktur
 - `src/Api/` — ASP.NET Core Web API
-- `src/Web/` — Blazor Server frontend (96 sidor, MudBlazor 9.1)
+- `src/Web/` — Blazor Server frontend (178 sidor, MudBlazor 9.1)
 - `src/DesignSystem/` — Blazor komponentbibliotek
 - `src/Infrastructure/` — EF Core, repositories, export, integrationer, bakgrundsjobb
 
@@ -87,7 +87,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - `SchemaOptimizer` — Round-robin tilldelning med balansindex, per-person timmespårning
 
 ### Export & Dokument
-- `PdfGenerator` — Lönespecifikation, tjänstgöringsintyg, anställningsavtal (text-baserad, QuestPDF-redo)
+- `PdfGenerator` — Lönespecifikationer via PdfSharpCore; övriga dokument (tjänstgöringsintyg, anställningsavtal) är textbaserade platshållare
 - `ExportService` — CSV/Excel export med ClosedXML
 - `FileStorageService` — Filuppladdning/nedladdning till wwwroot/uploads
 
@@ -107,7 +107,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - `CertificationReminderService` — Certifieringar som går ut (30/60/90 dagar)
 - `LASAlertService` — LAS-trösklar (300/330/350/360 dagar)
 
-## Frontend (96 sidor)
+## Frontend (178 sidor)
 
 ### Layout & Tema
 - `AdminLayout.razor` — Huvudlayout med sidebar, topbar, dark mode, auth-guard, laddningsindikator
@@ -166,7 +166,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 
 ### i18n
 - Svenska som standard, engelska förberett
-- 50+ nycklar i SharedResources.resx (sv) och SharedResources.en.resx
+- 329 nycklar i SharedResources.resx (sv) och SharedResources.en.resx
 - NavMenu och TopBar använder IStringLocalizer
 - Språkväxling via cookie + page reload
 
