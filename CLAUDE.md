@@ -20,7 +20,7 @@ docker compose up -d               # PostgreSQL + app
 | Admin | Admin | Allt |
 | Karl Berg | HR | Personal, Lön, Admin |
 | Eva Nilsson | Chef | Team, Godkännanden |
-| Sara Andersson | Anställd | Min sida, Ledighet |
+| Anna Svensson | Anställd | Min sida, Ledighet |
 
 Login: http://localhost:5076/login (SITHS/BankID-simulering)
 
@@ -29,7 +29,7 @@ Login: http://localhost:5076/login (SITHS/BankID-simulering)
 - **Frontend**: Blazor Server med MudBlazor 9.1 (global InteractiveServer via Routes.razor)
 - **Tema**: Nordic Refined — Plus Jakarta Sans, teal primary, dark mode (persistent via ProtectedSessionStorage)
 - **Auth**: Rollbaserad (Admin/HR/Chef/Anställd) med SITHS/BankID-simulering, persistent session
-- **Databas**: PostgreSQL med EF Core migrationer + seed data (10 anställda, 6 enheter)
+- **Databas**: PostgreSQL med EF Core migrationer + seed data (43 anställda, 21 enheter — Region Örebro län)
 - **Export**: CSV med kopiera/ladda ner, PDF via PdfSharpCore för lönespecifikationer, tjänstgöringsintyg och anställningsavtal.
 - **Notifieringar**: InApp + Email (MailKit) + SMS (HTTP gateway) + SignalR real-time
 - **Bakgrundsjobb**: NotificationReminder, RetentionCleanup, ScheduledReports, CertificationReminder, LASAlert

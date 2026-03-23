@@ -18,37 +18,121 @@ public static class SeedData
     {
         if (await db.Employees.AnyAsync()) return; // Already seeded
 
-        // === Organization units ===
+        // === Organization units — Region Örebro län ===
         var region = OrganizationUnit.Skapa(
-            "Region Vastra Gotaland", OrganizationUnitType.Region,
+            "Region Orebro lan", OrganizationUnitType.Region,
             "10000", DateOnly.FromDateTime(DateTime.Today.AddYears(-20)));
 
-        var sjukhus = OrganizationUnit.Skapa(
-            "Sahlgrenska Universitetssjukhuset", OrganizationUnitType.Forvaltning,
+        var halsovard = OrganizationUnit.Skapa(
+            "Halso- och sjukvardsforvaltningen", OrganizationUnitType.Forvaltning,
             "20000", DateOnly.FromDateTime(DateTime.Today.AddYears(-20)),
             overordnadEnhetId: region.Id);
 
-        var avd32 = OrganizationUnit.Skapa(
-            "Avdelning 32", OrganizationUnitType.Avdelning,
-            "20032", DateOnly.FromDateTime(DateTime.Today.AddYears(-10)),
-            overordnadEnhetId: sjukhus.Id);
+        // --- Universitetssjukhuset Örebro (USÖ) ---
+        var uso = OrganizationUnit.Skapa(
+            "Universitetssjukhuset Orebro", OrganizationUnitType.Verksamhet,
+            "30000", DateOnly.FromDateTime(DateTime.Today.AddYears(-18)),
+            overordnadEnhetId: halsovard.Id);
 
-        var avd33 = OrganizationUnit.Skapa(
-            "Avdelning 33", OrganizationUnitType.Avdelning,
-            "20033", DateOnly.FromDateTime(DateTime.Today.AddYears(-10)),
-            overordnadEnhetId: sjukhus.Id);
+        var usoAkuten = OrganizationUnit.Skapa(
+            "Akutmottagningen USO", OrganizationUnitType.Avdelning,
+            "30010", DateOnly.FromDateTime(DateTime.Today.AddYears(-18)),
+            overordnadEnhetId: uso.Id);
 
-        var akuten = OrganizationUnit.Skapa(
-            "Akutmottagningen", OrganizationUnitType.Avdelning,
-            "20050", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
-            overordnadEnhetId: sjukhus.Id);
+        var usoIva = OrganizationUnit.Skapa(
+            "Intensivvarden IVA", OrganizationUnitType.Avdelning,
+            "30020", DateOnly.FromDateTime(DateTime.Today.AddYears(-18)),
+            overordnadEnhetId: uso.Id);
 
-        var iva = OrganizationUnit.Skapa(
-            "IVA", OrganizationUnitType.Avdelning,
-            "20060", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
-            overordnadEnhetId: sjukhus.Id);
+        var usoKirurgi = OrganizationUnit.Skapa(
+            "Kirurgkliniken", OrganizationUnitType.Avdelning,
+            "30030", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
+            overordnadEnhetId: uso.Id);
 
-        db.OrganizationUnits.AddRange(region, sjukhus, avd32, avd33, akuten, iva);
+        var usoMedicin = OrganizationUnit.Skapa(
+            "Medicinkliniken", OrganizationUnitType.Avdelning,
+            "30040", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
+            overordnadEnhetId: uso.Id);
+
+        var usoOrtopedi = OrganizationUnit.Skapa(
+            "Ortopedkliniken", OrganizationUnitType.Avdelning,
+            "30050", DateOnly.FromDateTime(DateTime.Today.AddYears(-12)),
+            overordnadEnhetId: uso.Id);
+
+        var usoKvinnokliniken = OrganizationUnit.Skapa(
+            "Kvinnokliniken", OrganizationUnitType.Avdelning,
+            "30060", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
+            overordnadEnhetId: uso.Id);
+
+        var usoBarn = OrganizationUnit.Skapa(
+            "Barnkliniken", OrganizationUnitType.Avdelning,
+            "30070", DateOnly.FromDateTime(DateTime.Today.AddYears(-15)),
+            overordnadEnhetId: uso.Id);
+
+        var usoPsyk = OrganizationUnit.Skapa(
+            "Psykiatriska kliniken", OrganizationUnitType.Avdelning,
+            "30080", DateOnly.FromDateTime(DateTime.Today.AddYears(-12)),
+            overordnadEnhetId: uso.Id);
+
+        // --- Karlskoga lasarett ---
+        var karlskoga = OrganizationUnit.Skapa(
+            "Karlskoga lasarett", OrganizationUnitType.Verksamhet,
+            "31000", DateOnly.FromDateTime(DateTime.Today.AddYears(-16)),
+            overordnadEnhetId: halsovard.Id);
+
+        var kgaAkuten = OrganizationUnit.Skapa(
+            "Akutmottagningen Karlskoga", OrganizationUnitType.Avdelning,
+            "31010", DateOnly.FromDateTime(DateTime.Today.AddYears(-16)),
+            overordnadEnhetId: karlskoga.Id);
+
+        var kgaMedicin = OrganizationUnit.Skapa(
+            "Medicinavdelningen", OrganizationUnitType.Avdelning,
+            "31020", DateOnly.FromDateTime(DateTime.Today.AddYears(-16)),
+            overordnadEnhetId: karlskoga.Id);
+
+        var kgaKirurgi = OrganizationUnit.Skapa(
+            "Kirurgavdelningen", OrganizationUnitType.Avdelning,
+            "31030", DateOnly.FromDateTime(DateTime.Today.AddYears(-14)),
+            overordnadEnhetId: karlskoga.Id);
+
+        // --- Lindesbergs lasarett ---
+        var lindesberg = OrganizationUnit.Skapa(
+            "Lindesbergs lasarett", OrganizationUnitType.Verksamhet,
+            "32000", DateOnly.FromDateTime(DateTime.Today.AddYears(-14)),
+            overordnadEnhetId: halsovard.Id);
+
+        var lbgAkuten = OrganizationUnit.Skapa(
+            "Akutmottagningen Lindesberg", OrganizationUnitType.Avdelning,
+            "32010", DateOnly.FromDateTime(DateTime.Today.AddYears(-14)),
+            overordnadEnhetId: lindesberg.Id);
+
+        var lbgMedicin = OrganizationUnit.Skapa(
+            "Medicinavdelningen Lindesberg", OrganizationUnitType.Avdelning,
+            "32020", DateOnly.FromDateTime(DateTime.Today.AddYears(-14)),
+            overordnadEnhetId: lindesberg.Id);
+
+        var lbgGeriatrik = OrganizationUnit.Skapa(
+            "Geriatriska avdelningen", OrganizationUnitType.Avdelning,
+            "32030", DateOnly.FromDateTime(DateTime.Today.AddYears(-10)),
+            overordnadEnhetId: lindesberg.Id);
+
+        // --- Regionservice ---
+        var regionservice = OrganizationUnit.Skapa(
+            "Regionservice", OrganizationUnitType.Forvaltning,
+            "40000", DateOnly.FromDateTime(DateTime.Today.AddYears(-20)),
+            overordnadEnhetId: region.Id);
+
+        var hrAvdelningen = OrganizationUnit.Skapa(
+            "HR-avdelningen", OrganizationUnitType.Avdelning,
+            "40010", DateOnly.FromDateTime(DateTime.Today.AddYears(-20)),
+            overordnadEnhetId: regionservice.Id);
+
+        db.OrganizationUnits.AddRange(
+            region, halsovard,
+            uso, usoAkuten, usoIva, usoKirurgi, usoMedicin, usoOrtopedi, usoKvinnokliniken, usoBarn, usoPsyk,
+            karlskoga, kgaAkuten, kgaMedicin, kgaKirurgi,
+            lindesberg, lbgAkuten, lbgMedicin, lbgGeriatrik,
+            regionservice, hrAvdelningen);
 
         // === Collective Agreements (10 avtal) ===
         var giltigFran = new DateOnly(2025, 4, 1);
@@ -172,33 +256,137 @@ public static class SeedData
 
         db.CollectiveAgreements.AddRange(ab, hok, teknik, handel, itTelekom, vardforetag, transport, hrf, tjansteman, avtalslost);
 
-        // === Employees ===
-        var seedEmployees = new (string Fornamn, string Efternamn, string Pnr, string Befattning, OrganizationId Enhet, Money Lon)[]
+        // === Employees (43 st) ===
+        // Index mapping for demo login:
+        //  [0]  Anna Svensson  — Anställd (SSK Akuten USÖ)
+        //  [1]  Karl Berg      — HR (HR-specialist)
+        //  [2]  Eva Nilsson    — Chef (Hälso- och sjukvårdsdirektör)
+        //  [3]  Erik Johansson — Regiondirektör (Management)
+        var seedEmployees = new (string Fornamn, string Efternamn, string Pnr, string Befattning, OrganizationId Enhet, Money Lon, EmploymentType Typ)[]
         {
-            ("Anna", "Svensson", "198503152383", "Sjukskoterska", avd32.Id, Money.SEK(34500m)),
-            ("Erik", "Johansson", "197806221211", "Lakare", akuten.Id, Money.SEK(62000m)),
-            ("Maria", "Lindgren", "199001015604", "Underskoterska", avd33.Id, Money.SEK(27800m)),
-            ("Karl", "Berg", "198207143499", "Sjukskoterska", iva.Id, Money.SEK(35200m)),
-            ("Sara", "Karlsson", "199504307843", "Underskoterska", avd32.Id, Money.SEK(27500m)),
-            ("Johan", "Nilsson", "198802152382", "Lakare", akuten.Id, Money.SEK(58000m)),
-            ("Helena", "Bergstrom", "199209184528", "Sjukskoterska", avd33.Id, Money.SEK(33800m)),
-            ("Anders", "Olsson", "197503056789", "Verksamhetschef", sjukhus.Id, Money.SEK(52000m)),
-            ("Eva", "Nilsson", "198007121303", "HR-chef", sjukhus.Id, Money.SEK(48000m)),
-            ("Per", "Andersson", "198705232466", "Underskoterska", iva.Id, Money.SEK(28200m)),
+            // === Management (2) ===
+            // [0] — Demo: Anställd
+            ("Anna", "Svensson", "198503152383", "Sjukskoterska", usoAkuten.Id, Money.SEK(35000m), EmploymentType.Tillsvidare),
+            // [1] — Demo: HR
+            ("Karl", "Berg", "198207143499", "HR-specialist", hrAvdelningen.Id, Money.SEK(38000m), EmploymentType.Tillsvidare),
+            // [2] — Demo: Chef
+            ("Eva", "Nilsson", "198007121302", "Halso- och sjukvardsdirektor", halsovard.Id, Money.SEK(78000m), EmploymentType.Tillsvidare),
+            // [3] — Regiondirektör
+            ("Erik", "Johansson", "197806221218", "Regiondirektor", region.Id, Money.SEK(90000m), EmploymentType.Tillsvidare),
+
+            // === USÖ Akuten (5): 2 läkare, 2 SSK, 1 USK ===
+            // [4]
+            ("Magnus", "Lindqvist", "197504126357", "Lakare", usoAkuten.Id, Money.SEK(62000m), EmploymentType.Tillsvidare),
+            // [5]
+            ("Sara", "Karlsson", "199504307840", "Lakare", usoAkuten.Id, Money.SEK(58000m), EmploymentType.Tillsvidare),
+            // [6]
+            ("Lena", "Eriksson", "198801235548", "Sjukskoterska", usoAkuten.Id, Money.SEK(34500m), EmploymentType.Tillsvidare),
+            // [7]
+            ("Frida", "Holm", "199312018902", "Underskoterska", usoAkuten.Id, Money.SEK(28500m), EmploymentType.Vikariat),
+
+            // === USÖ IVA (4): 1 överläkare, 2 specialistSSK, 1 USK ===
+            // [8]
+            ("Anders", "Olsson", "197503056785", "Overlakare", usoIva.Id, Money.SEK(78000m), EmploymentType.Tillsvidare),
+            // [9]
+            ("Helena", "Bergstrom", "199209184526", "Specialistsjukskoterska", usoIva.Id, Money.SEK(40000m), EmploymentType.Tillsvidare),
+            // [10]
+            ("Karin", "Lund", "198906074284", "Specialistsjukskoterska", usoIva.Id, Money.SEK(38000m), EmploymentType.Tillsvidare),
+            // [11]
+            ("Per", "Andersson", "198705232462", "Underskoterska", usoIva.Id, Money.SEK(28200m), EmploymentType.Tillsvidare),
+
+            // === USÖ Kirurgi (4): 1 läkare, 2 SSK, 1 USK ===
+            // [12]
+            ("Johan", "Nordin", "198802152387", "Lakare", usoKirurgi.Id, Money.SEK(60000m), EmploymentType.Tillsvidare),
+            // [13]
+            ("Maria", "Lindgren", "199001015601", "Sjukskoterska", usoKirurgi.Id, Money.SEK(34800m), EmploymentType.Tillsvidare),
+            // [14]
+            ("Sofia", "Pettersson", "199408226346", "Sjukskoterska", usoKirurgi.Id, Money.SEK(33500m), EmploymentType.SAVA),
+            // [15]
+            ("Mikael", "Fransson", "199105109271", "Underskoterska", usoKirurgi.Id, Money.SEK(27800m), EmploymentType.Tillsvidare),
+
+            // === USÖ Medicin (5): 2 läkare, 2 SSK, 1 USK ===
+            // [16]
+            ("Lars", "Hedberg", "197612087535", "Lakare", usoMedicin.Id, Money.SEK(65000m), EmploymentType.Tillsvidare),
+            // [17]
+            ("Ingrid", "Jonsson", "198403204820", "Lakare", usoMedicin.Id, Money.SEK(56000m), EmploymentType.Tillsvidare),
+            // [18]
+            ("Elin", "Gustafsson", "199206157342", "Sjukskoterska", usoMedicin.Id, Money.SEK(35500m), EmploymentType.Tillsvidare),
+            // [19]
+            ("Malin", "Larsson", "199507082124", "Sjukskoterska", usoMedicin.Id, Money.SEK(33800m), EmploymentType.Vikariat),
+            // [20]
+            ("Britt", "Aberg", "197109108340", "Underskoterska", usoMedicin.Id, Money.SEK(29500m), EmploymentType.Tillsvidare),
+
+            // === USÖ Ortopedi (3): 1 läkare, 1 SSK, 1 USK ===
+            // [21]
+            ("Ola", "Sandberg", "198004017575", "Lakare", usoOrtopedi.Id, Money.SEK(61000m), EmploymentType.Tillsvidare),
+            // [22]
+            ("Jenny", "Dahlgren", "199102105924", "Sjukskoterska", usoOrtopedi.Id, Money.SEK(34200m), EmploymentType.Tillsvidare),
+            // [23]
+            ("Therese", "Wallin", "199603219408", "Underskoterska", usoOrtopedi.Id, Money.SEK(27500m), EmploymentType.SAVA),
+
+            // === USÖ Kvinnokliniken (3): 1 läkare, 1 barnmorska, 1 USK ===
+            // [24]
+            ("Kristina", "Lundberg", "197903224140", "Lakare", usoKvinnokliniken.Id, Money.SEK(63000m), EmploymentType.Tillsvidare),
+            // [25]
+            ("Annika", "Strom", "198811117584", "Barnmorska", usoKvinnokliniken.Id, Money.SEK(37000m), EmploymentType.Tillsvidare),
+            // [26]
+            ("Susanne", "Bjork", "199207033808", "Underskoterska", usoKvinnokliniken.Id, Money.SEK(28000m), EmploymentType.Tillsvidare),
+
+            // === USÖ Barn (3): 1 läkare, 1 SSK, 1 USK ===
+            // [27]
+            ("Patrik", "Ekstrom", "198306189171", "Lakare", usoBarn.Id, Money.SEK(59000m), EmploymentType.Tillsvidare),
+            // [28]
+            ("Camilla", "Lindstrom", "199404288680", "Sjukskoterska", usoBarn.Id, Money.SEK(34000m), EmploymentType.Tillsvidare),
+            // [29]
+            ("Rebecca", "Sjoberg", "199708146302", "Underskoterska", usoBarn.Id, Money.SEK(27200m), EmploymentType.Vikariat),
+
+            // === USÖ Psykiatri (3): 1 läkare, 1 SSK, 1 psykolog ===
+            // [30]
+            ("Thomas", "Ahlstrom", "197708053273", "Lakare", usoPsyk.Id, Money.SEK(64000m), EmploymentType.Tillsvidare),
+            // [31]
+            ("Linda", "Persson", "199001298568", "Sjukskoterska", usoPsyk.Id, Money.SEK(35000m), EmploymentType.Tillsvidare),
+            // [32]
+            ("Martin", "Nyman", "198609137995", "Psykolog", usoPsyk.Id, Money.SEK(42000m), EmploymentType.Tillsvidare),
+
+            // === Karlskoga (4): 1 läkare, 2 SSK, 1 USK ===
+            // [33]
+            ("Gunnar", "Hallberg", "197205043433", "Lakare", kgaAkuten.Id, Money.SEK(60000m), EmploymentType.Tillsvidare),
+            // [34]
+            ("Elisabeth", "Forsberg", "198710115700", "Sjukskoterska", kgaMedicin.Id, Money.SEK(35200m), EmploymentType.Tillsvidare),
+            // [35]
+            ("Hanna", "Ek", "199301074544", "Sjukskoterska", kgaKirurgi.Id, Money.SEK(33600m), EmploymentType.SAVA),
+            // [36]
+            ("Daniel", "Engstrom", "199509053833", "Underskoterska", kgaMedicin.Id, Money.SEK(27600m), EmploymentType.Tillsvidare),
+
+            // === Lindesberg (4): 1 läkare, 2 SSK, 1 USK ===
+            // [37]
+            ("Birgitta", "Sundberg", "197406182164", "Lakare", lbgAkuten.Id, Money.SEK(62000m), EmploymentType.Tillsvidare),
+            // [38]
+            ("Viktor", "Henriksson", "199204259815", "Sjukskoterska", lbgMedicin.Id, Money.SEK(34500m), EmploymentType.Tillsvidare),
+            // [39]
+            ("Josefin", "Magnusson", "199606015126", "Sjukskoterska", lbgGeriatrik.Id, Money.SEK(33900m), EmploymentType.Vikariat),
+            // [40]
+            ("Nils", "Lindberg", "198803102697", "Underskoterska", lbgMedicin.Id, Money.SEK(28000m), EmploymentType.Tillsvidare),
+
+            // === HR-avdelningen (3): 1 HR-chef, 1 HR-specialist (Karl=idx1), 1 löneadmin ===
+            // [41]
+            ("Monica", "Hakansson", "197601083828", "HR-chef", hrAvdelningen.Id, Money.SEK(52000m), EmploymentType.Tillsvidare),
+            // [42]
+            ("Cecilia", "Roos", "199110041242", "Loneadministrator", hrAvdelningen.Id, Money.SEK(32000m), EmploymentType.Tillsvidare),
         };
 
         var employees = new List<Employee>();
         var employments = new List<RegionHR.Core.Domain.Employment>();
-        foreach (var (fornamn, efternamn, pnr, befattning, enhetId, lon) in seedEmployees)
+        foreach (var (fornamn, efternamn, pnr, befattning, enhetId, lon, typ) in seedEmployees)
         {
             var employee = Employee.Skapa(Personnummer.CreateValidated(pnr), fornamn, efternamn);
             employee.UppdateraKontaktuppgifter(
-                $"{fornamn.ToLower()}.{efternamn.ToLower()}@regionvg.se",
+                $"{fornamn.ToLower()}.{efternamn.ToLower()}@regionorebrolan.se",
                 $"070-{Random.Shared.Next(100, 999)} {Random.Shared.Next(10, 99)} {Random.Shared.Next(10, 99)}",
                 null);
             var startdatum = DateOnly.FromDateTime(DateTime.Today.AddYears(-Random.Shared.Next(1, 15)));
             var employment = employee.LaggTillAnstallning(
-                enhetId, EmploymentType.Tillsvidare, CollectiveAgreementType.AB,
+                enhetId, typ, CollectiveAgreementType.AB,
                 lon, Percentage.FullTime, startdatum);
             employment.SattBefattning(befattning);
             employment.SattKollektivavtal(ab.Id);
@@ -208,7 +396,7 @@ public static class SeedData
         }
 
         // === Skills (normaliserad katalog) ===
-        var hlr = Skill.Skapa("HLR", SkillCategory.Klinisk, "Hjart-lungr\u00e4ddning");
+        var hlr = Skill.Skapa("HLR", SkillCategory.Klinisk, "Hjart-lungräddning");
         var triage = Skill.Skapa("Triage", SkillCategory.Klinisk, "Prioritering av patienter");
         var lakemedel = Skill.Skapa("Lakemedelshantering", SkillCategory.Klinisk, "Administration och kontroll av lakemedel");
         var journal = Skill.Skapa("Journalforing", SkillCategory.Klinisk, "Dokumentation i patientjournal");
@@ -225,32 +413,32 @@ public static class SeedData
             ledarskap, projektledning, excel, it, kommunikation, arbetsratt);
 
         // === Positions (kopplade till anstallda via InnehavareAnstallId) ===
-        var posSsk32 = Position.Skapa(avd32.Id.Value, "Sjukskoterska Avd 32", 34500, 100);
-        posSsk32.Tillsatt(employees[0].Id.Value); // Anna Svensson
-        var posLakAkut = Position.Skapa(akuten.Id.Value, "Lakare Akutmottagningen", 62000, 100);
-        posLakAkut.Tillsatt(employees[1].Id.Value); // Erik Johansson
-        var posUsk33 = Position.Skapa(avd33.Id.Value, "Underskoterska Avd 33", 27800, 100);
-        posUsk33.Tillsatt(employees[2].Id.Value); // Maria Lindgren
-        var posSskIva = Position.Skapa(iva.Id.Value, "Sjukskoterska IVA", 35200, 100);
-        posSskIva.Tillsatt(employees[3].Id.Value); // Karl Berg
-        var posVc = Position.Skapa(sjukhus.Id.Value, "Verksamhetschef", 52000, 100);
-        posVc.Tillsatt(employees[7].Id.Value); // Anders Olsson
+        var posSskAkut = Position.Skapa(usoAkuten.Id.Value, "Sjukskoterska Akutmottagningen USO", 35000, 100);
+        posSskAkut.Tillsatt(employees[0].Id.Value); // Anna Svensson
+        var posLakAkut = Position.Skapa(usoAkuten.Id.Value, "Lakare Akutmottagningen USO", 62000, 100);
+        posLakAkut.Tillsatt(employees[4].Id.Value); // Magnus Lindqvist
+        var posUskIva = Position.Skapa(usoIva.Id.Value, "Underskoterska IVA", 28200, 100);
+        posUskIva.Tillsatt(employees[11].Id.Value); // Per Andersson
+        var posSskIva = Position.Skapa(usoIva.Id.Value, "Specialistsjukskoterska IVA", 40000, 100);
+        posSskIva.Tillsatt(employees[9].Id.Value); // Helena Bergstrom
+        var posVc = Position.Skapa(halsovard.Id.Value, "Halso- och sjukvardsdirektor", 78000, 100);
+        posVc.Tillsatt(employees[2].Id.Value); // Eva Nilsson
 
         // Vakant position
-        var posUskAkut = Position.Skapa(akuten.Id.Value, "Underskoterska Akutmottagningen", 27500, 75);
+        var posUskAkut = Position.Skapa(usoAkuten.Id.Value, "Underskoterska Akutmottagningen USO", 27500, 75);
         // Frusen position
-        var posItSjukhus = Position.Skapa(sjukhus.Id.Value, "IT-tekniker", 38000, 100);
+        var posItSjukhus = Position.Skapa(uso.Id.Value, "IT-tekniker", 38000, 100);
         posItSjukhus.Frys();
 
-        db.Positions_Table.AddRange(posSsk32, posLakAkut, posUsk33, posSskIva, posVc, posUskAkut, posItSjukhus);
+        db.Positions_Table.AddRange(posSskAkut, posLakAkut, posUskIva, posSskIva, posVc, posUskAkut, posItSjukhus);
 
         // === PositionSkillRequirements (kravprofiler per position) ===
-        // Sjukskoterska Avd 32: HLR 3, Lakemedel 4, Journal 3, Saravard 3
+        // Sjukskoterska Akuten USÖ: HLR 3, Lakemedel 4, Journal 3, Triage 3
         db.PositionSkillRequirements.AddRange(
-            PositionSkillRequirement.Skapa(posSsk32.Id, hlr.Id, 3),
-            PositionSkillRequirement.Skapa(posSsk32.Id, lakemedel.Id, 4),
-            PositionSkillRequirement.Skapa(posSsk32.Id, journal.Id, 3),
-            PositionSkillRequirement.Skapa(posSsk32.Id, saravard.Id, 3));
+            PositionSkillRequirement.Skapa(posSskAkut.Id, hlr.Id, 3),
+            PositionSkillRequirement.Skapa(posSskAkut.Id, lakemedel.Id, 4),
+            PositionSkillRequirement.Skapa(posSskAkut.Id, journal.Id, 3),
+            PositionSkillRequirement.Skapa(posSskAkut.Id, triage.Id, 3));
 
         // Lakare Akutmottagningen: HLR 5, Triage 5, Lakemedel 5, Journal 4
         db.PositionSkillRequirements.AddRange(
@@ -259,20 +447,20 @@ public static class SeedData
             PositionSkillRequirement.Skapa(posLakAkut.Id, lakemedel.Id, 5),
             PositionSkillRequirement.Skapa(posLakAkut.Id, journal.Id, 4));
 
-        // Underskoterska Avd 33: HLR 2, Saravard 3, Journal 2
+        // Underskoterska IVA: HLR 2, Saravard 3, Journal 2
         db.PositionSkillRequirements.AddRange(
-            PositionSkillRequirement.Skapa(posUsk33.Id, hlr.Id, 2),
-            PositionSkillRequirement.Skapa(posUsk33.Id, saravard.Id, 3),
-            PositionSkillRequirement.Skapa(posUsk33.Id, journal.Id, 2));
+            PositionSkillRequirement.Skapa(posUskIva.Id, hlr.Id, 2),
+            PositionSkillRequirement.Skapa(posUskIva.Id, saravard.Id, 3),
+            PositionSkillRequirement.Skapa(posUskIva.Id, journal.Id, 2));
 
-        // Sjukskoterska IVA: HLR 5, Ventilator 4, Lakemedel 5, Journal 4
+        // Specialistsjukskoterska IVA: HLR 5, Ventilator 4, Lakemedel 5, Journal 4
         db.PositionSkillRequirements.AddRange(
             PositionSkillRequirement.Skapa(posSskIva.Id, hlr.Id, 5),
             PositionSkillRequirement.Skapa(posSskIva.Id, ventilator.Id, 4),
             PositionSkillRequirement.Skapa(posSskIva.Id, lakemedel.Id, 5),
             PositionSkillRequirement.Skapa(posSskIva.Id, journal.Id, 4));
 
-        // Verksamhetschef: Ledarskap 5, Kommunikation 4, Arbetsratt 3, Excel 3
+        // Halso- och sjukvardsdirektor: Ledarskap 5, Kommunikation 4, Arbetsratt 3, Excel 3
         db.PositionSkillRequirements.AddRange(
             PositionSkillRequirement.Skapa(posVc.Id, ledarskap.Id, 5),
             PositionSkillRequirement.Skapa(posVc.Id, kommunikation.Id, 4),
@@ -280,39 +468,39 @@ public static class SeedData
             PositionSkillRequirement.Skapa(posVc.Id, excel.Id, 3));
 
         // === EmployeeSkills (vad de anstallda faktiskt kan) ===
-        // Anna Svensson (SSK Avd32): HLR 4, Lakemedel 3, Journal 4, Saravard 4
+        // Anna Svensson (SSK Akuten): HLR 4, Triage 3, Lakemedel 3, Journal 4
         db.EmployeeSkills.AddRange(
             EmployeeSkill.Skapa(employees[0].Id.Value, hlr.Id, 4),
+            EmployeeSkill.Skapa(employees[0].Id.Value, triage.Id, 3),
             EmployeeSkill.Skapa(employees[0].Id.Value, lakemedel.Id, 3),
-            EmployeeSkill.Skapa(employees[0].Id.Value, journal.Id, 4),
-            EmployeeSkill.Skapa(employees[0].Id.Value, saravard.Id, 4));
+            EmployeeSkill.Skapa(employees[0].Id.Value, journal.Id, 4));
 
-        // Erik Johansson (Lakare Akut): HLR 5, Triage 4, Lakemedel 5, Journal 3
+        // Magnus Lindqvist (Lakare Akut): HLR 5, Triage 4, Lakemedel 5, Journal 3
         db.EmployeeSkills.AddRange(
-            EmployeeSkill.Skapa(employees[1].Id.Value, hlr.Id, 5),
-            EmployeeSkill.Skapa(employees[1].Id.Value, triage.Id, 4),
-            EmployeeSkill.Skapa(employees[1].Id.Value, lakemedel.Id, 5),
-            EmployeeSkill.Skapa(employees[1].Id.Value, journal.Id, 3));
+            EmployeeSkill.Skapa(employees[4].Id.Value, hlr.Id, 5),
+            EmployeeSkill.Skapa(employees[4].Id.Value, triage.Id, 4),
+            EmployeeSkill.Skapa(employees[4].Id.Value, lakemedel.Id, 5),
+            EmployeeSkill.Skapa(employees[4].Id.Value, journal.Id, 3));
 
-        // Maria Lindgren (USK Avd33): HLR 2, Saravard 2, Journal 2
+        // Per Andersson (USK IVA): HLR 2, Saravard 2, Journal 2
         db.EmployeeSkills.AddRange(
-            EmployeeSkill.Skapa(employees[2].Id.Value, hlr.Id, 2),
-            EmployeeSkill.Skapa(employees[2].Id.Value, saravard.Id, 2),
-            EmployeeSkill.Skapa(employees[2].Id.Value, journal.Id, 2));
+            EmployeeSkill.Skapa(employees[11].Id.Value, hlr.Id, 2),
+            EmployeeSkill.Skapa(employees[11].Id.Value, saravard.Id, 2),
+            EmployeeSkill.Skapa(employees[11].Id.Value, journal.Id, 2));
 
-        // Karl Berg (SSK IVA): HLR 5, Ventilator 3, Lakemedel 4, Journal 3
+        // Helena Bergstrom (SpecSSK IVA): HLR 5, Ventilator 3, Lakemedel 4, Journal 3
         db.EmployeeSkills.AddRange(
-            EmployeeSkill.Skapa(employees[3].Id.Value, hlr.Id, 5),
-            EmployeeSkill.Skapa(employees[3].Id.Value, ventilator.Id, 3),
-            EmployeeSkill.Skapa(employees[3].Id.Value, lakemedel.Id, 4),
-            EmployeeSkill.Skapa(employees[3].Id.Value, journal.Id, 3));
+            EmployeeSkill.Skapa(employees[9].Id.Value, hlr.Id, 5),
+            EmployeeSkill.Skapa(employees[9].Id.Value, ventilator.Id, 3),
+            EmployeeSkill.Skapa(employees[9].Id.Value, lakemedel.Id, 4),
+            EmployeeSkill.Skapa(employees[9].Id.Value, journal.Id, 3));
 
-        // Anders Olsson (VC): Ledarskap 4, Kommunikation 4, Arbetsratt 2, Excel 3
+        // Eva Nilsson (HSV-direktor): Ledarskap 4, Kommunikation 4, Arbetsratt 2, Excel 3
         db.EmployeeSkills.AddRange(
-            EmployeeSkill.Skapa(employees[7].Id.Value, ledarskap.Id, 4),
-            EmployeeSkill.Skapa(employees[7].Id.Value, kommunikation.Id, 4),
-            EmployeeSkill.Skapa(employees[7].Id.Value, arbetsratt.Id, 2),
-            EmployeeSkill.Skapa(employees[7].Id.Value, excel.Id, 3));
+            EmployeeSkill.Skapa(employees[2].Id.Value, ledarskap.Id, 4),
+            EmployeeSkill.Skapa(employees[2].Id.Value, kommunikation.Id, 4),
+            EmployeeSkill.Skapa(employees[2].Id.Value, arbetsratt.Id, 2),
+            EmployeeSkill.Skapa(employees[2].Id.Value, excel.Id, 3));
 
         // === Skill Categories (entity-baserade, ersätter enum) ===
         var katKlinisk = SkillCategoryEntity.Skapa("Klinisk", "Kliniska vårdkompetenser");
@@ -347,8 +535,8 @@ public static class SeedData
         // === Inferred Skills ===
         db.InferredSkills.AddRange(
             InferredSkill.Skapa(employees[0].Id.Value, triage.Id, "Befattning", 75),
-            InferredSkill.Skapa(employees[1].Id.Value, ventilator.Id, "Erfarenhet", 60),
-            InferredSkill.Skapa(employees[3].Id.Value, ledarskap.Id, "Kurs", 50));
+            InferredSkill.Skapa(employees[4].Id.Value, ventilator.Id, "Erfarenhet", 60),
+            InferredSkill.Skapa(employees[9].Id.Value, ledarskap.Id, "Kurs", 50));
 
         // === Career Paths ===
         var cpVard = CareerPath.Skapa("Sjukskoterska till Vardenhetschef", "Vard",
@@ -373,7 +561,7 @@ public static class SeedData
 
         // === Internal Opportunity (published project) ===
         var opportunity = InternalOpportunity.Skapa("Projekt", "Digitalisering av patientjournaler",
-            sjukhus.Id.Value,
+            uso.Id.Value,
             DateOnly.FromDateTime(DateTime.Today),
             DateOnly.FromDateTime(DateTime.Today.AddMonths(6)),
             "[{\"Skill\":\"IT-system\",\"Niva\":3},{\"Skill\":\"Journalforing\",\"Niva\":2}]");
@@ -382,9 +570,9 @@ public static class SeedData
 
         // === Mentor Relations ===
         db.MentorRelations.AddRange(
-            MentorRelation.Skapa(employees[7].Id.Value, employees[0].Id.Value, "Ledarskap och karriarutveckling",
+            MentorRelation.Skapa(employees[2].Id.Value, employees[0].Id.Value, "Ledarskap och karriarutveckling",
                 DateOnly.FromDateTime(DateTime.Today.AddMonths(-2)), 14),
-            MentorRelation.Skapa(employees[1].Id.Value, employees[3].Id.Value, "Klinisk specialisering",
+            MentorRelation.Skapa(employees[4].Id.Value, employees[9].Id.Value, "Klinisk specialisering",
                 DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)), 7));
 
         // === Provisioning rules (default konfiguration) ===
@@ -412,33 +600,33 @@ public static class SeedData
 
         // === Arbetsmiljo: incidents, safety rounds, risk assessments ===
         db.Incidents.AddRange(
-            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-12), "Anna Svensson", avd32.Id.Value,
-                "Korridoren vid rum 4", "Halkolycka pa vatt golv efter stadning", Arbetsmiljo.IncidentAllvarlighetsgrad.Medel,
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-12), "Anna Svensson", usoAkuten.Id.Value,
+                "Korridoren vid akutmottagningen", "Halkolycka pa vatt golv efter stadning", Arbetsmiljo.IncidentAllvarlighetsgrad.Medel,
                 Arbetsmiljo.IncidentTyp.Tillbud, "Battre skyltning vid vatgolv"),
-            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-8), "Karl Berg", iva.Id.Value,
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-8), "Helena Bergstrom", usoIva.Id.Value,
                 "IVA sal 2", "Nalsticka vid blodprovstagning", Arbetsmiljo.IncidentAllvarlighetsgrad.Hog,
                 Arbetsmiljo.IncidentTyp.Arbetsskada, "Genomgang av stickskadeprevention"),
-            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-5), "Maria Lindgren", avd33.Id.Value,
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-5), "Maria Lindgren", usoKirurgi.Id.Value,
                 "Personalrum", "Ergonomisk brist — for laga arbetsstolar", Arbetsmiljo.IncidentAllvarlighetsgrad.Lag,
                 Arbetsmiljo.IncidentTyp.Tillbud, "Bestall nya stolar"),
-            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-3), "Erik Johansson", akuten.Id.Value,
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-3), "Magnus Lindqvist", usoAkuten.Id.Value,
                 "Akutens vantrum", "Hotfull patient mot personal", Arbetsmiljo.IncidentAllvarlighetsgrad.Kritisk,
                 Arbetsmiljo.IncidentTyp.Tillbud, "Genomgang av hot- och valdpolicy"),
-            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-1), "Helena Bergstrom", avd33.Id.Value,
+            Arbetsmiljo.Incident.Skapa(DateTime.UtcNow.AddDays(-1), "Elisabeth Forsberg", kgaMedicin.Id.Value,
                 "Medicinforraadet", "Felmarkerad medicinburk", Arbetsmiljo.IncidentAllvarlighetsgrad.Hog,
                 Arbetsmiljo.IncidentTyp.Tillbud, "Kontroll av alla medicinforrrad"));
 
         db.SafetyRounds.AddRange(
-            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-30), avd32.Id.Value,
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-30), usoAkuten.Id.Value,
                 "Anna Svensson, Skyddsombud Lars Ek", 3, Arbetsmiljo.SafetyRoundStatus.Genomford,
                 "Brister: belysning korridor, handtag toalett, ventilation rum 6"),
-            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-15), iva.Id.Value,
-                "Karl Berg, Skyddsombud Eva Lind", 1, Arbetsmiljo.SafetyRoundStatus.Genomford,
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(-15), usoIva.Id.Value,
+                "Helena Bergstrom, Skyddsombud Eva Lind", 1, Arbetsmiljo.SafetyRoundStatus.Genomford,
                 "Brist: nododusch saknar skylt"),
-            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(14), akuten.Id.Value,
-                "Erik Johansson, Skyddsombud Maria Ek", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null),
-            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(30), avd33.Id.Value,
-                "Helena Bergstrom, Skyddsombud Per Lund", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null));
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(14), kgaAkuten.Id.Value,
+                "Gunnar Hallberg, Skyddsombud Maria Ek", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null),
+            Arbetsmiljo.SafetyRound.Skapa(DateTime.UtcNow.AddDays(30), lbgMedicin.Id.Value,
+                "Viktor Henriksson, Skyddsombud Per Lund", 0, Arbetsmiljo.SafetyRoundStatus.Planerad, null));
 
         db.RiskAssessments.AddRange(
             Arbetsmiljo.RiskAssessment.Skapa("Halkolyckor", "Risk for halkolyckor pa nystadade golv", 3, 2,
@@ -453,26 +641,23 @@ public static class SeedData
                 "Dubbelsignering, barkodsystem", "Lakemedelsansvarig", DateOnly.FromDateTime(DateTime.Today.AddDays(90))));
 
         // === RehabCase — skapade via domänens SkapaForSeed() ===
-        // Milstolpar beräknas konsekvent från givet startdatum av SkapaForSeed().
-        // Detta representerar planerade uppföljningsdatum, inte verifierad sjukfallsstart.
-
         // Karl Berg — upprepad korttidsfrånvaro, startade ~45 dagar sedan
         var rehabKarl = RehabCase.SkapaForSeed(
-            employees[3].Id, RehabTrigger.SexTillfallenTolvManader, DateTime.UtcNow.AddDays(-45));
-        rehabKarl.TilldelaArendeagare(employees[8].Id); // Eva Nilsson (HR)
+            employees[1].Id, RehabTrigger.SexTillfallenTolvManader, DateTime.UtcNow.AddDays(-45));
+        rehabKarl.TilldelaArendeagare(employees[41].Id); // Monica Hakansson (HR-chef)
         rehabKarl.SattRehabPlan("Uppfoljningssamtal varannan vecka, anpassad arbetsatergang diskuteras");
         db.RehabCases.Add(rehabKarl);
 
         // Helena Bergstrom — långtidssjuk >14 dagar, startade ~22 dagar sedan
         var rehabHelena = RehabCase.SkapaForSeed(
-            employees[6].Id, RehabTrigger.FjortonSammanhangandeDagar, DateTime.UtcNow.AddDays(-22));
-        rehabHelena.TilldelaArendeagare(employees[8].Id);
+            employees[9].Id, RehabTrigger.FjortonSammanhangandeDagar, DateTime.UtcNow.AddDays(-22));
+        rehabHelena.TilldelaArendeagare(employees[41].Id);
         db.RehabCases.Add(rehabHelena);
 
         // Maria Lindgren — chef initierat, startade ~160 dagar sedan (passerat dag 90)
         var rehabMaria = RehabCase.SkapaForSeed(
-            employees[2].Id, RehabTrigger.ChefInitierat, DateTime.UtcNow.AddDays(-160));
-        rehabMaria.TilldelaArendeagare(employees[8].Id);
+            employees[13].Id, RehabTrigger.ChefInitierat, DateTime.UtcNow.AddDays(-160));
+        rehabMaria.TilldelaArendeagare(employees[41].Id);
         rehabMaria.SattRehabPlan("Arbetsformagebedomning genomford, deltidsatergang 50%");
         db.RehabCases.Add(rehabMaria);
 
@@ -510,19 +695,19 @@ public static class SeedData
             onboardingMall, employees[0].Id.Value,
             $"{employees[0].Fornamn} {employees[0].Efternamn}",
             DateTime.UtcNow.AddDays(-10));
-        // Markera de forsta 5 stegen som klara (simulerar pagar ande onboarding)
+        // Markera de forsta 5 stegen som klara (simulerar pagaende onboarding)
         foreach (var steg in onboardingAnna.Steg.Take(5))
             onboardingAnna.MarkeraStegKlart(steg.Id, "Seed");
         db.JourneyInstances.Add(onboardingAnna);
 
-        var onboardingSara = JourneyInstance.SkapaFranMall(
-            onboardingMall, employees[4].Id.Value,
-            $"{employees[4].Fornamn} {employees[4].Efternamn}",
+        var onboardingSofia = JourneyInstance.SkapaFranMall(
+            onboardingMall, employees[14].Id.Value,
+            $"{employees[14].Fornamn} {employees[14].Efternamn}",
             DateTime.UtcNow.AddDays(-3));
         // Markera forsta 2 stegen
-        foreach (var steg in onboardingSara.Steg.Take(2))
-            onboardingSara.MarkeraStegKlart(steg.Id, "Seed");
-        db.JourneyInstances.Add(onboardingSara);
+        foreach (var steg in onboardingSofia.Steg.Take(2))
+            onboardingSofia.MarkeraStegKlart(steg.Id, "Seed");
+        db.JourneyInstances.Add(onboardingSofia);
 
         // === Benefits catalog + employee selections ===
         var friskvard = RegionHR.Benefits.Domain.Benefit.Skapa(
@@ -546,12 +731,12 @@ public static class SeedData
         var valAnna = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
             employees[0].Id.Value, friskvard.Id, DateOnly.FromDateTime(DateTime.Today), 5000m);
         valAnna.Godkann();
-        var valErik = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
-            employees[1].Id.Value, friskvard.Id, DateOnly.FromDateTime(DateTime.Today), 3500m);
-        valErik.Godkann();
+        var valMagnus = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
+            employees[4].Id.Value, friskvard.Id, DateOnly.FromDateTime(DateTime.Today), 3500m);
+        valMagnus.Godkann();
         var valKarl = RegionHR.Benefits.Domain.EmployeeBenefit.Anmala(
-            employees[3].Id.Value, cykel.Id, DateOnly.FromDateTime(DateTime.Today), 2000m, "Nytt barn — andrat pendlingsvanor");
-        db.EmployeeBenefits.AddRange(valAnna, valErik, valKarl);
+            employees[1].Id.Value, cykel.Id, DateOnly.FromDateTime(DateTime.Today), 2000m, "Nytt barn — andrat pendlingsvanor");
+        db.EmployeeBenefits.AddRange(valAnna, valMagnus, valKarl);
 
         // === Talent pool candidates via domänens Skapa() ===
         db.TalentPoolEntries.AddRange(
@@ -569,22 +754,20 @@ public static class SeedData
                 "2 ars erfarenhet nattjour. Soker heltid."),
             RegionHR.Recruitment.Domain.TalentPoolEntry.Skapa(
                 "Karin Ek", "karin.ek@mail.se", "Sjukskoterska, barnklinik",
-                "Nyexaminerad 2025. Praktik pa Sahlgrenska."));
+                "Nyexaminerad 2025. Praktik pa Universitetssjukhuset Orebro."));
 
         // === HeadcountPlan per enhet (budget for 2026) ===
-        var hcAvd32 = RegionHR.Positions.Domain.HeadcountPlan.Skapa(avd32.Id.Value, 2026, 8, 8.0m, 2_760_000m);
-        hcAvd32.UppdateraFaktiskt(8, 8.0m, 2_832_000m);
-        var hcAvd33 = RegionHR.Positions.Domain.HeadcountPlan.Skapa(avd33.Id.Value, 2026, 6, 6.0m, 1_944_000m);
-        hcAvd33.UppdateraFaktiskt(5, 5.0m, 1_620_000m);
-        var hcAkuten = RegionHR.Positions.Domain.HeadcountPlan.Skapa(akuten.Id.Value, 2026, 12, 12.0m, 6_048_000m);
+        var hcAkuten = RegionHR.Positions.Domain.HeadcountPlan.Skapa(usoAkuten.Id.Value, 2026, 12, 12.0m, 6_048_000m);
         hcAkuten.UppdateraFaktiskt(10, 10.0m, 5_040_000m);
-        var hcIva = RegionHR.Positions.Domain.HeadcountPlan.Skapa(iva.Id.Value, 2026, 10, 10.0m, 3_816_000m);
+        var hcIva = RegionHR.Positions.Domain.HeadcountPlan.Skapa(usoIva.Id.Value, 2026, 10, 10.0m, 3_816_000m);
         hcIva.UppdateraFaktiskt(7, 7.0m, 2_671_200m);
-        db.HeadcountPlans.AddRange(hcAvd32, hcAvd33, hcAkuten, hcIva);
+        var hcKirurgi = RegionHR.Positions.Domain.HeadcountPlan.Skapa(usoKirurgi.Id.Value, 2026, 8, 8.0m, 2_760_000m);
+        hcKirurgi.UppdateraFaktiskt(8, 8.0m, 2_832_000m);
+        var hcMedicin = RegionHR.Positions.Domain.HeadcountPlan.Skapa(usoMedicin.Id.Value, 2026, 6, 6.0m, 1_944_000m);
+        hcMedicin.UppdateraFaktiskt(5, 5.0m, 1_620_000m);
+        db.HeadcountPlans.AddRange(hcAkuten, hcIva, hcKirurgi, hcMedicin);
 
         // === Notifications via domänens Create() ===
-        // UserId sätts till anställds Id.Value. Auth saknar EmployeeId-mapping
-        // så i v1.5 matchar detta inte säkert inloggad användare.
         db.Notifications.AddRange(
             RegionHR.Notifications.Domain.Notification.Create(
                 employees[0].Id.Value, "Ledighetsansokan godkand",
@@ -595,15 +778,15 @@ public static class SeedData
                 "Lonebeskedet for mars 2026 finns tillgangligt.",
                 RegionHR.Notifications.Domain.NotificationType.Info, actionUrl: "/minsida/lon"),
             RegionHR.Notifications.Domain.Notification.Create(
-                employees[3].Id.Value, "Certifiering gar ut snart",
-                "Din sjukskoterska-legitimation gar ut om 45 dagar.",
+                employees[9].Id.Value, "Certifiering gar ut snart",
+                "Din specialistsjukskoterska-legitimation gar ut om 45 dagar.",
                 RegionHR.Notifications.Domain.NotificationType.Warning, actionUrl: "/kompetens"),
             RegionHR.Notifications.Domain.Notification.Create(
-                employees[1].Id.Value, "Schemaandring",
+                employees[4].Id.Value, "Schemaandring",
                 "Ditt schema for vecka 13 har uppdaterats.",
                 RegionHR.Notifications.Domain.NotificationType.Info, actionUrl: "/minsida/schema"),
             RegionHR.Notifications.Domain.Notification.Create(
-                employees[7].Id.Value, "Medarbetarsamtal bokat",
+                employees[2].Id.Value, "Medarbetarsamtal bokat",
                 "Arligt medarbetarsamtal inbokat 25 mars kl. 10:00.",
                 RegionHR.Notifications.Domain.NotificationType.Action, actionUrl: "/medarbetarsamtal"));
 
@@ -614,7 +797,7 @@ public static class SeedData
                 null, "{\"Fornamn\":\"Anna\",\"Efternamn\":\"Svensson\"}", "System", "System", null),
             RegionHR.Audit.Domain.AuditEntry.Create(
                 "Employee", employees[0].Id.Value.ToString(), RegionHR.Audit.Domain.AuditAction.Update,
-                "{\"Befattning\":\"Underskoterska\"}", "{\"Befattning\":\"Sjukskoterska\"}", employees[8].Id.Value.ToString(), "Eva Nilsson (HR)", null),
+                "{\"Befattning\":\"Underskoterska\"}", "{\"Befattning\":\"Sjukskoterska\"}", employees[41].Id.Value.ToString(), "Monica Hakansson (HR)", null),
             RegionHR.Audit.Domain.AuditEntry.Create(
                 "PayrollRun", Guid.NewGuid().ToString(), RegionHR.Audit.Domain.AuditAction.Create,
                 null, "{\"Period\":\"2026-02\",\"Status\":\"Beraknad\"}", "System", "System", null),
@@ -622,12 +805,12 @@ public static class SeedData
                 "LeaveRequest", Guid.NewGuid().ToString(), RegionHR.Audit.Domain.AuditAction.Create,
                 null, "{\"Typ\":\"Semester\",\"FranDatum\":\"2026-07\"}", employees[0].Id.Value.ToString(), "Anna Svensson", null),
             RegionHR.Audit.Domain.AuditEntry.Create(
-                "Position", posSsk32.Id.ToString(), RegionHR.Audit.Domain.AuditAction.Update,
-                "{\"Status\":\"Vakant\"}", "{\"Status\":\"Aktiv\"}", employees[8].Id.Value.ToString(), "Eva Nilsson (HR)", null));
+                "Position", posSskAkut.Id.ToString(), RegionHR.Audit.Domain.AuditAction.Update,
+                "{\"Status\":\"Vakant\"}", "{\"Status\":\"Aktiv\"}", employees[41].Id.Value.ToString(), "Monica Hakansson (HR)", null));
 
         // === DataSubjectRequests via domänens Skapa() ===
-        var dsrRegisterutdrag = RegionHR.GDPR.Domain.DataSubjectRequest.Skapa(employees[4].Id.Value, RegionHR.GDPR.Domain.RequestType.Registerutdrag);
-        dsrRegisterutdrag.Tilldela(employees[8].Id.Value.ToString()); // Eva Nilsson (HR)
+        var dsrRegisterutdrag = RegionHR.GDPR.Domain.DataSubjectRequest.Skapa(employees[14].Id.Value, RegionHR.GDPR.Domain.RequestType.Registerutdrag);
+        dsrRegisterutdrag.Tilldela(employees[41].Id.Value.ToString()); // Monica Hakansson (HR)
         var dsrRadering = RegionHR.GDPR.Domain.DataSubjectRequest.Skapa(employees[5].Id.Value, RegionHR.GDPR.Domain.RequestType.Radering);
         db.DataSubjectRequests.AddRange(dsrRegisterutdrag, dsrRadering);
 
@@ -637,32 +820,32 @@ public static class SeedData
             DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(34)),
             "Semester vecka 20");
-        semesterCase.SkickaForGodkannande("Chefsgodkannande", employees[7].Id); // Anders Olsson (VC)
+        semesterCase.SkickaForGodkannande("Chefsgodkannande", employees[2].Id); // Eva Nilsson (Chef)
         db.Cases.Add(semesterCase);
 
         var vabCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(
-            employees[3].Id, RegionHR.SharedKernel.Domain.AbsenceType.VAB,
+            employees[9].Id, RegionHR.SharedKernel.Domain.AbsenceType.VAB,
             DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(3)),
             "VAB - barn sjukt");
-        vabCase.SkickaForGodkannande("Chefsgodkannande", employees[7].Id);
+        vabCase.SkickaForGodkannande("Chefsgodkannande", employees[2].Id);
         db.Cases.Add(vabCase);
 
         var tjledCase = RegionHR.CaseManagement.Domain.Case.SkapaFranvaroarende(
-            employees[6].Id, RegionHR.SharedKernel.Domain.AbsenceType.Tjanstledighet,
+            employees[13].Id, RegionHR.SharedKernel.Domain.AbsenceType.Tjanstledighet,
             DateOnly.FromDateTime(DateTime.Today.AddDays(60)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(120)),
             "Studieledighet HT 2026");
-        tjledCase.SkickaForGodkannande("HR-godkannande", employees[8].Id); // Eva Nilsson (HR)
+        tjledCase.SkickaForGodkannande("HR-godkannande", employees[41].Id); // Monica Hakansson (HR)
         db.Cases.Add(tjledCase);
 
         // === LeaveRequests + VacationBalances via domänlogik ===
         // VacationBalance per anställd för 2026
         db.VacationBalances.AddRange(
             RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[0].Id.Value, 2026, 41), // Anna, 41 → 31 dagar
-            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[1].Id.Value, 2026, 48), // Erik, 48 → 31
-            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[2].Id.Value, 2026, 36), // Maria, 36 → 25
-            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[3].Id.Value, 2026, 44)); // Karl, 44 → 31
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[4].Id.Value, 2026, 48), // Magnus, 48 → 31
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[13].Id.Value, 2026, 36), // Maria, 36 → 25
+            RegionHR.Leave.Domain.VacationBalance.SkapaForAr(employees[1].Id.Value, 2026, 44)); // Karl, 44 → 31
 
         // LeaveRequests i olika statusar
         var semAnna = RegionHR.Leave.Domain.LeaveRequest.Skapa(
@@ -673,17 +856,17 @@ public static class SeedData
         semAnna.SkickaIn();
         db.LeaveRequests.Add(semAnna);
 
-        var semErik = RegionHR.Leave.Domain.LeaveRequest.Skapa(
-            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.Semester,
+        var semMagnus = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[4].Id.Value, RegionHR.Leave.Domain.LeaveType.Semester,
             DateOnly.FromDateTime(DateTime.Today.AddDays(20)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(24)),
             "Sportlov med familjen");
-        semErik.SkickaIn();
-        semErik.Godkann(employees[7].Id.Value, "Godkant");
-        db.LeaveRequests.Add(semErik);
+        semMagnus.SkickaIn();
+        semMagnus.Godkann(employees[2].Id.Value, "Godkant");
+        db.LeaveRequests.Add(semMagnus);
 
         var kompKarl = RegionHR.Leave.Domain.LeaveRequest.Skapa(
-            employees[3].Id.Value, RegionHR.Leave.Domain.LeaveType.Komptid,
+            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.Komptid,
             DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
             "Kompdag for jourtjanst");
@@ -692,31 +875,31 @@ public static class SeedData
 
         // Föräldraledighet — Maria Lindgren, godkänd
         var flMaria = RegionHR.Leave.Domain.LeaveRequest.Skapa(
-            employees[2].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
+            employees[13].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
             DateOnly.FromDateTime(DateTime.Today.AddDays(-30)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(150)),
             "Foraldraledighet 6 manader");
         flMaria.SkickaIn();
-        flMaria.Godkann(employees[7].Id.Value, "Godkant");
+        flMaria.Godkann(employees[2].Id.Value, "Godkant");
         db.LeaveRequests.Add(flMaria);
 
-        // Föräldraledighet — Erik Johansson, inskickad
-        var flErik = RegionHR.Leave.Domain.LeaveRequest.Skapa(
-            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
+        // Föräldraledighet — Magnus Lindqvist, inskickad
+        var flMagnus = RegionHR.Leave.Domain.LeaveRequest.Skapa(
+            employees[4].Id.Value, RegionHR.Leave.Domain.LeaveType.Foraldraledighet,
             DateOnly.FromDateTime(DateTime.Today.AddDays(60)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(120)),
             "Foraldraledighet hosten");
-        flErik.SkickaIn();
-        db.LeaveRequests.Add(flErik);
+        flMagnus.SkickaIn();
+        db.LeaveRequests.Add(flMagnus);
 
         // VAB — Karl Berg, godkänd
         var vabKarl = RegionHR.Leave.Domain.LeaveRequest.Skapa(
-            employees[3].Id.Value, RegionHR.Leave.Domain.LeaveType.VAB,
+            employees[1].Id.Value, RegionHR.Leave.Domain.LeaveType.VAB,
             DateOnly.FromDateTime(DateTime.Today.AddDays(-7)),
             DateOnly.FromDateTime(DateTime.Today.AddDays(-6)),
             "Barn sjukt i feber");
         vabKarl.SkickaIn();
-        vabKarl.Godkann(employees[7].Id.Value, "Godkant");
+        vabKarl.Godkann(employees[2].Id.Value, "Godkant");
         db.LeaveRequests.Add(vabKarl);
 
         // VAB — Anna Svensson, inskickad (pågående)
@@ -748,7 +931,7 @@ public static class SeedData
             runFeb.LaggTillResultat(result);
         }
         runFeb.MarkeraSomBeraknad();
-        runFeb.Godkann("Eva Nilsson");
+        runFeb.Godkann("Monica Hakansson");
         runFeb.MarkeraSomUtbetald();
         db.PayrollRuns.Add(runFeb);
 
@@ -770,10 +953,13 @@ public static class SeedData
                 result.OBTillagg = Money.SEK(3 * 113m); // natt-OB 113 kr/h * 3
                 brutto += result.OBTillagg.Amount;
             }
-            // Erik Johansson (i=1): övertid
-            if (i == 1)
+            // Magnus Lindqvist (i=4 in full list, but payroll loop only covers first 4)
+            // Karl Berg (i=1): no special OB
+            // Eva Nilsson (i=2): no OB
+            // Erik Johansson (i=3): övertid
+            if (i == 3)
             {
-                result.Overtidstillagg = Money.SEK(8 * 62000m / 165m * 1.8m); // 8h övertid
+                result.Overtidstillagg = Money.SEK(8 * 90000m / 165m * 1.8m); // 8h övertid
                 brutto += result.Overtidstillagg.Amount;
             }
             result.Brutto = Money.SEK(Math.Round(brutto, 0));
@@ -791,11 +977,11 @@ public static class SeedData
         var schemaId = ScheduleId.New();
         db.ScheduledShifts.AddRange(
             new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[0].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
-            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[2].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
-            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[4].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
-            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[6].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Kvall, PlaneradStart = new TimeOnly(15, 0), PlaneradSlut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagKvall },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[13].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[14].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Dag, PlaneradStart = new TimeOnly(7, 0), PlaneradSlut = new TimeOnly(16, 0), Rast = TimeSpan.FromMinutes(60), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.Ingen },
             new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[9].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Kvall, PlaneradStart = new TimeOnly(15, 0), PlaneradSlut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagKvall },
-            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[3].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Natt, PlaneradStart = new TimeOnly(21, 0), PlaneradSlut = new TimeOnly(7, 0), Rast = TimeSpan.FromMinutes(45), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagNatt });
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[11].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Kvall, PlaneradStart = new TimeOnly(15, 0), PlaneradSlut = new TimeOnly(22, 0), Rast = TimeSpan.FromMinutes(30), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagKvall },
+            new RegionHR.Scheduling.Domain.ScheduledShift { Id = Guid.NewGuid(), SchemaId = schemaId, AnstallId = employees[8].Id, Datum = idagDatum, PassTyp = RegionHR.Scheduling.Domain.ShiftType.Natt, PlaneradStart = new TimeOnly(21, 0), PlaneradSlut = new TimeOnly(7, 0), Rast = TimeSpan.FromMinutes(45), Status = RegionHR.Scheduling.Domain.ShiftStatus.Planerad, OBKategori = OBCategory.VardagNatt });
 
         // === Certifications via domänens Skapa() ===
         db.Certifications.AddRange(
@@ -815,34 +1001,34 @@ public static class SeedData
         // === PerformanceReviews via domänens Skapa() ===
         // Anna Svensson — genomfört samtal (alla steg)
         var reviewAnna = RegionHR.Performance.Domain.PerformanceReview.Skapa(
-            employees[0].Id.Value, employees[7].Id.Value, 2026); // Chef: Anders Olsson
+            employees[0].Id.Value, employees[2].Id.Value, 2026); // Chef: Eva Nilsson
         reviewAnna.SattSjalvbedomning("Jag har utvecklats inom saravard och tagit mer ansvar i teamet.");
         reviewAnna.SattChefsbedomning("Anna visar gott engagemang och tar initiativ. Utveckling inom ledarskap rekommenderas.", 4);
         reviewAnna.SattMalsattning("Genomga ledarskapsutbildning HT 2026, ta ansvar for handledning av ny personal.");
         reviewAnna.Genomfor();
         db.PerformanceReviews.Add(reviewAnna);
 
-        // Erik Johansson — sjalvbedomning klar, vantar pa chefens bedomning
-        var reviewErik = RegionHR.Performance.Domain.PerformanceReview.Skapa(
-            employees[1].Id.Value, employees[7].Id.Value, 2026);
-        reviewErik.SattSjalvbedomning("Har hanterat hog arbetsbelastning pa akuten. Onskar mer tid for forskning.");
-        db.PerformanceReviews.Add(reviewErik);
+        // Magnus Lindqvist — sjalvbedomning klar, vantar pa chefens bedomning
+        var reviewMagnus = RegionHR.Performance.Domain.PerformanceReview.Skapa(
+            employees[4].Id.Value, employees[2].Id.Value, 2026);
+        reviewMagnus.SattSjalvbedomning("Har hanterat hog arbetsbelastning pa akuten. Onskar mer tid for forskning.");
+        db.PerformanceReviews.Add(reviewMagnus);
 
         // Karl Berg — planerat, ej paborjat
         var reviewKarl = RegionHR.Performance.Domain.PerformanceReview.Skapa(
-            employees[3].Id.Value, employees[7].Id.Value, 2026);
+            employees[1].Id.Value, employees[41].Id.Value, 2026);
         db.PerformanceReviews.Add(reviewKarl);
 
         // Maria Lindgren — chefsbedomning klar, ej genomfort annu
         var reviewMaria = RegionHR.Performance.Domain.PerformanceReview.Skapa(
-            employees[2].Id.Value, employees[7].Id.Value, 2026);
+            employees[13].Id.Value, employees[2].Id.Value, 2026);
         reviewMaria.SattSjalvbedomning("Trivs pa avdelningen. Vill lara mer om dokumentation.");
         reviewMaria.SattChefsbedomning("Maria ar palitlig och omtyckt. Behover utveckla journalforing.", 3);
         db.PerformanceReviews.Add(reviewMaria);
 
         // === Courses + CourseEnrollments via domänlogik ===
         var hlrKurs = RegionHR.LMS.Domain.Course.Skapa(
-            "HLR — Hjart-lungr\u00e4ddning", "Obligatorisk utbildning i hjart-lungr\u00e4ddning for all vardpersonal.",
+            "HLR — Hjart-lungräddning", "Obligatorisk utbildning i hjart-lungräddning for all vardpersonal.",
             RegionHR.LMS.Domain.CourseFormat.Blandat, 240, true, "Klinisk", 24, 20);
         var brandKurs = RegionHR.LMS.Domain.Course.Skapa(
             "Brandskyddsutbildning", "Grundlaggande brandskydd och utrymning.",
@@ -857,19 +1043,16 @@ public static class SeedData
             "Excel for HR", "Dataanalys och rapportering med Excel.",
             RegionHR.LMS.Domain.CourseFormat.Elearning, 90, false, "IT");
 
-        // Publicera kurserna (domänmetod om den finns, annars direkt)
-        // Course.Skapa() sätter Status=Utkast — vi behöver Publicerad
-        // Kolla om Publicera() finns:
         db.Courses.AddRange(hlrKurs, brandKurs, gdprKurs, ledarKurs, excelKurs);
 
         // Enrollments
         var enrollAnnaHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[0].Id.Value, hlrKurs.Id);
         enrollAnnaHlr.Paborja();
         var enrollAnnaGdpr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[0].Id.Value, gdprKurs.Id);
-        var enrollErikBrand = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[1].Id.Value, brandKurs.Id);
-        enrollErikBrand.Paborja();
-        var enrollKarlHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[3].Id.Value, hlrKurs.Id);
-        db.CourseEnrollments.AddRange(enrollAnnaHlr, enrollAnnaGdpr, enrollErikBrand, enrollKarlHlr);
+        var enrollMagnusBrand = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[4].Id.Value, brandKurs.Id);
+        enrollMagnusBrand.Paborja();
+        var enrollKarlHlr = RegionHR.LMS.Domain.CourseEnrollment.Anmala(employees[1].Id.Value, hlrKurs.Id);
+        db.CourseEnrollments.AddRange(enrollAnnaHlr, enrollAnnaGdpr, enrollMagnusBrand, enrollKarlHlr);
 
         // === Pulsundersökningar via domänens Skapa() ===
         // 1. Stängd enkät med frågor + responses (för resultatvy)
@@ -929,10 +1112,10 @@ public static class SeedData
         // Bekräftelser — kopplade till verkliga anställda
         db.PolicyConfirmations.AddRange(
             RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[0].Id.Value, policyGdpr.Version), // Anna
-            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[1].Id.Value, policyGdpr.Version), // Erik
-            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[3].Id.Value, policyGdpr.Version), // Karl
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[4].Id.Value, policyGdpr.Version), // Magnus
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyGdpr.Id, employees[1].Id.Value, policyGdpr.Version), // Karl
             RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[0].Id.Value, policyIt.Version),     // Anna
-            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[2].Id.Value, policyIt.Version));    // Maria
+            RegionHR.PolicyManagement.Domain.PolicyConfirmation.Skapa(policyIt.Id, employees[13].Id.Value, policyIt.Version));   // Maria
 
         // === Timesheets via domänens Skapa() + RegistreraTimmar() + SkickaIn() etc. ===
         // Anna — Inskickad (mars)
@@ -940,70 +1123,70 @@ public static class SeedData
         tsAnnaMars.RegistreraTimmar(168.5m, 8.5m);
         tsAnnaMars.SkickaIn();
 
-        // Erik — Inskickad (mars)
-        var tsErikMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[1].Id.Value, 2026, 3, 160m);
-        tsErikMars.RegistreraTimmar(162m, 2m);
-        tsErikMars.SkickaIn();
+        // Magnus — Inskickad (mars)
+        var tsMagnusMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[4].Id.Value, 2026, 3, 160m);
+        tsMagnusMars.RegistreraTimmar(162m, 2m);
+        tsMagnusMars.SkickaIn();
 
         // Karl — Godkänd (februari)
-        var tsKarlFeb = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[3].Id.Value, 2026, 2, 160m);
+        var tsKarlFeb = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[1].Id.Value, 2026, 2, 160m);
         tsKarlFeb.RegistreraTimmar(158m, 0m);
         tsKarlFeb.SkickaIn();
-        tsKarlFeb.Godkann(employees[7].Id.Value, "Ser bra ut"); // Anders godkänner
+        tsKarlFeb.Godkann(employees[41].Id.Value, "Ser bra ut"); // Monica godkänner
 
         // Maria — Avslagen (mars)
-        var tsMariaMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[2].Id.Value, 2026, 3, 120m);
+        var tsMariaMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[13].Id.Value, 2026, 3, 120m);
         tsMariaMars.RegistreraTimmar(135m, 15m);
         tsMariaMars.SkickaIn();
-        tsMariaMars.Avvisa(employees[7].Id.Value, "Overtid ej forhandsanmald"); // Anders avvisar
+        tsMariaMars.Avvisa(employees[2].Id.Value, "Overtid ej forhandsanmald"); // Eva avvisar
 
-        // Sara — Öppen (mars, ej inskickad)
-        var tsSaraMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[4].Id.Value, 2026, 3, 120m);
-        tsSaraMars.RegistreraTimmar(100m, 0m);
+        // Sofia — Öppen (mars, ej inskickad)
+        var tsSofiaMars = RegionHR.Scheduling.Domain.Timesheet.Skapa(employees[14].Id.Value, 2026, 3, 120m);
+        tsSofiaMars.RegistreraTimmar(100m, 0m);
 
-        db.Timesheets.AddRange(tsAnnaMars, tsErikMars, tsKarlFeb, tsMariaMars, tsSaraMars);
+        db.Timesheets.AddRange(tsAnnaMars, tsMagnusMars, tsKarlFeb, tsMariaMars, tsSofiaMars);
 
         // === TravelClaims via domänens Skapa() ===
-        var reseErik = RegionHR.Travel.Domain.TravelClaim.Skapa(
-            employees[1].Id, "Konferens Stockholm", DateOnly.FromDateTime(DateTime.Today.AddDays(-10)));
-        reseErik.SattTraktamente(2, 0);
-        reseErik.SkickaIn();
+        var reseMagnus = RegionHR.Travel.Domain.TravelClaim.Skapa(
+            employees[4].Id, "Konferens Stockholm", DateOnly.FromDateTime(DateTime.Today.AddDays(-10)));
+        reseMagnus.SattTraktamente(2, 0);
+        reseMagnus.SkickaIn();
         var reseAnna = RegionHR.Travel.Domain.TravelClaim.Skapa(
-            employees[0].Id, "Utbildning Goteborg", DateOnly.FromDateTime(DateTime.Today.AddDays(-25)));
+            employees[0].Id, "Utbildning Orebro", DateOnly.FromDateTime(DateTime.Today.AddDays(-25)));
         reseAnna.SattTraktamente(1, 0);
         reseAnna.SkickaIn();
-        reseAnna.Attestera("Eva Nilsson");
-        db.TravelClaims.AddRange(reseErik, reseAnna);
+        reseAnna.Attestera("Monica Hakansson");
+        db.TravelClaims.AddRange(reseMagnus, reseAnna);
 
         // === DelegatedAccess via domänens Skapa() ===
-        var delegEva = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
-            employees[8].Id.Value, employees[2].Id.Value, "Ledighet – godkanna",
+        var delegMonica = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
+            employees[41].Id.Value, employees[13].Id.Value, "Ledighet – godkanna",
             DateOnly.FromDateTime(DateTime.Today), DateOnly.FromDateTime(DateTime.Today.AddDays(14)), "Semester");
-        var delegAnders = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
-            employees[7].Id.Value, employees[3].Id.Value, "Tidrapporter – attestera",
+        var delegEva = RegionHR.Infrastructure.Authorization.DelegatedAccess.Skapa(
+            employees[2].Id.Value, employees[1].Id.Value, "Tidrapporter – attestera",
             DateOnly.FromDateTime(DateTime.Today.AddDays(10)), DateOnly.FromDateTime(DateTime.Today.AddDays(24)), "Konferens");
-        db.DelegatedAccesses.AddRange(delegEva, delegAnders);
+        db.DelegatedAccesses.AddRange(delegMonica, delegEva);
 
         // === ShiftSwapRequests via domänens Skapa() ===
         var swap1 = RegionHR.Scheduling.Domain.ShiftSwapRequest.Skapa(
             employees[0].Id, Guid.NewGuid(), "Behover byta pga lakartid");
-        swap1.Erbjud(employees[4].Id);
-        swap1.Acceptera(employees[4].Id, null);
+        swap1.Erbjud(employees[6].Id);
+        swap1.Acceptera(employees[6].Id, null);
         var swap2 = RegionHR.Scheduling.Domain.ShiftSwapRequest.Skapa(
-            employees[3].Id, Guid.NewGuid(), "Vill byta till dagpass");
-        swap2.Erbjud(employees[6].Id);
+            employees[9].Id, Guid.NewGuid(), "Vill byta till dagpass");
+        swap2.Erbjud(employees[10].Id);
         db.ShiftSwapRequests.AddRange(swap1, swap2);
 
         // === WellnessClaims via domänens Skapa() ===
         var friskvardAnna = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
             employees[0].Id.Value, "Personlig traning", 2000m, DateOnly.FromDateTime(DateTime.Today.AddDays(-15)));
-        friskvardAnna.Godkann(employees[8].Id.Value, "Godkant");
+        friskvardAnna.Godkann(employees[41].Id.Value, "Godkant");
         var friskvardKarl = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
-            employees[3].Id.Value, "Yoga", 1500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)));
-        var friskvardErik = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
-            employees[1].Id.Value, "Simkort arskort", 3500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-30)));
-        friskvardErik.Godkann(employees[8].Id.Value);
-        db.WellnessClaims.AddRange(friskvardAnna, friskvardKarl, friskvardErik);
+            employees[1].Id.Value, "Yoga", 1500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)));
+        var friskvardMagnus = RegionHR.Wellness.Domain.WellnessClaim.Skapa(
+            employees[4].Id.Value, "Simkort arskort", 3500m, DateOnly.FromDateTime(DateTime.Today.AddDays(-30)));
+        friskvardMagnus.Godkann(employees[41].Id.Value);
+        db.WellnessClaims.AddRange(friskvardAnna, friskvardKarl, friskvardMagnus);
 
         // === Announcements via domänens Skapa() ===
         var annons1 = RegionHR.Communication.Domain.Announcement.Skapa(
@@ -1029,50 +1212,50 @@ public static class SeedData
 
         // === Recognitions ===
         db.Recognitions.AddRange(
-            RegionHR.Communication.Domain.Recognition.Skapa(employees[0].Id.Value, employees[3].Id.Value, "Samarbete", "Karl hoppade in pa kort varsel och tacklade kvallspasset. Fantastiskt!"),
-            RegionHR.Communication.Domain.Recognition.Skapa(employees[1].Id.Value, employees[6].Id.Value, "Innovation", "Helena foreslog nytt triageflode som kortat vantetiderna."),
-            RegionHR.Communication.Domain.Recognition.Skapa(employees[4].Id.Value, employees[0].Id.Value, "Hjalpsamhet", "Anna tog sig tid att handleda en ny kollega trots hog belastning."));
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[0].Id.Value, employees[1].Id.Value, "Samarbete", "Karl hoppade in pa kort varsel och tacklade kvallspasset. Fantastiskt!"),
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[4].Id.Value, employees[9].Id.Value, "Innovation", "Helena foreslog nytt triageflode som kortat vantetiderna."),
+            RegionHR.Communication.Domain.Recognition.Skapa(employees[14].Id.Value, employees[0].Id.Value, "Hjalpsamhet", "Anna tog sig tid att handleda en ny kollega trots hog belastning."));
 
         // === SuccessionPlans ===
         db.SuccessionPlans.AddRange(
-            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posVc.Id, employees[7].Id.Value, 2029, employees[0].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom1Ar, 75),
-            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posLakAkut.Id, employees[1].Id.Value, 2032, null, RegionHR.Positions.Domain.SuccessionReadiness.EjIdentifierad, 0),
-            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posSsk32.Id, employees[0].Id.Value, 2035, employees[4].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom2Ar, 40));
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posVc.Id, employees[2].Id.Value, 2029, employees[0].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom1Ar, 75),
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posLakAkut.Id, employees[4].Id.Value, 2032, null, RegionHR.Positions.Domain.SuccessionReadiness.EjIdentifierad, 0),
+            RegionHR.Positions.Domain.SuccessionPlan.Skapa(posSskAkut.Id, employees[0].Id.Value, 2035, employees[6].Id.Value, RegionHR.Positions.Domain.SuccessionReadiness.RedoInom2Ar, 40));
 
         // === FeedbackRound + Responses ===
         var fb360Anna = RegionHR.Performance.Domain.FeedbackRound.Skapa(employees[0].Id.Value, "360-feedback Anna Svensson 2026");
         fb360Anna.Oppna();
         fb360Anna.Stang();
-        var fbResp1 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[7].Id.Value, "Chef", 4, "Bra samarbetsformaga");
-        var fbResp2 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[3].Id.Value, "Kollega", 5, "Alltid hjalpsam");
-        var fbResp3 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[4].Id.Value, "Kollega", 4);
+        var fbResp1 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[2].Id.Value, "Chef", 4, "Bra samarbetsformaga");
+        var fbResp2 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[1].Id.Value, "Kollega", 5, "Alltid hjalpsam");
+        var fbResp3 = RegionHR.Performance.Domain.FeedbackResponse.Skapa(fb360Anna.Id, employees[6].Id.Value, "Kollega", 4);
 
-        var fb360Erik = RegionHR.Performance.Domain.FeedbackRound.Skapa(employees[1].Id.Value, "360-feedback Erik Johansson 2026");
-        fb360Erik.Oppna();
-        db.FeedbackRounds.AddRange(fb360Anna, fb360Erik);
+        var fb360Magnus = RegionHR.Performance.Domain.FeedbackRound.Skapa(employees[4].Id.Value, "360-feedback Magnus Lindqvist 2026");
+        fb360Magnus.Oppna();
+        db.FeedbackRounds.AddRange(fb360Anna, fb360Magnus);
         db.FeedbackResponses.AddRange(fbResp1, fbResp2, fbResp3);
 
         // === LASAccumulations ===
-        var lasMaria = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[2].Id, EmploymentType.SAVA);
+        var lasMaria = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[13].Id, EmploymentType.SAVA);
         lasMaria.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-200)), DateOnly.FromDateTime(DateTime.Today.AddDays(-50)), null);
         lasMaria.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-40)), DateOnly.FromDateTime(DateTime.Today), null);
-        var lasJohan = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[5].Id, EmploymentType.Vikariat);
+        var lasJohan = RegionHR.LAS.Domain.LASAccumulation.Skapa(employees[12].Id, EmploymentType.Vikariat);
         lasJohan.LaggTillPeriod(DateOnly.FromDateTime(DateTime.Today.AddDays(-320)), DateOnly.FromDateTime(DateTime.Today), null);
         db.LASAccumulations.AddRange(lasMaria, lasJohan);
 
         // === Vacancies ===
         var vakSsk = RegionHR.Recruitment.Domain.Vacancy.Skapa(
-            avd32.Id, "Sjukskoterska", "Vi soker erfaren sjukskoterska till Avdelning 32.",
+            usoAkuten.Id, "Sjukskoterska", "Vi soker erfaren sjukskoterska till Akutmottagningen USO.",
             EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(30)));
         vakSsk.Publicera(false, false);
         vakSsk.TaEmotAnsokan("Anna Bergman", "anna.bergman@mail.se", null);
         vakSsk.TaEmotAnsokan("Karl Lindqvist", "karl.l@mail.se", null);
         var vakUsk = RegionHR.Recruitment.Domain.Vacancy.Skapa(
-            iva.Id, "Underskoterska IVA", "IVA soker underskoterska med intensivvardserfarenhet.",
+            usoIva.Id, "Underskoterska IVA", "IVA soker underskoterska med intensivvardserfarenhet.",
             EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(14)));
         vakUsk.Publicera(false, false);
         var vakLak = RegionHR.Recruitment.Domain.Vacancy.Skapa(
-            akuten.Id, "Lakare akutmottagningen", "Specialist i akutsjukvard.",
+            kgaAkuten.Id, "Lakare Karlskoga lasarett", "Specialist i akutsjukvard.",
             EmploymentType.Tillsvidare, DateOnly.FromDateTime(DateTime.Today.AddDays(60)));
         db.Vacancies.AddRange(vakSsk, vakUsk, vakLak);
 
@@ -1090,11 +1273,11 @@ public static class SeedData
         db.ReferenceChecks.AddRange(refCheck1, refCheck2);
 
         // === MBL-förhandlingar ===
-        var mbl1 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Omorganisation Avdelning 32", RegionHR.CaseManagement.Domain.MBLType.Forhandling, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)), "Kommunal — Anna Ek", "HR-chef Eva Nilsson");
+        var mbl1 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Omorganisation Akutmottagningen USO", RegionHR.CaseManagement.Domain.MBLType.Forhandling, DateOnly.FromDateTime(DateTime.Today.AddDays(-5)), "Kommunal — Anna Ek", "HR-chef Monica Hakansson");
         mbl1.Paborja();
         mbl1.Avsluta();
         mbl1.RegistreraProtokoll("Parterna enade. Omorganisation genomfors fran 1 maj 2026.");
-        var mbl2 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Nyanstallning verksamhetschef", RegionHR.CaseManagement.Domain.MBLType.Information, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Vardforbundet — Karl Berg", "HR-chef Eva Nilsson");
+        var mbl2 = RegionHR.CaseManagement.Domain.MBLNegotiation.Skapa("Nyanstallning verksamhetschef", RegionHR.CaseManagement.Domain.MBLType.Information, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Vardforbundet — Karl Berg", "HR-chef Monica Hakansson");
         db.MBLNegotiations.AddRange(mbl1, mbl2);
 
         // === SalaryCodes via SalaryCodeSeed ===
@@ -1172,8 +1355,8 @@ public static class SeedData
 
         // === KPI Snapshots (current period: 2026-Q1) ===
         db.KPISnapshots.AddRange(
-            KPISnapshot.Skapa(kpiHeadcount.Id, "2026-Q1", 10, 10, "Stable"),
-            KPISnapshot.Skapa(kpiFTE.Id, "2026-Q1", 9.2m, 9.0m, "Up"),
+            KPISnapshot.Skapa(kpiHeadcount.Id, "2026-Q1", 43, 10, "Up"),
+            KPISnapshot.Skapa(kpiFTE.Id, "2026-Q1", 42.0m, 9.0m, "Up"),
             KPISnapshot.Skapa(kpiVacancy.Id, "2026-Q1", 7.5m, 8.0m, "Down"),
             KPISnapshot.Skapa(kpiTurnover.Id, "2026-Q1", 0, null, "Stable"),
             KPISnapshot.Skapa(kpiSickLeave.Id, "2026-Q1", 4.2m, 4.5m, "Down"),
@@ -1195,7 +1378,7 @@ public static class SeedData
         db.PredictionModels.AddRange(pmAttrition, pmHeadcount, pmSickLeave, pmLaborCost);
 
         // === VMS / Contingent Workforce ===
-        var vendor1 = RegionHR.VMS.Domain.Vendor.Skapa("MedStaff AB", "556789-1234", "Anna Lind", "anna@medstaff.se", "031-111222", "Sjukvard");
+        var vendor1 = RegionHR.VMS.Domain.Vendor.Skapa("MedStaff AB", "556789-1234", "Anna Lind", "anna@medstaff.se", "019-111222", "Sjukvard");
         var vendor2 = RegionHR.VMS.Domain.Vendor.Skapa("VardPool Sverige", "556790-5678", "Erik Johansson", "erik@vardpool.se", "08-333444", "Sjukvard");
         var vendor3 = RegionHR.VMS.Domain.Vendor.Skapa("BemanningsExpert", "556791-9012", "Lisa Berg", "lisa@bemanningsexpert.se", "040-555666", "IT");
         db.Vendors.AddRange(vendor1, vendor2, vendor3);
@@ -1214,7 +1397,7 @@ public static class SeedData
         db.FrameworkAgreements.AddRange(ramavtal1, ramavtal2);
 
         var vmsRequest = RegionHR.VMS.Domain.StaffingRequest.Skapa(
-            avd32.Id, "Sjukskoterska", new DateOnly(2026, 1, 15), new DateOnly(2026, 6, 30), 2,
+            usoAkuten.Id, "Sjukskoterska", new DateOnly(2026, 1, 15), new DateOnly(2026, 6, 30), 2,
             "Minst 3 ars erfarenhet inom akutsjukvard");
         vmsRequest.SkickaIn();
         vmsRequest.Godkann();
@@ -1222,9 +1405,9 @@ public static class SeedData
         db.StaffingRequests.Add(vmsRequest);
 
         var cw1 = RegionHR.VMS.Domain.ContingentWorker.Skapa(
-            "Maria Lindqvist", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 1, 20), new DateOnly(2026, 6, 30), 520m, avd32.Id);
+            "Maria Lindqvist", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 1, 20), new DateOnly(2026, 6, 30), 520m, usoAkuten.Id);
         var cw2 = RegionHR.VMS.Domain.ContingentWorker.Skapa(
-            "Johan Pettersson", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 2, 1), null, 520m, avd32.Id);
+            "Johan Pettersson", vendor1.Id, vmsRequest.Id, new DateOnly(2026, 2, 1), null, 520m, usoAkuten.Id);
         db.ContingentWorkers.AddRange(cw1, cw2);
 
         var tr1 = RegionHR.VMS.Domain.ContingentTimeReport.Skapa(cw1.Id, "2026-02", 152m, 8m, 4m);
@@ -1281,13 +1464,13 @@ public static class SeedData
         scenario3.Antaganden.Add(RegionHR.Analytics.Domain.ScenarioAssumption.Skapa(scenario3.Id, "AttritionRate", 12m, "Hogre omsattning vid besparingar"));
         db.PlanningScenarios.Add(scenario3);
 
-        // === WFM: DemandPatterns for Akuten (5 st — vardagar, helger) ===
+        // === WFM: DemandPatterns for Akuten USÖ (5 st — vardagar, helger) ===
         db.DemandPatterns.AddRange(
-            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 1, GenomsnittligBelastning = 12, SasongsVariation = 1.0m }, // Mån
-            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 2, GenomsnittligBelastning = 11, SasongsVariation = 1.0m }, // Tis
-            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 5, GenomsnittligBelastning = 14, SasongsVariation = 1.1m }, // Fre
-            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 6, GenomsnittligBelastning = 16, SasongsVariation = 1.2m }, // Lör
-            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = akuten.Id, Veckodag = 0, GenomsnittligBelastning = 15, SasongsVariation = 1.15m }); // Sön
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = usoAkuten.Id, Veckodag = 1, GenomsnittligBelastning = 12, SasongsVariation = 1.0m }, // Mån
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = usoAkuten.Id, Veckodag = 2, GenomsnittligBelastning = 11, SasongsVariation = 1.0m }, // Tis
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = usoAkuten.Id, Veckodag = 5, GenomsnittligBelastning = 14, SasongsVariation = 1.1m }, // Fre
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = usoAkuten.Id, Veckodag = 6, GenomsnittligBelastning = 16, SasongsVariation = 1.2m }, // Lör
+            new RegionHR.Scheduling.Domain.DemandPattern { EnhetId = usoAkuten.Id, Veckodag = 0, GenomsnittligBelastning = 15, SasongsVariation = 1.15m }); // Sön
 
         // === WFM: DemandEvents (3 st) ===
         db.DemandEvents.AddRange(
@@ -1307,13 +1490,13 @@ public static class SeedData
         db.EmployeeAvailabilities.AddRange(
             new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[0].Id, Veckodag = 1, TidFran = new TimeOnly(7, 0), TidTill = new TimeOnly(16, 0), Preferens = "VillJobba", ArRepeterande = true },
             new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[0].Id, Veckodag = 6, Preferens = "KanInte", ArRepeterande = true },
-            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[2].Id, Veckodag = 5, TidFran = new TimeOnly(15, 0), TidTill = new TimeOnly(22, 0), Preferens = "KanJobba", ArRepeterande = true },
-            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[3].Id, Datum = new DateOnly(2026, 4, 10), Preferens = "KanInte", ArRepeterande = false });
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[13].Id, Veckodag = 5, TidFran = new TimeOnly(15, 0), TidTill = new TimeOnly(22, 0), Preferens = "KanJobba", ArRepeterande = true },
+            new RegionHR.Scheduling.Domain.EmployeeAvailability { AnstallId = employees[9].Id, Datum = new DateOnly(2026, 4, 10), Preferens = "KanInte", ArRepeterande = false });
 
         // === WFM: FatigueScores (2 st for seeded employees) ===
         db.FatigueScores.AddRange(
-            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[1].Id, konsekutivaDagar: 5, nattpassSenaste7Dagar: 2, totalTimmarSenaste7Dagar: 42.5m, kortVila: 1, helgarbeteSenaste4Veckor: 3),
-            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[3].Id, konsekutivaDagar: 3, nattpassSenaste7Dagar: 1, totalTimmarSenaste7Dagar: 35.0m, kortVila: 0, helgarbeteSenaste4Veckor: 1));
+            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[4].Id, konsekutivaDagar: 5, nattpassSenaste7Dagar: 2, totalTimmarSenaste7Dagar: 42.5m, kortVila: 1, helgarbeteSenaste4Veckor: 3),
+            RegionHR.Scheduling.Domain.FatigueScore.Berakna(employees[9].Id, konsekutivaDagar: 3, nattpassSenaste7Dagar: 1, totalTimmarSenaste7Dagar: 35.0m, kortVila: 0, helgarbeteSenaste4Veckor: 1));
 
         // === Custom Objects (platform schema) ===
         var utrustning = CustomObject.Skapa(
@@ -1328,12 +1511,11 @@ public static class SeedData
             """{"Typ":"Dator","Serienummer":"SN-2026-00142","Tilldelad":"Anna Svensson","Utlamnad":"2026-01-15"}""",
             "System");
         var record2 = CustomObjectRecord.Skapa(utrustning.Id,
-            """{"Typ":"Passerkort","Serienummer":"PK-2026-00087","Tilldelad":"Erik Johansson","Utlamnad":"2026-02-01"}""",
+            """{"Typ":"Passerkort","Serienummer":"PK-2026-00087","Tilldelad":"Magnus Lindqvist","Utlamnad":"2026-02-01"}""",
             "System");
         db.CustomObjectRecords.AddRange(record1, record2);
 
         // === WorkflowNodes for existing Franvaro workflow ===
-        // Find the Franvaro workflow definition (seeded via Configuration)
         var franvaroWf = await db.WorkflowDefinitions
             .FirstOrDefaultAsync(w => w.TargetEntityType == "Franvaro");
 
@@ -1671,7 +1853,7 @@ Du har i vissa fall rätt att få dina uppgifter raderade (""rätten att bli gl�
 Du kan begära att få dina uppgifter i ett maskinläsbart format.
 
 ### Personuppgiftsansvarig
-Region Västra Götaland är personuppgiftsansvarig. Kontakta dataskyddsombudet vid frågor: dso@regionvg.se
+Region Örebro län är personuppgiftsansvarig. Kontakta dataskyddsombudet vid frågor: dso@regionorebrolan.se
 
 ### Laglig grund
 Regionen behandlar dina uppgifter med stöd av:
@@ -1846,8 +2028,8 @@ Du kan teckna egna försäkringar som komplement, t.ex. sjukvårdsförsäkring e
 - **E-post fungerar ej**: Rensa cache eller starta om Outlook
 
 ### Kontakta servicedesk
-- **Telefon**: 010-441 00 00
-- **E-post**: servicedesk@regionvg.se
+- **Telefon**: 019-602 10 00
+- **E-post**: servicedesk@regionorebrolan.se
 - **Öppettider**: mån–fre 07:00–17:00
 
 ### OpenHR-stöd
@@ -2070,28 +2252,27 @@ Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker ut
 
         // === Shift Bidding (3 OpenShifts + 2 ShiftBids) ===
         var openShift1 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
-            avd32.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(3)), "Dag",
+            usoAkuten.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(3)), "Dag",
             new TimeOnly(7, 0), new TimeOnly(15, 30),
             "{\"skills\":[\"HLR\",\"Lakemedelshantering\"]}", "Ordinarie");
         var openShift2 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
-            akuten.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(5)), "Kvall",
+            kgaAkuten.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(5)), "Kvall",
             new TimeOnly(15, 0), new TimeOnly(22, 0),
             null, "OB");
         var openShift3 = RegionHR.Scheduling.Domain.OpenShift.Skapa(
-            avd33.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Natt",
+            usoIva.Id, DateOnly.FromDateTime(DateTime.Today.AddDays(7)), "Natt",
             new TimeOnly(21, 0), new TimeOnly(7, 0),
             "{\"skills\":[\"IVA\"]}", "Overtid");
         db.OpenShifts.AddRange(openShift1, openShift2, openShift3);
 
         // 2 bud på det första öppna passet
         var bid1 = RegionHR.Scheduling.Domain.ShiftBid.Skapa(openShift1.Id, employees[0].Id, 1, "Vill gärna ta extrapasset");
-        var bid2 = RegionHR.Scheduling.Domain.ShiftBid.Skapa(openShift1.Id, employees[2].Id, 2, "Kan jobba denna dag");
-        // Note: LaggTillBud is internal to Scheduling assembly; bids are linked via FK
+        var bid2 = RegionHR.Scheduling.Domain.ShiftBid.Skapa(openShift1.Id, employees[6].Id, 2, "Kan jobba denna dag");
         db.ShiftBids.AddRange(bid1, bid2);
 
         // === Grievance (1 st, status: UnderInvestigation) ===
         var grievance1 = RegionHR.CaseManagement.Domain.Grievance.Skapa(
-            employees[4].Id,
+            employees[14].Id,
             RegionHR.CaseManagement.Domain.GrievanceType.Arbetsmiljo,
             "Upprepade brister i ergonomisk utrustning på arbetsplatsen. Stolen är trasig och höj-sänkbart skrivbord saknas trots upprepade förfrågningar.",
             "Kommunal - Lisa Fackman");
@@ -2100,18 +2281,15 @@ Lön betalas ut den **25:e varje månad**. Om den 25:e infaller på helg sker ut
         db.Grievances.Add(grievance1);
 
         // === System Settings: IBB and PBB (Inkomstbasbelopp / Prisbasbelopp) ===
-        // These values are set annually by the Swedish government.
-        // The PayrollCalculationEngine uses hardcoded fallback constants;
-        // future versions should look these up from this table instead.
         db.SystemSettings.AddRange(
             SystemSetting.Skapa("IBB_2025", "80600",
-                "Inkomstbasbelopp 2025 (fastst\u00e4llt av Pensionsmyndigheten)", "Basbelopp"),
+                "Inkomstbasbelopp 2025 (fastställt av Pensionsmyndigheten)", "Basbelopp"),
             SystemSetting.Skapa("IBB_2026", "83400",
-                "Inkomstbasbelopp 2026 (fastst\u00e4llt av Pensionsmyndigheten)", "Basbelopp"),
+                "Inkomstbasbelopp 2026 (fastställt av Pensionsmyndigheten)", "Basbelopp"),
             SystemSetting.Skapa("PBB_2025", "58800",
-                "Prisbasbelopp 2025 (fastst\u00e4llt av Statistiska centralbyr\u00e5n)", "Basbelopp"),
+                "Prisbasbelopp 2025 (fastställt av Statistiska centralbyrån)", "Basbelopp"),
             SystemSetting.Skapa("PBB_2026", "59200",
-                "Prisbasbelopp 2026 (fastst\u00e4llt av Statistiska centralbyr\u00e5n)", "Basbelopp"));
+                "Prisbasbelopp 2026 (fastställt av Statistiska centralbyrån)", "Basbelopp"));
 
         await db.SaveChangesAsync();
     }
